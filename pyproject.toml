@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling", "setuptools"]
+build-backend = "hatchling.build"
+
+[project]
+name = "view.py"
+description = 'Experimental Python web framework.'
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "ZeroIntensity", email = "zintensitydev@gmail.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = ["toml~=0.10.2", "rich", "click", "typing_extensions"]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://view.zintensity.dev"
+Issues = "https://github.com/ZeroIntensity/view.py/issues"
+Source = "https://github.com/ZeroIntensity/view.py"
+
+[tool.hatch.version]
+path = "src/view/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "ward",
+  "coverage",
+]
+[tool.hatch.envs.default.scripts]
+cov = "coverage run -m ward"
+no-cov = "ward"
+
+[[tool.hatch.envs.test.matrix]]
+python = ["37", "38", "39", "310", "311"]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+omit = [
+  "src/view.py/__about__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.ward]
+path = ["tests"]
+capture-output = true
+order = "standard"
+test-output-style = "test-per-line"
+fail-limit = 5
+progress-style = ["bar"]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/view"]
+include = ["src/view/**/*.py"]
+
+[tool.hatch.build.hooks.custom]
+enable-by-default = true
+
+[project.scripts]
+view = "view.__main__:main"
