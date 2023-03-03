@@ -3,3 +3,4 @@ __pycache__/
 ext/
 test.py
 sample.py
+compile_flags.txt

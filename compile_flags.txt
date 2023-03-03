@@ -1,4 +1,0 @@
--I
-/usr/include/python3.10/
--I
-/root/view.py/include/
