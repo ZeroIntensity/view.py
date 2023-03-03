@@ -10,10 +10,13 @@
 #include "Python.h"
 #include <view/awaitable.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 typedef struct {
     PyObject *coro;
     awaitcallback callback;
+    awaitcallback_err err_callback;
+    bool done;
 } awaitable_callback;
 
 struct _PyAwaitableObject {
@@ -23,8 +26,10 @@ struct _PyAwaitableObject {
     PyObject *aw_result;
     PyObject *aw_done;
     PyObject *aw_gen;
-    const void **aw_values;
+    PyObject **aw_values;
     Py_ssize_t aw_values_size;
+    void **aw_arb_values;
+    Py_ssize_t aw_arb_values_size;
 };
 
 PyDoc_STRVAR(awaitable_doc,
@@ -172,6 +177,33 @@ gen_add(PyObject *self, PyObject *value)
     return 0;
 }
 
+static int
+fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
+{
+    if (!cb->err_callback) {
+        cb->done = true;
+        Py_DECREF(cb->coro);
+        Py_XDECREF(await);
+        return -1;
+    }
+    PyObject *res_type, *res_value, *res_traceback;
+    PyErr_Fetch(&res_type, &res_value, &res_traceback);
+    Py_INCREF(self);
+    int e_res = cb->err_callback(self, res_type, res_value, res_traceback);
+    Py_DECREF(self);
+    PyErr_Restore(res_type, res_value, res_traceback);
+
+    if (e_res < 0) {
+        cb->done = true;
+        Py_DECREF(cb->coro);
+        Py_XDECREF(await);
+        return -1;
+    };
+
+    PyErr_Clear();
+    return 0;
+}
+
 static PyObject *
 awaitable_next(PyObject *self)
 {
@@ -203,7 +235,11 @@ awaitable_next(PyObject *self)
             return NULL;
         } 
         PyObject *await = am_await(cb->coro);
-        if (await == NULL) return NULL;
+        if (await == NULL) {
+            if (fire_err_callback(self, await, cb) < 0)
+                return NULL;
+            return gen;
+        }
         Py_INCREF(await);
 
         PyObject *item = NULL;
@@ -215,63 +251,82 @@ awaitable_next(PyObject *self)
                     !occurred ||
                     PyErr_GivenExceptionMatches(occurred, PyExc_StopIteration)
                 ) {
-                    if (!cb->callback) break;
+                    if (cb->callback == NULL) break;
                     PyObject *type, *value, *traceback;
                     PyErr_Fetch(&type, &value, &traceback);
-                    if (!value) {
+                    if (value == NULL) {
                         Py_INCREF(Py_None);
                         value = Py_None;
+                    } else {
+                        if (PyObject_IsInstance(value, PyExc_StopIteration)) {
+                            value = PyObject_GetAttrString(value, "value");
+                            if (!value) return NULL;
+                        }
                     }
                     Py_INCREF(value);
                     Py_INCREF(self);
                     int result = cb->callback(self, value);
                     Py_DECREF(self);
                     Py_DECREF(value);
-                    if (result < 0) return NULL;
+                    if (result < 0) {
+                        if (fire_err_callback(self, await, cb) < 0)
+                            return NULL;
+                    }
                     break;
                 }
-
-                Py_DECREF(await);
-                return NULL;
+                cb->done = true;
+                if (fire_err_callback(self, await, cb) < 0)
+                    return NULL;
+                break;
             }
         }
 
         Py_DECREF(await);
-        if (PyErr_Occurred()) {
-            return NULL;
-        }
+        Py_DECREF(cb->coro);
+        cb->done = true;
     }
 
     return gen;
-}
-
-static PyObject *
-awaitable_await(PyObject* self)
-{
-    return awaitable_next(self);
 }
 
 static void
 awaitable_dealloc(PyObject *self)
 {
     PyAwaitableObject *aw = (PyAwaitableObject *) self;
+    if (aw->aw_values) {
+        for (int i = 0; i < aw->aw_values_size; i++)
+            Py_DECREF(aw->aw_values[i]);
+        PyMem_Free(aw->aw_values);
+    }
+
     Py_XDECREF(aw->aw_gen);
     Py_XDECREF(aw->aw_result);
     Py_DECREF(aw->aw_done);
 
-    if (aw->aw_values) PyMem_Free(aw->aw_values);
-
     for (int i = 0; i < aw->aw_callback_size; i++) {
         awaitable_callback *cb = aw->aw_callbacks[i];
-        Py_DECREF(cb->coro);
+        if (!cb->done) Py_DECREF(cb->coro);
         PyMem_Free(cb);
     }
 
+    if (aw->aw_arb_values) PyMem_Free(aw->aw_arb_values);
     Py_TYPE(self)->tp_free(self);
 }
 
+static PyObject *
+awaitable_repr(PyObject *self) {
+    assert(self != NULL);
+    PyAwaitableObject *aw = (PyAwaitableObject *) self;
+    Py_ssize_t done_size = 0;
+    for (int i = 0; i < aw->aw_callback_size; i++) {
+        if (aw->aw_callbacks[i]->done) ++done_size;
+    }
+    return PyUnicode_FromFormat("<builtin awaitable, %zd done of %zd>",
+                                done_size, aw->aw_callback_size);
+}
+
 static PyAsyncMethods async_methods = {
-    .am_await = awaitable_await
+    .am_await = awaitable_next
 };
 
 PyTypeObject _PyAwaitable_GenWrapper_Type = {
@@ -325,7 +380,7 @@ PyTypeObject PyAwaitable_Type = {
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
     &async_methods,                             /* tp_as_async */
-    0,                                          /* tp_repr */
+    awaitable_repr,                             /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */
     0,                                          /* tp_as_mapping */
@@ -346,7 +401,7 @@ PyTypeObject PyAwaitable_Type = {
     0,                                          /* tp_methods */
     0,                                          /* tp_members */
     0,                                          /* tp_getset */
-    &PyCoro_Type,                               /* tp_base */
+    0,                                          /* tp_base */
     0,                                          /* tp_dict */
     0,                                          /* tp_descr_get */
     0,                                          /* tp_descr_set */
@@ -356,8 +411,30 @@ PyTypeObject PyAwaitable_Type = {
     awaitable_new,                              /* tp_new */
 };
 
+void
+PyAwaitable_ClearAwaits(PyObject *aw)
+{
+    assert(aw != NULL);
+    Py_INCREF(aw);
+
+    PyAwaitableObject *a = (PyAwaitableObject *) aw;
+
+    for (int i = 0; i < a->aw_callback_size; i++) {
+        awaitable_callback* cb = a->aw_callbacks[i];
+        if (!cb->done)
+            Py_DECREF(cb->coro);
+    }
+
+    Py_DECREF(aw);
+}
+
 int
-PyAwaitable_AddAwait(PyObject *aw, PyObject *coro, awaitcallback cb)
+PyAwaitable_AddAwait(
+    PyObject *aw,
+    PyObject *coro,
+    awaitcallback cb,
+    awaitcallback_err err
+)
 {
     assert(aw != NULL);
     assert(coro != NULL);
@@ -394,6 +471,7 @@ PyAwaitable_AddAwait(PyObject *aw, PyObject *coro, awaitcallback cb)
 
     aw_c->coro = coro; // steal our own reference
     aw_c->callback = cb;
+    aw_c->err_callback = err;
     a->aw_callbacks[a->aw_callback_size - 1] = aw_c;
     Py_DECREF(aw);
 
@@ -428,7 +506,8 @@ PyAwaitable_UnpackValues(PyObject *awaitable, ...) {
     Py_INCREF(awaitable);
 
     if (aw->aw_values == NULL) {
-        PyErr_SetString(PyExc_ValueError, "object has no values");
+        PyErr_SetString(PyExc_ValueError,
+                        "awaitable object has no stored values");
         Py_DECREF(awaitable);
         return -1;
     }
@@ -437,41 +516,13 @@ PyAwaitable_UnpackValues(PyObject *awaitable, ...) {
     va_start(args, awaitable);
 
     for (int i = 0; i < aw->aw_values_size; i++) {
-        void **ptr = va_arg(args, void **);
-        if (!ptr) continue;
-        *ptr = (void*) aw->aw_values[i];
+        PyObject **ptr = va_arg(args, PyObject **);
+        if (ptr == NULL) continue;
+        *ptr = aw->aw_values[i];
+        // borrowed reference
     }
 
     va_end(args);
-    Py_DECREF(awaitable);
-    return 0;
-}
-
-int
-PyAwaitable_SaveValue(PyObject *awaitable, const void *value) {
-    assert(awaitable != NULL);
-    Py_INCREF(awaitable);
-    PyAwaitableObject *aw = (PyAwaitableObject *) awaitable;
-
-    if (aw->aw_values == NULL)
-        aw->aw_values = PyMem_Calloc(
-            ++aw->aw_values_size,
-            sizeof(const void *)
-        );
-    else
-        aw->aw_values = PyMem_Realloc(
-            aw->aw_values,
-            sizeof(const void *) * ++aw->aw_values_size
-        );
-
-    if (aw->aw_values == NULL) {
-        PyErr_NoMemory();
-        Py_DECREF(awaitable);
-        return -1;
-    }
-
-    aw->aw_values[aw->aw_values_size - 1] = value;
-
     Py_DECREF(awaitable);
     return 0;
 }
@@ -490,12 +541,12 @@ PyAwaitable_SaveValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
     if (aw->aw_values == NULL)
         aw->aw_values = PyMem_Calloc(
             nargs,
-            sizeof(const void *)
+            sizeof(PyObject *)
         );
     else
         aw->aw_values = PyMem_Realloc(
             aw->aw_values,
-            sizeof(const void *) * (aw->aw_values_size + nargs)
+            sizeof(PyObject *) * (aw->aw_values_size + nargs)
         );
 
     if (aw->aw_values == NULL) {
@@ -507,8 +558,72 @@ PyAwaitable_SaveValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
     aw->aw_values_size += nargs;
 
     for (int i = offset; i < aw->aw_values_size; i++)
-        aw->aw_values[i] = va_arg(vargs, void *);
+        aw->aw_values[i] = Py_NewRef(va_arg(vargs, PyObject*));
 
+    va_end(vargs);
+    Py_DECREF(awaitable);
+    return 0;
+}
+
+int
+PyAwaitable_UnpackArbValues(PyObject *awaitable, ...) {
+    assert(awaitable != NULL);
+    PyAwaitableObject *aw = (PyAwaitableObject *) awaitable;
+    Py_INCREF(awaitable);
+
+    if (aw->aw_values == NULL) {
+        PyErr_SetString(PyExc_ValueError,
+                        "awaitable object has no stored arbitrary values");
+        Py_DECREF(awaitable);
+        return -1;
+    }
+
+    va_list args;
+    va_start(args, awaitable);
+
+    for (int i = 0; i < aw->aw_arb_values_size; i++) {
+        void **ptr = va_arg(args, void **);
+        if (ptr == NULL) continue;
+        *ptr = aw->aw_arb_values[i];
+    }
+
+    va_end(args);
+    Py_DECREF(awaitable);
+    return 0;
+}
+
+int
+PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
+    assert(awaitable != NULL);
+    assert(nargs != 0);
+    Py_INCREF(awaitable);
+    PyAwaitableObject *aw = (PyAwaitableObject *) awaitable;
+
+    va_list vargs;
+    va_start(vargs, nargs);
+    int offset = aw->aw_arb_values_size;
+
+    if (aw->aw_arb_values == NULL)
+        aw->aw_arb_values = PyMem_Calloc(
+            nargs,
+            sizeof(void *)
+        );
+    else
+        aw->aw_arb_values = PyMem_Realloc(
+            aw->aw_arb_values,
+            sizeof(void *) * (aw->aw_arb_values_size + nargs)
+        );
+
+    if (aw->aw_arb_values == NULL) {
+        PyErr_NoMemory();
+        Py_DECREF(awaitable);
+        return -1;
+    }
+
+    aw->aw_arb_values_size += nargs;
+
+    for (int i = offset; i < aw->aw_arb_values_size; i++)
+        aw->aw_arb_values[i] = Py_NewRef(va_arg(vargs, void *));
 
     va_end(vargs);
     Py_DECREF(awaitable);

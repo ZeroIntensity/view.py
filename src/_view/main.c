@@ -18,6 +18,23 @@ static struct PyModuleDef module = {
 
 PyMODINIT_FUNC PyInit__view() {
     PyObject* m = PyModule_Create(&module);
+
+    if (PyModule_AddIntMacro(
+        m,
+        PASS_CTX
+        ) < 0) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    if (PyModule_AddIntMacro(
+        m,
+        USE_CACHE
+        ) < 0) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
     if (
         (PyType_Ready(&PyAwaitable_Type) < 0) ||
         (PyType_Ready(&ViewAppType) < 0) ||

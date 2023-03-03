@@ -6,3 +6,4 @@ except ImportError as e:
     ) from e
 
 from .__about__ import __license__, __version__
+from .app import App, new_app

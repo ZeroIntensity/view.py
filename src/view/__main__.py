@@ -49,7 +49,7 @@ def main(operation: str, type: str, path: Path):
                 """from view import new_app
 
 app = new_app()
-app.run_maybe()"""
+app.run()"""
             )
 
         click.echo(f"Created `{path / 'app.py'}`")

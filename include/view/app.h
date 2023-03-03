@@ -3,6 +3,11 @@
 
 #include <Python.h>
 
+typedef enum {
+    USE_CACHE = 1UL << 1,
+    PASS_CTX = 2UL << 2,
+} route_flags;
+
 extern PyTypeObject ViewAppType;
 
 #endif

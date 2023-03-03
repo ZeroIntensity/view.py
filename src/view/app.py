@@ -6,11 +6,14 @@ import os
 from contextlib import contextmanager
 from threading import Thread
 from types import ModuleType as Module
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, NoReturn
 
 from _view import ViewApp
 
 from .config import Config, load_config
+
+if TYPE_CHECKING:
+    from _view import ViewRoute
 
 
 def _attempt_import(mod: str) -> Module:
@@ -27,6 +30,16 @@ class App(ViewApp):
 
     def __init__(self, config: Config) -> None:
         self.config = config
+        self._set_dev_state(config.app.dev)
+
+    async def _app(self, scope, receive, send) -> None:
+        await self.asgi_app_entry(scope, receive, send)
+
+    def get(self, route: str, context: bool = True):
+        def decorator(func: ViewRoute):
+            self._get(route, func, 0)
+
+        return decorator
 
     def _run(self) -> None:
         server = self.config.app.server
@@ -43,6 +56,8 @@ class App(ViewApp):
                 host=self.config.network.host,
                 log_level="debug" if self.config.app.dev else "info",
                 lifespan="on",
+                factory=False,
+                interface="asgi3",
             )
         elif server == "hypercorn":
             hypercorn = _attempt_import("hypercorn")

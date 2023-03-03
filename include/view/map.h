@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+typedef void (* map_free_func)(void*);
+
 typedef struct STRUCT_MAP_PAIR {
     const char* key;
     void* value;
@@ -12,10 +14,11 @@ typedef struct STRUCT_MAP {
     size_t len;
     size_t capacity;
     pair** items;
+    map_free_func dealloc;
 } map;
 
 void* map_get(map* m, const char* key);
-map* map_new(size_t inital_capacity);
+map* map_new(size_t inital_capacity, map_free_func dealloc);
 void map_set(map* m, const char* key, void* value);
 void map_free(map* m);
 map* map_copy(map* m);
