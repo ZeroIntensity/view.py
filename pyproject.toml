@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "view.py"
-description = 'Experimental Python web framework.'
+description = 'Lightning fast, modern web framework.'
 readme = "README.md"
 requires-python = ">=3.7"
 license = "MIT"
