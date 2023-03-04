@@ -7,4 +7,4 @@ compile_flags.txt
 view.toml
 view.json
 view_config.py
-./app.py
+/app.py
