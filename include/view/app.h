@@ -2,6 +2,7 @@
 #define VIEW_APP_H
 
 #include <Python.h>
+#include <view/backport.h>
 
 typedef enum {
     USE_CACHE = 1UL << 1,
