@@ -1,2 +1,2 @@
-__version__ = "0.0.0-a0"
+__version__ = "0.0.0-dev0"
 __license__ = "MIT"

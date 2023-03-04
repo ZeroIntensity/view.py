@@ -1,0 +1,5 @@
+site_name: view.py
+site_url: https://view.zintensity.dev
+nav:
+  - Home: index.md
+theme: material

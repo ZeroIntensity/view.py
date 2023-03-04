@@ -13,7 +13,6 @@ authors = [
   { name = "ZeroIntensity", email = "zintensitydev@gmail.com" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
@@ -33,12 +32,20 @@ Source = "https://github.com/ZeroIntensity/view.py"
 [tool.hatch.version]
 path = "src/view/__about__.py"
 
-[tool.hatch.envs.default]
+[tool.hatch.envs.docs]
+dependencies = ["mkdocs", "mkdocs-material"]
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build"
+serve = "mkdocs serve"
+
+[tool.hatch.envs.tests]
 dependencies = [
   "ward",
   "coverage",
 ]
-[tool.hatch.envs.default.scripts]
+
+[tool.hatch.envs.tests.scripts]
 cov = "coverage run -m ward"
 no-cov = "ward"
 
