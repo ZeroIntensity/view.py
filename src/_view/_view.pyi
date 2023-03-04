@@ -1,60 +1,21 @@
 # flake8: noqa
-from typing import Any, Awaitable, Callable
+# NOTE: anything in this file that is defined solely for typing purposes should be
+# prefixed with __ to tell the developer that its not an actual symbol defined by
+# the extension module
+from typing import TypeVar as __TypeVar
 
-_AsgiSerial = (
-    bytes
-    | str
-    | int
-    | float
-    | list
-    | tuple
-    | dict[str, "_AsgiSerial"]
-    | bool
-    | None
-)
+from view.typing import AsgiDict as __AsgiDict
+from view.typing import AsgiReceive as __AsgiReceive
+from view.typing import AsgiSend as __AsgiSend
+from view.typing import ViewRoute as __ViewRoute
 
-_AsgiDict = dict[str, _AsgiSerial]
-
-_AsgiReceive = Callable[[], Awaitable[_AsgiDict]]
-_AsgiSend = Callable[[_AsgiDict], Awaitable[None]]
-
-ResponseHeaders = dict[str, str]
-
-_ViewResponseTupleA = tuple[str, int, ResponseHeaders]
-_ViewResponseTupleB = tuple[int, str, ResponseHeaders]
-_ViewResponseTupleC = tuple[str, ResponseHeaders, int]
-_ViewResponseTupleD = tuple[int, ResponseHeaders, str]
-_ViewResponseTupleE = tuple[ResponseHeaders, str, int]
-_ViewResponseTupleF = tuple[ResponseHeaders, int, str]
-_ViewResponseTupleG = tuple[str, ResponseHeaders]
-_ViewResponseTupleH = tuple[ResponseHeaders, str]
-_ViewResponseTupleI = tuple[str, int]
-_ViewResponseTupleJ = tuple[int, str]
-
-_ViewResponseType = (
-    _ViewResponseTupleA
-    | _ViewResponseTupleB
-    | _ViewResponseTupleC
-    | _ViewResponseTupleD
-    | _ViewResponseTupleE
-    | _ViewResponseTupleF
-    | _ViewResponseTupleG
-    | _ViewResponseTupleH
-    | _ViewResponseTupleI
-    | _ViewResponseTupleJ
-    | str
-)
-ViewResponse = Awaitable[_ViewResponseType]
-Context = Any
-ViewRouteContext = Callable[[Context], ViewResponse]
-ViewRouteNull = Callable[[], ViewResponse]
-ViewRoute = ViewRouteContext | ViewRouteNull
+__T_ViewRoute = __TypeVar("__T_ViewRoute", bound=__ViewRoute)
 
 class ViewApp:
     async def asgi_app_entry(
-        self, scope: _AsgiDict, receive: _AsgiReceive, send: _AsgiSend
+        self, /, scope: __AsgiDict, receive: __AsgiReceive, send: __AsgiSend
     ) -> None: ...
-    def _get(self, path: str, callable: ViewRoute): ...
+    def _get(self, /, path: str, callable: __T_ViewRoute) -> __T_ViewRoute: ...
 
 PASS_CTX: int = ...
 USE_CACHE: int = ...

@@ -6,14 +6,12 @@ import os
 from contextlib import contextmanager
 from threading import Thread
 from types import ModuleType as Module
-from typing import TYPE_CHECKING, NoReturn
+from typing import NoReturn
 
 from _view import ViewApp
 
 from .config import Config, JsonValue, load_config
-
-if TYPE_CHECKING:
-    from _view import ViewRoute
+from .typing import ViewRoute
 
 
 def _attempt_import(mod: str) -> Module:
