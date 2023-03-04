@@ -48,7 +48,7 @@ typedef struct {
 
 typedef struct {
     PyObject* callable;
-    const char* cache;
+    char* cache;
     PyObject* cache_headers;
     uint16_t cache_status;
     route_flags flags;
@@ -57,14 +57,14 @@ typedef struct {
 } route;
 
 route* route_new(PyObject* callable, route_flags f, Py_ssize_t cache_rate) {
-    route* r = PyMem_Malloc(sizeof(route));
+    route* r = malloc(sizeof(route));
     if (!r) return (route*) PyErr_NoMemory();
 
     r->cache = NULL;
     r->callable = Py_NewRef(callable);
     r->flags = f;
     r->cache_rate = cache_rate;
-    r->cache_index = -1;
+    r->cache_index = 0;
     r->cache_headers = NULL;
     r->cache_status = 0;
     return r;
@@ -73,7 +73,8 @@ route* route_new(PyObject* callable, route_flags f, Py_ssize_t cache_rate) {
 void route_free(route* r) {
     Py_XDECREF(r->cache_headers);
     Py_DECREF(r->callable);
-    PyMem_Free(r);
+    if (r->cache) free(r->cache);
+    free(r);
 }
 
 static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
@@ -273,7 +274,7 @@ static int route_error(
     char* response;
 
     if (self->dev) {
-        response = malloc(256);
+        response = malloc(512);
         should_free = true;
 
         if (!response) {
@@ -292,7 +293,7 @@ static int route_error(
 
         snprintf(
             response,
-            256,
+            512,
             "%s%s%s%s",
             ((PyTypeObject*) tp)->tp_name,
             value ? ":" : "",
@@ -329,7 +330,7 @@ static int route_error(
 
 static int find_result_for(
     PyObject* target,
-    const char** res_str,
+    char** res_str,
     int* status,
     PyObject* headers
 ) {
@@ -337,8 +338,9 @@ static int find_result_for(
         target,
         &PyUnicode_Type
         )) {
-        *res_str = PyUnicode_AsUTF8(target);
-        if (!res_str) return -1;
+        const char* tmp = PyUnicode_AsUTF8(target);
+        if (!tmp) return -1;
+        *res_str = strdup(tmp);
     } else if (Py_IS_TYPE(
         target,
         &PyDict_Type
@@ -457,28 +459,17 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         &r
         ) < 0) return -1;
 
-    const char* res_str;
-    int status;
-    PyObject* headers;
-
-    if (++r->cache_index == r->cache_rate) {
-        if (!r->cache) return -1;
-        res_str = r->cache;
-        status = r->cache_status;
-        headers = Py_NewRef(r->cache_headers);
-        r->cache_index = 0;
-    } else {
-        headers = PyList_New(0);
-        status = 200;
-        res_str = NULL;
-    }
+    char* res_str = NULL;
+    int status = 200;
+    PyObject* headers = PyList_New(0);
 
     if (PyObject_IsInstance(
         result,
         (PyObject*) &PyUnicode_Type
         )) {
-        res_str = PyUnicode_AsUTF8(result);
-        if (!res_str) return -1;
+        const char* tmp = PyUnicode_AsUTF8(result);
+        if (!tmp) return -1;
+        res_str = strdup(tmp);
     } else if (PyObject_IsInstance(
         result,
         (PyObject*) &PyTuple_Type
@@ -534,10 +525,12 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         );
         return -1;
     }
-
-    r->cache = res_str;
-    r->cache_status = status;
-    r->cache_headers = Py_NewRef(headers);
+    if (r->cache_rate > 0) {
+        r->cache = res_str;
+        r->cache_status = status;
+        r->cache_headers = Py_NewRef(headers);
+        r->cache_index = 0;
+    }
 
     PyObject* coro = PyObject_CallFunction(
         send,
@@ -572,6 +565,7 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         res_str
     );
 
+    if (r->cache_rate <= 0) free(res_str);
     if (!coro)
         return -1;
 
@@ -704,6 +698,61 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         path
     );
 
+    if ((r->cache_index++ < r->cache_rate) && r->cache) {
+        PyObject* coro = PyObject_CallFunction(
+            send,
+            "{s:s,s:i,s:O}",
+            "type",
+            "http.response.start",
+            "status",
+            r->cache_status,
+            "headers",
+            r->cache_headers
+        );
+
+        if (!coro) {
+            Py_DECREF(awaitable);
+            return NULL;
+        }
+
+        if (PyAwaitable_AWAIT(
+            awaitable,
+            coro
+            ) < 0) {
+            Py_DECREF(awaitable);
+            Py_DECREF(coro);
+            return NULL;
+        };
+
+        Py_DECREF(coro);
+
+        coro = PyObject_CallFunction(
+            send,
+            "{s:s,s:y}",
+            "type",
+            "http.response.body",
+            "body",
+            r->cache
+        );
+
+        if (!coro) {
+            Py_DECREF(awaitable);
+            return NULL;
+        }
+
+        if (PyAwaitable_AWAIT(
+            awaitable,
+            coro
+            ) < 0) {
+            Py_DECREF(awaitable);
+            Py_DECREF(coro);
+            return NULL;
+        }
+
+        Py_DECREF(coro);
+        return awaitable;
+    }
+
     if (!r) {
         PyErr_Format(
             PyExc_RuntimeError,
@@ -727,6 +776,7 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         ) < 0) {
         Py_DECREF(awaitable);
         Py_DECREF(res_coro);
+        return NULL;
     }
 
     if (PyAwaitable_AddAwait(
@@ -739,7 +789,6 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         Py_DECREF(awaitable);
         return NULL;
     }
-
 
     return awaitable;
 }
@@ -760,7 +809,6 @@ static PyObject* exc_handler(ViewApp* self, PyObject* args) {
         &status_code,
         &handler
         )) return NULL;
-    // TODO: fix formatting here
     if ((status_code < 400 || status_code > 511) || (status_code > 431 &&
                                                      status_code < 451) ||
         (status_code > 451 && status_code < 500))
