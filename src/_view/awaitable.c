@@ -623,7 +623,7 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
     aw->aw_arb_values_size += nargs;
 
     for (int i = offset; i < aw->aw_arb_values_size; i++)
-        aw->aw_arb_values[i] = Py_NewRef(va_arg(vargs, void *));
+        aw->aw_arb_values[i] = va_arg(vargs, void *);
 
     va_end(vargs);
     Py_DECREF(awaitable);
