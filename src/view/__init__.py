@@ -7,3 +7,4 @@ except ImportError as e:
 
 from .__about__ import __license__, __version__
 from .app import App, new_app
+from .util import run

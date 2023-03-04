@@ -1,27 +1,69 @@
 from __future__ import annotations
 
+import inspect
 import json
 import os
+import re
 import runpy
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generic, NamedTuple, TypeVar
+from typing import Any, Generic, TypeVar
 
 import toml
 
 from .__about__ import __version__
 
-__all__ = "Config", "ViewConfig", "load_config", "load_dict"
+__all__ = "Config", "config", "load_config", "load_dict"
 
 JsonValue = str | int | bool | float | dict[str | int, "JsonValue"]
+
+FINDER_REGEX = re.compile(r"([a-z]+((\d)|([A-Z0-9][a-z0-9]+))*([A-Z])?)\Z")
+CONVERTER_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
+
+
+def _switch_case(data: str) -> str:
+    return CONVERTER_REGEX.sub("_", data).lower()
+
+
+def _convert(data: dict) -> dict:
+    new = data.copy()
+
+    for i in data:
+        if isinstance(i, str):
+            if FINDER_REGEX.match(i):
+                new_name: str = _switch_case(i)
+                new[new_name] = new.pop(i)
+
+    return new
+
+
+def config(obj: type[T]) -> type[T]:
+    if not os.environ.get("_VIEW_CFG"):
+        raise RuntimeError("attempted to execute view config file")
+
+    # NOTE: we need to access the globals from the frame
+    # due to python not reloading the globals() in this
+    # function
+    cframe = inspect.currentframe()
+    assert cframe, "failed to acquire frame"
+
+    frame = cframe.f_back
+    assert frame, "frame has no f_back"
+
+    try:
+        _config: Callable[[type], type] = frame.f_globals["_config"]
+    except KeyError as e:
+        raise RuntimeError("_VIEW_CFG set without defining _config") from e
+
+    _config(obj)
+    return obj
+
 
 TOML_BASE = f"""# view.py {__version__}
 [network]
 
-
 [app]
-
 
 [env]
 """
@@ -32,17 +74,24 @@ JSON_BASE = """{
     "env": {}
 }"""
 
-PY_BASE = """from __future__ import annotations
-from view.config import ViewConfig, NetworkConfig, AppConfig
+PY_BASE = (
+    f"# view.py {__version__}"
+    """
+from __future__ import annotations
+from view.config import config, NetworkConfig, AppConfig
 
-class Config(ViewConfig):
+
+@config
+class Config:
     network = NetworkConfig()
     app = AppConfig()
     env: dict[str, str] = {}
 """
+)
 
 
-class AppConfig(NamedTuple):
+@dataclass()
+class AppConfig:
     load_strategy: str = "manual"
     server: str = "uvicorn"
     dev: bool = True
@@ -50,15 +99,17 @@ class AppConfig(NamedTuple):
     use_uvloop: str | bool = "decide"
 
 
-class NetworkConfig(NamedTuple):
+@dataclass()
+class NetworkConfig:
     port: int = 5000
     host: str = "0.0.0.0"
-    extra_args: dict[str, str] = {}
+    extra_args: dict[str, str] = field(default_factory=dict)
+    change_port_prod: bool = True
 
 
 class Config:
     def _calculate_difference(
-        self, values: dict[Any, Any] | None, tp: type[NamedTuple]
+        self, values: dict[Any, Any] | None, tp: type
     ) -> None:
         if not values:
             return
@@ -83,8 +134,14 @@ class Config:
 CONFIG_TARGETS = ("view.toml", "view.json", "view_config.py")
 
 
-class ViewConfig:
-    _VIEW_CONFIG_OBJ = 1
+def _ob_dict(ob: object) -> dict:
+    d = {k: v for k, v in vars(ob).items() if not k.startswith("__")}
+
+    for k, v in d.items():
+        if hasattr(v, "__dict__"):
+            d[k] = _ob_dict(v)
+
+    return d
 
 
 def _load_path(path: Path) -> dict:
@@ -93,16 +150,19 @@ def _load_path(path: Path) -> dict:
     if path.suffix == ".json":
         return json.loads(path.read_text())
     if path.suffix == ".py":
-        mod = runpy.run_path(str(path))
-        conf = mod.get("Config")
+        ob: type | None = None
 
-        if not conf:
-            raise TypeError(f"{path} does not have a global Config")
+        def conf_wrapper(obj: type):
+            nonlocal ob
+            ob = obj
 
-        if not hasattr(conf, "_VIEW_CONFIG_OBJ"):
-            raise TypeError(f"{conf} does not inherit from ViewConfig")
+        os.environ["_VIEW_CFG"] = "1"
+        runpy.run_path(str(path), {"_config": conf_wrapper})
+        del os.environ["_VIEW_CFG"]
 
-        return conf
+        if not ob:
+            raise TypeError("config wasnt set")
+        return _ob_dict(ob)
     raise ValueError(f"cannot load {path}")
 
 
@@ -140,7 +200,7 @@ def _use_uvloop_loader(value: JsonValue) -> bool:
                 raise TypeError("use_uvloop must be true, false, or 'decide'")
             else:
                 try:
-                    import uvloop
+                    import uvloop  # noqa
 
                     return True
                 except ImportError:
@@ -160,7 +220,7 @@ _CONFIG_VALIDATORS: dict[str, _Validator] = {
 }
 
 
-def _validate_config(config: NamedTuple) -> None:
+def _validate_config(config: Any) -> None:
     for k, validator in _CONFIG_VALIDATORS.items():
         attr: JsonValue | None = getattr(config, k, None)
         if attr is None:  # in case false was passed
@@ -186,7 +246,7 @@ def _validate_config(config: NamedTuple) -> None:
 
 def load_dict(obj: dict[Any, Any]) -> Config:
     for k in obj:
-        if k not in {"env", "app", "network"}:
+        if k not in inspect.signature(Config.__init__).parameters:
             raise ValueError(f"invalid key for config: {k}")
     result = Config(**obj)
     _validate_config(result.app)
@@ -198,7 +258,9 @@ def load_dict(obj: dict[Any, Any]) -> Config:
     return result
 
 
-def load_config(path: str | Path | None = None) -> Config:
+def load_config(
+    path: str | Path | None = None, overrides: dict | None = None
+) -> Config:
     p: Path | None = None
 
     if not path:
@@ -217,4 +279,5 @@ def load_config(path: str | Path | None = None) -> Config:
             raise FileNotFoundError(f"{p.absolute()} does not exist")
 
     conf = _load_path(p)
-    return load_dict(conf)
+    conf.update(overrides or {})
+    return load_dict(_convert(conf))

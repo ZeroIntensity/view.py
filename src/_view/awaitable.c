@@ -102,7 +102,7 @@ gen_dealloc(PyObject *self)
 static PyObject *
 _PyAwaitable_GenWrapper_New()
 {
-    GenWrapperObject *g = (GenWrapperObject *)  gen_new(
+    GenWrapperObject *g = (GenWrapperObject *) gen_new(
         &_PyAwaitable_GenWrapper_Type,
         NULL,
         NULL

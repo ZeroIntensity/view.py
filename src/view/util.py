@@ -1,29 +1,39 @@
 from __future__ import annotations
 
-import importlib
 import os
-import sys
+import runpy
 from typing import NoReturn
 
 from .app import App
 
 
-def run(app_or_mod: str | App) -> NoReturn:
-    if isinstance(app_or_mod, App):
-        app_or_mod.run()
+def run(app_or_path: str | App) -> NoReturn:
+    if isinstance(app_or_path, App):
+        app_or_path.run()
 
-    split = app_or_mod.split(":", maxsplit=1)
+    split = app_or_path.split(":", maxsplit=1)
 
     if len(split) != 2:
         raise ValueError(
-            "module string should be in the format of `a.b.c:app`",
+            "module string should be in the format of `/path/to/app.py:app`",
         )
 
-    sys.path.insert(0, os.path.abspath(split[0]))
-    mod = importlib.import_module(split[0])
-    target = getattr(mod, split[1])
+    try:
+        mod = runpy.run_path(os.path.abspath(split[0]))
+    except FileNotFoundError as e:
+        raise FileNotFoundError(
+            f'"{split[0]}" in {app_or_path} does not exist'
+        ) from e
+
+    try:
+        target = mod[split[1]]
+    except KeyError as e:
+        raise AttributeError(
+            f'"{split[1]}" in {app_or_path} does not exist'
+        ) from e
 
     if not isinstance(target, App):
         raise TypeError(f"{target!r} is not an instance of view.App")
 
-    target.run()
+    target._run()
+    exit(0)
