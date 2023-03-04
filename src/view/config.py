@@ -8,7 +8,7 @@ import runpy
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 
 import toml
 
@@ -96,14 +96,14 @@ class AppConfig:
     server: str = "uvicorn"
     dev: bool = True
     path: str = "app.py:app"
-    use_uvloop: str | bool = "decide"
+    use_uvloop: Literal["decide"] | bool = "decide"
 
 
 @dataclass()
 class NetworkConfig:
     port: int = 5000
     host: str = "0.0.0.0"
-    extra_args: dict[str, str] = field(default_factory=dict)
+    extra_args: dict[str, JsonValue] = field(default_factory=dict)
     change_port_prod: bool = True
 
 
@@ -183,21 +183,21 @@ def _int_loader(value: JsonValue) -> int:
             raise ValueError
         return int(value)
     except ValueError:
-        raise TypeError(f"{value} is not int-like") from None
+        raise TypeError(f"{value!r} is not int-like") from None
 
 
 def _bool_loader(value: JsonValue) -> bool:
     if isinstance(value, (bool, int)):
         return bool(value)
 
-    raise TypeError(f"expected bool, got {value}")
+    raise TypeError(f"expected bool, got {value!r}")
 
 
 def _use_uvloop_loader(value: JsonValue) -> bool:
     if isinstance(value, (bool, str)):
         if isinstance(value, str):
             if value != "decide":
-                raise TypeError("use_uvloop must be true, false, or 'decide'")
+                raise TypeError("must be true, false, or 'decide'")
             else:
                 try:
                     import uvloop  # noqa
@@ -211,27 +211,43 @@ def _use_uvloop_loader(value: JsonValue) -> bool:
     raise TypeError(f"expected bool, got {value}")
 
 
+def _extra_args_loader(value: JsonValue) -> dict[str, JsonValue]:
+    if not isinstance(value, dict):
+        raise TypeError(f"expected a key-value mapping (dict), got {value!r}")
+
+    for k in value:
+        if not isinstance(k, str):
+            raise TypeError(f"all keys must be a string ({k!r} is not)")
+
+    return value  # type: ignore
+
+
 _CONFIG_VALIDATORS: dict[str, _Validator] = {
     "server": _Validator(str, is_of={"view", "uvicorn", "hypercorn"}),
     "load_strategy": _Validator(str, is_of={"manual", "auto", "simple"}),
-    "port": _Validator(int, loader=_int_loader),
-    "dev": _Validator(bool, loader=_bool_loader),
     "use_uvloop": _Validator(bool, loader=_use_uvloop_loader),
+    "extra_args": _Validator(dict, loader=_extra_args_loader),
 }
+
+_ANNOTATIONS: dict[str, Loader] = {"int": _int_loader, "bool": _bool_loader}
+# annotations are converted to strings due to future import
 
 
 def _validate_config(config: Any) -> None:
     for k, validator in _CONFIG_VALIDATORS.items():
-        attr: JsonValue | None = getattr(config, k, None)
+        attr = getattr(config, k, None)
         if attr is None:  # in case false was passed
             continue
 
         if validator.loader:
-            attr = validator.loader(attr)
+            try:
+                attr = validator.loader(attr)
+            except TypeError as e:
+                raise ValueError(f"error for config key {k!r}: {e}") from None
 
         if not isinstance(attr, validator.type):
             raise TypeError(
-                f"wrong type for {k}: expected"
+                f"wrong type for config key {k!r}: expected"
                 f"{validator.type.__name__}, got {type(attr).__name__}"
             )
 
@@ -239,9 +255,17 @@ def _validate_config(config: Any) -> None:
         if values:
             if attr not in values:
                 raise ValueError(
-                    f'invalid value for "{k}":'
+                    f"invalid value for config key {k!r}:"
                     f"expected one of {', '.join(values)}, got {attr}"
                 )
+
+    for k, tp in type(config).__annotations__.items():
+        loader = _ANNOTATIONS.get(tp)
+        if loader:
+            try:
+                setattr(config, k, loader(getattr(config, k)))
+            except TypeError as e:
+                raise ValueError(f"error for config key {k!r}: {e}") from None
 
 
 def load_dict(obj: dict[Any, Any]) -> Config:
@@ -259,7 +283,10 @@ def load_dict(obj: dict[Any, Any]) -> Config:
 
 
 def load_config(
-    path: str | Path | None = None, overrides: dict | None = None
+    path: str | Path | None = None,
+    overrides: dict | None = None,
+    *,
+    default: bool = False,
 ) -> Config:
     p: Path | None = None
 
@@ -272,7 +299,10 @@ def load_config(
                 p = tmp
                 break
         if not p:
-            raise TypeError(f"no config found in {parent}")
+            if not default:
+                raise TypeError(f"no config found in {parent}")
+            else:
+                return Config()
     else:
         p = path if not isinstance(path, str) else Path(path)
         if not p.exists():

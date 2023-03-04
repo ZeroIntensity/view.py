@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import faulthandler
 import importlib
 import os
 from contextlib import contextmanager
@@ -29,6 +30,9 @@ class App(ViewApp):
     def __init__(self, config: Config) -> None:
         self.config = config
         self._set_dev_state(config.app.dev)
+
+        if config.app.dev:
+            faulthandler.enable()
 
         if (not config.app.dev) and (config.network.change_port_prod):
             self.config.network.port = 80
@@ -59,6 +63,7 @@ class App(ViewApp):
                 lifespan="on",
                 factory=False,
                 interface="asgi3",
+                loop="uvloop" if self.config.app.use_uvloop else "asyncio",
                 **self.config.network.extra_args,
             )
         elif server == "hypercorn":
@@ -102,10 +107,18 @@ def new_app(
     *,
     config_path: str | None = None,
     overrides: dict[str, JsonValue] | None = None,
+    default: bool = False,
+    start: bool = False,
     **config_overrides: JsonValue,
 ) -> App:
     config = load_config(
         config_path,
         {**(overrides or {}), **config_overrides},
+        default=default,
     )
-    return App(config)
+    app = App(config)
+
+    if start:
+        app.run_threaded()
+
+    return app

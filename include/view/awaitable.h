@@ -3,6 +3,7 @@
 #define VIEW_AWAITABLE_H
 
 #include <Python.h>
+#include <view/backport.h>
 
 typedef struct _PyAwaitableObject PyAwaitableObject;
 typedef int (*awaitcallback)(PyObject *, PyObject *);
