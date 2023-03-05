@@ -4,7 +4,25 @@
 #define METHOD(name) { #name, name, METH_VARARGS, NULL }
 #define METHOD_NOARGS(name) { #name, name, METH_NOARGS, NULL }
 
+PyObject* test(PyObject* self, PyObject* args) {
+    PyObject* o;
+    if (!PyArg_ParseTuple(
+        args,
+        "O",
+        &o
+        )) return NULL;
+    PyObject* awaitable = PyAwaitable_New();
+    if (!awaitable) return NULL;
+
+    if (PyAwaitable_AWAIT(
+        awaitable,
+        o
+        ) < 0) return NULL;
+    return awaitable;
+}
+
 static PyMethodDef methods[] = {
+    METHOD(test),
     {NULL, NULL, 0, NULL}
 };
 

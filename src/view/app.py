@@ -31,8 +31,8 @@ class App(ViewApp):
         self.config = config
         self._set_dev_state(config.app.dev)
 
-        if config.app.dev:
-            faulthandler.enable()
+        # if config.app.dev:
+        #    faulthandler.enable()
 
         if (not config.app.dev) and (config.network.change_port_prod):
             self.config.network.port = 80
