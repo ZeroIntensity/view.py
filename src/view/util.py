@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import runpy
+import weakref
 from typing import NoReturn
 
 from .app import App

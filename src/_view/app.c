@@ -236,6 +236,19 @@ static int route_error(
     PyObject* value,
     PyObject* tb
 ) {
+    if (tp && value && tp) {
+        PyErr_WarnEx(
+            PyExc_RuntimeWarning,
+            "error in route",
+            2
+        );
+        PyErr_Display(
+            tp,
+            value,
+            tb
+        );
+    }
+
     ViewApp* self;
     PyObject* send;
     if (PyAwaitable_UnpackValues(
@@ -245,6 +258,7 @@ static int route_error(
         NULL,
         &send
         ) < 0) return -1;
+
 
     PyObject* coro = PyObject_CallFunction(
         send,
@@ -604,7 +618,6 @@ static PyObject* app(ViewApp* self, PyObject* args) {
     Py_DECREF(tp);
 
     PyObject* awaitable = PyAwaitable_New();
-
     if (!awaitable)
         return NULL;
 
