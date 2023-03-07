@@ -6,10 +6,12 @@
 
 PyObject* test(PyObject* self, PyObject* args) {
     PyObject* o;
+    PyObject* o2;
     if (!PyArg_ParseTuple(
         args,
-        "O",
-        &o
+        "OO",
+        &o,
+        &o2
         )) return NULL;
     PyObject* awaitable = PyAwaitable_New();
     if (!awaitable) return NULL;
@@ -17,6 +19,10 @@ PyObject* test(PyObject* self, PyObject* args) {
     if (PyAwaitable_AWAIT(
         awaitable,
         o
+        ) < 0) return NULL;
+    if (PyAwaitable_AWAIT(
+        awaitable,
+        o2
         ) < 0) return NULL;
     return awaitable;
 }

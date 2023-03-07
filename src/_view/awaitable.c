@@ -137,12 +137,18 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
     PyErr_Fetch(&res_type, &res_value, &res_traceback);
     PyErr_NormalizeException(&res_type, &res_value, &res_traceback);
     Py_INCREF(self);
+    Py_INCREF(res_type);
+    Py_XINCREF(res_value);
+    Py_XINCREF(res_traceback);
     int e_res = cb->err_callback(self, res_type, res_value, res_traceback);
+    cb->done = true;
     Py_DECREF(self);
-    PyErr_Restore(res_type, res_value, res_traceback);
+    Py_DECREF(res_type);
+    Py_XDECREF(res_value);
+    Py_XDECREF(res_traceback);
 
     if (e_res < 0) {
-        cb->done = true;
+        PyErr_Restore(res_type, res_value, res_traceback);
         Py_DECREF(cb->coro);
         Py_XDECREF(await);
         return -1;
@@ -152,18 +158,16 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
     return 0;
 }
 
-#include <frameobject.h>
 static PyObject *
 gen_next(PyObject *self)
 {
     GenWrapperObject *g = (GenWrapperObject *) self;
     PyAwaitableObject *aw = g->gw_aw;
     awaitable_callback *cb;
-
-    if (aw->aw_state >= aw->aw_callback_size) {
+    if (((aw->aw_state + 1) > aw->aw_callback_size) && g->gw_current_await == NULL) {
         PyErr_SetObject(PyExc_StopIteration,
                         g->gw_result ?
-                        Py_NewRef(g->gw_result) :
+                        g->gw_result :
                         Py_None);
         return NULL;
     }
@@ -181,6 +185,8 @@ gen_next(PyObject *self)
             if (fire_err_callback(cb->coro, g->gw_current_await, cb) < 0) {
                 return NULL;
             }
+
+            return gen_next(self);
         }
     } else {
         cb = aw->aw_callbacks[aw->aw_state - 1];
@@ -193,15 +199,14 @@ gen_next(PyObject *self)
         if (!occurred) {
             // coro is done
             g->gw_current_await = NULL;
-            ++aw->aw_state;
             return gen_next(self);
         }
+
         if (!PyErr_GivenExceptionMatches(occurred, PyExc_StopIteration)) {
             if (fire_err_callback(self, g->gw_current_await, cb) < 0) {
                 return NULL;
             }
             g->gw_current_await = NULL;
-            ++aw->aw_state;
             return gen_next(self);
         }
 
@@ -209,7 +214,6 @@ gen_next(PyObject *self)
             // coro is done, but with a result
             // we can disregard the result if theres no callback
             g->gw_current_await = NULL;
-            ++aw->aw_state;
             return gen_next(self);
         }
 
@@ -240,7 +244,6 @@ gen_next(PyObject *self)
         }
 
         cb->done = true;
-        ++aw->aw_state;
         g->gw_current_await = NULL;
         return gen_next(self);
     }
@@ -442,7 +445,7 @@ PyAwaitable_AddAwait(
     }
 
     if (a->aw_callbacks == NULL) {
-        --a->aw_callbacks;
+        --a->aw_callback_size;
         Py_DECREF(aw);
         Py_DECREF(coro);
         PyMem_Free(aw_c);
@@ -608,6 +611,61 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
 
     va_end(vargs);
     Py_DECREF(awaitable);
+    return 0;
+}
+
+int
+PyAwaitable_AwaitFunction(PyObject *awaitable, PyObject *function,
+                          awaitcallback cb, awaitcallback_err err,
+                          const char *format, ...)
+{
+    assert(awaitable != NULL);
+    assert(function != NULL);
+    assert(format != NULL);
+    Py_INCREF(awaitable);
+    Py_INCREF(function);
+
+    if (!PyCallable_Check(function)) {
+        PyErr_Format(PyExc_TypeError, "expected a callable object, got %R", function);
+        Py_DECREF(awaitable);
+        Py_DECREF(function);
+        return -1;
+    }
+
+    char* str = PyMem_Malloc(strlen(format) + 3);
+    sprintf(str, "(%s)", format);
+
+    va_list vargs;
+    va_start(vargs, format);
+    PyObject* result = Py_VaBuildValue(str, vargs);
+    va_end(vargs);
+
+    if (result == NULL) {
+        Py_DECREF(awaitable);
+        Py_DECREF(function);
+        return -1;
+    }
+
+    PyObject* coro = PyObject_Call(function, result, NULL);
+
+    if (result == NULL) {
+        Py_DECREF(awaitable);
+        Py_DECREF(function);
+        return -1;
+    }
+
+    if (PyAwaitable_AddAwait(awaitable, coro, cb, err) < 0) {
+        Py_DECREF(awaitable);
+        Py_DECREF(function);
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    Py_DECREF(awaitable);
+    Py_DECREF(function);
+    Py_DECREF(coro);
+
+    PyMem_Free(str);
     return 0;
 }
 
