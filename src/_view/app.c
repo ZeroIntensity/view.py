@@ -3,33 +3,21 @@
 #include <view/awaitable.h>
 #include <view/map.h>
 #include <stdbool.h>
-#define LOAD_ROUTE(target) char* path; \
-    PyObject* cb; \
-    int flags; \
-    if (!PyArg_ParseTuple( \
-    args, \
-    "sOi", \
-    &path, \
-    &cb \
-        )) return NULL; \
-    route* r = route_new( \
-    cb, \
-    flags, \
-    2 \
-               ); \
-    if (!r) return NULL; \
-    map_set( \
-    self->target, \
-    path, \
-    r \
-    ); \
-    Py_RETURN_NONE;
+#define LOAD_ROUTE(target) char* path; PyObject* cb;
+
+
 #define ROUTE(target) static PyObject* target ( \
-    ViewApp * self, \
-    PyObject * args \
+    ViewApp* self, \
+    PyObject* args \
 ) { \
         LOAD_ROUTE(target); \
 }
+#define ERR(code, msg) case code: return send_raw_text( \
+    awaitable, \
+    send, \
+    code, \
+    msg \
+    );
 
 typedef struct {
     PyObject_HEAD;
@@ -40,37 +28,78 @@ typedef struct {
     map* put;
     map* patch;
     map* delete;
+    map* options;
     PyObject* client_errors[32];
     PyObject* server_errors[11];
     bool dev;
 } ViewApp;
 
+typedef struct {
+    PyObject* type;
+    PyObject* df;
+    PyObject** validators;
+    Py_ssize_t validators_size;
+} route_input;
 
 typedef struct {
     PyObject* callable;
     char* cache;
     PyObject* cache_headers;
     uint16_t cache_status;
-    route_flags flags;
     Py_ssize_t cache_index;
     Py_ssize_t cache_rate;
+    route_input** query;
+    Py_ssize_t query_size;
+    route_input** body;
+    Py_ssize_t body_size;
 } route;
 
-route* route_new(PyObject* callable, route_flags f, Py_ssize_t cache_rate) {
+route* route_new(
+    PyObject* callable,
+    Py_ssize_t query_size,
+    Py_ssize_t body_size,
+    Py_ssize_t cache_rate
+) {
     route* r = malloc(sizeof(route));
     if (!r) return (route*) PyErr_NoMemory();
 
     r->cache = NULL;
     r->callable = Py_NewRef(callable);
-    r->flags = f;
     r->cache_rate = cache_rate;
     r->cache_index = 0;
     r->cache_headers = NULL;
     r->cache_status = 0;
+    r->query = PyMem_Calloc(
+        query_size,
+        sizeof(route_input*)
+    );
+    r->body = PyMem_Calloc(
+        body_size,
+        sizeof(route_input*)
+    );
+    r->query_size = 0;
+    r->body_size = 0;
     return r;
 }
 
 void route_free(route* r) {
+    for (int i = 0; i < r->body_size; i++) {
+        Py_DECREF(r->body[i]->df);
+        Py_DECREF(r->body[i]->type);
+
+        for (int i = 0; i < r->body[i]->validators_size; i++) {
+            Py_DECREF(r->body[i]->validators[i]);
+        }
+    }
+    for (int i = 0; i < r->query_size; i++) {
+        Py_DECREF(r->query[i]->df);
+        Py_DECREF(r->query[i]->type);
+
+        for (int i = 0; i < r->query[i]->validators_size; i++) {
+            Py_DECREF(r->query[i]->validators[i]);
+        }
+    }
+
     Py_XDECREF(r->cache_headers);
     Py_DECREF(r->callable);
     if (r->cache) free(r->cache);
@@ -105,10 +134,76 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
         4,
         (map_free_func) route_free
     );
+    self->options = map_new(
+        4,
+        (map_free_func) route_free
+    );
+
+    if (!self->options || !self->patch || !self->delete || !self->post ||
+        !self->put || !self->put || !self->get) {
+        return NULL;
+    };
 
     return (PyObject*) self;
 }
 
+static PyObject* get(PyObject* self, PyObject* args) {
+    PyObject* callable;
+    PyObject* query;
+    PyObject* body;
+    Py_ssize_t cache_rate;
+
+    if (!PyArg_ParseTuple(
+        args,
+        "OnO!O!",
+        &callable,
+        &cache_rate,
+        &query,
+        &body
+        )) return NULL;
+    route* r = route_new(
+        callable,
+        PySequence_Size(query),
+        PySequence_Size(body),
+        cache_rate
+    );
+    if (!r) return NULL;
+
+    PyObject* iter = PyObject_GetIter(query);
+    PyObject* item;
+    Py_ssize_t index = 0;
+
+    while ((item = PyIter_Next(iter))) {
+        route_input* inp = PyMem_Malloc(sizeof(route_input));
+        if (!inp) {
+            Py_DECREF(iter);
+            return NULL;
+        }
+        r->query[index++] = inp;
+        inp->df = dict_get_str(
+            query,
+            "default"
+        );
+        if (!inp->df) {
+            Py_DECREF(iter);
+            return NULL;
+        }
+
+        inp->type = dict_get_str(
+            query,
+            "type"
+        );
+        if (!inp->type) {
+            Py_DECREF(iter);
+            return NULL;
+        }
+    };
+
+    Py_DECREF(iter);
+    if (PyErr_Occurred()) return NULL;
+
+    Py_RETURN_NONE;
+}
 static int init(PyObject* self, PyObject* args, PyObject* kwds) {
     PyErr_SetString(
         PyExc_TypeError,
@@ -117,7 +212,82 @@ static int init(PyObject* self, PyObject* args, PyObject* kwds) {
     return -1;
 }
 
+static int send_raw_text(
+    PyObject* awaitable,
+    PyObject* send,
+    int status,
+    const char* res_str
+) {
+    PyObject* coro = PyObject_CallFunction(
+        send,
+        "{s:s,s:i,s:[[s,s]]}",
+        "type",
+        "http.response.start",
+        "status",
+        status,
+        "headers",
+        "content-type",
+        "text/plain"
+    );
+
+    if (!coro)
+        return -1;
+
+    if (PyAwaitable_AWAIT(
+        awaitable,
+        coro
+        ) < 0) {
+        Py_DECREF(coro);
+        return -1;
+    };
+
+    Py_DECREF(coro);
+
+    coro = PyObject_CallFunction(
+        send,
+        "{s:s,s:y}",
+        "type",
+        "http.response.body",
+        "body",
+        res_str
+    );
+
+    if (!coro)
+        return -1;
+
+    if (PyAwaitable_AWAIT(
+        awaitable,
+        coro
+        ) < 0) {
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    Py_DECREF(coro);
+    return 0;
+}
+
 static int fire_error(ViewApp* self, PyObject* awaitable, int status) {
+    PyObject* send;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        NULL,
+        NULL,
+        NULL,
+        &send
+        ) < 0)
+        return -1;
+
+    if (status < 500) {
+        PyObject* caller = self->client_errors[status - 400];
+        if (!caller) {
+            switch (status) {
+            default:
+                assert(0);
+            }
+        }
+    }
     return 0;
 }
 
@@ -204,6 +374,8 @@ static void dealloc(ViewApp* self) {
     map_free(self->put);
     map_free(self->patch);
     map_free(self->delete);
+    map_free(self->options);
+
 
     for (int i = 0; i < 11; i++)
         Py_XDECREF(self->server_errors[i]);
@@ -694,16 +866,28 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         "DELETE"
              ))
         ptr = self->delete;
+    else if (!strcmp(
+        method,
+        "OPTIONS"
+             )) ptr = self->options;
 
     if (!ptr) {
-        PyErr_BadArgument();
-        return NULL;
+        ptr = self->get;
     }
 
     route* r = map_get(
         ptr,
         path
     );
+    if (!r) {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "not found: %s",
+            path
+        );
+        Py_DECREF(awaitable);
+        return NULL;
+    }
 
     if ((r->cache_index++ < r->cache_rate) && r->cache) {
         PyObject* coro = PyObject_CallFunction(
@@ -760,15 +944,6 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         return awaitable;
     }
 
-    if (!r) {
-        PyErr_Format(
-            PyExc_RuntimeError,
-            "not found: %s",
-            path
-        );
-        Py_DECREF(awaitable);
-        return NULL;
-    }
 
     PyObject* res_coro = PyObject_CallNoArgs(r->callable);
     if (!res_coro) {
@@ -805,6 +980,7 @@ ROUTE(post);
 ROUTE(patch);
 ROUTE(put);
 ROUTE(delete);
+ROUTE(options);
 
 static PyObject* exc_handler(ViewApp* self, PyObject* args) {
     PyObject* handler;
@@ -855,6 +1031,7 @@ static PyMethodDef methods[] = {
     {"_put", (PyCFunction) put, METH_VARARGS, NULL},
     {"_patch", (PyCFunction) patch, METH_VARARGS, NULL},
     {"_delete", (PyCFunction) delete, METH_VARARGS, NULL},
+    {"_options", (PyCFunction) options, METH_VARARGS, NULL},
     {"_set_dev_state", (PyCFunction) set_dev_state, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };

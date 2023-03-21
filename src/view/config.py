@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import os
 import re
 import runpy
@@ -66,19 +67,38 @@ TOML_BASE = f"""# view.py {__version__}
 [app]
 
 [env]
+
+[log]
+
+[prod.network]
+port = 80
+
+[prod.app]
+hijack = false
+fancy = false
 """
 
 JSON_BASE = """{
     "network": {},
     "app": {},
-    "env": {}
+    "env": {},
+    "log": {},
+    "prod": {
+        "network": {
+            "port": 80
+        },
+        "app": {
+            "hijack": false,
+            "fancy": false,
+        }
+    }
 }"""
 
 PY_BASE = (
     f"# view.py {__version__}"
     """
 from __future__ import annotations
-from view.config import config, NetworkConfig, AppConfig
+from view.config import config, NetworkConfig, AppConfig, LogConfig
 
 
 @config
@@ -86,6 +106,16 @@ class Config:
     network = NetworkConfig()
     app = AppConfig()
     env: dict[str, str] = {}
+    log = LogConfig()
+    prod: dict[str, str] = {
+        "app": {
+            "hijack": false,
+            "fancy": false
+        },
+        "network": {
+            "port": 80
+        }
+    }
 """
 )
 
@@ -100,11 +130,18 @@ class AppConfig:
 
 
 @dataclass()
+class LogConfig:
+    level: str | int | None = "info"
+    debug: bool = False
+    hijack: bool = True
+    fancy: bool = True
+
+
+@dataclass()
 class NetworkConfig:
     port: int = 5000
     host: str = "0.0.0.0"
     extra_args: dict[str, JsonValue] = field(default_factory=dict)
-    change_port_prod: bool = True
 
 
 class Config:
@@ -123,12 +160,23 @@ class Config:
         network: dict[Any, Any] | None = None,
         app: dict[Any, Any] | None = None,
         env: dict[str, str] | None = None,
+        log: dict[Any, Any] | None = None,
+        prod: dict[Any, Any] | None = None,
     ):
         self._calculate_difference(network, NetworkConfig)
         self.network = NetworkConfig(**(network or {}))
         self._calculate_difference(app, AppConfig)
         self.app = AppConfig(**(app or {}))
         self.env = env or {}
+        self.prod = prod or {}
+        self._calculate_difference(log, LogConfig)
+        self.log = LogConfig(**(log or {}))
+
+    def __repr__(self) -> str:
+        return (
+            f"Config(network={self.network!r}, app={self.app!r}"
+            f", env={self.env!r})"
+        )
 
 
 CONFIG_TARGETS = ("view.toml", "view.json", "view_config.py")
@@ -200,7 +248,7 @@ def _use_uvloop_loader(value: JsonValue) -> bool:
                 raise TypeError("must be true, false, or 'decide'")
             else:
                 try:
-                    import uvloop  # noqa
+                    import uvloop as _  # noqa
 
                     return True
                 except ImportError:
@@ -222,11 +270,45 @@ def _extra_args_loader(value: JsonValue) -> dict[str, JsonValue]:
     return value  # type: ignore
 
 
+_LEVELS: dict[str, int] = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARNING,
+    "error": logging.ERROR,
+    "critical": logging.CRITICAL,
+}
+
+
+def _log_level_loader(value: JsonValue) -> int:
+    if not value:
+        return 10000
+
+    if not isinstance(value, (str, int)):
+        raise TypeError(
+            "expected 'debug', 'info', 'warning', 'error',"
+            " 'critical', or an integer"
+            f"got {value!r}",
+        )
+
+    if isinstance(value, str):
+        level = _LEVELS.get(value)
+        if not level:
+            raise TypeError(
+                f"expected 'debug', 'info', 'warning', 'error', 'critical'"
+                f", got {value!r}",
+            )
+        return level
+
+    return value
+
+
 _CONFIG_VALIDATORS: dict[str, _Validator] = {
     "server": _Validator(str, is_of={"view", "uvicorn", "hypercorn"}),
     "load_strategy": _Validator(str, is_of={"manual", "auto", "simple"}),
     "use_uvloop": _Validator(bool, loader=_use_uvloop_loader),
     "extra_args": _Validator(dict, loader=_extra_args_loader),
+    "level": _Validator(int, loader=_log_level_loader),
+    "server_level": _Validator(int, loader=_log_level_loader),
 }
 
 _ANNOTATIONS: dict[str, Loader] = {"int": _int_loader, "bool": _bool_loader}
@@ -259,6 +341,9 @@ def _validate_config(config: Any) -> None:
                     f"expected one of {', '.join(values)}, got {attr}"
                 )
 
+        if validator.loader:
+            setattr(config, k, attr)
+
     for k, tp in type(config).__annotations__.items():
         loader = _ANNOTATIONS.get(tp)
         if loader:
@@ -268,13 +353,34 @@ def _validate_config(config: Any) -> None:
                 raise ValueError(f"error for config key {k!r}: {e}") from None
 
 
+def _load_prod(
+    config: Config,
+    attr: dict[Any, Any] | None = None,
+    last: Any | None = None,
+) -> None:
+    target = attr or config.prod
+    for k, v in target.items():
+        if (isinstance(v, dict)) and (k not in {"extra_args", "env"}):
+            _load_prod(config, v, getattr(last or config, k))
+        else:
+            assert last
+            setattr(last, k, v)
+
+
 def load_dict(obj: dict[Any, Any]) -> Config:
     for k in obj:
         if k not in inspect.signature(Config.__init__).parameters:
             raise ValueError(f"invalid key for config: {k}")
     result = Config(**obj)
     _validate_config(result.app)
+
+    if not result.app.dev:
+        _load_prod(result)
+
+    _validate_config(result.app)
+    # the app config might have changed, so we need to validate it again
     _validate_config(result.network)
+    _validate_config(result.log)
 
     for k, v in result.env.values():
         os.environ[k] = v

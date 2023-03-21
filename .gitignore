@@ -8,3 +8,6 @@ view.toml
 view.json
 view_config.py
 /app.py
+a.py
+*.log
+node_modules/
