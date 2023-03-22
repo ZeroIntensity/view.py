@@ -3,8 +3,13 @@ from __future__ import annotations
 import logging
 import os
 import runpy
+<<<<<<< HEAD
 import sys
 from typing import TYPE_CHECKING, NoReturn
+=======
+import weakref
+from typing import NoReturn
+>>>>>>> 66149dc2a4df2669358dbe834af3963c353649c6
 
 from ._logging import Internal, Service
 

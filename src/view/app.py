@@ -37,8 +37,8 @@ class App(ViewApp):
         self.config = config
         self._set_dev_state(config.app.dev)
 
-        if config.app.dev:
-            faulthandler.enable()
+        # if config.app.dev:
+        #    faulthandler.enable()
 
         if config.log.debug:
             enable_debug()

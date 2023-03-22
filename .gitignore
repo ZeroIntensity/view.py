@@ -9,5 +9,8 @@ view.json
 view_config.py
 /app.py
 a.py
+<<<<<<< HEAD
 *.log
 node_modules/
+=======
+>>>>>>> 66149dc2a4df2669358dbe834af3963c353649c6
