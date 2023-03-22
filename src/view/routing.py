@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import (Any, Callable, ClassVar, Generic, NamedTuple, Protocol,
-                    TypeVar)
+from typing import Any, Callable, ClassVar, Generic, Protocol, TypeVar
 
 
 class BodyLike(Protocol):
@@ -14,7 +13,6 @@ ValueType = BodyLike | str | int | dict[str, "ValueType"] | bool | float
 
 
 class Method(Enum):
-    NOTSET = 0
     GET = 1
     POST = 2
 
@@ -25,7 +23,8 @@ ValidatorResult = bool | tuple[bool, str]
 Validator = Callable[[V], ValidatorResult]
 
 
-class RouteInput(NamedTuple, Generic[V]):
+@dataclass
+class RouteInput(Generic[V]):
     tp: type[V] | None
     default: V | None
     doc: str | None
@@ -48,12 +47,12 @@ RouteOrCallable = Route | Callable[..., Any]
 def _ensure_route(r: RouteOrCallable) -> Route:
     if isinstance(r, Route):
         return r
-    return Route(None, Method.NOTSET, {}, {}, None)
+    return Route(None, Method.GET, {}, {}, None)
 
 
 def _method(
     r: RouteOrCallable,
-    path: str,
+    path: str | None,
     doc: str | None,
     method: Method,
 ) -> Route:
@@ -66,14 +65,14 @@ def _method(
     return route
 
 
-def get(path: str, doc: str | None = None):
+def get(path: str | None = None, doc: str | None = None):
     def inner(r: RouteOrCallable) -> Route:
         return _method(r, path, doc, Method.GET)
 
     return inner
 
 
-def post(path: str, doc: str | None = None):
+def post(path: str | None = None, doc: str | None = None):
     def inner(r: RouteOrCallable) -> Route:
         return _method(r, path, doc, Method.POST)
 

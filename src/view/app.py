@@ -13,6 +13,7 @@ from typing import Any, Coroutine
 
 from _view import ViewApp
 
+from ._loader import load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server)
 from .config import Config, JsonValue, load_config
@@ -54,17 +55,11 @@ class App(ViewApp):
     async def _app(self, scope, receive, send) -> None:
         await self.asgi_app_entry(scope, receive, send)
 
-    def get(self, route: str):
-        def decorator(func: ViewRoute):
-            self._get(route, func, 0)
-
-        return decorator
-
-    def post(self, route: str):
-        def decorator(func: ViewRoute):
-            self._post(route, func, 0)
-
-        return decorator
+    def load(self):
+        if self.config.app.load_strategy == "filesystem":
+            load_fs(self, self.config.app.load_path)
+        elif self.config.app.load_strategy == "simple":
+            load_simple(self, self.config.app.load_path)
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         Internal.info(f"spawning {coro}")

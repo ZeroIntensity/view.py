@@ -61,10 +61,12 @@ def config(obj: type[T]) -> type[T]:
     return obj
 
 
-TOML_BASE = f"""# view.py {__version__}
+TOML_BASE = (
+    lambda strategy: f"""# view.py {__version__}
 [network]
 
 [app]
+load_strategy = {strategy!r}
 
 [env]
 
@@ -77,26 +79,34 @@ port = 80
 hijack = false
 fancy = false
 """
+)
 
-JSON_BASE = """{
-    "network": {},
-    "app": {},
-    "env": {},
-    "log": {},
-    "prod": {
-        "network": {
+B_OPEN = "{"
+B_CLOSE = "}"
+BOC = "{}"
+
+JSON_BASE = (
+    lambda strategy: f"""{B_OPEN}
+    "network": {BOC},
+    "app": {B_OPEN}
+        "load_strategy": "{strategy}"
+    {B_CLOSE},
+    "env": {BOC},
+    "log": {BOC},
+    "prod": {B_OPEN}
+        "network": {B_OPEN}
             "port": 80
-        },
-        "app": {
+        {B_CLOSE},
+        "app": {B_OPEN}
             "hijack": false,
             "fancy": false,
-        }
-    }
-}"""
+        {B_CLOSE}
+    {B_CLOSE}
+{B_CLOSE}"""
+)
 
 PY_BASE = (
-    f"# view.py {__version__}"
-    """
+    lambda strategy: f"""# view.py {__version__}
 from __future__ import annotations
 from view.config import config, NetworkConfig, AppConfig, LogConfig
 
@@ -104,18 +114,18 @@ from view.config import config, NetworkConfig, AppConfig, LogConfig
 @config
 class Config:
     network = NetworkConfig()
-    app = AppConfig()
-    env: dict[str, str] = {}
+    app = AppConfig(strategy={repr(strategy)})
+    env: dict[str, str] = {BOC}
     log = LogConfig()
-    prod: dict[str, str] = {
-        "app": {
+    prod: dict[str, str] = {B_OPEN}
+        "app": {B_OPEN}
             "hijack": false,
             "fancy": false
-        },
-        "network": {
+        {B_CLOSE},
+        "network": {B_OPEN}
             "port": 80
-        }
-    }
+        {B_CLOSE}
+    {B_CLOSE}
 """
 )
 
@@ -127,6 +137,7 @@ class AppConfig:
     dev: bool = True
     path: str = "app.py:app"
     use_uvloop: Literal["decide"] | bool = "decide"
+    load_path: str = "./routes"
 
 
 @dataclass()
@@ -304,7 +315,7 @@ def _log_level_loader(value: JsonValue) -> int:
 
 _CONFIG_VALIDATORS: dict[str, _Validator] = {
     "server": _Validator(str, is_of={"view", "uvicorn", "hypercorn"}),
-    "load_strategy": _Validator(str, is_of={"manual", "auto", "simple"}),
+    "load_strategy": _Validator(str, is_of={"manual", "filesystem", "simple"}),
     "use_uvloop": _Validator(bool, loader=_use_uvloop_loader),
     "extra_args": _Validator(dict, loader=_extra_args_loader),
     "level": _Validator(int, loader=_log_level_loader),

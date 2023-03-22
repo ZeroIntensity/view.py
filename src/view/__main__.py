@@ -140,7 +140,12 @@ def deploy(target: str):
     type=click.Choice(("toml", "json", "py")),
     prompt="Configuration type",
 )
-def init(path: Path, type: str):
+@click.option(
+    "--load",
+    default="Preset for route loading.",
+    type=click.Choice(("manual", "filesystem", "simple")),
+)
+def init(path: Path, type: str, load: str):
     from .config import JSON_BASE, PY_BASE, TOML_BASE
 
     fname = (
@@ -158,11 +163,13 @@ def init(path: Path, type: str):
 
     with open(conf_path, "w") as f:
         f.write(
-            TOML_BASE
-            if type == "toml"
-            else JSON_BASE
-            if type == "json"
-            else PY_BASE
+            (
+                TOML_BASE
+                if type == "toml"
+                else JSON_BASE
+                if type == "json"
+                else PY_BASE
+            )(load)
         )
 
     click.echo(f"Created `{fname}`")
@@ -186,6 +193,29 @@ app.run()
         )
 
     click.echo("Created `app.py`")
+
+    if load != "manual":
+        if os.path.exists("./routes"):
+            os.mkdir("./routes")
+
+        routes = Path("./routes")
+        index = routes / "index.py"
+
+        if index.exists():
+            should_continue(
+                f"`{index.relative_to('.')}` already exists, overwrite?"
+            )
+        pathstr = "" if load == "filesystem" else "'/'"
+        with open(index, "w") as f:
+            f.write(
+                f"""from view.routing import get
+
+@get({pathstr})
+async def index():
+    return 'Hello, view.py!'
+"""
+            )
+
     success(f"Successfully initalized app in `{path}`")
     return
 
