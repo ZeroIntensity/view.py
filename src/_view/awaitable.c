@@ -164,7 +164,8 @@ gen_next(PyObject *self)
     GenWrapperObject *g = (GenWrapperObject *) self;
     PyAwaitableObject *aw = g->gw_aw;
     awaitable_callback *cb;
-    if (((aw->aw_state + 1) > aw->aw_callback_size) && g->gw_current_await == NULL) {
+    if (((aw->aw_state + 1) > aw->aw_callback_size) &&
+        g->gw_current_await == NULL) {
         PyErr_SetObject(PyExc_StopIteration,
                         g->gw_result ?
                         g->gw_result :
@@ -180,7 +181,8 @@ gen_next(PyObject *self)
             return NULL;
         }
 
-        g->gw_current_await = Py_TYPE(cb->coro)->tp_as_async->am_await(cb->coro);
+        g->gw_current_await = Py_TYPE(cb->coro)->tp_as_async->am_await(
+                                                            cb->coro);
         if (g->gw_current_await == NULL) {
             if (fire_err_callback(cb->coro, g->gw_current_await, cb) < 0) {
                 return NULL;
@@ -192,7 +194,8 @@ gen_next(PyObject *self)
         cb = aw->aw_callbacks[aw->aw_state - 1];
     }
 
-    PyObject *result = Py_TYPE(g->gw_current_await)->tp_iternext(g->gw_current_await);
+    PyObject *result = Py_TYPE(g->gw_current_await
+                        )->tp_iternext(g->gw_current_await);
 
     if (result == NULL) {
         PyObject *occurred = PyErr_Occurred();
@@ -626,7 +629,8 @@ PyAwaitable_AwaitFunction(PyObject *awaitable, PyObject *function,
     Py_INCREF(function);
 
     if (!PyCallable_Check(function)) {
-        PyErr_Format(PyExc_TypeError, "expected a callable object, got %R", function);
+        PyErr_Format(PyExc_TypeError, "expected a callable object, got %R",
+                     function);
         Py_DECREF(awaitable);
         Py_DECREF(function);
         return -1;
