@@ -12,6 +12,7 @@
     if (!PyArg_ParseTuple( \
         args, \
         "sOnOO", \
+        &path, \
         &callable, \
         &cache_rate, \
         &query, \

@@ -6,15 +6,61 @@ import warnings
 from typing import TYPE_CHECKING
 
 from ._logging import Internal
-from .routing import Route
+from .routing import Method, Route, RouteInput
+from .typing import RouteInputDict
 
 if TYPE_CHECKING:
     from .app import ViewApp
 
 
+def _format_inputs(inputs: dict[str, RouteInput]) -> list[RouteInputDict]:
+    result: list[RouteInputDict] = []
+
+    for k, v in inputs.items():
+
+        if v.tp:
+            if v.tp not in {str, int, bool, float}:
+                if v.tp is not dict:
+                    if not hasattr(v.tp, "__view_body__"):
+                        raise TypeError(
+                            f"{v.tp.__name__} is not a valid body type",
+                        )
+
+        result.append(
+            {
+                "name": k,
+                "type": v.tp,
+                "default": v.default,
+                "validators": v.validators,
+            }
+        )
+
+    return result
+
+
 def _finalize(routes: list[Route], app: ViewApp):
+    targets = {
+        Method.GET: app._get,
+        Method.PATCH: app._post,
+        Method.PUT: app._put,
+        Method.PATCH: app._patch,
+        Method.DELETE: app._delete,
+        Method.OPTIONS: app._options,
+    }
+
     for route in routes:
-        print(route)
+        target = targets[route.method]
+
+        if not route.path:
+            raise TypeError("route did not specify a path")
+
+        target(
+            route.path,
+            route.callable,
+            route.cache_rate,
+            _format_inputs(route.query),
+            _format_inputs(route.body),
+        )
 
 
 def load_fs(app: ViewApp, target_dir: str):

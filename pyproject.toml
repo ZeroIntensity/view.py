@@ -21,7 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = ["toml~=0.10.2", "rich", "click", "typing_extensions"]
+dependencies = ["toml", "rich", "click", "typing_extensions"]
 dynamic = ["version"]
 
 [project.urls]

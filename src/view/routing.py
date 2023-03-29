@@ -2,25 +2,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, ClassVar, Generic, Protocol, TypeVar
+from typing import Generic, TypeVar
 
-
-class BodyLike(Protocol):
-    __view_body__: ClassVar[dict[str, ValueType]]
-
-
-ValueType = BodyLike | str | int | dict[str, "ValueType"] | bool | float
+from .typing import Validator, ValueType, ViewRoute
 
 
 class Method(Enum):
     GET = 1
     POST = 2
+    DELETE = 3
+    PATCH = 4
+    PUT = 5
+    OPTIONS = 6
 
 
 V = TypeVar("V", bound="ValueType")
-
-ValidatorResult = bool | tuple[bool, str]
-Validator = Callable[[V], ValidatorResult]
 
 
 @dataclass
@@ -37,17 +33,18 @@ class Route:
     method: Method
     query: dict[str, RouteInput]
     body: dict[str, RouteInput]
+    callable: ViewRoute
     doc: str | None = None
     cache_rate: int = -1
 
 
-RouteOrCallable = Route | Callable[..., Any]
+RouteOrCallable = Route | ViewRoute
 
 
 def _ensure_route(r: RouteOrCallable) -> Route:
     if isinstance(r, Route):
         return r
-    return Route(None, Method.GET, {}, {}, None)
+    return Route(None, Method.GET, {}, {}, r)
 
 
 def _method(
@@ -59,6 +56,7 @@ def _method(
     route = _ensure_route(r)
     route.method = method
     route.path = path
+
     if doc:
         route.doc = doc
 
@@ -75,6 +73,34 @@ def get(path: str | None = None, doc: str | None = None):
 def post(path: str | None = None, doc: str | None = None):
     def inner(r: RouteOrCallable) -> Route:
         return _method(r, path, doc, Method.POST)
+
+    return inner
+
+
+def put(path: str | None = None, doc: str | None = None):
+    def inner(r: RouteOrCallable) -> Route:
+        return _method(r, path, doc, Method.PUT)
+
+    return inner
+
+
+def patch(path: str | None = None, doc: str | None = None):
+    def inner(r: RouteOrCallable) -> Route:
+        return _method(r, path, doc, Method.PATCH)
+
+    return inner
+
+
+def delete(path: str | None = None, doc: str | None = None):
+    def inner(r: RouteOrCallable) -> Route:
+        return _method(r, path, doc, Method.DELETE)
+
+    return inner
+
+
+def options(path: str | None = None, doc: str | None = None):
+    def inner(r: RouteOrCallable) -> Route:
+        return _method(r, path, doc, Method.OPTIONS)
 
     return inner
 
