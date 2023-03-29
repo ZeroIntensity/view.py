@@ -1,27 +1,26 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import runpy
-<<<<<<< HEAD
 import sys
-from typing import TYPE_CHECKING, NoReturn
-=======
-import weakref
-from typing import NoReturn
->>>>>>> 66149dc2a4df2669358dbe834af3963c353649c6
+from typing import TYPE_CHECKING, overload
 
 from ._logging import Internal, Service
 
 if TYPE_CHECKING:
     from .app import App
 
+__all__ = ("run", "env", "debug")
 
-def run(app_or_path: str | App) -> NoReturn:
+
+def run(app_or_path: str | App) -> None:
     from .app import App
 
     if isinstance(app_or_path, App):
         app_or_path.run()
+        return
 
     split = app_or_path.split(":", maxsplit=1)
 
@@ -51,7 +50,6 @@ def run(app_or_path: str | App) -> NoReturn:
         raise TypeError(f"{target!r} is not an instance of view.App")
 
     target._run()
-    exit(0)
 
 
 def debug():
@@ -67,3 +65,59 @@ def debug():
 
     Internal.info("debug mode enabled")
     os.environ["VIEW_DEBUG"] = "1"
+
+
+EnvConv = str | int | bool | dict
+
+
+@overload
+def env(key: str, *, tp: type[str] = str) -> str:
+    ...
+
+
+@overload
+def env(key: str, *, tp: type[int] = ...) -> int:
+    ...
+
+
+@overload
+def env(key: str, *, tp: type[bool] = ...) -> bool:
+    ...
+
+
+@overload
+def env(key: str, *, tp: type[dict] = ...) -> dict:
+    ...
+
+
+def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
+    value = os.environ.get(key)
+
+    if not value:
+        raise RuntimeError(f'environment variable "{key}" not set')
+
+    if tp is str:
+        return value
+
+    if tp is int:
+        try:
+            return int(value)
+        except ValueError:
+            raise RuntimeError(
+                f"{value!r} (key {key!r}) is not int-like"
+            ) from None
+
+    if tp is dict:
+        try:
+            return json.loads(value)
+        except ValueError:
+            raise RuntimeError(f"{value!r} ({key!r}) is not dict-like")
+
+    if tp is bool:
+        value = value.lower()
+        if value not in {"true", "false"}:
+            raise RuntimeError(f"{value!r} ({key!r}) is not bool-like")
+
+        return value == "true"
+
+    raise ValueError(f"{tp.__name__} cannot be converted")

@@ -203,6 +203,15 @@ def _ob_dict(ob: object) -> dict:
     return d
 
 
+def load_path_simple(path: Path) -> dict:
+    if path.suffix == ".toml":
+        return toml.loads(path.read_text())
+    if path.suffix == ".json":
+        return json.loads(path.read_text())
+
+    raise ValueError(f"unsupported file type: {path.suffix}")
+
+
 def _load_path(path: Path) -> dict:
     if path.suffix == ".toml":
         return toml.loads(path.read_text())
@@ -259,7 +268,7 @@ def _use_uvloop_loader(value: JsonValue) -> bool:
                 raise TypeError("must be true, false, or 'decide'")
             else:
                 try:
-                    import uvloop as _  # noqa
+                    import uvloop as _  # type: ignore
 
                     return True
                 except ImportError:
@@ -402,8 +411,6 @@ def load_dict(obj: dict[Any, Any]) -> Config:
 def load_config(
     path: str | Path | None = None,
     overrides: dict | None = None,
-    *,
-    default: bool = False,
 ) -> Config:
     p: Path | None = None
 
@@ -416,10 +423,7 @@ def load_config(
                 p = tmp
                 break
         if not p:
-            if not default:
-                raise TypeError(f"no config found in {parent}")
-            else:
-                return Config()
+            return load_dict({})
     else:
         p = path if not isinstance(path, str) else Path(path)
         if not p.exists():

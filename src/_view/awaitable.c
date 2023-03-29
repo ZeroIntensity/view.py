@@ -11,12 +11,15 @@
 #include <view/awaitable.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <threads.h>
 
 typedef struct {
     PyObject *coro;
     awaitcallback callback;
     awaitcallback_err err_callback;
     bool done;
+    virtual_func virt;
+    virtualcallback v_cb;
 } awaitable_callback;
 
 struct _PyAwaitableObject {
@@ -39,6 +42,11 @@ typedef struct {
     PyAwaitableObject *gw_aw;
     PyObject *gw_current_await;
 } GenWrapperObject;
+
+typedef struct {
+    PyObject *awaitable;
+    awaitable_callback* cb;
+} virtual_data;
 
 PyDoc_STRVAR(awaitable_doc,
     "Awaitable transport utility for the C API.");
@@ -158,6 +166,34 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
     return 0;
 }
 
+static void virtual_start(virtual_data *data) {
+    PyGILState_STATE state = PyGILState_Ensure();
+    void *result;
+
+    result = data->cb->virt(data->awaitable);
+
+    if (result == NULL) {
+        Py_DECREF(data->awaitable);
+        PyMem_Free(data);
+        PyGILState_Release(state);
+        thrd_exit(-1);
+    }
+
+    if (data->cb->v_cb) {
+        if (data->cb->v_cb(data->awaitable, result) < 0) {
+            Py_DECREF(data->awaitable);
+            PyMem_Free(data);
+            PyGILState_Release(state);
+            thrd_exit(-1);
+        };
+    }
+
+    Py_DECREF(data->awaitable);
+    PyMem_Free(data);
+    PyGILState_Release(state);
+    thrd_exit(0);
+}
+
 static PyObject *
 gen_next(PyObject *self)
 {
@@ -174,6 +210,35 @@ gen_next(PyObject *self)
 
     if (g->gw_current_await == NULL) {
         cb = aw->aw_callbacks[aw->aw_state++];
+
+        if (cb->coro == NULL) {
+            thrd_t thread;
+            virtual_data *data = PyMem_Malloc(sizeof(virtual_data));
+            if (data == NULL) {
+                return PyErr_NoMemory();
+            }
+
+            data->awaitable = Py_NewRef(self);
+            data->cb = cb;
+            int res;
+
+            res = thrd_create(&thread, (thrd_start_t) virtual_start,
+                                  data);
+
+            if (res == thrd_success) {
+                return gen_next(self);
+            }
+
+            if (res == thrd_nomem) {
+                return PyErr_NoMemory();
+            }
+
+            if (res == thrd_error) {
+                PyErr_SetString(PyExc_RuntimeError, "failed to create thread");
+                return NULL;
+            }
+        }
+
         if (Py_TYPE(cb->coro)->tp_as_async == NULL ||
             Py_TYPE(cb->coro)->tp_as_async->am_await == NULL) {
             PyErr_Format(PyExc_TypeError, "%R has no __await__", cb->coro);
@@ -456,6 +521,7 @@ PyAwaitable_AddAwait(
     aw_c->coro = coro; // steal our own reference
     aw_c->callback = cb;
     aw_c->err_callback = err;
+    aw_c->virt = NULL;
     a->aw_callbacks[a->aw_callback_size - 1] = aw_c;
     Py_DECREF(aw);
 
@@ -669,6 +735,53 @@ PyAwaitable_AwaitFunction(PyObject *awaitable, PyObject *function,
     return 0;
 }
 
+int
+PyAwaitable_VirtualAwait(
+    PyObject *aw,
+    virtual_func virt,
+    virtualcallback cb
+)
+{
+    assert(aw != NULL);
+    assert(virt != NULL);
+    Py_INCREF(aw);
+    PyAwaitableObject *a = (PyAwaitableObject *) aw;
+
+    awaitable_callback *aw_c = PyMem_Malloc(sizeof(awaitable_callback));
+    if (aw_c == NULL) {
+        Py_DECREF(aw);
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    ++a->aw_callback_size;
+    if (a->aw_callbacks == NULL) {
+        a->aw_callbacks = PyMem_Calloc(a->aw_callback_size,
+        sizeof(awaitable_callback *));
+    } else {
+        a->aw_callbacks = PyMem_Realloc(a->aw_callbacks,
+        sizeof(awaitable_callback *) * a->aw_callback_size
+    );
+    }
+
+    if (a->aw_callbacks == NULL) {
+        --a->aw_callback_size;
+        Py_DECREF(aw);
+        PyMem_Free(aw_c);
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    aw_c->coro = NULL;
+    aw_c->callback = NULL;
+    aw_c->v_cb = cb;
+    aw_c->err_callback = NULL;
+    aw_c->virt = virt;
+    a->aw_callbacks[a->aw_callback_size - 1] = aw_c;
+    Py_DECREF(aw);
+
+    return 0;
+}
 PyObject *
 PyAwaitable_New()
 {

@@ -135,14 +135,14 @@ def deploy(target: str):
 )
 @click.option(
     "--type",
-    help="File type to initalize.",
+    help="Configuration type to initalize.",
     default="toml",
     type=click.Choice(("toml", "json", "py")),
-    prompt="Configuration type",
 )
 @click.option(
     "--load",
-    default="Preset for route loading.",
+    help="Preset for route loading.",
+    default="filesystem",
     type=click.Choice(("manual", "filesystem", "simple")),
 )
 def init(path: Path, type: str, load: str):
@@ -159,7 +159,8 @@ def init(path: Path, type: str, load: str):
         path.mkdir()
 
     conf_path = path / fname
-    should_continue(f"`{conf_path}` already exists, overwrite?")
+    if conf_path.exists():
+        should_continue(f"`{conf_path}` already exists, overwrite?")
 
     with open(conf_path, "w") as f:
         f.write(
@@ -176,7 +177,8 @@ def init(path: Path, type: str, load: str):
 
     app_path = path / "app.py"
 
-    should_continue(f"`{app_path}` already exists, overwrite?")
+    if app_path.exists():
+        should_continue(f"`{app_path}` already exists, overwrite?")
 
     from .__about__ import __version__
 
@@ -195,10 +197,12 @@ app.run()
     click.echo("Created `app.py`")
 
     if load != "manual":
-        if os.path.exists("./routes"):
-            os.mkdir("./routes")
+        routes = path / "routes"
+        if os.path.exists(routes):
+            should_continue("`routes` already exists, overwrite?")
+        else:
+            os.mkdir(routes)
 
-        routes = Path("./routes")
         index = routes / "index.py"
 
         if index.exists():

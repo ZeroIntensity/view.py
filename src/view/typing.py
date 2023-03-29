@@ -1,4 +1,8 @@
-from typing import Any, Awaitable, Callable
+from __future__ import annotations
+
+from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar
+
+from typing_extensions import Protocol, TypedDict
 
 AsgiSerial = (
     bytes
@@ -45,6 +49,22 @@ _ViewResponseType = (
 )
 ViewResponse = Awaitable[_ViewResponseType]
 Context = Any
-ViewRouteContext = Callable[[Context], ViewResponse]
-ViewRouteNull = Callable[[], ViewResponse]
-ViewRoute = ViewRouteContext | ViewRouteNull
+ViewRoute = Callable[[], ViewResponse]
+
+V = TypeVar("V", bound="ValueType")
+
+
+class BodyLike(Protocol):
+    __view_body__: ClassVar[dict[str, ValueType]]
+
+
+ValueType = BodyLike | str | int | dict[str, "ValueType"] | bool | float
+ValidatorResult = bool | tuple[bool, str]
+Validator = Callable[[V], ValidatorResult]
+
+
+class RouteInputDict(TypedDict, Generic[V]):
+    name: str
+    type: type[V] | None
+    default: V | None
+    validators: list[Validator[V]]
