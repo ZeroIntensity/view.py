@@ -163,6 +163,7 @@ class DatabaseConfig:
     username: str | None = None
     password: str | None = None
     setup: bool = True
+    name: str = "view"
 
 
 class Config:

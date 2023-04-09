@@ -1,7 +1,28 @@
+import getpass
 import os
 from pathlib import Path
 
 import click
+
+B_OPEN = "{"
+B_CLOSE = "}"
+
+PYPROJECT_BASE = (
+    lambda name: f"""[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{name}"
+authors = [
+    {B_OPEN}name = "{getpass.getuser()}", email = "your@email.com"{B_CLOSE}
+]
+requires-python = ">=3.7"
+license = "MIT"
+dependencies = ["view.py"]
+version = "1.0.0"
+"""
+)
 
 
 def success(msg: str) -> None:
@@ -148,16 +169,18 @@ def deploy(target: str):
     type=click.Choice(("manual", "filesystem", "simple")),
 )
 @click.option(
-    "--scripts",
-    "-s",
-    help="Scripts directory target.",
-    default=None,
-    type=click.Path(
-        exists=False,
-        writable=True,
-    ),
+    "--no-project",
+    help="Disable creation of a pyproject.toml file.",
+    is_flag=True,
 )
-def init(path: Path, type: str, load: str):
+@click.option(
+    "--name",
+    "-n",
+    help="Project name to be used in configuration.",
+    type=str,
+    default="my_app",
+)
+def init(path: Path, type: str, load: str, no_project: bool, name: str):
     from .config import JSON_BASE, PY_BASE, TOML_BASE
 
     fname = (
@@ -208,12 +231,32 @@ app.run()
 
     click.echo("Created `app.py`")
 
+    if not no_project:
+        pyproject = path / "pyproject.toml"
+
+        if pyproject.exists():
+            should_continue("`pyproject.toml` already exists, overwrite?")
+        else:
+            with pyproject.open("w", encoding="utf-8") as f:
+                f.write(PYPROJECT_BASE(name))
+
+            click.echo("Created `pyproject.toml`")
+
+    scripts = path / "scripts"
+
+    if scripts.exists():
+        should_continue("`scripts` already exists, overwrite?")
+    else:
+        scripts.mkdir()
+        click.echo("Created `scripts`")
+
     if load != "manual":
         routes = path / "routes"
-        if os.path.exists(routes):
+        if routes.exists():
             should_continue("`routes` already exists, overwrite?")
         else:
-            os.mkdir(routes)
+            routes.mkdir()
+            click.echo("Created `routes`")
 
         index = routes / "index.py"
 
@@ -231,6 +274,8 @@ async def index():
     return 'Hello, view.py!'
 """
             )
+
+            click.echo("Created `routes/index.py`")
 
     success(f"Successfully initalized app in `{path}`")
     return
