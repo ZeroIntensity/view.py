@@ -21,6 +21,8 @@ V = TypeVar("V", bound="ValueType")
 
 @dataclass
 class RouteInput(Generic[V]):
+    name: str
+    is_body: bool
     tp: type[V] | None
     default: V | None
     doc: str | None
@@ -31,8 +33,7 @@ class RouteInput(Generic[V]):
 class Route:
     path: str | None
     method: Method
-    query: dict[str, RouteInput]
-    body: dict[str, RouteInput]
+    inputs: list[RouteInput]
     callable: ViewRoute
     doc: str | None = None
     cache_rate: int = -1
@@ -44,7 +45,7 @@ RouteOrCallable = Route | ViewRoute
 def _ensure_route(r: RouteOrCallable) -> Route:
     if isinstance(r, Route):
         return r
-    return Route(None, Method.GET, {}, {}, r)
+    return Route(None, Method.GET, [], r)
 
 
 def _method(
@@ -63,46 +64,65 @@ def _method(
     return route
 
 
-def get(path: str | None = None, doc: str | None = None):
+def _method_wrapper(
+    path_or_route: str | None | RouteOrCallable,
+    doc: str | None,
+    method: Method,
+):
     def inner(r: RouteOrCallable) -> Route:
-        return _method(r, path, doc, Method.GET)
+        if not isinstance(path_or_route, str):
+            raise TypeError(f"{path_or_route!r} is not a string")
+        return _method(r, path_or_route, doc, Method.GET)
+
+    if not path_or_route:
+        return inner
+
+    if isinstance(path_or_route, str):
+        return inner
 
     return inner
 
 
-def post(path: str | None = None, doc: str | None = None):
-    def inner(r: RouteOrCallable) -> Route:
-        return _method(r, path, doc, Method.POST)
-
-    return inner
-
-
-def put(path: str | None = None, doc: str | None = None):
-    def inner(r: RouteOrCallable) -> Route:
-        return _method(r, path, doc, Method.PUT)
-
-    return inner
+def get(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+):
+    return _method_wrapper(path_or_route, doc, Method.GET)
 
 
-def patch(path: str | None = None, doc: str | None = None):
-    def inner(r: RouteOrCallable) -> Route:
-        return _method(r, path, doc, Method.PATCH)
-
-    return inner
-
-
-def delete(path: str | None = None, doc: str | None = None):
-    def inner(r: RouteOrCallable) -> Route:
-        return _method(r, path, doc, Method.DELETE)
-
-    return inner
+def post(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+):
+    return _method_wrapper(path_or_route, doc, Method.POST)
 
 
-def options(path: str | None = None, doc: str | None = None):
-    def inner(r: RouteOrCallable) -> Route:
-        return _method(r, path, doc, Method.OPTIONS)
+def patch(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+):
+    return _method_wrapper(path_or_route, doc, Method.PATCH)
 
-    return inner
+
+def put(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+):
+    return _method_wrapper(path_or_route, doc, Method.PUT)
+
+
+def delete(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+):
+    return _method_wrapper(path_or_route, doc, Method.DELETE)
+
+
+def options(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+):
+    return _method_wrapper(path_or_route, doc, Method.OPTIONS)
 
 
 def query(
@@ -114,7 +134,7 @@ def query(
 ):
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
-        route.query[name] = RouteInput(tp, default, doc, [])
+        route.inputs.append(RouteInput(name, False, tp, default, doc, []))
         return route
 
     return inner
@@ -129,7 +149,7 @@ def body(
 ):
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
-        route.body[name] = RouteInput(tp, default, doc, [])
+        route.inputs.append(RouteInput(name, True, tp, default, doc, []))
         return route
 
     return inner

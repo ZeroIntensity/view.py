@@ -7,6 +7,7 @@ import inspect
 import json
 import logging
 import os
+import warnings
 from dataclasses import dataclass as apply_dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -16,6 +17,8 @@ from typing import (Any, Callable, Coroutine, Generic, TypeVar, get_type_hints,
                     overload)
 
 from _view import ViewApp
+from .routing import (RouteOrCallable, delete, get, options, patch, post,
+                          put)
 
 from ._loader import load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
@@ -36,6 +39,17 @@ def _attempt_import(mod: str) -> Module:
         raise ImportError(
             f"{mod} is not installed! (`pip install {mod}`)"
         ) from e
+
+
+def _method_wrapper(
+    path: str,
+    doc: str | None,
+    target: Callable[..., Any],  # i dont really feel like typing this properly
+):
+    def inner(route: RouteOrCallable):
+        return target(path, doc)(route)
+
+    return inner
 
 
 S = TypeVar("S", int, str, dict, bool)
@@ -62,11 +76,23 @@ class App(ViewApp, Generic[A]):
         self.user_settings: type[A] | None = None
         self._supplied_config: dict[str, Any] | None = {}
 
-    def get(self, path: str):
-        def inner(route: ViewRoute):
-            self._get(path, route, -1, [], [])
+    def get(self, path: str, *, doc: str | None = None):
+        return _method_wrapper(path, doc, get)
 
-        return inner
+    def post(self, path: str, *, doc: str | None = None):
+        return _method_wrapper(path, doc, post)
+
+    def delete(self, path: str, *, doc: str | None = None):
+        return _method_wrapper(path, doc, delete)
+
+    def patch(self, path: str, *, doc: str | None = None):
+        return _method_wrapper(path, doc, patch)
+
+    def put(self, path: str, *, doc: str | None = None):
+        return _method_wrapper(path, doc, put)
+
+    def options(self, path: str, *, doc: str | None = None):
+        return _method_wrapper(path, doc, options)
 
     def _load_settings(self, ob: Any) -> None:
         for k, tp in get_type_hints(ob).items():
@@ -126,11 +152,18 @@ class App(ViewApp, Generic[A]):
         ), "config has not been loaded or set"
         return self._supplied_config[key]
 
-    def load(self) -> None:
+    def load(self, routes: list[Route] | None = None) -> None:
         if self.config.app.load_strategy == "filesystem":
+            if routes:
+                warnings.warn(
+                    "routes argument should only be passed when load strategy is manual",
+                )
             load_fs(self, self.config.app.load_path)
         elif self.config.app.load_strategy == "simple":
             load_simple(self, self.config.app.load_path)
+        else:
+            for route in routes:
+                ...
 
         if not self.user_settings:
             return

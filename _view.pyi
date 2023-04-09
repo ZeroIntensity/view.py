@@ -4,8 +4,6 @@
 # the extension module
 
 from typing import Any as __Any
-from typing import Callable as __Callable
-from typing import TypedDict as __TypedDict
 
 from view.typing import AsgiDict as __AsgiDict
 from view.typing import AsgiReceive as __AsgiReceive
@@ -27,8 +25,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        query: list[__RouteInput[__Any]],
-        body: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any]],
     ) -> None: ...
     def _post(
         self,
@@ -36,8 +33,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        query: list[__RouteInput[__Any]],
-        body: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any]],
     ) -> None: ...
     def _put(
         self,
@@ -45,8 +41,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        query: list[__RouteInput[__Any]],
-        body: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any]],
     ) -> None: ...
     def _patch(
         self,
@@ -54,8 +49,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        query: list[__RouteInput[__Any]],
-        body: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any]],
     ) -> None: ...
     def _delete(
         self,
@@ -63,8 +57,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        query: list[__RouteInput[__Any]],
-        body: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any]],
     ) -> None: ...
     def _options(
         self,
@@ -72,7 +65,6 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        query: list[__RouteInput[__Any]],
-        body: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any]],
     ) -> None: ...
     def _set_dev_state(self, /, value: bool) -> None: ...

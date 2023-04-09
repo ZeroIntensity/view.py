@@ -13,32 +13,32 @@ if TYPE_CHECKING:
     from .app import ViewApp
 
 
-def _format_inputs(inputs: dict[str, RouteInput]) -> list[RouteInputDict]:
+def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
     result: list[RouteInputDict] = []
 
-    for k, v in inputs.items():
-
-        if v.tp:
-            if v.tp not in {str, int, bool, float}:
-                if v.tp is not dict:
-                    if not hasattr(v.tp, "__view_body__"):
+    for i in inputs:
+        if i.tp:
+            if i.tp not in {str, int, bool, float}:
+                if i.tp is not dict:
+                    if not hasattr(i.tp, "__view_body__"):
                         raise TypeError(
-                            f"{v.tp.__name__} is not a valid body type",
+                            f"{i.tp.__name__} is not a valid body type",
                         )
 
         result.append(
             {
-                "name": k,
-                "type": v.tp,
-                "default": v.default,
-                "validators": v.validators,
+                "name": i.name,
+                "type": i.tp,
+                "default": i.default,
+                "validators": i.validators,
+                "is_body": i.is_body,
             }
         )
 
     return result
 
 
-def _finalize(routes: list[Route], app: ViewApp):
+def finalize(routes: list[Route], app: ViewApp):
     targets = {
         Method.GET: app._get,
         Method.PATCH: app._post,
@@ -58,8 +58,7 @@ def _finalize(routes: list[Route], app: ViewApp):
             route.path,
             route.callable,
             route.cache_rate,
-            _format_inputs(route.query),
-            _format_inputs(route.body),
+            _format_inputs(route.inputs),
         )
 
 
@@ -97,7 +96,7 @@ def load_fs(app: ViewApp, target_dir: str):
 
             routes.append(route)
 
-    _finalize(routes, app)
+    finalize(routes, app)
 
 
 def load_simple(app: ViewApp, target_dir: str):
@@ -127,4 +126,4 @@ def load_simple(app: ViewApp, target_dir: str):
 
                 routes.append(route)
 
-    _finalize(routes, app)
+    finalize(routes, app)

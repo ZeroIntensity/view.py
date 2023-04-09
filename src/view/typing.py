@@ -68,3 +68,4 @@ class RouteInputDict(TypedDict, Generic[V]):
     type: type[V] | None
     default: V | None
     validators: list[Validator[V]]
+    is_body: bool

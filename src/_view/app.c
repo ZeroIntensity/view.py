@@ -6,36 +6,25 @@
 #define LOAD_ROUTE(target) \
     char* path; \
     PyObject* callable; \
-    PyObject* query; \
-    PyObject* body; \
+    PyObject* inputs; \
     Py_ssize_t cache_rate; \
     if (!PyArg_ParseTuple( \
         args, \
-        "sOnOO", \
+        "sOnO", \
         &path, \
         &callable, \
         &cache_rate, \
-        &query, \
-        &body \
+        &inputs \
         )) return NULL; \
     route* r = route_new( \
         callable, \
-        PySequence_Size(query), \
-        PySequence_Size(body), \
+        PySequence_Size(inputs), \
         cache_rate \
     ); \
     if (!r) return NULL; \
     if (load( \
         r, \
-        query, \
-        r->query, \
-        &r->query_size \
-        ) < 0) return NULL; \
-    if (load( \
-        r, \
-        body, \
-        r->body, \
-        &r->body_size \
+        inputs \
         ) < 0) return NULL; \
     map_set(self-> target, path, r); \
     Py_RETURN_NONE; \
@@ -75,6 +64,7 @@ typedef struct {
     PyObject** validators;
     Py_ssize_t validators_size;
     char* name;
+    bool is_body;
 } route_input;
 
 typedef struct {
@@ -84,16 +74,13 @@ typedef struct {
     uint16_t cache_status;
     Py_ssize_t cache_index;
     Py_ssize_t cache_rate;
-    route_input** query;
-    Py_ssize_t query_size;
-    route_input** body;
-    Py_ssize_t body_size;
+    route_input** inputs;
+    Py_ssize_t inputs_size;
 } route;
 
 route* route_new(
     PyObject* callable,
-    Py_ssize_t query_size,
-    Py_ssize_t body_size,
+    Py_ssize_t inputs_size,
     Py_ssize_t cache_rate
 ) {
     route* r = malloc(sizeof(route));
@@ -105,37 +92,22 @@ route* route_new(
     r->cache_index = 0;
     r->cache_headers = NULL;
     r->cache_status = 0;
-    r->query = PyMem_Calloc(
-        query_size,
-        sizeof(route_input*)
-    );
-    r->body = PyMem_Calloc(
-        body_size,
-        sizeof(route_input*)
-    );
-    r->query_size = 0;
-    r->body_size = 0;
+    r->inputs = NULL;
+    r->inputs_size = inputs_size;
     return r;
 }
 
 void route_free(route* r) {
-    for (int i = 0; i < r->body_size; i++) {
-        Py_DECREF(r->body[i]->df);
-        Py_DECREF(r->body[i]->type);
+    for (int i = 0; i < r->inputs_size; i++) {
+        Py_DECREF(r->inputs[i]->df);
+        Py_DECREF(r->inputs[i]->type);
 
-        for (int i = 0; i < r->body[i]->validators_size; i++) {
-            Py_DECREF(r->body[i]->validators[i]);
-        }
-    }
-    for (int i = 0; i < r->query_size; i++) {
-        Py_DECREF(r->query[i]->df);
-        Py_DECREF(r->query[i]->type);
-
-        for (int i = 0; i < r->query[i]->validators_size; i++) {
-            Py_DECREF(r->query[i]->validators[i]);
+        for (int i = 0; i < r->inputs[i]->validators_size; i++) {
+            Py_DECREF(r->inputs[i]->validators[i]);
         }
     }
 
+    PyMem_Free(r->inputs);
     Py_XDECREF(r->cache_headers);
     Py_DECREF(r->callable);
     if (r->cache) free(r->cache);
@@ -962,20 +934,46 @@ static PyObject* app(ViewApp* self, PyObject* args) {
 
 static int load(
     route* r,
-    PyObject* target,
-    route_input** final,
-    Py_ssize_t* sz
+    PyObject* target
 ) {
     PyObject* iter = PyObject_GetIter(target);
     PyObject* item;
     Py_ssize_t index = 0;
 
+    Py_ssize_t len = PySequence_Size(target);
+    if (!len) {
+        return -1;
+    }
+
+    r->inputs = PyMem_Calloc(
+        len,
+        sizeof(route_input*)
+    );
+    if (!r->inputs) return -1;
+
     while ((item = PyIter_Next(iter))) {
         route_input* inp = PyMem_Malloc(sizeof(route_input));
+        r->inputs[index++] = inp;
+
         if (!inp) {
             Py_DECREF(iter);
             return -1;
         }
+
+        PyObject* is_body = Py_XNewRef(
+            PyDict_GetItemString(
+                item,
+                "is_body"
+            )
+        );
+
+        if (!is_body) {
+            Py_DECREF(iter);
+            PyMem_Free(r->inputs);
+            return -1;
+        }
+        inp->is_body = PyObject_IsTrue(is_body);
+        Py_DECREF(is_body);
 
         PyObject* name = Py_XNewRef(
             PyDict_GetItemString(
@@ -986,6 +984,7 @@ static int load(
 
         if (!name) {
             Py_DECREF(iter);
+            PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
         }
@@ -994,6 +993,7 @@ static int load(
         if (!cname) {
             Py_DECREF(iter);
             Py_DECREF(name);
+            PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
         }
@@ -1001,7 +1001,6 @@ static int load(
 
         Py_DECREF(name);
 
-        r->query[index++] = inp;
         inp->df = Py_XNewRef(
             PyDict_GetItemString(
                 item,
@@ -1010,6 +1009,7 @@ static int load(
         );
         if (!inp->df) {
             Py_DECREF(iter);
+            PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
         }
@@ -1023,6 +1023,7 @@ static int load(
         if (!inp->type) {
             Py_DECREF(iter);
             Py_DECREF(inp->df);
+            PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
         }
@@ -1035,6 +1036,7 @@ static int load(
             Py_DECREF(iter);
             Py_DECREF(inp->df);
             Py_DECREF(inp->type);
+            PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
         }
@@ -1050,6 +1052,7 @@ static int load(
             Py_DECREF(iter);
             Py_DECREF(inp->type);
             Py_DECREF(inp->df);
+            PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
         }
@@ -1062,31 +1065,6 @@ static int load(
                 )
             );
         }
-        if (!r->query) {
-            r->query = PyMem_Calloc(
-                ++(*sz),
-                sizeof(route_input*)
-            );
-        } else {
-            r->query = PyMem_Realloc(
-                r->query,
-                ++(*sz) * sizeof(route_input*)
-            );
-        }
-
-        if (!r->query) {
-            Py_DECREF(iter);
-            Py_DECREF(inp->type);
-            Py_DECREF(inp->df);
-
-            for (int i = 0; i < inp->validators_size; i++) {
-                Py_DECREF(inp->validators[i]);
-            }
-
-            PyMem_Free(inp);
-        }
-
-        final[(*sz) - 1] = inp;
     };
 
     Py_DECREF(iter);
