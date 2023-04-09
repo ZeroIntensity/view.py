@@ -123,6 +123,7 @@ def deploy(target: str):
 @main.command()
 @click.option(
     "--path",
+    "-p",
     type=click.Path(
         exists=False,
         file_okay=False,
@@ -131,19 +132,30 @@ def deploy(target: str):
         writable=True,
     ),
     default="./",
-    prompt="Path to initalize to",
 )
 @click.option(
     "--type",
+    "-t",
     help="Configuration type to initalize.",
     default="toml",
     type=click.Choice(("toml", "json", "py")),
 )
 @click.option(
     "--load",
+    "-l",
     help="Preset for route loading.",
     default="filesystem",
     type=click.Choice(("manual", "filesystem", "simple")),
+)
+@click.option(
+    "--scripts",
+    "-s",
+    help="Scripts directory target.",
+    default=None,
+    type=click.Path(
+        exists=False,
+        writable=True,
+    ),
 )
 def init(path: Path, type: str, load: str):
     from .config import JSON_BASE, PY_BASE, TOML_BASE

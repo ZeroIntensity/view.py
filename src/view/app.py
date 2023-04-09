@@ -12,33 +12,23 @@ from dataclasses import dataclass as apply_dataclass
 from functools import lru_cache
 from pathlib import Path
 from threading import Thread
-from types import ModuleType as Module
 from typing import (Any, Callable, Coroutine, Generic, TypeVar, get_type_hints,
                     overload)
 
 from _view import ViewApp
-from .routing import (RouteOrCallable, delete, get, options, patch, post,
-                          put)
 
 from ._loader import load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server)
+from ._util import attempt_import
 from .config import Config, JsonValue, load_config, load_path_simple
-from .typing import ViewRoute
+from .routing import (Route, RouteOrCallable, delete, get, options, patch,
+                      post, put)
 from .util import debug as enable_debug
 
 A = TypeVar("A")
 
 get_type_hints = lru_cache(get_type_hints)
-
-
-def _attempt_import(mod: str) -> Module:
-    try:
-        return importlib.import_module(mod)
-    except ImportError as e:
-        raise ImportError(
-            f"{mod} is not installed! (`pip install {mod}`)"
-        ) from e
 
 
 def _method_wrapper(
@@ -54,20 +44,29 @@ def _method_wrapper(
 
 S = TypeVar("S", int, str, dict, bool)
 
+_ROUTES_WARN_MSG = (
+    "routes argument should only be passed when load strategy is manual"
+)
+
 
 class App(ViewApp, Generic[A]):
     def __init__(self, config: Config) -> None:
         self.config = config
         self._set_dev_state(config.app.dev)
 
+        assert isinstance(config.log.level, int)
+        Service.log.setLevel(config.log.level)
+
         if config.app.dev:
+            if os.environ.get("VIEW_PROD") is not None:
+                Service.warning("VIEW_PROD is set but dev is set to true")
+
             faulthandler.enable()
+        else:
+            os.environ["VIEW_PROD"] = "1"
 
         if config.log.debug:
             enable_debug()
-
-        assert isinstance(config.log.level, int)
-        Service.log.setLevel(config.log.level)
 
         if (not config.app.dev) and (config.network):
             self.config.network.port = 80
@@ -155,13 +154,16 @@ class App(ViewApp, Generic[A]):
     def load(self, routes: list[Route] | None = None) -> None:
         if self.config.app.load_strategy == "filesystem":
             if routes:
-                warnings.warn(
-                    "routes argument should only be passed when load strategy is manual",
-                )
+                warnings.warn(_ROUTES_WARN_MSG)
             load_fs(self, self.config.app.load_path)
         elif self.config.app.load_strategy == "simple":
+            if routes:
+                warnings.warn(_ROUTES_WARN_MSG)
             load_simple(self, self.config.app.load_path)
         else:
+            if not routes:
+                return
+
             for route in routes:
                 ...
 
@@ -263,7 +265,7 @@ class App(ViewApp, Generic[A]):
         server = self.config.app.server
 
         if self.config.app.use_uvloop:
-            uvloop = _attempt_import("uvloop")
+            uvloop = attempt_import("uvloop")
             uvloop.install()
 
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")
@@ -272,7 +274,7 @@ class App(ViewApp, Generic[A]):
             Service.warning("using port 80 when development mode is enabled")
 
         if server == "uvicorn":
-            uvicorn = _attempt_import("uvicorn")
+            uvicorn = attempt_import("uvicorn")
 
             config = uvicorn.Config(
                 self.asgi_app_entry,
@@ -290,7 +292,7 @@ class App(ViewApp, Generic[A]):
             asyncio.run(self._spawn(server.serve()))
 
         elif server == "hypercorn":
-            hypercorn = _attempt_import("hypercorn")
+            hypercorn = attempt_import("hypercorn")
             conf = hypercorn.Config()
             conf.loglevel = "debug" if self.config.app.dev else "info"
             conf.bind = [
