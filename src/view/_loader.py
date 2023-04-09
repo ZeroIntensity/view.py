@@ -21,6 +21,7 @@ def _format_inputs(inputs: dict[str, RouteInput]) -> list[RouteInputDict]:
         if v.tp:
             if v.tp not in {str, int, bool, float}:
                 if v.tp is not dict:
+
                     if not hasattr(v.tp, "__view_body__"):
                         raise TypeError(
                             f"{v.tp.__name__} is not a valid body type",

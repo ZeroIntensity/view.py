@@ -68,3 +68,23 @@ class RouteInputDict(TypedDict, Generic[V]):
     type: type[V] | None
     default: V | None
     validators: list[Validator[V]]
+
+
+ViewBody = dict[str, type[Any]]
+
+
+class _SupportsViewBodyCV(Protocol):
+    __view_body__: ViewBody
+
+
+class _SupportsViewBodyF(Protocol):
+    def __view_body__(self) -> ViewBody:
+        ...
+
+
+class _SupportsAnnotations(Protocol):
+    __annotations__: ClassVar[dict[str, Any]]
+
+
+SupportsViewBody = _SupportsViewBodyCV | _SupportsViewBodyF
+ViewBodyLike = SupportsViewBody | _SupportsAnnotations
