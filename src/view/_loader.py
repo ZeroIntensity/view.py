@@ -8,22 +8,19 @@ from typing import TYPE_CHECKING
 from ._logging import Internal
 from .routing import Method, Route, RouteInput
 from .typing import RouteInputDict
+from ._util import validate_body
 
 if TYPE_CHECKING:
     from .app import ViewApp
 
+__all__ = "load_fs", "load_simple", "finalize"
 
 def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
     result: list[RouteInputDict] = []
 
     for i in inputs:
         if i.tp:
-            if i.tp not in {str, int, bool, float}:
-                if i.tp is not dict:
-                    if not hasattr(i.tp, "__view_body__"):
-                        raise TypeError(
-                            f"{i.tp.__name__} is not a valid body type",
-                        )
+            validate_body(i.tp)
 
         result.append(
             {
@@ -59,6 +56,7 @@ def finalize(routes: list[Route], app: ViewApp):
             route.callable,
             route.cache_rate,
             _format_inputs(route.inputs),
+            route.errors or {},
         )
 
 

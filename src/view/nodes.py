@@ -1,4 +1,3 @@
-from abc import ABC
 from io import StringIO
 from typing import Any, NamedTuple
 

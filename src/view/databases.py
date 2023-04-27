@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 from abc import ABC, abstractmethod
-from typing import (Any, Callable, ClassVar, Generic, NewType, TypeVar, cast,
+from typing import (Any, Callable, ClassVar, Generic, TypeVar, cast,
                     overload)
 
 from typing_extensions import ParamSpec, dataclass_transform
@@ -18,11 +17,8 @@ class Id(Generic[A]):
         self.value = value
 
 
-_CONNECTION: Connection | None = None
-
-
 class ViewModel:
-    _conn: ClassVar[Connection | None]
+    _conn: ClassVar[_Connection | None]
 
 
 T = TypeVar("T", bound=ViewModel)
@@ -37,15 +33,15 @@ class Model(Generic[P, T]):
         ob: Callable[P, T],
         table: str,
         *,
-        conn: Connection | None = None,
+        conn: _Connection | None = None,
     ) -> None:
         self.obj = ob
-        self._conn: Connection | None = conn
+        self._conn: _Connection | None = conn
         self.table = table
 
     def __init_subclass__(cls) -> None:
         raise TypeError(
-            f"Model cannot be subclassed, did you mean ViewModel?",
+            "Model cannot be subclassed, did you mean ViewModel?",
         )
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
@@ -62,6 +58,11 @@ class Model(Generic[P, T]):
 
 
 class _Driver(ABC):
+    @classmethod
+    @abstractmethod
+    def ensure(cls) -> None:
+        ...
+
     @abstractmethod
     async def find(
         self, where: Where, limit: int = -1, offset: int = 0
@@ -80,23 +81,24 @@ class _Driver(ABC):
     async def delete(self, where: Where) -> None:
         ...
 
-    @abstractmethod
-    async def connect(self) -> None:
-        ...
-
 
 class MongoDriver(_Driver):
+    pymongo: ClassVar[Any]
+
+    @classmethod
+    def ensure(cls):
+        cls.pymongo = attempt_import("pymongo")
+
     async def create(self, where: Where, values: Value) -> None:
         ...
 
 
-class Connection:
-    def __init__(self, driver: _Driver):
-        self.driver = driver
-
+class _Connection(ABC):
+    @abstractmethod
     def connect(self) -> None:
         ...
 
+    @abstractmethod
     def close(self) -> None:
         ...
 
@@ -143,8 +145,8 @@ def _transform(cls: type[A]) -> type[A]:
 def model(
     ob_or_none: Callable[P, T] | _TableNameTransport,
     *,
-    type_check: bool = False,
-    conn: Connection | None = None,
+    conn: _Connection | None = None,
+    table_name: str = "view",
 ) -> Model[P, T]:
     ...
 
@@ -153,8 +155,8 @@ def model(
 def model(
     ob_or_none: None = ...,
     *,
-    type_check: bool = False,
-    conn: Connection | None = None,
+    conn: _Connection | None = None,
+    table_name: str = "view",
 ) -> Callable[[Callable[P, T]], Model[P, T]]:
     ...
 
@@ -162,8 +164,7 @@ def model(
 def model(
     ob_or_none: Callable[P, T] | None | _TableNameTransport = None,
     *,
-    type_check: bool = False,
-    conn: Connection | None = None,
+    conn: _Connection | None = None,
     table_name: str = "view",
 ) -> Model[P, T] | Callable[[Callable[P, T]], Model[P, T]]:
     def impl(raw_ob: Callable[P, T] | _TableNameTransport) -> Model[P, T]:
@@ -175,6 +176,12 @@ def model(
             ob = raw_ob
 
         if not issubclass(cast(type, ob), ViewModel):
+            if isinstance(ob, type):
+                raise TypeError(
+                    f"{ob.__name__} does not inherit from"
+                    " ViewModel, did you forget?",
+                )
+
             raise TypeError(
                 f"{ob!r} does not inherit from ViewModel, did you forget?",
             )

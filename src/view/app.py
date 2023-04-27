@@ -10,14 +10,17 @@ import os
 import warnings
 from dataclasses import dataclass as apply_dataclass
 from functools import lru_cache
+from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
-from typing import (Any, Callable, Coroutine, Generic, TypeVar, get_type_hints,
-                    overload)
+from typing import (Any, Awaitable, Callable, Coroutine, Generic, TypeVar,
+                    get_type_hints, overload)
+
+from rich.traceback import install
 
 from _view import ViewApp
 
-from ._loader import load_fs, load_simple
+from ._loader import finalize, load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server)
 from ._util import attempt_import
@@ -26,23 +29,12 @@ from .routing import (Route, RouteOrCallable, delete, get, options, patch,
                       post, put)
 from .util import debug as enable_debug
 
-A = TypeVar("A")
-
 get_type_hints = lru_cache(get_type_hints)
 
-
-def _method_wrapper(
-    path: str,
-    doc: str | None,
-    target: Callable[..., Any],  # i dont really feel like typing this properly
-):
-    def inner(route: RouteOrCallable):
-        return target(path, doc)(route)
-
-    return inner
-
+__all__ = "App", "new_app"
 
 S = TypeVar("S", int, str, dict, bool)
+A = TypeVar("A")
 
 _ROUTES_WARN_MSG = (
     "routes argument should only be passed when load strategy is manual"
@@ -53,6 +45,10 @@ class App(ViewApp, Generic[A]):
     def __init__(self, config: Config) -> None:
         self.config = config
         self._set_dev_state(config.app.dev)
+        self._manual_routes: list[Route] = []
+        self.routes: list[Route] = []
+        self.loaded: bool = False
+        self.running = False
 
         assert isinstance(config.log.level, int)
         Service.log.setLevel(config.log.level)
@@ -61,6 +57,7 @@ class App(ViewApp, Generic[A]):
             if os.environ.get("VIEW_PROD") is not None:
                 Service.warning("VIEW_PROD is set but dev is set to true")
 
+            install(show_locals=True)
             faulthandler.enable()
         else:
             os.environ["VIEW_PROD"] = "1"
@@ -75,23 +72,37 @@ class App(ViewApp, Generic[A]):
         self.user_settings: type[A] | None = None
         self._supplied_config: dict[str, Any] | None = {}
 
+    def _method_wrapper(
+        self,
+        path: str,
+        doc: str | None,
+        target: Callable[..., Any],
+        # i dont really feel like typing this properly
+    ) -> Callable[[RouteOrCallable], Route]:
+        def inner(route: RouteOrCallable) -> Route:
+            new_route = target(path, doc)(route)
+            self._manual_routes.append(new_route)
+            return new_route
+
+        return inner
+
     def get(self, path: str, *, doc: str | None = None):
-        return _method_wrapper(path, doc, get)
+        return self._method_wrapper(path, doc, get)
 
     def post(self, path: str, *, doc: str | None = None):
-        return _method_wrapper(path, doc, post)
+        return self._method_wrapper(path, doc, post)
 
     def delete(self, path: str, *, doc: str | None = None):
-        return _method_wrapper(path, doc, delete)
+        return self._method_wrapper(path, doc, delete)
 
     def patch(self, path: str, *, doc: str | None = None):
-        return _method_wrapper(path, doc, patch)
+        return self._method_wrapper(path, doc, patch)
 
     def put(self, path: str, *, doc: str | None = None):
-        return _method_wrapper(path, doc, put)
+        return self._method_wrapper(path, doc, put)
 
     def options(self, path: str, *, doc: str | None = None):
-        return _method_wrapper(path, doc, options)
+        return self._method_wrapper(path, doc, options)
 
     def _load_settings(self, ob: Any) -> None:
         for k, tp in get_type_hints(ob).items():
@@ -152,6 +163,9 @@ class App(ViewApp, Generic[A]):
         return self._supplied_config[key]
 
     def load(self, routes: list[Route] | None = None) -> None:
+        if self.loaded:
+            return
+
         if self.config.app.load_strategy == "filesystem":
             if routes:
                 warnings.warn(_ROUTES_WARN_MSG)
@@ -161,12 +175,9 @@ class App(ViewApp, Generic[A]):
                 warnings.warn(_ROUTES_WARN_MSG)
             load_simple(self, self.config.app.load_path)
         else:
-            if not routes:
-                return
+            finalize([*(routes or ()), *self._manual_routes], self)
 
-            for route in routes:
-                ...
-
+        self.loaded = True
         if not self.user_settings:
             return
 
@@ -234,6 +245,7 @@ class App(ViewApp, Generic[A]):
                     raise ValueError(f"{value!r} is invalid JSON")
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
+        Internal.info(f"using event loop: {asyncio.get_event_loop()}")
         Internal.info(f"spawning {coro}")
 
         task = asyncio.create_task(coro)
@@ -260,7 +272,10 @@ class App(ViewApp, Generic[A]):
         if self.config.log.fancy:
             exit_server()
 
-    def _run(self) -> None:
+    def _run(
+        self, start_target: Callable[[Awaitable[Any]], None] | None = None
+    ) -> None:
+        self.load()
         Internal.info("starting server!")
         server = self.config.app.server
 
@@ -268,10 +283,10 @@ class App(ViewApp, Generic[A]):
             uvloop = attempt_import("uvloop")
             uvloop.install()
 
-        Internal.info(f"using event loop: {asyncio.get_event_loop()}")
-
         if (self.config.network.port == 80) and (self.config.app.dev):
             Service.warning("using port 80 when development mode is enabled")
+
+        start = start_target or asyncio.run
 
         if server == "uvicorn":
             uvicorn = attempt_import("uvicorn")
@@ -289,7 +304,7 @@ class App(ViewApp, Generic[A]):
             )
             server = uvicorn.Server(config)
 
-            asyncio.run(self._spawn(server.serve()))
+            start(self._spawn(server.serve()))
 
         elif server == "hypercorn":
             hypercorn = attempt_import("hypercorn")
@@ -302,7 +317,7 @@ class App(ViewApp, Generic[A]):
             for k, v in self.config.network.extra_args.items():
                 setattr(conf, k, v)
 
-            asyncio.run(
+            start(
                 importlib.import_module("hypercorn.asyncio").serve(
                     self._app, conf
                 )
@@ -328,6 +343,14 @@ class App(ViewApp, Generic[A]):
         thread = Thread(target=self._run, daemon=daemon)
         thread.start()
         return thread
+
+    def run_proc(self) -> Process:
+        proc = Process(target=self._run)
+        proc.start()
+        return proc
+
+    async def run_async(self, loop: asyncio.AbstractEventLoop):
+        self._run((loop or asyncio.get_event_loop()).run_until_complete)
 
     start = run
 

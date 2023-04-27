@@ -3,7 +3,7 @@
 # prefixed with __ to tell the developer that its not an actual symbol defined by
 # the extension module
 
-from typing import Any as __Any
+from typing import Any as __Any, NoReturn as __NoReturn
 
 from view.typing import AsgiDict as __AsgiDict
 from view.typing import AsgiReceive as __AsgiReceive
@@ -26,6 +26,7 @@ class ViewApp:
         callable: __ViewRoute,
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
+        errors: dict[int, __ViewRoute],
     ) -> None: ...
     def _post(
         self,
@@ -34,6 +35,7 @@ class ViewApp:
         callable: __ViewRoute,
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
+        errors: dict[int, __ViewRoute],
     ) -> None: ...
     def _put(
         self,
@@ -42,6 +44,7 @@ class ViewApp:
         callable: __ViewRoute,
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
+        errors: dict[int, __ViewRoute],
     ) -> None: ...
     def _patch(
         self,
@@ -50,6 +53,7 @@ class ViewApp:
         callable: __ViewRoute,
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
+        errors: dict[int, __ViewRoute],
     ) -> None: ...
     def _delete(
         self,
@@ -58,6 +62,7 @@ class ViewApp:
         callable: __ViewRoute,
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
+        errors: dict[int, __ViewRoute],
     ) -> None: ...
     def _options(
         self,
@@ -66,5 +71,11 @@ class ViewApp:
         callable: __ViewRoute,
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
+        errors: dict[int, __ViewRoute],
     ) -> None: ...
     def _set_dev_state(self, /, value: bool) -> None: ...
+    def _exc(self, /, status_code: int, handler: __ViewRoute) -> None: ...
+
+class Context:
+    def __init__(self) -> __NoReturn: ...
+    def cookie(self, /, __key: str, __value: str) -> None: ...

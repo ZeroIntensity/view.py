@@ -11,4 +11,7 @@ from .__about__ import __license__, __version__
 from .app import App, new_app
 from .compiler import compile
 from .config import AppConfig, Config, NetworkConfig, config
+from .databases import ViewModel, model
+from .exceptions import *
+from .routing import body, delete, get, options, patch, post, put, query
 from .util import debug, env, run

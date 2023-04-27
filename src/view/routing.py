@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 
-from .typing import Validator, ValueType, ViewRoute
+from typing_extensions import Concatenate, ParamSpec
+
+from .typing import Context, Validator, ValueType, ViewResponse, ViewRoute
 
 
 class Method(Enum):
@@ -29,23 +31,49 @@ class RouteInput(Generic[V]):
     validators: list[Validator[V]]
 
 
+P = ParamSpec("P")
+T = TypeVar("T", bound="ViewResponse")
+
+
 @dataclass
-class Route:
+class Route(Generic[P, T]):
+    func: Callable[P, T]
     path: str | None
     method: Method
     inputs: list[RouteInput]
     callable: ViewRoute
     doc: str | None = None
     cache_rate: int = -1
+    errors: dict[int, ViewRoute] | None = None
+    pass_context: bool = False
+
+    def error(self, status_code: int):
+        def wrapper(handler: ViewRoute):
+            if not self.errors:
+                self.errors = {}
+
+            self.errors[status_code] = handler
+            return handler
+
+        return wrapper
+
+    def __repr__(self):
+        return f"route for {self.path or '<unknown at this time>'}"
+
+    __str__ = __repr__
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        return self.func(*args, **kwargs)
 
 
-RouteOrCallable = Route | ViewRoute
+RouteOrCallable = Route[P, T] | ViewRoute[P, T]
 
 
-def _ensure_route(r: RouteOrCallable) -> Route:
+def _ensure_route(r: RouteOrCallable[P, T]) -> Route[P, T]:
     if isinstance(r, Route):
         return r
-    return Route(None, Method.GET, [], r)
+
+    return Route(r, None, Method.GET, [], r)
 
 
 def _method(
@@ -72,7 +100,8 @@ def _method_wrapper(
     def inner(r: RouteOrCallable) -> Route:
         if not isinstance(path_or_route, str):
             raise TypeError(f"{path_or_route!r} is not a string")
-        return _method(r, path_or_route, doc, Method.GET)
+
+        return _method(r, path_or_route, doc, method)
 
     if not path_or_route:
         return inner
@@ -83,10 +112,13 @@ def _method_wrapper(
     return inner
 
 
+Path = Callable[[str | None | RouteOrCallable[P, T]]]
+
+
 def get(
-    path_or_route: str | None | RouteOrCallable = None,
+    path_or_route: str | None | RouteOrCallable[P, T] = None,
     doc: str | None = None,
-):
+) -> Path[P, T]:
     return _method_wrapper(path_or_route, doc, Method.GET)
 
 
@@ -131,8 +163,8 @@ def query(
     doc: str | None = None,
     *,
     default: V | None = None,
-):
-    def inner(r: RouteOrCallable) -> Route:
+) -> Callable[[RouteOrCallable[Concatenate[V, P]]], Route]:
+    def inner(r: RouteOrCallable[Concatenate[V, P]]) -> Route:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, False, tp, default, doc, []))
         return route

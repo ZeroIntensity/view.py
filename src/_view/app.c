@@ -3,18 +3,22 @@
 #include <view/awaitable.h>
 #include <view/map.h>
 #include <stdbool.h>
+#include <stdint.h>
+#define ER(code, str) case code: return str
 #define LOAD_ROUTE(target) \
     char* path; \
     PyObject* callable; \
     PyObject* inputs; \
     Py_ssize_t cache_rate; \
+    PyObject* errors; \
     if (!PyArg_ParseTuple( \
         args, \
-        "sOnO", \
+        "sOnOO", \
         &path, \
         &callable, \
         &cache_rate, \
-        &inputs \
+        &inputs, \
+        &errors \
         )) return NULL; \
     route* r = route_new( \
         callable, \
@@ -26,8 +30,10 @@
         r, \
         inputs \
         ) < 0) return NULL; \
+    if (load_errors(r, errors) < 0) \
+        return NULL; \
     map_set(self-> target, path, r); \
-    Py_RETURN_NONE; \
+    Py_RETURN_NONE;
 
 
 #define ROUTE(target) static PyObject* target ( \
@@ -53,9 +59,10 @@ typedef struct {
     map* patch;
     map* delete;
     map* options;
-    PyObject* client_errors[32];
+    PyObject* client_errors[28];
     PyObject* server_errors[11];
     bool dev;
+    PyObject* exceptions;
 } ViewApp;
 
 typedef struct {
@@ -76,6 +83,10 @@ typedef struct {
     Py_ssize_t cache_rate;
     route_input** inputs;
     Py_ssize_t inputs_size;
+    PyObject* client_errors[28];
+    PyObject* server_errors[11];
+    PyObject* exceptions;
+    bool pass_context;
 } route;
 
 route* route_new(
@@ -94,6 +105,14 @@ route* route_new(
     r->cache_status = 0;
     r->inputs = NULL;
     r->inputs_size = inputs_size;
+    r->pass_context = false;
+
+    for (int i = 0; i < 28; i++)
+        r->client_errors[i] = NULL;
+
+    for (int i = 0; i < 11; i++)
+        r->server_errors[i] = NULL;
+
     return r;
 }
 
@@ -110,6 +129,13 @@ void route_free(route* r) {
     PyMem_Free(r->inputs);
     Py_XDECREF(r->cache_headers);
     Py_DECREF(r->callable);
+
+    for (int i = 0; i < 11; i++)
+        Py_XDECREF(r->server_errors[i]);
+
+    for (int i = 0; i < 28; i++)
+        Py_XDECREF(r->client_errors[i]);
+
     if (r->cache) free(r->cache);
     free(r);
 }
@@ -152,6 +178,12 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
         return NULL;
     };
 
+    for (int i = 0; i < 28; i++)
+        self->client_errors[i] = NULL;
+
+    for (int i = 0; i < 11; i++)
+        self->server_errors[i] = NULL;
+
     return (PyObject*) self;
 }
 
@@ -167,22 +199,39 @@ static int send_raw_text(
     PyObject* awaitable,
     PyObject* send,
     int status,
-    const char* res_str
+    const char* res_str,
+    PyObject* headers /* may be NULL */
 ) {
-    PyObject* coro = PyObject_CallFunction(
-        send,
-        "{s:s,s:i,s:[[s,s]]}",
-        "type",
-        "http.response.start",
-        "status",
-        status,
-        "headers",
-        "content-type",
-        "text/plain"
-    );
+    PyObject* coro;
+
+    if (!headers) {
+        coro = PyObject_CallFunction(
+            send,
+            "{s:s,s:i,s:[[s,s]]}",
+            "type",
+            "http.response.start",
+            "status",
+            status,
+            "headers",
+            "content-type",
+            "text/plain"
+        );
+    } else {
+        coro = PyObject_CallFunction(
+            send,
+            "{s:s,s:i,s:O}",
+            "type",
+            "http.response.start",
+            "status",
+            status,
+            "headers",
+            headers
+        );
+    }
 
     if (!coro)
         return -1;
+
 
     if (PyAwaitable_AWAIT(
         awaitable,
@@ -218,251 +267,228 @@ static int send_raw_text(
     return 0;
 }
 
-static int fire_error(ViewApp* self, PyObject* awaitable, int status) {
-    PyObject* send;
+/*
+   400 - 0
+   401 - 1
+   402 - 2
+   403 - 3
+   404 - 4
+   405 - 5
+   406 - 6
+   407 - 7
+   408 - 8
+   409 - 9
+   410 - 10
+   411 - 11
+   412 - 12
+   413 - 13
+   414 - 14
+   415 - 15
+   416 - 16
+   417 - 17
+   418 - 18
+   NOTICE: status codes start to skip around now!
+   421 - 19
+   422 - 20
+   423 - 21
+   424 - 22
+   425 - 23
+   426 - 24
+   428 - 25
+   429 - 26
+   431 - 27
+   451 - 28
+ */
 
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        NULL,
-        NULL,
-        NULL,
-        &send
-        ) < 0)
-        return -1;
-
-    if (status < 500) {
-        PyObject* caller = self->client_errors[status - 400];
-        if (!caller) {
-            switch (status) {
-            default:
-                assert(0);
-            }
-        }
+static uint16_t hash_client_error(int status) {
+    if (status < 419) {
+        return status - 400;
     }
-    return 0;
+
+    if (status < 427) {
+        return status - 402;
+    }
+
+    if (status < 430) {
+        return status - 406;
+    }
+
+    if (status == 431) {
+        return 27;
+    }
+
+    if (status == 451) {
+        return 28;
+    }
+
+    return 600;
 }
 
-static int lifespan(PyObject* awaitable, PyObject* result) {
-    ViewApp* self;
-    PyObject* send;
-    PyObject* receive;
-
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        &self,
-        NULL,
-        &receive,
-        &send
-        ) < 0)
-        return -1;
-
-    PyObject* tp = PyDict_GetItemString(
-        result,
-        "type"
-    );
-    const char* type = PyUnicode_AsUTF8(tp);
-    Py_DECREF(tp);
-
-    bool is_startup = !strcmp(
-        type,
-        "lifespan.startup"
-    );
-    PyObject* target_obj = is_startup ? self->startup : self->cleanup;
-    if (target_obj) {
-        if (!PyObject_CallNoArgs(target_obj))
-            return -1;
-    }
-
-    PyObject* send_coro = PyObject_CallFunction(
-        send,
-        "{s:s}",
-        "type",
-        is_startup ? "lifespan.startup.complete" : "lifespan.shutdown.complete"
-    );
-
-    if (!send_coro)
-        return -1;
-
-    if (PyAwaitable_AWAIT(
-        awaitable,
-        send_coro
-        ) < 0) {
-        Py_DECREF(send_coro);
-        return -1;
-    }
-    Py_DECREF(send_coro);
-    if (!is_startup) return 0;
-
-    PyObject* aw = PyAwaitable_New();
-    if (!aw)
-        return -1;
-
-    PyObject* recv_coro = PyObject_CallNoArgs(receive);
-    if (!recv_coro) {
-        Py_DECREF(aw);
-        return -1;
-    }
-
-    if (PyAwaitable_AddAwait(
-        aw,
-        recv_coro,
-        lifespan,
-        NULL
-        ) < 0) {
-        Py_DECREF(aw);
-        Py_DECREF(recv_coro);
-        return -1;
-    };
-
-    return 0;
-}
-
-static void dealloc(ViewApp* self) {
-    Py_XDECREF(self->cleanup);
-    Py_XDECREF(self->startup);
-    map_free(self->get);
-    map_free(self->post);
-    map_free(self->put);
-    map_free(self->patch);
-    map_free(self->delete);
-    map_free(self->options);
-
-
-    for (int i = 0; i < 11; i++)
-        Py_XDECREF(self->server_errors[i]);
-
-    for (int i = 0; i < 32; i++)
-        Py_XDECREF(self->client_errors[i]);
-
-    Py_TYPE(self)->tp_free(self);
-}
-
-static const char* dict_get_str(PyObject* dict, const char* str) {
-    Py_INCREF(dict);
-    PyObject* ob = PyDict_GetItemString(
-        dict,
-        str
-    );
-
-    if (!ob) {
-        Py_DECREF(dict);
-        return NULL;
-    }
-
-    const char* result = PyUnicode_AsUTF8(ob);
-    return result;
-}
-
-static int route_error(
-    PyObject* awaitable,
-    PyObject* tp,
-    PyObject* value,
-    PyObject* tb
-) {
-    if (tp && value && tp) {
-        PyErr_WarnEx(
-            PyExc_RuntimeWarning,
-            "error in route",
-            2
+static const char* get_err_str(int status) {
+    switch (status) {
+        ER(
+            400,
+            "Bad Request"
         );
-        PyErr_Display(
-            tp,
-            value,
-            tb
+        ER(
+            401,
+            "Unauthorized"
+        );
+        ER(
+            402,
+            "Payment Required"
+        );
+        ER(
+            403,
+            "Forbidden"
+        );
+        ER(
+            404,
+            "Not Found"
+        );
+        ER(
+            405,
+            "Method Not Allowed"
+        );
+        ER(
+            406,
+            "Not Acceptable"
+        );
+        ER(
+            407,
+            "Proxy Authentication Required"
+        );
+        ER(
+            408,
+            "Request Timeout"
+        );
+        ER(
+            409,
+            "Conflict"
+        );
+        ER(
+            410,
+            "Gone"
+        );
+        ER(
+            411,
+            "Length Required"
+        );
+        ER(
+            412,
+            "Precondition Failed"
+        );
+        ER(
+            413,
+            "Payload Too Large"
+        );
+        ER(
+            414,
+            "URI Too Long"
+        );
+        ER(
+            415,
+            "Unsupported Media Type"
+        );
+        ER(
+            416,
+            "Range Not Satisfiable"
+        );
+        ER(
+            417,
+            "Expectation Failed"
+        );
+        ER(
+            418,
+            "I'm a teapot"
+        );
+        ER(
+            421,
+            "Misdirected Request"
+        );
+        ER(
+            422,
+            "Unprocessable Content"
+        );
+        ER(
+            423,
+            "Locked"
+        );
+        ER(
+            424,
+            "Failed Dependency"
+        );
+        ER(
+            425,
+            "Too Early"
+        );
+        ER(
+            426,
+            "Upgrade Required"
+        );
+        ER(
+            428,
+            "Precondition Required"
+        );
+        ER(
+            429,
+            "Too Many Requests"
+        );
+        ER(
+            431,
+            "Request Header Fields Too Large"
+        );
+        ER(
+            451,
+            "Unavailable for Legal Reasons"
+        );
+        ER(
+            500,
+            "Internal Server Error"
+        );
+        ER(
+            501,
+            "Not Implemented"
+        );
+        ER(
+            502,
+            "Bad Gateway"
+        );
+        ER(
+            503,
+            "Service Unavailable"
+        );
+        ER(
+            504,
+            "Gateway Timeout"
+        );
+        ER(
+            505,
+            "HTTP Version Not Supported"
+        );
+        ER(
+            506,
+            "Variant Also Negotiates"
+        );
+        ER(
+            507,
+            "Insufficent Storage"
+        );
+        ER(
+            508,
+            "Loop Detected"
+        );
+        ER(
+            510,
+            "Not Extended"
+        );
+        ER(
+            511,
+            "Network Authentication Required"
         );
     }
 
-    ViewApp* self;
-    PyObject* send;
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        &self,
-        NULL,
-        NULL,
-        &send
-        ) < 0) return -1;
-
-
-    PyObject* coro = PyObject_CallFunction(
-        send,
-        "{s:s,s:i,s:[[yy]]}",
-        "type",
-        "http.response.start",
-        "status",
-        500,
-        "headers",
-        "content-type",
-        "text/plain"
-    );
-
-    if (!coro)
-        return -1;
-
-    if (PyAwaitable_AWAIT(
-        awaitable,
-        coro
-        ) < 0) {
-        Py_DECREF(coro);
-        return -1;
-    };
-    Py_DECREF(coro);
-
-    bool should_free = false;
-    char* response;
-
-    if (self->dev) {
-        response = malloc(512);
-        should_free = true;
-
-        if (!response) {
-            PyErr_NoMemory();
-            return -1;
-        }
-
-        PyObject* value_str_ob;
-        const char* value_str;
-        if (value) {
-            value_str_ob = PyObject_Str(value);
-            if (!value_str_ob) return -1;
-            value_str = PyUnicode_AsUTF8(value_str_ob);
-            if (!value_str) return -1;
-        }
-
-        snprintf(
-            response,
-            512,
-            "%s%s%s%s",
-            ((PyTypeObject*) tp)->tp_name,
-            value ? ":" : "",
-            value ? " " : "",
-            value ? value_str : ""
-        );
-    } else {
-        response = "Internal error!";
-    }
-    coro = PyObject_CallFunction(
-        send,
-        "{s:s,s:y}",
-        "type",
-        "http.response.body",
-        "body",
-        response
-    );
-
-    if (should_free) free(response);
-    if (!coro)
-        return -1;
-
-    if (PyAwaitable_AWAIT(
-        awaitable,
-        coro
-        ) < 0) {
-        Py_DECREF(coro);
-        return -1;
-    }
-
-    Py_DECREF(coro);
-    return 0;
+    assert(!"got bad status code");
 }
 
 static int find_result_for(
@@ -578,24 +604,12 @@ static int find_result_for(
 
     return 0;
 }
-
-static int handle_route(PyObject* awaitable, PyObject* result) {
-    PyObject* send;
-    route* r;
-
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        NULL,
-        NULL,
-        NULL,
-        &send
-        ) < 0) return -1;
-
-    if (PyAwaitable_UnpackArbValues(
-        awaitable,
-        &r
-        ) < 0) return -1;
-
+static int handle_result(
+    PyObject* result,
+    char** res_target,
+    int* status_target,
+    PyObject** headers_target
+) {
     char* res_str = NULL;
     int status = 200;
     PyObject* headers = PyList_New(0);
@@ -662,6 +676,374 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         );
         return -1;
     }
+
+    *res_target = res_str;
+    *status_target = status;
+    *headers_target = headers;
+    return 0;
+}
+
+static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
+    PyObject* send;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        &send
+        ) < 0) {
+        return -1;
+    }
+
+    char* res_str;
+    int status_code;
+    PyObject* headers;
+
+    if (handle_result(
+        result,
+        &res_str,
+        &status_code,
+        &headers
+        ) < 0) {
+        Py_DECREF(result);
+        return -1;
+    }
+
+    if (send_raw_text(
+        awaitable,
+        send,
+        status_code,
+        res_str,
+        headers
+        ) < 0) {
+        Py_DECREF(result);
+        free(res_str);
+        return -1;
+    }
+
+    free(res_str);
+    return 0;
+}
+
+static int run_err_cb(
+    PyObject* awaitable,
+    PyObject* handler,
+    PyObject* send,
+    int status,
+    bool* called
+) {
+    if (!handler) {
+        if (called) *called = false;
+        if (send_raw_text(
+            awaitable,
+            send,
+            status,
+            get_err_str(status),
+            NULL
+            ) < 0
+        ) {
+            return -1;
+        }
+
+        return 0;
+    }
+    if (called) *called = true;
+
+    PyObject* coro = PyObject_CallNoArgs(handler);
+
+    if (!coro) {
+        return -1;
+    }
+
+    PyObject* new_awaitable = PyAwaitable_New();
+
+    if (!new_awaitable) {
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    if (PyAwaitable_SaveValues(
+        new_awaitable,
+        1,
+        send
+        ) < 0) {
+        Py_DECREF(new_awaitable);
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    if (PyAwaitable_AddAwait(
+        new_awaitable,
+        coro,
+        finalize_err_cb,
+        NULL
+        ) < 0) {
+        Py_DECREF(new_awaitable);
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    if (PyAwaitable_AWAIT(
+        awaitable,
+        new_awaitable
+        ) < 0) {
+        Py_DECREF(new_awaitable);
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int fire_error(
+    ViewApp* self,
+    PyObject* awaitable,
+    int status,
+    route* r,
+    bool* called
+) {
+    PyObject* send;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        NULL,
+        NULL,
+        NULL,
+        &send
+        ) < 0)
+        return -1;
+
+    uint16_t index = 0;
+    PyObject* handler = NULL;
+
+    if (status >= 500) {
+        index = status - 500;
+        if (r) handler = r->server_errors[index];
+        if (!handler) handler = self->server_errors[index];
+    } else {
+        index = hash_client_error(status);
+        if (index == 600) {
+            PyErr_BadInternalCall();
+            return -1;
+        };
+        if (r) handler = r->client_errors[index];
+        if (!handler) handler = self->client_errors[index];
+    }
+
+    if (run_err_cb(
+        awaitable,
+        handler,
+        send,
+        status,
+        called
+        ) < 0) {
+        if (send_raw_text(
+            awaitable,
+            send,
+            500,
+            "failed to dispatch error handler",
+            NULL
+            ) < 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int lifespan(PyObject* awaitable, PyObject* result) {
+    ViewApp* self;
+    PyObject* send;
+    PyObject* receive;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        &self,
+        NULL,
+        &receive,
+        &send
+        ) < 0)
+        return -1;
+
+    PyObject* tp = PyDict_GetItemString(
+        result,
+        "type"
+    );
+    const char* type = PyUnicode_AsUTF8(tp);
+    Py_DECREF(tp);
+
+    bool is_startup = !strcmp(
+        type,
+        "lifespan.startup"
+    );
+    PyObject* target_obj = is_startup ? self->startup : self->cleanup;
+    if (target_obj) {
+        if (!PyObject_CallNoArgs(target_obj))
+            return -1;
+    }
+
+    PyObject* send_coro = PyObject_CallFunction(
+        send,
+        "{s:s}",
+        "type",
+        is_startup ? "lifespan.startup.complete" : "lifespan.shutdown.complete"
+    );
+
+    if (!send_coro)
+        return -1;
+
+    if (PyAwaitable_AWAIT(
+        awaitable,
+        send_coro
+        ) < 0) {
+        Py_DECREF(send_coro);
+        return -1;
+    }
+    Py_DECREF(send_coro);
+    if (!is_startup) return 0;
+
+    PyObject* aw = PyAwaitable_New();
+    if (!aw)
+        return -1;
+
+    PyObject* recv_coro = PyObject_CallNoArgs(receive);
+    if (!recv_coro) {
+        Py_DECREF(aw);
+        return -1;
+    }
+
+    if (PyAwaitable_AddAwait(
+        aw,
+        recv_coro,
+        lifespan,
+        NULL
+        ) < 0) {
+        Py_DECREF(aw);
+        Py_DECREF(recv_coro);
+        return -1;
+    };
+
+    return 0;
+}
+
+static void dealloc(ViewApp* self) {
+    Py_XDECREF(self->cleanup);
+    Py_XDECREF(self->startup);
+    map_free(self->get);
+    map_free(self->post);
+    map_free(self->put);
+    map_free(self->patch);
+    map_free(self->delete);
+    map_free(self->options);
+    Py_XDECREF(self->exceptions);
+
+
+    for (int i = 0; i < 11; i++)
+        Py_XDECREF(self->server_errors[i]);
+
+    for (int i = 0; i < 28; i++)
+        Py_XDECREF(self->client_errors[i]);
+
+    Py_TYPE(self)->tp_free(self);
+}
+
+static const char* dict_get_str(PyObject* dict, const char* str) {
+    Py_INCREF(dict);
+    PyObject* ob = PyDict_GetItemString(
+        dict,
+        str
+    );
+
+    if (!ob) {
+        Py_DECREF(dict);
+        return NULL;
+    }
+
+    const char* result = PyUnicode_AsUTF8(ob);
+    return result;
+}
+
+static int route_error(
+    PyObject* awaitable,
+    PyObject* tp,
+    PyObject* value,
+    PyObject* tb
+) {
+    ViewApp* self;
+    route* r;
+    bool handler_was_called;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        &self,
+        NULL,
+        NULL,
+        NULL
+        ) < 0) return -1;
+
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        &r
+        ) < 0) return -1;
+
+
+    if (fire_error(
+        self,
+        awaitable,
+        500,
+        r,
+        &handler_was_called
+        ) < 0) {
+        return -1;
+    }
+
+    if (!handler_was_called && tp && value && tb) {
+        PyErr_WarnEx(
+            PyExc_RuntimeWarning,
+            "error in route",
+            2
+        );
+        PyErr_Display(
+            tp,
+            value,
+            tb
+        );
+    }
+
+    return 0;
+}
+
+
+
+static int handle_route(PyObject* awaitable, PyObject* result) {
+    PyObject* send;
+    route* r;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        NULL,
+        NULL,
+        NULL,
+        &send
+        ) < 0) return -1;
+
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        &r
+        ) < 0) return -1;
+
+    char* res_str;
+    int status;
+    PyObject* headers;
+
+    if (handle_result(
+        result,
+        &res_str,
+        &status,
+        &headers
+        ) < 0) {
+        Py_DECREF(awaitable);
+        return -1;
+    }
+
     if (r->cache_rate > 0) {
         r->cache = res_str;
         r->cache_status = status;
@@ -836,14 +1218,20 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         ptr,
         path
     );
+
     if (!r) {
-        PyErr_Format(
-            PyExc_RuntimeError,
-            "not found: %s",
-            path
-        );
-        Py_DECREF(awaitable);
-        return NULL;
+        if (fire_error(
+            self,
+            awaitable,
+            404,
+            NULL,
+            NULL
+            ) < 0) {
+            Py_DECREF(awaitable);
+            return NULL;
+        }
+
+        return awaitable;
     }
 
     if ((r->cache_index++ < r->cache_rate) && r->cache) {
@@ -932,6 +1320,60 @@ static PyObject* app(ViewApp* self, PyObject* args) {
     return awaitable;
 }
 
+static int load_errors(route* r, PyObject* dict) {
+    PyObject* iter = PyObject_GetIter(dict);
+    PyObject* key;
+    PyObject* value;
+
+    while ((key = PyIter_Next(iter))) {
+        value = PyDict_GetItem(
+            dict,
+            key
+        );
+        if (!value) {
+            Py_DECREF(iter);
+            return -1;
+        }
+
+        int status_code = PyLong_AsLong(key);
+        if (status_code == -1) {
+            Py_DECREF(iter);
+            return -1;
+        }
+
+
+        if (status_code < 400 || status_code > 511) {
+            PyErr_Format(
+                PyExc_ValueError,
+                "%d is not a valid status code",
+                status_code
+            );
+            Py_DECREF(iter);
+            return -1;
+        }
+
+        if (status_code >= 500) {
+            r->server_errors[status_code - 500] = Py_NewRef(value);
+        } else {
+            uint16_t index = hash_client_error(status_code);
+            if (index == 600) {
+                PyErr_Format(
+                    PyExc_ValueError,
+                    "%d is not a valid status code",
+                    status_code
+                );
+                return -1;
+            }
+            r->client_errors[index] = Py_NewRef(value);
+        }
+    }
+
+    Py_DECREF(iter);
+
+    if (PyErr_Occurred()) return -1;
+    return 0;
+}
+
 static int load(
     route* r,
     PyObject* target
@@ -941,7 +1383,7 @@ static int load(
     Py_ssize_t index = 0;
 
     Py_ssize_t len = PySequence_Size(target);
-    if (!len) {
+    if (len == -1) {
         return -1;
     }
 
@@ -1027,6 +1469,7 @@ static int load(
             PyMem_Free(inp);
             return -1;
         }
+
         PyObject* validators = PyDict_GetItemString(
             item,
             "validators"
@@ -1079,7 +1522,7 @@ ROUTE(put);
 ROUTE(delete);
 ROUTE(options);
 
-static PyObject* exc_handler(ViewApp* self, PyObject* args) {
+static PyObject* err_handler(ViewApp* self, PyObject* args) {
     PyObject* handler;
     int status_code;
 
@@ -1089,22 +1532,50 @@ static PyObject* exc_handler(ViewApp* self, PyObject* args) {
         &status_code,
         &handler
         )) return NULL;
-    if ((status_code < 400 || status_code > 511) || (status_code > 431 &&
-                                                     status_code < 451) ||
-        (status_code > 451 && status_code < 500))
-        return PyErr_Format(
+
+    if (status_code < 400 || status_code > 511) {
+        PyErr_Format(
             PyExc_ValueError,
-            "%d is not a valid status code for error handling",
+            "%d is not a valid status code",
             status_code
         );
+        return NULL;
+    }
 
-    if (status_code > 499) {
-        self->server_errors[status_code - 501] = Py_NewRef(handler);
+    if (status_code >= 500) {
+        self->server_errors[status_code - 500] = Py_NewRef(handler);
     } else {
-        if (status_code == 451)
-            self->client_errors[31] = Py_NewRef(handler);
-        else
-            self->client_errors[status_code - 401] = Py_NewRef(handler);
+        uint16_t index = hash_client_error(status_code);
+        if (index == 600) {
+            PyErr_Format(
+                PyExc_ValueError,
+                "%d is not a valid status code",
+                status_code
+            );
+            return NULL;
+        }
+        self->client_errors[index] = Py_NewRef(handler);
+    }
+
+    Py_RETURN_NONE;
+}
+
+static PyObject* exc_handler(ViewApp* self, PyObject* args) {
+    PyObject* dict;
+    if (!PyArg_ParseTuple(
+        args,
+        "O!",
+        &PyDict_Type,
+        &dict
+        )) return NULL;
+    if (self->exceptions) {
+        PyDict_Merge(
+            self->exceptions,
+            dict,
+            1
+        );
+    } else {
+        self->exceptions = Py_NewRef(dict);
     }
 
     Py_RETURN_NONE;
@@ -1130,6 +1601,7 @@ static PyMethodDef methods[] = {
     {"_delete", (PyCFunction) delete, METH_VARARGS, NULL},
     {"_options", (PyCFunction) options, METH_VARARGS, NULL},
     {"_set_dev_state", (PyCFunction) set_dev_state, METH_VARARGS, NULL},
+    {"_err", (PyCFunction) err_handler, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar
 
-from typing_extensions import Protocol, TypedDict
+from typing_extensions import ParamSpec, Protocol, TypedDict
 
 AsgiSerial = (
     bytes
@@ -47,11 +47,13 @@ _ViewResponseType = (
     | _ViewResponseTupleJ
     | str
 )
+P = ParamSpec("P")
+V = TypeVar("V", bound="ValueType")
+
 ViewResponse = Awaitable[_ViewResponseType]
 Context = Any
-ViewRoute = Callable[[], ViewResponse]
-
-V = TypeVar("V", bound="ValueType")
+R = TypeVar("R", bound="ViewResponse")
+ViewRoute = Callable[P, R]
 
 
 class BodyLike(Protocol):
@@ -71,7 +73,8 @@ class RouteInputDict(TypedDict, Generic[V]):
     is_body: bool
 
 
-ViewBody = dict[str, type[Any]]
+ViewBodyType = str | int | dict | bool | float
+ViewBody = dict[str, ViewBodyType]
 
 
 class _SupportsViewBodyCV(Protocol):

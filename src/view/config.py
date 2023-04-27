@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import runpy
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -139,7 +138,6 @@ class AppConfig:
     path: str = "app.py:app"
     use_uvloop: Literal["decide"] | bool = "decide"
     load_path: str = "./routes"
-    scripts: str | None = "./scripts"
 
 
 @dataclass()
@@ -333,23 +331,6 @@ def _log_level_loader(value: JsonValue) -> int:
     return value
 
 
-def _scripts_loader(value: JsonValue) -> str:
-    if value is None:
-        return ""
-
-    if not isinstance(value, str):
-        raise TypeError(f"expected str, got {value!r}")
-
-    path = Path(value)
-    if not path.exists():
-        raise FileNotFoundError(f"{path} does not exist")
-
-    if path.is_file():
-        raise ValueError(f"{path} is not a directory")
-
-    return str(path.absolute())
-
-
 _CONFIG_VALIDATORS: dict[str, _Validator] = {
     "server": _Validator(str, is_of={"view", "uvicorn", "hypercorn"}),
     "load_strategy": _Validator(str, is_of={"manual", "filesystem", "simple"}),
@@ -367,7 +348,6 @@ _CONFIG_VALIDATORS: dict[str, _Validator] = {
             "redis",
         },
     ),
-    "scripts": _Validator(str, loader=_scripts_loader),
 }
 
 _ANNOTATIONS: dict[str, Loader] = {"int": _int_loader, "bool": _bool_loader}
@@ -438,9 +418,6 @@ def load_dict(obj: dict[Any, Any]) -> Config:
 
     _validate_config(result.app)
     # the app config might have changed, so we need to validate it again
-
-    if result.app.scripts:
-        sys.path.append(result.app.scripts)
 
     _validate_config(result.network)
     _validate_config(result.log)

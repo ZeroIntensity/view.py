@@ -8,6 +8,7 @@ import sys
 from typing import TYPE_CHECKING, overload
 
 from ._logging import Internal, Service
+from .exceptions import EnvironmentError
 
 if TYPE_CHECKING:
     from .app import App
@@ -94,7 +95,7 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
     value = os.environ.get(key)
 
     if not value:
-        raise RuntimeError(f'environment variable "{key}" not set')
+        raise EnvironmentError(f'environment variable "{key}" not set')
 
     if tp is str:
         return value
@@ -103,7 +104,7 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return int(value)
         except ValueError:
-            raise RuntimeError(
+            raise EnvironmentError(
                 f"{value!r} (key {key!r}) is not int-like"
             ) from None
 
@@ -111,12 +112,12 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return json.loads(value)
         except ValueError:
-            raise RuntimeError(f"{value!r} ({key!r}) is not dict-like")
+            raise EnvironmentError(f"{value!r} ({key!r}) is not dict-like")
 
     if tp is bool:
         value = value.lower()
         if value not in {"true", "false"}:
-            raise RuntimeError(f"{value!r} ({key!r}) is not bool-like")
+            raise EnvironmentError(f"{value!r} ({key!r}) is not bool-like")
 
         return value == "true"
 

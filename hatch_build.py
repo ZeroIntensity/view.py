@@ -21,7 +21,9 @@ class CustomBuildHook(BuildHookInterface):
         c.compile(
             glob("src/_view/*.c"),
             "./ext/obj",
-            extra_preargs=["-fPIC", "-v"] if os.name != "nt" else [],
+            extra_preargs=["-fPIC", "-v"]
+            if os.name != "nt"
+            else [],
         )
 
         files = []

@@ -162,7 +162,6 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
         return -1;
     };
 
-    PyErr_Clear();
     return 0;
 }
 
@@ -249,7 +248,7 @@ gen_next(PyObject *self)
         g->gw_current_await = Py_TYPE(cb->coro)->tp_as_async->am_await(
                                                             cb->coro);
         if (g->gw_current_await == NULL) {
-            if (fire_err_callback(cb->coro, g->gw_current_await, cb) < 0) {
+            if (fire_err_callback((PyObject *) aw, g->gw_current_await, cb) < 0) {
                 return NULL;
             }
 
@@ -271,7 +270,7 @@ gen_next(PyObject *self)
         }
 
         if (!PyErr_GivenExceptionMatches(occurred, PyExc_StopIteration)) {
-            if (fire_err_callback(self, g->gw_current_await, cb) < 0) {
+            if (fire_err_callback((PyObject *) aw, g->gw_current_await, cb) < 0) {
                 return NULL;
             }
             g->gw_current_await = NULL;

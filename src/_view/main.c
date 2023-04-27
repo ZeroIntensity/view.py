@@ -11,39 +11,8 @@
 #name, name, METH_NOARGS, NULL                                             \
   }
 
-static void* io(PyObject* awaitable) {
-    puts("running");
-    PyInterpreterState_Get();
-    thrd_sleep(
-        &(struct timespec){.tv_sec = 1},
-        NULL
-    );
-    return "123";
-}
 
-static int callback(PyObject* awaitable, void* result) {
-    printf(
-        "result: %s\n",
-        (char*) result
-    );
-    return 0;
-}
-
-PyObject* test(PyObject* self, PyObject* args) {
-    PyObject* awaitable = PyAwaitable_New();
-
-    if (PyAwaitable_VirtualAwait(
-        awaitable,
-        io,
-        callback
-        ) < 0) {
-        return NULL;
-    }
-
-    return awaitable;
-}
-
-static PyMethodDef methods[] = {METHOD(test), {NULL, NULL, 0, NULL}};
+static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
                                     methods};
@@ -63,7 +32,7 @@ PyMODINIT_FUNC PyInit__view() {
     if (PyModule_AddObject(
         m,
         "Awaitable",
-        (PyObject*)&PyAwaitable_Type
+        (PyObject*) &PyAwaitable_Type
         ) < 0) {
         Py_DECREF(&PyAwaitable_Type);
         Py_DECREF(m);
@@ -75,7 +44,7 @@ PyMODINIT_FUNC PyInit__view() {
     if (PyModule_AddObject(
         m,
         "ViewApp",
-        (PyObject*)&ViewAppType
+        (PyObject*) &ViewAppType
         ) < 0) {
         Py_DECREF(&ViewAppType);
         Py_DECREF(&PyAwaitable_Type);
@@ -87,8 +56,22 @@ PyMODINIT_FUNC PyInit__view() {
     if (PyModule_AddObject(
         m,
         "_GenWrapper",
-        (PyObject*)&_PyAwaitable_GenWrapper_Type
+        (PyObject*) &_PyAwaitable_GenWrapper_Type
         ) < 0) {
+        Py_DECREF(&ViewAppType);
+        Py_DECREF(&PyAwaitable_Type);
+        Py_DECREF(&_PyAwaitable_GenWrapper_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    Py_INCREF(&ContextType);
+    if (PyModule_AddObject(
+        m,
+        "Context",
+        ContextType
+        ) < 0) {
+        Py_DECREF(&ContextType);
         Py_DECREF(&ViewAppType);
         Py_DECREF(&PyAwaitable_Type);
         Py_DECREF(&_PyAwaitable_GenWrapper_Type);
