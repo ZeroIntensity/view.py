@@ -12,7 +12,6 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <threads.h>
-
 typedef struct {
     PyObject *coro;
     awaitcallback callback;
@@ -679,62 +678,6 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
 
     va_end(vargs);
     Py_DECREF(awaitable);
-    return 0;
-}
-
-int
-PyAwaitable_AwaitFunction(PyObject *awaitable, PyObject *function,
-                          awaitcallback cb, awaitcallback_err err,
-                          const char *format, ...)
-{
-    assert(awaitable != NULL);
-    assert(function != NULL);
-    assert(format != NULL);
-    Py_INCREF(awaitable);
-    Py_INCREF(function);
-
-    if (!PyCallable_Check(function)) {
-        PyErr_Format(PyExc_TypeError, "expected a callable object, got %R",
-                     function);
-        Py_DECREF(awaitable);
-        Py_DECREF(function);
-        return -1;
-    }
-
-    char* str = PyMem_Malloc(strlen(format) + 3);
-    sprintf(str, "(%s)", format);
-
-    va_list vargs;
-    va_start(vargs, format);
-    PyObject* result = Py_VaBuildValue(str, vargs);
-    va_end(vargs);
-
-    if (result == NULL) {
-        Py_DECREF(awaitable);
-        Py_DECREF(function);
-        return -1;
-    }
-
-    PyObject* coro = PyObject_Call(function, result, NULL);
-
-    if (result == NULL) {
-        Py_DECREF(awaitable);
-        Py_DECREF(function);
-        return -1;
-    }
-
-    if (PyAwaitable_AddAwait(awaitable, coro, cb, err) < 0) {
-        Py_DECREF(awaitable);
-        Py_DECREF(function);
-        Py_DECREF(coro);
-        return -1;
-    }
-
-    Py_DECREF(awaitable);
-    Py_DECREF(function);
-    Py_DECREF(coro);
-
-    PyMem_Free(str);
     return 0;
 }
 

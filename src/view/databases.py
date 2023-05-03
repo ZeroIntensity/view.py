@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import (Any, Callable, ClassVar, Generic, TypeVar, cast,
-                    overload)
+from typing import Any, Callable, ClassVar, Generic, TypeVar, cast, overload
 
 from typing_extensions import ParamSpec, dataclass_transform
 
-from ._util import attempt_import, get_body
+from ._util import attempt_import, get_body, make_hint
+from .exceptions import MistakeError
 
 P = ParamSpec("P")
 A = TypeVar("A")
@@ -40,8 +40,9 @@ class Model(Generic[P, T]):
         self.table = table
 
     def __init_subclass__(cls) -> None:
-        raise TypeError(
+        raise MistakeError(
             "Model cannot be subclassed, did you mean ViewModel?",
+            hint=make_hint("This should be ViewModel, not Model")
         )
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
@@ -177,13 +178,12 @@ def model(
 
         if not issubclass(cast(type, ob), ViewModel):
             if isinstance(ob, type):
-                raise TypeError(
-                    f"{ob.__name__} does not inherit from"
-                    " ViewModel, did you forget?",
-                )
+                msg = f"{ob.__name__} does not inherit from ViewModel, did you forget?"  # noqa
 
-            raise TypeError(
-                f"{ob!r} does not inherit from ViewModel, did you forget?",
+            msg = f"{ob!r} does not inherit from ViewModel, did you forget?"
+
+            raise MistakeError(
+                msg, hint=make_hint("This should inherit from ViewModel")
             )
 
         body = get_body(ob)  # type: ignore

@@ -8,7 +8,8 @@ import sys
 from typing import TYPE_CHECKING, overload
 
 from ._logging import Internal, Service
-from .exceptions import EnvironmentError
+from ._util import make_hint, shell_hint
+from .exceptions import EnvironmentError, MistakeError
 
 if TYPE_CHECKING:
     from .app import App
@@ -48,7 +49,12 @@ def run(app_or_path: str | App) -> None:
         ) from None
 
     if not isinstance(target, App):
-        raise TypeError(f"{target!r} is not an instance of view.App")
+        raise MistakeError(
+            f"{target!r} is not an instance of view.App",
+            hint=make_hint(
+                "This should be an App instance",
+            ),
+        )
 
     target._run()
 
@@ -95,7 +101,12 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
     value = os.environ.get(key)
 
     if not value:
-        raise EnvironmentError(f'environment variable "{key}" not set')
+        raise EnvironmentError(
+            f'environment variable "{key}" not set',
+            hint=shell_hint(
+                f"set {key}=..." if os.name == "nt" else f"export {key}=..."
+            ),
+        )
 
     if tp is str:
         return value

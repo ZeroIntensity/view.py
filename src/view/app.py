@@ -7,24 +7,29 @@ import inspect
 import json
 import logging
 import os
+import sys
 import warnings
+import weakref
 from dataclasses import dataclass as apply_dataclass
 from functools import lru_cache
 from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
+from types import TracebackType as Traceback
 from typing import (Any, Awaitable, Callable, Coroutine, Generic, TypeVar,
                     get_type_hints, overload)
 
+from rich import print
 from rich.traceback import install
 
 from _view import ViewApp
 
 from ._loader import finalize, load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
-                       exit_server)
-from ._util import attempt_import
+                       exit_server, format_warnings)
+from ._util import attempt_import, make_hint
 from .config import Config, JsonValue, load_config, load_path_simple
+from .exceptions import ViewError
 from .routing import (Route, RouteOrCallable, delete, get, options, patch,
                       post, put)
 from .util import debug as enable_debug
@@ -39,6 +44,8 @@ A = TypeVar("A")
 _ROUTES_WARN_MSG = (
     "routes argument should only be passed when load strategy is manual"
 )
+
+B = TypeVar("B", bound=BaseException)
 
 
 class App(ViewApp, Generic[A]):
@@ -57,7 +64,20 @@ class App(ViewApp, Generic[A]):
             if os.environ.get("VIEW_PROD") is not None:
                 Service.warning("VIEW_PROD is set but dev is set to true")
 
+            format_warnings()
+            weakref.finalize(self, self._finalize)
             install(show_locals=True)
+            rich_handler = sys.excepthook
+
+            def _hook(tp: type[B], value: B, traceback: Traceback) -> None:
+                rich_handler(tp, value, traceback)
+                os.environ["_VIEW_CANCEL_FINALIZERS"] = "1"
+
+                if isinstance(value, ViewError):
+                    if value.hint:
+                        print(value.hint)
+
+            sys.excepthook = _hook
             faulthandler.enable()
         else:
             os.environ["VIEW_PROD"] = "1"
@@ -71,6 +91,32 @@ class App(ViewApp, Generic[A]):
         self.running = False
         self.user_settings: type[A] | None = None
         self._supplied_config: dict[str, Any] | None = {}
+
+    def _finalize(self) -> None:
+        if os.environ.get("_VIEW_CANCEL_FINALIZERS"):
+            return
+       
+        if self.loaded:
+            return
+
+        warnings.warn(
+            "load() was never called (did you forget to start the app?)"
+        )
+        split = self.config.app.path.split(":", maxsplit=1)
+
+        if len(split) != 2:
+            return
+
+        app_name = split[1]
+
+        print(
+            make_hint(
+                "Add this to your code",
+                split[0],
+                line=-1,
+                prepend=f"\n{app_name}.run()",
+            )
+        )
 
     def _method_wrapper(
         self,
@@ -154,7 +200,7 @@ class App(ViewApp, Generic[A]):
             raise ValueError(f"{ob!r} is not a suppliable type")
 
     async def _app(self, scope, receive, send) -> None:
-        await self.asgi_app_entry(scope, receive, send)
+        return await self.asgi_app_entry(scope, receive, send)
 
     def get_setting(self, key: str) -> S:
         assert (
@@ -164,6 +210,7 @@ class App(ViewApp, Generic[A]):
 
     def load(self, routes: list[Route] | None = None) -> None:
         if self.loaded:
+            Internal.warning("load called twice")
             return
 
         if self.config.app.load_strategy == "filesystem":
@@ -250,12 +297,15 @@ class App(ViewApp, Generic[A]):
 
         task = asyncio.create_task(coro)
         if self.config.log.hijack:
-            Internal.info("hijacking uvicorn")
-            for log in (
-                logging.getLogger("uvicorn.error"),
-                logging.getLogger("uvicorn.access"),
-            ):
-                log.addFilter(UvicornHijack())
+            if self.config.app.server == "uvicorn":
+                Internal.info("hijacking uvicorn")
+                for log in (
+                    logging.getLogger("uvicorn.error"),
+                    logging.getLogger("uvicorn.access"),
+                ):
+                    log.addFilter(UvicornHijack())
+            else:
+                Internal.info("hijacking hypercorn")
 
         if self.config.log.fancy:
             if not self.config.log.hijack:
@@ -266,11 +316,12 @@ class App(ViewApp, Generic[A]):
         self.running = True
         Internal.debug("here we go!")
         await task
-        Internal.info("server closed")
         self.running = False
 
         if self.config.log.fancy:
             exit_server()
+        
+        Internal.info("server closed")
 
     def _run(
         self, start_target: Callable[[Awaitable[Any]], None] | None = None

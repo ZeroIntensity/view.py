@@ -203,11 +203,11 @@ static int send_raw_text(
     PyObject* headers /* may be NULL */
 ) {
     PyObject* coro;
+    PyObject* send_dict;
 
     if (!headers) {
-        coro = PyObject_CallFunction(
-            send,
-            "{s:s,s:i,s:[[s,s]]}",
+        send_dict = Py_BuildValue(
+            "{s:s,s:i,s:[[y,y]]}",
             "type",
             "http.response.start",
             "status",
@@ -216,9 +216,18 @@ static int send_raw_text(
             "content-type",
             "text/plain"
         );
-    } else {
-        coro = PyObject_CallFunction(
+
+        if (!send_dict)
+            return -1;
+
+        coro = PyObject_Vectorcall(
             send,
+            (PyObject*[]) { send_dict },
+            1,
+            NULL
+        );
+    } else {
+        send_dict = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
             "http.response.start",
@@ -227,7 +236,19 @@ static int send_raw_text(
             "headers",
             headers
         );
+
+        if (!send_dict)
+            return -1;
+
+        coro = PyObject_Vectorcall(
+            send,
+            (PyObject*[]) { send_dict },
+            1,
+            NULL
+        );
     }
+
+    Py_DECREF(send_dict);
 
     if (!coro)
         return -1;
@@ -242,15 +263,26 @@ static int send_raw_text(
     };
 
     Py_DECREF(coro);
-
-    coro = PyObject_CallFunction(
-        send,
+    PyObject* dict = Py_BuildValue(
         "{s:s,s:y}",
         "type",
         "http.response.body",
         "body",
         res_str
     );
+
+    if (!dict) {
+        return -1;
+    }
+
+    coro = PyObject_Vectorcall(
+        send,
+        (PyObject*[]) { dict },
+        1,
+        NULL
+    );
+
+    Py_DECREF(dict);
 
     if (!coro)
         return -1;
@@ -880,15 +912,26 @@ static int lifespan(PyObject* awaitable, PyObject* result) {
             return -1;
     }
 
-    PyObject* send_coro = PyObject_CallFunction(
-        send,
+    PyObject* send_dict = Py_BuildValue(
         "{s:s}",
         "type",
         is_startup ? "lifespan.startup.complete" : "lifespan.shutdown.complete"
     );
 
+    if (!send_dict)
+        return -1;
+
+    PyObject* send_coro = PyObject_Vectorcall(
+        send,
+        (PyObject*[]) { send_dict },
+        1,
+        NULL
+    );
+
     if (!send_coro)
         return -1;
+
+    Py_DECREF(send_dict);
 
     if (PyAwaitable_AWAIT(
         awaitable,
@@ -1051,8 +1094,7 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         r->cache_index = 0;
     }
 
-    PyObject* coro = PyObject_CallFunction(
-        send,
+    PyObject* dc = Py_BuildValue(
         "{s:s,s:i,s:O}",
         "type",
         "http.response.start",
@@ -1061,6 +1103,18 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         "headers",
         headers
     );
+
+    if (!dc)
+        return -1;
+
+    PyObject* coro = PyObject_Vectorcall(
+        send,
+        (PyObject*[]) { dc },
+        1,
+        NULL
+    );
+
+    Py_DECREF(dc);
 
     if (!coro)
         return -1;
@@ -1074,9 +1128,7 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
     };
 
     Py_DECREF(coro);
-
-    coro = PyObject_CallFunction(
-        send,
+    PyObject* dct = Py_BuildValue(
         "{s:s,s:y}",
         "type",
         "http.response.body",
@@ -1084,6 +1136,18 @@ static int handle_route(PyObject* awaitable, PyObject* result) {
         res_str
     );
 
+    if (!dct)
+        return -1;
+
+
+    coro = PyObject_Vectorcall(
+        send,
+        (PyObject*[]) { dct },
+        1,
+        NULL
+    );
+
+    Py_DECREF(dct);
     if (r->cache_rate <= 0) free(res_str);
     if (!coro)
         return -1;
@@ -1235,8 +1299,7 @@ static PyObject* app(ViewApp* self, PyObject* args) {
     }
 
     if ((r->cache_index++ < r->cache_rate) && r->cache) {
-        PyObject* coro = PyObject_CallFunction(
-            send,
+        PyObject* dct = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
             "http.response.start",
@@ -1245,6 +1308,20 @@ static PyObject* app(ViewApp* self, PyObject* args) {
             "headers",
             r->cache_headers
         );
+
+        if (!dct) {
+            Py_DECREF(awaitable);
+            return NULL;
+        }
+
+        PyObject* coro = PyObject_Vectorcall(
+            send,
+            (PyObject*[]) { dct },
+            1,
+            NULL
+        );
+
+        Py_DECREF(dct);
 
         if (!coro) {
             Py_DECREF(awaitable);
@@ -1262,14 +1339,27 @@ static PyObject* app(ViewApp* self, PyObject* args) {
 
         Py_DECREF(coro);
 
-        coro = PyObject_CallFunction(
-            send,
+        PyObject* dc = Py_BuildValue(
             "{s:s,s:y}",
             "type",
             "http.response.body",
             "body",
             r->cache
         );
+
+        if (!dc) {
+            Py_DECREF(awaitable);
+            return NULL;
+        }
+
+        coro = PyObject_Vectorcall(
+            send,
+            (PyObject*[]) { dc },
+            1,
+            NULL
+        );
+
+        Py_DECREF(dc);
 
         if (!coro) {
             Py_DECREF(awaitable);
@@ -1288,7 +1378,6 @@ static PyObject* app(ViewApp* self, PyObject* args) {
         Py_DECREF(coro);
         return awaitable;
     }
-
 
     PyObject* res_coro = PyObject_CallNoArgs(r->callable);
     if (!res_coro) {

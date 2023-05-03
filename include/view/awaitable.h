@@ -21,10 +21,6 @@ int PyAwaitable_SaveValues(PyObject *awaitable, Py_ssize_t nargs, ...);
 int PyAwaitable_UnpackValues(PyObject *awaitable, ...);
 int PyAwaitable_UnpackArbValues(PyObject *awaitable, ...);
 int PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...);
-int
-PyAwaitable_AwaitFunction(PyObject *awaitable, PyObject *function,
-                          awaitcallback cb, awaitcallback_err err,
-                          const char *format, ...);
 
 #define PyAwaitable_AWAIT(aw, coro) PyAwaitable_AddAwait(aw, coro, NULL, NULL)
 

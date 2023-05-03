@@ -6,14 +6,15 @@ import warnings
 from typing import TYPE_CHECKING
 
 from ._logging import Internal
+from ._util import set_load, validate_body
 from .routing import Method, Route, RouteInput
 from .typing import RouteInputDict
-from ._util import validate_body
 
 if TYPE_CHECKING:
     from .app import ViewApp
 
 __all__ = "load_fs", "load_simple", "finalize"
+
 
 def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
     result: list[RouteInputDict] = []
@@ -46,6 +47,7 @@ def finalize(routes: list[Route], app: ViewApp):
     }
 
     for route in routes:
+        set_load(route)
         target = targets[route.method]
 
         if not route.path:

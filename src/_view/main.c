@@ -64,12 +64,12 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(m);
         return NULL;
     }
-
-    Py_INCREF(&ContextType);
-    if (PyModule_AddObject(
+    /*
+       Py_INCREF(&ContextType);
+       if (PyModule_AddObject(
         m,
         "Context",
-        ContextType
+        (PyObject*) &ContextType
         ) < 0) {
         Py_DECREF(&ContextType);
         Py_DECREF(&ViewAppType);
@@ -77,7 +77,7 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(&_PyAwaitable_GenWrapper_Type);
         Py_DECREF(m);
         return NULL;
-    }
-
+       }
+     */
     return m;
 }

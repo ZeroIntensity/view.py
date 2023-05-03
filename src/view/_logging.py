@@ -5,13 +5,15 @@ import logging
 import queue
 import random
 import re
+import sys
+import warnings
 from abc import ABC
 from threading import Thread
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, TextIO
 
 from rich import box
 from rich.align import Align
-from rich.console import Group
+from rich.console import Console, Group
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
@@ -20,6 +22,69 @@ from rich.text import Text
 from typing_extensions import Literal
 
 UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
+
+
+# see https://github.com/Textualize/rich/issues/433
+
+
+def _showwarning(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    file: TextIO | None = None,
+    line: str | None = None,
+) -> None:
+    msg = warnings.WarningMessage(
+        message,
+        category,
+        filename,
+        lineno,
+        file,
+        line,
+    )
+
+    if file is None:
+        file = sys.stderr
+        if file is None:
+            # sys.stderr is None when run with pythonw.exe:
+            # warnings get lost
+            return
+    text = warnings._formatwarnmsg(msg)  # type: ignore
+    if file.isatty():
+        Console(file=file, stderr=True).print(
+            Panel(
+                text,
+                title=f"[bold red]{category.__name__}",
+                subtitle=f"[bold green]\n{filename}, line {lineno}",
+                highlight=True,
+            )
+        )
+    else:
+        try:
+            file.write(f"{category.__name__}: {text}")
+        except OSError:
+            # the file (probably stderr) is invalid - this warning gets lost.
+            pass
+
+
+def _warning_no_src_line(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    file: TextIO | None = None,
+    line: str | None = None,
+) -> str:
+    if (file is None and sys.stderr is not None) or file is sys.stderr:
+        return str(message) + "\n"
+    else:
+        return f"{filename}:{lineno} {category.__name__}: {message}\n"
+
+
+def format_warnings():
+    warnings.showwarning = _showwarning
+    warnings.formatwarning = _warning_no_src_line  # type: ignore
 
 
 class UvicornHijack(logging.Filter):
@@ -201,6 +266,7 @@ def _status_color(status: int) -> str:
         return "green"
     if status >= 100:
         return "blue"
+
     raise ValueError(f"got bad status: {status}")
 
 
@@ -519,6 +585,7 @@ def _server_logger():
     global _LIVE
     _LIVE = True
     table = Table(box=box.HORIZONTALS)
+
     for i in ("method", "route", "status"):
         table.add_column(i)
 

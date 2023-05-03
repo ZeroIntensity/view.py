@@ -22,6 +22,7 @@ static inline PyObject* Py_XNewRef(PyObject* o) {
     o, \
     NULL \
 )
+#define PyObject_Vectorcall _PyObject_Vectorcall
 #endif
 
 #endif

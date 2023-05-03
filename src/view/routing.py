@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 
 from typing_extensions import Concatenate, ParamSpec
 
+from ._util import LoadChecker
 from .typing import Context, Validator, ValueType, ViewResponse, ViewRoute
 
 
@@ -36,7 +37,7 @@ T = TypeVar("T", bound="ViewResponse")
 
 
 @dataclass
-class Route(Generic[P, T]):
+class Route(Generic[P, T], LoadChecker):
     func: Callable[P, T]
     path: str | None
     method: Method
@@ -69,7 +70,7 @@ class Route(Generic[P, T]):
 RouteOrCallable = Route[P, T] | ViewRoute[P, T]
 
 
-def _ensure_route(r: RouteOrCallable[P, T]) -> Route[P, T]:
+def _ensure_route(r: RouteOrCallable[..., Any]) -> Route[..., Any]:
     if isinstance(r, Route):
         return r
 
@@ -77,11 +78,11 @@ def _ensure_route(r: RouteOrCallable[P, T]) -> Route[P, T]:
 
 
 def _method(
-    r: RouteOrCallable,
+    r: RouteOrCallable[P, T],
     path: str | None,
     doc: str | None,
     method: Method,
-) -> Route:
+) -> Route[P, T]:
     route = _ensure_route(r)
     route.method = method
     route.path = path
@@ -92,12 +93,15 @@ def _method(
     return route
 
 
+Path = Callable[[RouteOrCallable[P, T]], Route[P, T]]
+
+
 def _method_wrapper(
-    path_or_route: str | None | RouteOrCallable,
+    path_or_route: str | None | RouteOrCallable[P, T],
     doc: str | None,
     method: Method,
-):
-    def inner(r: RouteOrCallable) -> Route:
+) -> Path[P, T]:
+    def inner(r: RouteOrCallable[P, T]) -> Route[P, T]:
         if not isinstance(path_or_route, str):
             raise TypeError(f"{path_or_route!r} is not a string")
 
@@ -110,9 +114,6 @@ def _method_wrapper(
         return inner
 
     return inner
-
-
-Path = Callable[[str | None | RouteOrCallable[P, T]]]
 
 
 def get(
@@ -163,9 +164,11 @@ def query(
     doc: str | None = None,
     *,
     default: V | None = None,
-) -> Callable[[RouteOrCallable[Concatenate[V, P]]], Route]:
-    def inner(r: RouteOrCallable[Concatenate[V, P]]) -> Route:
-        route = _ensure_route(r)
+):
+    def inner(
+        r: RouteOrCallable[Concatenate[V, P], T]
+    ) -> Route[Concatenate[V, P], T]:
+        route: Route[Concatenate[V, P], T] = _ensure_route(r)
         route.inputs.append(RouteInput(name, False, tp, default, doc, []))
         return route
 
