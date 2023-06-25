@@ -280,6 +280,7 @@ gen_next(PyObject *self)
             // coro is done, but with a result
             // we can disregard the result if theres no callback
             g->gw_current_await = NULL;
+            PyErr_Clear();
             return gen_next(self);
         }
 
@@ -325,7 +326,7 @@ awaitable_next(PyObject *self)
 
 
     if (aw->aw_done) {
-        PyErr_SetString(PyExc_RuntimeError, "cannot reuse already awaited awaitable");
+        PyErr_SetString(PyExc_RuntimeError, "cannot reuse awaitable");
         return NULL;
     }
 
@@ -371,8 +372,8 @@ awaitable_repr(PyObject *self) {
     for (int i = 0; i < aw->aw_callback_size; i++) {
         if (aw->aw_callbacks[i]->done) ++done_size;
     }
-    return PyUnicode_FromFormat("<builtin awaitable, %zd done of %zd>",
-                                done_size, aw->aw_callback_size);
+    return PyUnicode_FromFormat("<builtin awaitable at %p>",
+                                self);
 }
 
 static PyAsyncMethods async_methods = {
@@ -641,6 +642,17 @@ PyAwaitable_UnpackArbValues(PyObject *awaitable, ...) {
     va_end(args);
     Py_DECREF(awaitable);
     return 0;
+}
+
+void
+PyAwaitable_SetArbValue(PyObject *awaitable, Py_ssize_t index, void *ptr) {
+    assert(awaitable != NULL);
+    assert(index >= 0);
+    Py_INCREF(awaitable);
+    PyAwaitableObject *aw = (PyAwaitableObject *) awaitable;
+
+    aw->aw_arb_values[index] = ptr;
+    Py_DECREF(awaitable);
 }
 
 int

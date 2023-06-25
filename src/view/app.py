@@ -27,6 +27,7 @@ from _view import ViewApp
 from ._loader import finalize, load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server, format_warnings)
+from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, JsonValue, load_config, load_path_simple
 from .exceptions import ViewError
@@ -50,6 +51,7 @@ B = TypeVar("B", bound=BaseException)
 
 class App(ViewApp, Generic[A]):
     def __init__(self, config: Config) -> None:
+        supply_parsers(self)
         self.config = config
         self._set_dev_state(config.app.dev)
         self._manual_routes: list[Route] = []
@@ -66,7 +68,10 @@ class App(ViewApp, Generic[A]):
 
             format_warnings()
             weakref.finalize(self, self._finalize)
-            install(show_locals=True)
+
+            if config.log.pretty_tracebacks:
+                install(show_locals=True)
+
             rich_handler = sys.excepthook
 
             def _hook(tp: type[B], value: B, traceback: Traceback) -> None:
@@ -95,7 +100,7 @@ class App(ViewApp, Generic[A]):
     def _finalize(self) -> None:
         if os.environ.get("_VIEW_CANCEL_FINALIZERS"):
             return
-       
+
         if self.loaded:
             return
 
@@ -320,7 +325,7 @@ class App(ViewApp, Generic[A]):
 
         if self.config.log.fancy:
             exit_server()
-        
+
         Internal.info("server closed")
 
     def _run(
@@ -343,7 +348,7 @@ class App(ViewApp, Generic[A]):
             uvicorn = attempt_import("uvicorn")
 
             config = uvicorn.Config(
-                self.asgi_app_entry,
+                self._app,
                 port=self.config.network.port,
                 host=self.config.network.host,
                 log_level="debug" if self.config.app.dev else "info",

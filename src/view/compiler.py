@@ -53,14 +53,6 @@ def _compiler_preserve(_: str) -> None:
     raise RuntimeError("this should have been compiled out!")
 
 
-class console:  # noqa
-    @staticmethod
-    def log(
-        *args: Any,
-    ):
-        _compiler_preserve(f"console.log(...{nm('args')})")
-
-
 _ERRORS: list[str] = [
     k for k, v in globals().items() if _issubclass(v, BaseException)
 ]

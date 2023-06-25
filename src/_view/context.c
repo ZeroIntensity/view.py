@@ -4,6 +4,8 @@
 typedef struct {
     PyObject_HEAD
     map* cookies;
+    map* headers;
+    map* res_cookies;
 } Context;
 
 static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwds) {

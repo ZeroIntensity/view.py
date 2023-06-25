@@ -8,7 +8,7 @@ import sys
 from typing import TYPE_CHECKING, overload
 
 from ._logging import Internal, Service
-from ._util import make_hint, shell_hint
+from ._util import shell_hint
 from .exceptions import EnvironmentError, MistakeError
 
 if TYPE_CHECKING:
@@ -49,12 +49,7 @@ def run(app_or_path: str | App) -> None:
         ) from None
 
     if not isinstance(target, App):
-        raise MistakeError(
-            f"{target!r} is not an instance of view.App",
-            hint=make_hint(
-                "This should be an App instance",
-            ),
-        )
+        raise MistakeError(f"{target!r} is not an instance of view.App")
 
     target._run()
 

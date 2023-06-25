@@ -92,3 +92,4 @@ class _SupportsAnnotations(Protocol):
 
 SupportsViewBody = _SupportsViewBodyCV | _SupportsViewBodyF
 ViewBodyLike = SupportsViewBody | _SupportsAnnotations
+Parser = Callable[[str], ViewBody]

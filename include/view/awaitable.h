@@ -31,4 +31,7 @@ PyAwaitable_VirtualAwait(
     virtualcallback cb
 );
 
+void
+PyAwaitable_SetArbValue(PyObject *awaitable, Py_ssize_t index, void *ptr);
+
 #endif

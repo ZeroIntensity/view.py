@@ -58,6 +58,7 @@ def _showwarning(
                 title=f"[bold red]{category.__name__}",
                 subtitle=f"[bold green]\n{filename}, line {lineno}",
                 highlight=True,
+                expand=False
             )
         )
     else:

@@ -119,8 +119,8 @@ class Config:
     log = LogConfig()
     prod: dict[str, str] = {B_OPEN}
         "log": {B_OPEN}
-            "hijack": false,
-            "fancy": false
+            "hijack": False,
+            "fancy": False
         {B_CLOSE},
         "network": {B_OPEN}
             "port": 80
@@ -146,6 +146,7 @@ class LogConfig:
     debug: bool = False
     hijack: bool = True
     fancy: bool = True
+    pretty_tracebacks: bool = True
 
 
 @dataclass()
