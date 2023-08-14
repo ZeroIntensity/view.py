@@ -1,9 +1,0 @@
-{
-    "scripts": {
-        "build": "tailwindcss -i main.css -o ./dist/out.css && python3 finalize.py"
-    },
-    "license": "MIT",
-    "dependencies": {
-        "tailwindcss": "^3.2.7"
-    }
-}

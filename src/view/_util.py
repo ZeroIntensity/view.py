@@ -55,6 +55,7 @@ def make_hint(
     *,
     line: int | None = None,
     prepend: str = "",
+    back_lines: int = 1,
 ) -> Syntax:
     if not isinstance(caller, str):
         frame: Frame | None = inspect.currentframe()
@@ -83,7 +84,7 @@ def make_hint(
         txt = pathlib.Path(back.f_code.co_filename).read_text(
             encoding="utf-8",
         )
-        line = line or (back.f_lineno - 1)
+        line = line or (back.f_lineno - back_lines)
     else:
         txt = pathlib.Path(caller).read_text(encoding="utf-8")
         line = line or 0

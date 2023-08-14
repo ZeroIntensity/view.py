@@ -3,14 +3,16 @@
 # prefixed with __ to tell the developer that its not an actual symbol defined by
 # the extension module
 
-from typing import Any as __Any, NoReturn as __NoReturn
+from typing import Any as __Any
+from typing import NoReturn as __NoReturn
 
 from view.typing import AsgiDict as __AsgiDict
 from view.typing import AsgiReceive as __AsgiReceive
 from view.typing import AsgiSend as __AsgiSend
+from view.typing import Parser as __Parser
+from view.typing import Part as __Part
 from view.typing import RouteInputDict as __RouteInput
 from view.typing import ViewRoute as __ViewRoute
-from view.typing import Parser as __Parser
 
 class ViewApp:
     def __init__(self) -> __NoReturn: ...
@@ -29,6 +31,7 @@ class ViewApp:
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
         errors: dict[int, __ViewRoute],
+        parts: list[__Part | str],
     ) -> None: ...
     def _post(
         self,
@@ -38,6 +41,7 @@ class ViewApp:
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
         errors: dict[int, __ViewRoute],
+        parts: list[__Part | str],
     ) -> None: ...
     def _put(
         self,
@@ -47,6 +51,7 @@ class ViewApp:
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
         errors: dict[int, __ViewRoute],
+        parts: list[__Part | str],
     ) -> None: ...
     def _patch(
         self,
@@ -56,6 +61,7 @@ class ViewApp:
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
         errors: dict[int, __ViewRoute],
+        parts: list[__Part | str],
     ) -> None: ...
     def _delete(
         self,
@@ -65,6 +71,7 @@ class ViewApp:
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
         errors: dict[int, __ViewRoute],
+        parts: list[__Part | str],
     ) -> None: ...
     def _options(
         self,
@@ -74,6 +81,7 @@ class ViewApp:
         cache_rate: int,
         inputs: list[__RouteInput[__Any]],
         errors: dict[int, __ViewRoute],
+        parts: list[__Part | str],
     ) -> None: ...
     def _set_dev_state(self, /, value: bool) -> None: ...
     def _exc(self, /, status_code: int, handler: __ViewRoute) -> None: ...

@@ -4,7 +4,22 @@
 - [Docs](https://view.zintensity.dev)
 - [Source](https://github.com/ZeroIntensity/view.py)
 - [PyPI](https://pypi.org/project/view.py)
-import warnings
+
+```py
+import view
+
+app = view.new_app()
+
+@app.get("/")
+async def index():
+    return h1("Hello, view.py!")
+
+@app.get("/hello/{name: str}")
+async def hello(name: str):
+    return p(f"Hello, {name}")
+
+app.run()
+```
 
 ### Installation
 

@@ -2,6 +2,8 @@
 #include <view/view.h>
 #include <threads.h>
 
+// i hate my formatter
+
 #define METHOD(name)                                                           \
   {                                                                            \
 #name, name, METH_VARARGS, NULL                                            \
@@ -10,6 +12,7 @@
   {                                                                            \
 #name, name, METH_NOARGS, NULL                                             \
   }
+
 
 
 static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};

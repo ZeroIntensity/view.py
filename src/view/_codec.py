@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Union
+
+if TYPE_CHECKING:
+    from _typeshed import ReadableBuffer
+
 import codecs
 import encodings
 import re
 from dataclasses import dataclass
+from encodings.utf_8 import StreamReader as UTF8StreamReader
 from html.parser import HTMLParser
 from io import StringIO
-from typing import Any, Tuple, Union
 
 Input = Union[bytes, bytearray, memoryview]
 
@@ -72,7 +77,7 @@ def _transform_recursive(tag: _Tag) -> str:
         if isinstance(i, _Tag):
             items.append(_transform_recursive(i))
         elif isinstance(i, str):
-            items.append(repr(i))
+            items.append(i)
         else:
             items.append("''")
 
@@ -88,7 +93,8 @@ def _transform_recursive(tag: _Tag) -> str:
         content.write(", ")
 
     return (
-        f"new_node({repr(tag.name)}{content.getvalue()}" f"{','.join(attrs)})"
+        f"_vpy_newnode({repr(tag.name)}{content.getvalue()}"
+        f"{','.join(attrs)})"
     )
 
 
@@ -103,16 +109,17 @@ def _transform(code: str) -> str:
         else:
             assert tag.source
             source.write(tag.source)
-
-    return "from view.nodes import new_node\n" + source.getvalue()
+    return (
+        "from view.nodes import new_node as _vpy_newnode\n" + source.getvalue()
+    )
 
 
 def decode(source: Input) -> str:
     return _transform(bytes(source).decode())
 
 
-def view_decode(source: Input, errors: str = "strict") -> Tuple[str, int]:
-    code, length = UTF8.decode(source, errors)
+def view_decode(input: bytes, errors: str = "strict") -> tuple[str, int]:
+    code, length = UTF8.decode(input, errors)
 
     return _transform(code), length
 
@@ -122,29 +129,16 @@ def transform_stream(stream: Any) -> StringIO:
 
 
 class IncrementalDecoder(codecs.BufferedIncrementalDecoder):
-    """
     def _buffer_decode(
-        self, input: Input, errors: str = "strict", final: bool = False
-    ) -> Tuple[str, int]:
+        self, input: ReadableBuffer, errors: str, final: bool
+    ) -> tuple[str, int]:
         if final:
-            return view_decode(input, errors)
+            return view_decode(input, errors)  # type: ignore
         else:
             return "", 0
-    """
-
-    def decode(self, input: Input, final: bool = False):
-        self.buffer += input
-        if final:
-            buff = self.buffer
-            self.buffer = b""
-            return super().decode(
-                _transform(buff.decode()).encode("utf-8"), final=True
-            )
-        else:
-            return ""
 
 
-class StreamReader(UTF8.streamreader):  # type: ignore
+class StreamReader(UTF8StreamReader):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -154,13 +148,13 @@ class StreamReader(UTF8.streamreader):  # type: ignore
 codecs.register(
     {
         "view": codecs.CodecInfo(
+            UTF8.encode,
+            view_decode,
             name="view",
-            encode=UTF8.encode,
-            decode=view_decode,  # type: ignore
-            incrementalencoder=UTF8.incrementalencoder,
-            incrementaldecoder=IncrementalDecoder,
             streamreader=StreamReader,
             streamwriter=UTF8.streamwriter,
+            incrementalencoder=UTF8.incrementalencoder,
+            incrementaldecoder=IncrementalDecoder,
         )
     }.get
 )

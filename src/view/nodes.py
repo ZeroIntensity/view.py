@@ -25,5 +25,5 @@ class ViewNode(NamedTuple):
         )
 
 
-def new_node(name: str, *content: Any, **attributes: Any):
+def new_node(name: str, *content: Any, **attributes: Any) -> ViewNode:
     return ViewNode(name, content, attributes)

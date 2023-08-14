@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from ._logging import Internal
 from ._util import set_load, validate_body
-from .routing import Method, Route, RouteInput
+from .routing import Method, Part, Route, RouteInput, _NoDefault
 from .typing import RouteInputDict
 
 if TYPE_CHECKING:
@@ -27,9 +27,10 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
             {
                 "name": i.name,
                 "type": i.tp,
-                "default": i.default,
+                "default": i.default,  # type: ignore
                 "validators": i.validators,
                 "is_body": i.is_body,
+                "has_default": i.default is not _NoDefault,
             }
         )
 
@@ -50,15 +51,16 @@ def finalize(routes: list[Route], app: ViewApp):
         set_load(route)
         target = targets[route.method]
 
-        if not route.path:
+        if (not route.path) and (not route.parts):
             raise TypeError("route did not specify a path")
 
         target(
-            route.path,
+            route.path,  # type: ignore
             route.callable,
             route.cache_rate,
             _format_inputs(route.inputs),
             route.errors or {},
+            route.parts,  # type: ignore
         )
 
 

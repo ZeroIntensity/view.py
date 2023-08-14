@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar
+from typing import (Any, Awaitable, Callable, ClassVar, Generic, Literal,
+                    TypeVar)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
@@ -71,6 +72,7 @@ class RouteInputDict(TypedDict, Generic[V]):
     default: V | None
     validators: list[Validator[V]]
     is_body: bool
+    has_default: bool
 
 
 ViewBodyType = str | int | dict | bool | float
@@ -93,3 +95,8 @@ class _SupportsAnnotations(Protocol):
 SupportsViewBody = _SupportsViewBodyCV | _SupportsViewBodyF
 ViewBodyLike = SupportsViewBody | _SupportsAnnotations
 Parser = Callable[[str], ViewBody]
+
+
+class Part(Protocol[V]):
+    name: str
+    tp: type[V] | None

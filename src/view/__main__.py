@@ -1,11 +1,34 @@
 import getpass
 import os
+import re
 from pathlib import Path
 
 import click
 
 B_OPEN = "{"
 B_CLOSE = "}"
+
+_GIT_EMAIL = re.compile(r' *email = "(.+)"')
+
+
+def _get_email():
+    home = Path.home()
+    git_config = home / ".gitconfig"
+    if not git_config.exists():
+        return "your@email.com"
+
+    try:
+        text = git_config.read_text(encoding="utf-8")
+    except PermissionError:
+        return "your@email.com"
+
+    for i in text.split("\n"):
+        match = _GIT_EMAIL.match(i)
+        if match:
+            return match.group(1)
+
+    return "your@email.com"
+
 
 PYPROJECT_BASE = (
     lambda name: f"""[build-system]
@@ -15,11 +38,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "{name}"
 authors = [
-    {B_OPEN}name = "{getpass.getuser()}", email = "your@email.com"{B_CLOSE}
+    {B_OPEN}name = "{getpass.getuser()}", email = "{_get_email()}"{B_CLOSE}
 ]
 requires-python = ">=3.7"
 license = "MIT"
-dependencies = ["view.py"]
+dependencies = ["view.py", "uvicorn"]
 version = "1.0.0"
 """
 )
@@ -48,13 +71,21 @@ def should_continue(msg: str):
         exit(2)
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.option("--debug", "-d", is_flag=True)
 def main(debug: bool):
     if debug:
         from .util import debug as enable_debug
 
         enable_debug()
+    else:
+        click.secho("Welcome to view.py!", fg="green", bold=True)
+        click.echo("Docs: ", nl=False)
+        click.secho("https://view.zintensity.dev", fg="blue", bold=True)
+        click.echo("GitHub: ", nl=False)
+        click.secho(
+            "https://github.com/ZeroIntensity/view.py", fg="blue", bold=True
+        )
 
 
 @main.group()
@@ -128,13 +159,13 @@ def serve():
     os.environ["_VIEW_RUN"] = "1"
 
     conf = load_config()
-    run_path(conf.app.path)
+    run_path(conf.app.app_path)
 
 
 @main.command()
 @click.option(
     "--target",
-    type=click.Choice(("replit", "heroku", "nginx", "cpanel")),
+    type=click.Choice(("replit", "heroku", "nginx")),
     prompt="Where to deploy to",
 )
 def deploy(target: str):
@@ -153,13 +184,14 @@ def deploy(target: str):
         writable=True,
     ),
     default="./",
+    prompt="Path to initialize to",
 )
 @click.option(
     "--type",
     "-t",
     help="Configuration type to initalize.",
     default="toml",
-    type=click.Choice(("toml", "json", "py")),
+    type=click.Choice(("toml", "json", "ini", "yml", "xml", "properties")),
 )
 @click.option(
     "--load",
@@ -167,6 +199,7 @@ def deploy(target: str):
     help="Preset for route loading.",
     default="filesystem",
     type=click.Choice(("manual", "filesystem", "simple")),
+    prompt="Loader strategy",
 )
 @click.option(
     "--no-project",
@@ -181,15 +214,9 @@ def deploy(target: str):
     default="my_app",
 )
 def init(path: Path, type: str, load: str, no_project: bool, name: str):
-    from .config import JSON_BASE, PY_BASE, TOML_BASE
+    from .config import make_preset
 
-    fname = (
-        "view.toml"
-        if type == "toml"
-        else "view.json"
-        if type == "json"
-        else "view_config.py"
-    )
+    fname = f"view.{type}"
     if not path.exists():
         path.mkdir()
 
@@ -198,15 +225,7 @@ def init(path: Path, type: str, load: str, no_project: bool, name: str):
         should_continue(f"`{conf_path}` already exists, overwrite?")
 
     with open(conf_path, "w") as f:
-        f.write(
-            (
-                TOML_BASE
-                if type == "toml"
-                else JSON_BASE
-                if type == "json"
-                else PY_BASE
-            )(load)
-        )
+        f.write(make_preset(type, load))
 
     click.echo(f"Created `{fname}`")
 
@@ -218,16 +237,30 @@ def init(path: Path, type: str, load: str, no_project: bool, name: str):
     from .__about__ import __version__
 
     with open(app_path, "w") as f:
-        f.write(
-            f"# view.py {__version__}"
-            """
+        if load in {"filesystem", "simple"}:
+            f.write(
+                f"# view.py {__version__}"
+                """
 import view
-
 
 app = view.new_app()
 app.run()
 """
-        )
+            )
+
+        if load == "manual":
+            f.write(
+                f"# view.py {__version__}"
+                """
+import view
+from routes.index import index
+
+app = view.new_app()
+
+app.load([index])
+app.run()
+"""
+            )
 
     click.echo("Created `app.py`")
 
@@ -250,32 +283,31 @@ app.run()
         scripts.mkdir()
         click.echo("Created `scripts`")
 
-    if load != "manual":
-        routes = path / "routes"
-        if routes.exists():
-            should_continue("`routes` already exists, overwrite?")
-        else:
-            routes.mkdir()
-            click.echo("Created `routes`")
+    routes = path / "routes"
+    if routes.exists():
+        should_continue("`routes` already exists, overwrite?")
+    else:
+        routes.mkdir()
+        click.echo("Created `routes`")
 
-        index = routes / "index.py"
+    index = routes / "index.py"
 
-        if index.exists():
-            should_continue(
-                f"`{index.relative_to('.')}` already exists, overwrite?"
-            )
-        pathstr = "" if load == "filesystem" else "'/'"
-        with open(index, "w") as f:
-            f.write(
-                f"""from view.routing import get
+    if index.exists():
+        should_continue(
+            f"`{index.relative_to('.')}` already exists, overwrite?"
+        )
+    pathstr = "" if load == "filesystem" else "'/'"
+    with open(index, "w") as f:
+        f.write(
+            f"""from view.routing import get
 
 @get({pathstr})
 async def index():
     return 'Hello, view.py!'
 """
-            )
+        )
 
-            click.echo("Created `routes/index.py`")
+        click.echo("Created `routes/index.py`")
 
     success(f"Successfully initalized app in `{path}`")
     return

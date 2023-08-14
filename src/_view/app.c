@@ -10,14 +10,16 @@
     PyObject* inputs; \
     Py_ssize_t cache_rate; \
     PyObject* errors; \
+    PyObject* parts = NULL; \
     if (!PyArg_ParseTuple( \
         args, \
-        "sOnOO", \
+        "zOnOOO", \
         &path, \
         &callable, \
         &cache_rate, \
         &inputs, \
-        &errors \
+        &errors, \
+        &parts \
         )) return NULL; \
     route* r = route_new( \
         callable, \
@@ -32,9 +34,12 @@
         ) < 0) return NULL; \
     if (load_errors(r, errors) < 0) \
         return NULL; \
-    map_set(self-> target, path, r); \
+    if (!PySequence_Size(parts)) \
+        map_set(self-> target, path, r); \
+    else \
+        if (load_parts(self, self-> target, parts, r) < 0) return NULL; \
     Py_RETURN_NONE;
-
+#define TRANSPORT_MAP() map_new(2, (map_free_func) route_free)
 
 #define ROUTE(target) static PyObject* target ( \
     ViewApp* self, \
@@ -74,6 +79,7 @@ typedef struct _ViewApp {
     bool dev;
     PyObject* exceptions;
     app_parsers parsers;
+    bool has_path_params;
 } ViewApp;
 
 typedef struct _route_input {
@@ -85,7 +91,9 @@ typedef struct _route_input {
     bool is_body;
 } route_input;
 
-typedef struct {
+typedef struct Route route;
+
+struct Route {
     PyObject* callable;
     char* cache;
     PyObject* cache_headers;
@@ -99,7 +107,18 @@ typedef struct {
     PyObject* exceptions;
     bool pass_context;
     bool has_body;
-} route;
+    map* routes;
+    route* r;
+};
+
+/*
+ * -- routes and r information --
+ * lets say the requested route is GET /app/12345/index and 12345 is a path parameter.
+ * we would first map_get(app->get, "/app"). if this returns NULL, it is a 404.
+ * then, we map_get(route->routes, "/12345"). if NULL, we check if a route->r is available.
+ * if so, this is a path parameter, we save the value and move on to the next. otherwise, 404.
+ * we repeat this process until we reach the end of the URL. so, next we do map_get(route->r->routes, "/index").
+ * */
 
 static int PyErr_BadASGI(void) {
     PyErr_SetString(
@@ -129,6 +148,10 @@ route* route_new(
     r->pass_context = false;
     r->has_body = has_body;
 
+    // transports
+    r->routes = NULL;
+    r->r = NULL;
+
     for (int i = 0; i < 28; i++)
         r->client_errors[i] = NULL;
 
@@ -137,6 +160,7 @@ route* route_new(
 
     return r;
 }
+
 
 void route_free(route* r) {
     for (int i = 0; i < r->inputs_size; i++) {
@@ -160,6 +184,124 @@ void route_free(route* r) {
 
     if (r->cache) free(r->cache);
     free(r);
+}
+
+void route_input_print(route_input* ri) {
+    puts("route_input {");
+    printf(
+        "name: %s\n",
+        ri->name
+    );
+    printf("df: ");
+    PyObject_Print(
+        ri->df,
+        stdout,
+        Py_PRINT_RAW
+    );
+    puts("");
+    printf("type: ");
+    PyObject_Print(
+        ri->type,
+        stdout,
+        Py_PRINT_RAW
+    );
+    puts("");
+    printf(
+        "is_body: %d\n",
+        ri->is_body
+    );
+
+    puts("validators [");
+    for (int i = 0; i < ri->validators_size; i++) {
+        PyObject* o = ri->validators[i];
+        PyObject_Print(
+            o,
+            stdout,
+            Py_PRINT_RAW
+        );
+        puts("");
+    }
+    puts("]");
+
+    puts("}");
+}
+
+void route_print(route* r) {
+    puts("route {");
+    printf("callable: ");
+    PyObject_Print(
+        r->callable,
+        stdout,
+        Py_PRINT_RAW
+    );
+    puts("");
+    printf("route_inputs [");
+    for (int i = 0; i < r->inputs_size; i++) {
+        route_input* ri = r->inputs[i];
+        route_input_print(ri);
+    }
+    puts("]");
+    printf(
+        "cache: %s\ncache_headers: ",
+        r->cache ? r->cache : "\"\""
+    );
+    PyObject_Print(
+        r->cache_headers,
+        stdout,
+        Py_PRINT_RAW
+    );
+    printf(
+        "\ncache_status: %d\ncache_index: %ld\ncache_rate: %ld\n",
+        r->cache_status,
+        r->cache_index,
+        r->cache_rate
+    );
+
+    if (r->r) {
+        printf("r: ");
+        route_print(r->r);
+        puts("");
+    } else {
+        puts("r: NULL");
+    }
+
+    if (r->routes) {
+        printf("routes: ");
+        print_map(
+            r->routes,
+            (map_print_func) route_print
+        );
+        puts("");
+    } else {
+        puts("routes: NULL");
+    }
+
+    puts("}");
+}
+
+route* route_transport_new(route* r) {
+    route* rt = malloc(sizeof(route));
+    if (!rt) return (route*) PyErr_NoMemory();
+    rt->cache = NULL;
+    rt->callable = NULL;
+    rt->cache_rate = 0;
+    rt->cache_index = 0;
+    rt->cache_headers = NULL;
+    rt->cache_status = 0;
+    rt->inputs = NULL;
+    rt->inputs_size = 0;
+    rt->pass_context = false;
+    rt->has_body = false;
+
+    for (int i = 0; i < 28; i++)
+        rt->client_errors[i] = NULL;
+
+    for (int i = 0; i < 11; i++)
+        rt->server_errors[i] = NULL;
+
+    rt->routes = NULL;
+    rt->r = r;
+    return rt;
 }
 
 
@@ -307,6 +449,8 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
 
     for (int i = 0; i < 11; i++)
         self->server_errors[i] = NULL;
+
+    self->has_path_params = false;
 
     return (PyObject*) self;
 }
@@ -1143,7 +1287,9 @@ static int route_error(
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
-        &r
+        &r,
+        NULL,
+        NULL
         ) < 0) return -1;
 
 
@@ -1158,11 +1304,6 @@ static int route_error(
     }
 
     if (!handler_was_called && tp && value && tb) {
-        PyErr_WarnEx(
-            PyExc_RuntimeWarning,
-            "error in route",
-            2
-        );
         PyErr_Display(
             tp,
             value,
@@ -1188,7 +1329,9 @@ static int handle_route_callback(PyObject* awaitable, PyObject* result) {
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
-        &r
+        &r,
+        NULL,
+        NULL
         ) < 0) return -1;
 
     char* res_str;
@@ -1289,6 +1432,8 @@ static int handle_route_impl(
 ) {
     route* r;
     ViewApp* self;
+    Py_ssize_t* size;
+    PyObject** path_params;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
@@ -1302,7 +1447,9 @@ static int handle_route_impl(
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
-        &r
+        &r,
+        &path_params,
+        &size
         ) < 0) {
         return -1;
     }
@@ -1332,6 +1479,8 @@ static int handle_route_impl(
         r->inputs_size
     );
 
+    Py_DECREF(query_obj);
+
     if (!params) {
         // parsing failed
         PyErr_Clear();
@@ -1345,12 +1494,50 @@ static int handle_route_impl(
         );
     }
 
-    PyObject* coro = PyObject_Vectorcall(
-        r->callable,
-        params,
-        r->inputs_size,
-        NULL
-    );
+    PyObject* coro;
+
+    if (size) {
+        PyObject** merged = calloc(
+            r->inputs_size + (*size),
+            sizeof(PyObject*)
+        );
+
+        for (int i = 0; i < (*size); i++)
+            merged[i] = path_params[i];
+
+        for (int i = *size; i < r->inputs_size + *size; i++)
+            merged[i] = params[i];
+
+        coro = PyObject_Vectorcall(
+            r->callable,
+            merged,
+            r->inputs_size + (*size),
+            NULL
+        );
+
+
+        for (int i = 0; i < r->inputs_size + *size; i++)
+            Py_DECREF(merged[i]);
+
+        free(path_params);
+        free(size);
+        free(merged);
+    } else {
+        coro = PyObject_Vectorcall(
+            r->callable,
+            params,
+            r->inputs_size,
+            NULL
+        );
+
+        for (int i = 0; i < r->inputs_size; i++) {
+            Py_DECREF(params[i]);
+        }
+    }
+
+    if (!coro) {
+        return -1;
+    }
 
     if (PyAwaitable_AddAwait(
         awaitable,
@@ -1485,6 +1672,9 @@ static int body_inc_buf(PyObject* awaitable, PyObject* result) {
 
 static int handle_route_query(PyObject* awaitable, char* query) {
     ViewApp* self;
+    route* r;
+    PyObject** path_params;
+    Py_ssize_t* size;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
@@ -1500,7 +1690,109 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         &self->parsers,
         query
     );
+    if (!query_obj) {
+        PyErr_Clear();
+        return fire_error(
+            self,
+            awaitable,
+            400,
+            r,
+            NULL
+        );
+    }
 
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        &r,
+        &path_params,
+        &size
+        ) < 0) {
+        Py_DECREF(query_obj);
+        return -1;
+    }
+
+    PyObject** params = calloc(
+        r->inputs_size,
+        sizeof(PyObject*)
+    );
+    if (!params) {
+        Py_DECREF(query_obj);
+        return -1;
+    }
+    Py_ssize_t final_size = 0;
+
+    for (int i = 0; i < r->inputs_size; i++) {
+        PyObject* item = PyDict_GetItemString(
+            query_obj,
+            r->inputs[i]->name
+        );
+
+        if (!item) {
+            if (r->inputs[i]->df) {
+                params[i] = r->inputs[i]->df;
+                ++final_size;
+                continue;
+            }
+            for (int i = 0; i < r->inputs_size; i++) {
+                Py_XDECREF(params[i]);
+            }
+
+            free(params);
+            Py_DECREF(query_obj);
+            return fire_error(
+                self,
+                awaitable,
+                400,
+                r,
+                NULL
+            );
+        } else {
+            ++final_size;
+        }
+
+        if (item)
+            params[i] = Py_NewRef(item);
+    }
+
+    PyObject** merged = calloc(
+        final_size + (*size),
+        sizeof(PyObject*)
+    );
+
+    for (int i = 0; i < (*size); i++)
+        merged[i] = path_params[i];
+
+    for (int i = 0; i < final_size; i++)
+        merged[*size + i] = params[i];
+
+    PyObject* coro = PyObject_VectorcallDict(
+        r->callable,
+        merged,
+        *size + final_size,
+        NULL
+    );
+
+    for (int i = 0; i < final_size + *size; i++)
+        Py_XDECREF(merged[i]);
+
+
+    free(params);
+    Py_DECREF(query_obj);
+
+    if (!coro)
+        return -1;
+
+    if (PyAwaitable_AddAwait(
+        awaitable,
+        coro,
+        handle_route_callback,
+        route_error
+        ) < 0) {
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    Py_DECREF(coro);
     return 0;
 }
 
@@ -1519,7 +1811,9 @@ static int handle_route(PyObject* awaitable, char* query) {
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
-        &r
+        &r,
+        NULL,
+        NULL
         ) < 0)
         return -1;
 
@@ -1661,11 +1955,11 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         return awaitable;
     }
 
-    const char* path = dict_get_str(
+    const char* raw_path = dict_get_str(
         scope,
         "path"
     );
-    if (!path) {
+    if (!raw_path) {
         Py_DECREF(awaitable);
         return NULL;
     }
@@ -1691,14 +1985,11 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
     const char* query_str = PyBytes_AsString(query_obj);
 
     if (!query_str) {
-        Py_DECREF(query_obj);
         Py_DECREF(awaitable);
         return NULL;
     }
 
-
     char* query = strdup(query_str);
-    //Py_DECREF(query_obj);
 
     map* ptr = NULL;
     if (!strcmp(
@@ -1735,24 +2026,184 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         ptr = self->get;
     }
 
+    size_t len = strlen(raw_path);
+    char* path;
+
+    if (raw_path[len - 1] == '/' && len != 1) {
+        path = malloc(len);
+        if (!path) {
+            Py_DECREF(awaitable);
+            return PyErr_NoMemory();
+        }
+
+        for (int i = 0; i < len - 1; i++)
+            path[i] = raw_path[i];
+
+        path[len - 1] = '\0';
+    } else {
+        path = strdup(raw_path);
+        if (!path) {
+            Py_DECREF(awaitable);
+            return PyErr_NoMemory();
+        }
+    }
     route* r = map_get(
         ptr,
         path
     );
+    PyObject** params = NULL;
+    Py_ssize_t* size = NULL;
 
     if (!r) {
-        if (fire_error(
-            self,
-            awaitable,
-            404,
-            NULL,
-            NULL
-            ) < 0) {
-            Py_DECREF(awaitable);
-            return NULL;
+        if (!self->has_path_params) {
+            if (fire_error(
+                self,
+                awaitable,
+                404,
+                NULL,
+                NULL
+                ) < 0) {
+                Py_DECREF(awaitable);
+                free(path);
+                return NULL;
+            }
+            free(path);
+            return awaitable;
         }
+        // begin path parameter extraction
 
-        return awaitable;
+        char* token;
+        map* target = ptr;
+        route* rt = NULL;
+        bool did_save = false;
+        size = malloc(sizeof(Py_ssize_t)); // so it can be stored in the awaitable
+        if (!size) {
+            Py_DECREF(awaitable);
+            free(path);
+            return PyErr_NoMemory();
+        }
+        *size = 0;
+        params = calloc(
+            1,
+            sizeof(PyObject*)
+        );
+        if (!params) {
+            Py_DECREF(awaitable);
+            free(size);
+            free(path);
+            return PyErr_NoMemory();
+        }
+        bool skip = true; // skip leading /
+        route* last_r = NULL;
+
+        while ((token = strsep(
+            &path,
+            "/"
+                        ))) {
+            if (skip) {
+                skip = false;
+                continue;
+            }
+            // TODO: optimize this
+            char* s = malloc(strlen(token) + 2);
+            sprintf(
+                s,
+                "/%s",
+                token
+            );
+            puts(s);
+            assert(target);
+
+            if ((!did_save && rt && rt->r) || last_r) {
+                printf(
+                    "last_r: %p\n",
+                    last_r
+                );
+                route* this_r = (last_r ? last_r : rt)->r;
+                last_r = this_r;
+
+                PyObject* unicode = PyUnicode_FromString(token);
+                if (!unicode) {
+                    free(path);
+                    Py_DECREF(awaitable);
+                    free(size);
+                    for (int i = 0; i < *size; i++)
+                        Py_DECREF(params[i]);
+
+                    free(params);
+                    return NULL;
+                }
+
+                params = realloc(
+                    params,
+                    (++(*size)) * sizeof(PyObject*)
+                );
+                params[*size - 1] = unicode;
+                if (this_r->routes) target = this_r->routes;
+                if (!this_r->r) last_r = NULL;
+                did_save = true; // prevent this code from looping, but also preserve rt in case the iteration ends
+                continue;
+            } else if (did_save) did_save = false;
+
+            puts("searching map");
+            rt = map_get(
+                target,
+                s
+            );
+            free(s);
+
+            if (!rt) {
+                // the route doesnt exist!
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+                free(path);
+                if (fire_error(
+                    self,
+                    awaitable,
+                    404,
+                    NULL,
+                    NULL
+                    ) < 0) {
+                    Py_DECREF(awaitable);
+                    return NULL;
+                }
+
+                free(path);
+                return awaitable;
+            }
+
+            target = rt->routes;
+        }
+        bool failed = false;
+
+        r = rt->r;
+        if (r && !r->callable) {
+            r = r->r; // edge case
+            if (!r) failed = true;
+        } else if (!r) failed = true;
+
+        if (failed) {
+            for (int i = 0; i < *size; i++)
+                Py_DECREF(params[i]);
+
+            free(params);
+            free(path);
+            free(size);
+            if (fire_error(
+                self,
+                awaitable,
+                404,
+                NULL,
+                NULL
+                ) < 0) {
+                Py_DECREF(awaitable);
+                return NULL;
+            }
+        }
+        route_print(r);
     }
 
     if ((r->cache_index++ < r->cache_rate) && r->cache) {
@@ -1767,6 +2218,14 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         );
 
         if (!dct) {
+            if (size) {
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+            }
+            free(path);
             Py_DECREF(awaitable);
             return NULL;
         }
@@ -1781,6 +2240,14 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         Py_DECREF(dct);
 
         if (!coro) {
+            if (size) {
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+            }
+            free(path);
             Py_DECREF(awaitable);
             return NULL;
         }
@@ -1789,8 +2256,16 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
             awaitable,
             coro
             ) < 0) {
+            if (size) {
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+            }
             Py_DECREF(awaitable);
             Py_DECREF(coro);
+            free(path);
             return NULL;
         };
 
@@ -1805,7 +2280,15 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         );
 
         if (!dc) {
+            if (size) {
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+            }
             Py_DECREF(awaitable);
+            free(path);
             return NULL;
         }
 
@@ -1819,7 +2302,15 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         Py_DECREF(dc);
 
         if (!coro) {
+            if (size) {
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+            }
             Py_DECREF(awaitable);
+            free(path);
             return NULL;
         }
 
@@ -1827,20 +2318,31 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
             awaitable,
             coro
             ) < 0) {
+            if (size) {
+                for (int i = 0; i < *size; i++)
+                    Py_DECREF(params[i]);
+
+                free(params);
+                free(size);
+            }
             Py_DECREF(awaitable);
             Py_DECREF(coro);
+            free(path);
             return NULL;
         }
 
         Py_DECREF(coro);
+        free(path);
         return awaitable;
     }
 
 
     if (PyAwaitable_SaveArbValues(
         awaitable,
-        1,
-        r
+        3,
+        r,
+        params,
+        size
         ) < 0) {
         Py_DECREF(awaitable);
         return NULL;
@@ -1853,6 +2355,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
                 query
                 ) < 0) {
                 Py_DECREF(awaitable);
+                free(path);
                 return NULL;
             };
 
@@ -1869,9 +2372,27 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
 
         return awaitable;
     } else {
-        PyObject* res_coro = PyObject_CallNoArgs(r->callable);
+        PyObject* res_coro;
+        if (size) {
+            res_coro = PyObject_Vectorcall(
+                r->callable,
+                params,
+                *size,
+                NULL
+            );
+
+            for (int i = 0; i < *size; i++)
+                Py_DECREF(params[i]);
+
+            free(path);
+            free(params);
+            free(size);
+        } else {
+            res_coro = PyObject_CallNoArgs(r->callable);
+        }
         if (!res_coro) {
             Py_DECREF(awaitable);
+            free(path);
             return NULL;
         }
 
@@ -1882,6 +2403,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
             route_error
             ) < 0) {
             Py_DECREF(res_coro);
+            free(path);
             Py_DECREF(awaitable);
             return NULL;
         }
@@ -1944,6 +2466,15 @@ static int load_errors(route* r, PyObject* dict) {
     return 0;
 }
 
+static inline int bad_input(const char* name) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "missing key in loader dict: %s",
+        name
+    );
+    return -1;
+}
+
 static int load(
     route* r,
     PyObject* target
@@ -1982,7 +2513,7 @@ static int load(
         if (!is_body) {
             Py_DECREF(iter);
             PyMem_Free(r->inputs);
-            return -1;
+            return bad_input("is_body");
         }
         inp->is_body = PyObject_IsTrue(is_body);
         Py_DECREF(is_body);
@@ -1998,7 +2529,7 @@ static int load(
             Py_DECREF(iter);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
-            return -1;
+            return bad_input("name");
         }
 
         const char* cname = PyUnicode_AsUTF8(name);
@@ -2013,18 +2544,35 @@ static int load(
 
         Py_DECREF(name);
 
-        inp->df = Py_XNewRef(
-            PyDict_GetItemString(
-                item,
-                "default"
-            )
+        PyObject* has_default = PyDict_GetItemString(
+            item,
+            "has_default"
         );
-        if (!inp->df) {
+        if (!has_default) {
             Py_DECREF(iter);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
-            return -1;
+            return bad_input("has_default");
         }
+
+        if (PyObject_IsTrue(has_default)) {
+            inp->df = Py_XNewRef(
+                PyDict_GetItemString(
+                    item,
+                    "default"
+                )
+            );
+            if (!inp->df) {
+                Py_DECREF(iter);
+                PyMem_Free(r->inputs);
+                PyMem_Free(inp);
+                return bad_input("default");
+            }
+        } else {
+            inp->df = NULL;
+        }
+
+        Py_DECREF(has_default);
 
         inp->type = Py_XNewRef(
             PyDict_GetItemString(
@@ -2032,12 +2580,13 @@ static int load(
                 "type"
             )
         );
+
         if (!inp->type) {
             Py_DECREF(iter);
-            Py_DECREF(inp->df);
+            Py_XDECREF(inp->df);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
-            return -1;
+            return bad_input("type");
         }
 
         PyObject* validators = PyDict_GetItemString(
@@ -2047,11 +2596,11 @@ static int load(
 
         if (!validators) {
             Py_DECREF(iter);
-            Py_DECREF(inp->df);
+            Py_XDECREF(inp->df);
             Py_DECREF(inp->type);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
-            return -1;
+            return bad_input("validators");
         }
 
         Py_ssize_t size = PySequence_Size(validators);
@@ -2064,7 +2613,7 @@ static int load(
         if (!inp->validators) {
             Py_DECREF(iter);
             Py_DECREF(inp->type);
-            Py_DECREF(inp->df);
+            Py_XDECREF(inp->df);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return -1;
@@ -2114,6 +2663,90 @@ static bool figure_has_body(PyObject* inputs) {
     }
 
     return res;
+}
+
+int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
+    PyObject* iter = PyObject_GetIter(parts);
+    if (!iter) return -1;
+
+    PyObject* item;
+    map* target = routes;
+    route* rt = NULL;
+    Py_ssize_t size = PySequence_Size(parts);
+    if (size == -1) {
+        Py_DECREF(iter);
+        return -1;
+    }
+
+    Py_ssize_t index = 0;
+    bool set_r = false;
+
+    while ((item = PyIter_Next(iter))) {
+        ++index;
+
+        if (PyObject_IsInstance(
+            item,
+            (PyObject*) &PyUnicode_Type
+            )) {
+            // path part
+            const char* str = PyUnicode_AsUTF8(item);
+            if (!str) {
+                Py_DECREF(iter);
+                return -1;
+            };
+            route* found = map_get(
+                target,
+                str
+            );
+            route* transport = route_transport_new(NULL);
+            if (!transport) {
+                Py_DECREF(iter);
+                return -1;
+            };
+            if (!found) {
+                map_set(
+                    target,
+                    str,
+                    transport
+                );
+                transport->routes = TRANSPORT_MAP();
+                target = transport->routes;
+                if (!target) {
+                    Py_DECREF(iter);
+                    return -1;
+                };
+            } else {
+                if (!found->routes) found->routes = TRANSPORT_MAP();
+                if (!found->routes) {
+                    Py_DECREF(iter);
+                    return -1;
+                };
+                target = found->routes;
+                map_set(
+                    target,
+                    str,
+                    transport
+                );
+            }
+            rt = transport;
+        } else {
+            app->has_path_params = true;
+            if (!rt) Py_FatalError("first path param was part");
+            if (index == size) {
+                rt->r = r;
+                set_r = true;
+            } else {
+                rt->r = route_transport_new(NULL);
+                rt = rt->r;
+            }
+        }
+        if (!set_r) rt->r = r;
+    }
+
+    Py_DECREF(iter);
+    if (PyErr_Occurred()) return -1;
+
+    return 0;
 }
 
 ROUTE(get);

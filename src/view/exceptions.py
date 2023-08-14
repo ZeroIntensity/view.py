@@ -19,6 +19,10 @@ class NotLoadedWarning(ViewWarning):
     ...
 
 
+class ConfigWarning(ViewWarning):
+    ...
+
+
 class ViewError(Exception):
     def __init__(
         self,

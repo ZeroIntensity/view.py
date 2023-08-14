@@ -156,3 +156,20 @@ void map_set(map* m, const char* key, void* value) {
         m->dealloc
     );
 }
+
+// Debugging purposes
+void print_map(map* m, map_print_func pr) {
+    puts("map {");
+    for (int i = 0; i < m->capacity; i++) {
+        pair* p = m->items[i];
+        if (p) {
+            printf(
+                "\"%s\": ",
+                p->key
+            );
+            pr(p->value);
+            puts("");
+        }
+    }
+    puts("}");
+}

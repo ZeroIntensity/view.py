@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <threads.h>
+
 typedef struct {
     PyObject *coro;
     awaitcallback callback;

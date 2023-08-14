@@ -49,10 +49,6 @@ def _issubclass(item: Any, tp: type[Any]) -> bool:
         return False
 
 
-def _compiler_preserve(_: str) -> None:
-    raise RuntimeError("this should have been compiled out!")
-
-
 _ERRORS: list[str] = [
     k for k, v in globals().items() if _issubclass(v, BaseException)
 ]
@@ -630,7 +626,7 @@ def _compile(data: str, lock_namespace: bool) -> str:
     if not lock_namespace:
         return result
 
-    return "(() => {" + result + "}();"
+    return "(() => {" + result + "})();"
 
 
 def compile(source: SourceCodeLike, *, lock_namespace: bool = False) -> str:

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 typedef void (* map_free_func)(void*);
+typedef void (* map_print_func)(void*);
 
 typedef struct STRUCT_MAP_PAIR {
     const char* key;
@@ -22,5 +23,6 @@ map* map_new(size_t inital_capacity, map_free_func dealloc);
 void map_set(map* m, const char* key, void* value);
 void map_free(map* m);
 map* map_copy(map* m);
+void print_map(map* m, map_print_func pr);
 
 #endif
