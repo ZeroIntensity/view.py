@@ -1,7 +1,9 @@
-from typing import Any, Literal
+from typing import Any, Callable, Literal, TypeVar
 
-from typing_extensions import TypedDict, Unpack, NotRequired
+from typing_extensions import TypedDict, Unpack, NotRequired, ParamSpec, Concatenate
 
+T = TypeVar("T")
+P = ParamSpec("P")
 
 class DOMNode:
     def __init__(self, data: str) -> None:
@@ -27,11 +29,9 @@ class GlobalAttributes(TypedDict):
     draggable: NotRequired[bool]
     enterkeyhint: NotRequired[str]
     exportparts: NotRequired[str]
-    hidden: NotRequired[]
 
 
 NEWLINE = "\n"
-
 
 def _node(
     name: str,
@@ -61,6 +61,18 @@ def _node(
     return DOMNode(
         f"<{name}{attr_str}>{NEWLINE.join([str(i) for i in text])}</{name}>",
     )
+
+
+def component(func_or_none: Callable[Concatenate[str, P], T] | None = None, *, flat: bool = True):
+    def decorator(func: Callable[Concatenate[str, P], T]):
+        def inner():
+            ...
+        return inner
+
+    if func_or_none:
+        return decorator(func_or_none)
+
+    return decorator
 
 
 def a(
@@ -2070,4 +2082,5 @@ __all__ = (
     "video",
     "wbr",
     "xmp",
+    "component"
 )

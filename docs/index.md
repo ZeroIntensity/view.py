@@ -8,6 +8,7 @@
 ## Example
 ```py
 import view
+from view.components import *
 
 app = view.new_app()
 
