@@ -1,5 +1,12 @@
 site_name: view.py
 site_url: https://view.zintensity.dev
+repo_url: https://github.com/ZeroIntensity/iew.py
+repo_name: ZeroIntensity/view.py
+
 nav:
-  - Home: index.md
-theme: material
+    - Home: index.md
+
+theme:
+    name: null
+    custom_dir: "html/"
+
