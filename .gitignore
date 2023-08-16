@@ -12,3 +12,4 @@ a.py
 *.log
 node_modules/
 *.lock
+site/
