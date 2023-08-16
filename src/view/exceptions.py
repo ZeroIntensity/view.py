@@ -8,6 +8,7 @@ __all__ = (
     "EnvironmentError",
     "InvalidBodyError",
     "MistakeError",
+    "LoaderWarning",
 )
 
 
@@ -19,7 +20,7 @@ class NotLoadedWarning(ViewWarning):
     ...
 
 
-class ConfigWarning(ViewWarning):
+class LoaderWarning(ViewWarning):
     ...
 
 

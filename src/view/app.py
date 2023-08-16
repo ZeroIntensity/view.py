@@ -12,7 +12,6 @@ import weakref
 from contextlib import suppress
 from functools import lru_cache
 from multiprocessing import Process
-from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
 from typing import (Any, Awaitable, Callable, Coroutine, Generic, TypeVar,
@@ -162,11 +161,11 @@ class App(ViewApp, Generic[A]):
         if self.config.app.loader == "filesystem":
             if routes:
                 warnings.warn(_ROUTES_WARN_MSG)
-            load_fs(self, self.config.app.app_path)
+            load_fs(self, self.config.app.loader_path)
         elif self.config.app.loader == "simple":
             if routes:
                 warnings.warn(_ROUTES_WARN_MSG)
-            load_simple(self, self.config.app.app_path)
+            load_simple(self, self.config.app.loader_path)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 

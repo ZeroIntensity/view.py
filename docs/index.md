@@ -42,7 +42,7 @@ $ python3 -m pip install -U view.py
 ### Windows
 
 ```
-> py -3 -m pip install -U view.py
+> py -m pip install -U view.py
 ```
 
 ### From Source
@@ -54,7 +54,7 @@ $ pip install .
 
 ## Finalizing
 
-Now, type `view` or `python3 -m view` (`py -3 -m view` on Windows) to make sure everything is working:
+Now, type `view` or `python3 -m view` (`py -m view` on Windows) to make sure everything is working:
 
 ```
 $ view
@@ -63,4 +63,4 @@ Docs: https://view.zintensity.dev
 GitHub: https://github.com/ZeroIntensity/view.py
 ```
 
-**Note:** The remainder of this documentation will assume Python module are on PATH and view.py may be executed with the raw `view` command.
+**Note:** The remainder of this documentation will assume Python modules are on PATH and view.py may be executed with the raw `view` command.

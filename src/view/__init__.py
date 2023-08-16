@@ -1,4 +1,10 @@
 # flake8: noqa
+"""
+view.py - A modern web framework
+
+Docs: https://view.zintensity.dev
+GitHub: https://github.com/zerointensity/view.py
+"""
 try:
     import _view
 except ImportError as e:
@@ -7,7 +13,7 @@ except ImportError as e:
     ) from e
 
 from . import _codec
-from .__about__ import __license__, __version__
+from .__about__ import __license__, __version__, __author__
 from .app import App, new_app
 from .components import *
 from .exceptions import *

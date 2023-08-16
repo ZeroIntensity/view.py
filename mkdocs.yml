@@ -1,12 +1,16 @@
 site_name: view.py
 site_url: https://view.zintensity.dev
-repo_url: https://github.com/ZeroIntensity/iew.py
+repo_url: https://github.com/ZeroIntensity/view.py
 repo_name: ZeroIntensity/view.py
 
 nav:
     - Home: index.md
+    - Creating an app: creating.md
+    - Running: running.md
 
 theme:
     name: null
     custom_dir: "html/"
 
+markdown_extensions:
+  - admonition

@@ -1,21 +1,30 @@
-from typing import Any, Callable, Literal, TypeVar
+from __future__ import annotations
 
-from typing_extensions import TypedDict, Unpack, NotRequired, ParamSpec, Concatenate
+from typing import Any, Iterable, Literal
 
-T = TypeVar("T")
-P = ParamSpec("P")
+from typing_extensions import (
+    NotRequired,
+    TypedDict,
+    Unpack,
+)
 
 class DOMNode:
-    def __init__(self, data: str) -> None:
-        self.data = data
+    def __init__(self, data: str | DOMNode) -> None:
+        self.data = str(data)
         self.compiler_ready = False
 
     def __str__(self) -> str:
         return self.data
 
+    def __repr__(self) -> str:
+        return f"DOMNode({self.data!r})"
+
+    __view_result__ = __str__
+
 
 AutoCapitalizeType = Literal["off", "none", "on", "sentences", "words", "characters"]
 DirType = Literal["ltr", "rtl", "auto"]
+
 
 class GlobalAttributes(TypedDict):
     accesskey: NotRequired[str]
@@ -33,6 +42,7 @@ class GlobalAttributes(TypedDict):
 
 NEWLINE = "\n"
 
+
 def _node(
     name: str,
     text: tuple[str | DOMNode],
@@ -40,51 +50,41 @@ def _node(
     kwargs: GlobalAttributes,
 ) -> DOMNode:
     attributes: dict[str, str | None] = {**kwargs, **attrs}
-
+    
     cls = kwargs.get("cls")
     if cls:
         attributes["class"] = cls
-
+        kwargs.pop("cls")
+        attributes.pop("cls")
     for k, v in kwargs.items():
         if isinstance(v, bool):
             attributes[k] = "true" if v else "false"
-
     attr_str = ""
 
     for k, v in attributes.items():
+        if v is None:
+            continue
+
         k = k.replace("_", "-")
         if v:
             attr_str += f" {k}={v!r}"
         else:
             attr_str += f" {k}"
-
     return DOMNode(
         f"<{name}{attr_str}>{NEWLINE.join([str(i) for i in text])}</{name}>",
     )
 
 
-def component(func_or_none: Callable[Concatenate[str, P], T] | None = None, *, flat: bool = True):
-    def decorator(func: Callable[Concatenate[str, P], T]):
-        def inner():
-            ...
-        return inner
-
-    if func_or_none:
-        return decorator(func_or_none)
-
-    return decorator
-
-
 def a(
     *__content: str | DOMNode,
-    download: str,
-    href: str,
-    hreflang: str,
-    ping: str,
-    referrerpolicy: str,
-    rel: str,
-    target: str,
-    type: str,
+    download: str | None = None,
+    href: str | None = None,
+    hreflang: str | None = None,
+    ping: str | None = None,
+    referrerpolicy: str | None = None,
+    rel: str | None = None,
+    target: str | None = None,
+    type: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -127,16 +127,16 @@ def address(
 
 def area(
     *__content: str | DOMNode,
-    alt: str,
-    coords: str,
-    download: str,
-    href: str,
-    hreflang: str,
-    ping: str,
-    referrerpolicy: str,
-    rel: str,
-    shape: str,
-    target: str,
+    alt: str | None = None,
+    coords: str | None = None,
+    download: str | None = None,
+    href: str | None = None,
+    hreflang: str | None = None,
+    ping: str | None = None,
+    referrerpolicy: str | None = None,
+    rel: str | None = None,
+    shape: str | None = None,
+    target: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -174,15 +174,15 @@ def aside(
 
 def audio(
     *__content: str | DOMNode,
-    autoplay: str,
-    controls: str,
-    controlslist: str,
-    crossorigin: str,
-    disableremoteplayback: str,
-    loop: str,
-    muted: str,
-    preload: str,
-    src: str,
+    autoplay: str | None = None,
+    controls: str | None = None,
+    controlslist: str | None = None,
+    crossorigin: str | None = None,
+    disableremoteplayback: str | None = None,
+    loop: str | None = None,
+    muted: str | None = None,
+    preload: str | None = None,
+    src: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -212,8 +212,8 @@ def b(
 
 def base(
     *__content: str | DOMNode,
-    href: str,
-    target: str,
+    href: str | None = None,
+    target: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -236,7 +236,7 @@ def bdi(
 
 def bdo(
     *__content: str | DOMNode,
-    dir: str,
+    dir: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -258,7 +258,7 @@ def big(
 
 def blockquote(
     *__content: str | DOMNode,
-    cite: str,
+    cite: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -273,34 +273,34 @@ def blockquote(
 
 def body(
     *__content: str | DOMNode,
-    alink: str,
-    background: str,
-    bgcolor: str,
-    bottommargin: str,
-    leftmargin: str,
-    link: str,
-    onafterprint: str,
-    onbeforeprint: str,
-    onbeforeunload: str,
-    onblur: str,
-    onerror: str,
-    onfocus: str,
-    onhashchange: str,
-    onlanguagechange: str,
-    onload: str,
-    onmessage: str,
-    onoffline: str,
-    ononline: str,
-    onpopstate: str,
-    onredo: str,
-    onresize: str,
-    onstorage: str,
-    onundo: str,
-    onunload: str,
-    rightmargin: str,
-    text: str,
-    topmargin: str,
-    vlink: str,
+    alink: str | None = None,
+    background: str | None = None,
+    bgcolor: str | None = None,
+    bottommargin: str | None = None,
+    leftmargin: str | None = None,
+    link: str | None = None,
+    onafterprint: str | None = None,
+    onbeforeprint: str | None = None,
+    onbeforeunload: str | None = None,
+    onblur: str | None = None,
+    onerror: str | None = None,
+    onfocus: str | None = None,
+    onhashchange: str | None = None,
+    onlanguagechange: str | None = None,
+    onload: str | None = None,
+    onmessage: str | None = None,
+    onoffline: str | None = None,
+    ononline: str | None = None,
+    onpopstate: str | None = None,
+    onredo: str | None = None,
+    onresize: str | None = None,
+    onstorage: str | None = None,
+    onundo: str | None = None,
+    onunload: str | None = None,
+    rightmargin: str | None = None,
+    text: str | None = None,
+    topmargin: str | None = None,
+    vlink: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -349,20 +349,20 @@ def br(
 
 def button(
     *__content: str | DOMNode,
-    autofocus: str,
-    autocomplete: str,
-    disabled: str,
-    form: str,
-    formaction: str,
-    formenctype: str,
-    formmethod: str,
-    formnovalidate: str,
-    formtarget: str,
-    name: str,
-    popovertarget: str,
-    popovertargetaction: str,
-    type: str,
-    value: str,
+    autofocus: str | None = None,
+    autocomplete: str | None = None,
+    disabled: str | None = None,
+    form: str | None = None,
+    formaction: str | None = None,
+    formenctype: str | None = None,
+    formmethod: str | None = None,
+    formnovalidate: str | None = None,
+    formtarget: str | None = None,
+    name: str | None = None,
+    popovertarget: str | None = None,
+    popovertargetaction: str | None = None,
+    type: str | None = None,
+    value: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -390,9 +390,9 @@ def button(
 
 def canvas(
     *__content: str | DOMNode,
-    height: str,
-    moz_opaque: str,
-    width: str,
+    height: str | None = None,
+    moz_opaque: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -437,7 +437,7 @@ def code(
 
 def col(
     *__content: str | DOMNode,
-    span: str,
+    span: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -452,7 +452,7 @@ def col(
 
 def colgroup(
     *__content: str | DOMNode,
-    span: str,
+    span: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -467,7 +467,7 @@ def colgroup(
 
 def data(
     *__content: str | DOMNode,
-    value: str,
+    value: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -489,7 +489,7 @@ def datalist(
 
 def dd(
     *__content: str | DOMNode,
-    nowrap: str,
+    nowrap: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -504,8 +504,8 @@ def dd(
 
 def html_del(
     *__content: str | DOMNode,
-    cite: str,
-    datetime: str,
+    cite: str | None = None,
+    datetime: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -521,7 +521,7 @@ def html_del(
 
 def details(
     *__content: str | DOMNode,
-    open: str,
+    open: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -543,7 +543,7 @@ def dfn(
 
 def dialog(
     *__content: str | DOMNode,
-    open: str,
+    open: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -558,7 +558,7 @@ def dialog(
 
 def dir(
     *__content: str | DOMNode,
-    compact: str,
+    compact: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -601,10 +601,10 @@ def em(
 
 def embed(
     *__content: str | DOMNode,
-    height: str,
-    src: str,
-    type: str,
-    width: str,
+    height: str | None = None,
+    src: str | None = None,
+    type: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -622,9 +622,9 @@ def embed(
 
 def fieldset(
     *__content: str | DOMNode,
-    disabled: str,
-    form: str,
-    name: str,
+    disabled: str | None = None,
+    form: str | None = None,
+    name: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -655,9 +655,9 @@ def figure(
 
 def font(
     *__content: str | DOMNode,
-    color: str,
-    face: str,
-    size: str,
+    color: str | None = None,
+    face: str | None = None,
+    size: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -681,12 +681,12 @@ def footer(
 
 def form(
     *__content: str | DOMNode,
-    accept: str,
-    accept_charset: str,
-    autocapitalize: str,
-    autocomplete: str,
-    name: str,
-    rel: str,
+    accept: str | None = None,
+    accept_charset: str | None = None,
+    autocapitalize: str | None = None,
+    autocomplete: str | None = None,
+    name: str | None = None,
+    rel: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -706,13 +706,13 @@ def form(
 
 def frame(
     *__content: str | DOMNode,
-    src: str,
-    name: str,
-    noresize: str,
-    scrolling: str,
-    marginheight: str,
-    marginwidth: str,
-    frameborder: str,
+    src: str | None = None,
+    name: str | None = None,
+    noresize: str | None = None,
+    scrolling: str | None = None,
+    marginheight: str | None = None,
+    marginwidth: str | None = None,
+    frameborder: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -733,8 +733,8 @@ def frame(
 
 def frameset(
     *__content: str | DOMNode,
-    cols: str,
-    rows: str,
+    cols: str | None = None,
+    rows: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -748,16 +748,51 @@ def frameset(
     )
 
 
-def Heading_Elements(
+def h1(
     *__content: str | DOMNode,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
-    return _node("Heading_Elements", __content, {}, kwargs)
+    return _node("h1", __content, {}, kwargs)
+
+
+def h2(
+    *__content: str | DOMNode,
+    **kwargs: Unpack[GlobalAttributes],
+) -> DOMNode:
+    return _node("h2", __content, {}, kwargs)
+
+
+def h3(
+    *__content: str | DOMNode,
+    **kwargs: Unpack[GlobalAttributes],
+) -> DOMNode:
+    return _node("h3", __content, {}, kwargs)
+
+
+def h4(
+    *__content: str | DOMNode,
+    **kwargs: Unpack[GlobalAttributes],
+) -> DOMNode:
+    return _node("h4", __content, {}, kwargs)
+
+
+def h5(
+    *__content: str | DOMNode,
+    **kwargs: Unpack[GlobalAttributes],
+) -> DOMNode:
+    return _node("h5", __content, {}, kwargs)
+
+
+def h6(
+    *__content: str | DOMNode,
+    **kwargs: Unpack[GlobalAttributes],
+) -> DOMNode:
+    return _node("h6", __content, {}, kwargs)
 
 
 def head(
     *__content: str | DOMNode,
-    profile: str,
+    profile: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -786,11 +821,11 @@ def hgroup(
 
 def hr(
     *__content: str | DOMNode,
-    align: str,
-    color: str,
-    noshade: str,
-    size: str,
-    width: str,
+    align: str | None = None,
+    color: str | None = None,
+    noshade: str | None = None,
+    size: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -809,9 +844,9 @@ def hr(
 
 def html(
     *__content: str | DOMNode,
-    manifest: str,
-    version: str,
-    xmlns: str,
+    manifest: str | None = None,
+    version: str | None = None,
+    xmlns: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -835,19 +870,19 @@ def i(
 
 def iframe(
     *__content: str | DOMNode,
-    allow: str,
-    allowfullscreen: str,
-    allowpaymentrequest: str,
-    credentialless: str,
-    csp: str,
-    height: str,
-    loading: str,
-    name: str,
-    referrerpolicy: str,
-    sandbox: str,
-    src: str,
-    srcdoc: str,
-    width: str,
+    allow: str | None = None,
+    allowfullscreen: str | None = None,
+    allowpaymentrequest: str | None = None,
+    credentialless: str | None = None,
+    csp: str | None = None,
+    height: str | None = None,
+    loading: str | None = None,
+    name: str | None = None,
+    referrerpolicy: str | None = None,
+    sandbox: str | None = None,
+    src: str | None = None,
+    srcdoc: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -881,20 +916,20 @@ def image(
 
 def img(
     *__content: str | DOMNode,
-    alt: str,
-    crossorigin: str,
-    decoding: str,
-    elementtiming: str,
-    fetchpriority: str,
-    height: str,
-    ismap: str,
-    loading: str,
-    referrerpolicy: str,
-    sizes: str,
-    src: str,
-    srcset: str,
-    width: str,
-    usemap: str,
+    alt: str | None = None,
+    crossorigin: str | None = None,
+    decoding: str | None = None,
+    elementtiming: str | None = None,
+    fetchpriority: str | None = None,
+    height: str | None = None,
+    ismap: str | None = None,
+    loading: str | None = None,
+    referrerpolicy: str | None = None,
+    sizes: str | None = None,
+    src: str | None = None,
+    srcset: str | None = None,
+    width: str | None = None,
+    usemap: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -929,8 +964,8 @@ def input(
 
 def ins(
     *__content: str | DOMNode,
-    cite: str,
-    datetime: str,
+    cite: str | None = None,
+    datetime: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -953,7 +988,7 @@ def kbd(
 
 def label(
     *__content: str | DOMNode,
-    html_for: str,
+    html_for: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -975,8 +1010,8 @@ def legend(
 
 def li(
     *__content: str | DOMNode,
-    value: str,
-    type: str,
+    value: str | None = None,
+    type: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -992,23 +1027,23 @@ def li(
 
 def link(
     *__content: str | DOMNode,
-    html_as: str,
-    crossorigin: str,
-    disabled: str,
-    fetchpriority: str,
-    href: str,
-    hreflang: str,
-    imagesizes: str,
-    imagesrcset: str,
-    integrity: str,
-    media: str,
-    prefetch: str,
-    referrerpolicy: str,
-    rel: str,
-    sizes: str,
-    title: str,
-    type: str,
-    blocking: str,
+    html_as: str | None = None,
+    crossorigin: str | None = None,
+    disabled: str | None = None,
+    fetchpriority: str | None = None,
+    href: str | None = None,
+    hreflang: str | None = None,
+    imagesizes: str | None = None,
+    imagesrcset: str | None = None,
+    integrity: str | None = None,
+    media: str | None = None,
+    prefetch: str | None = None,
+    referrerpolicy: str | None = None,
+    rel: str | None = None,
+    sizes: str | None = None,
+    title: str | None = None,
+    type: str | None = None,
+    blocking: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1046,7 +1081,7 @@ def main(
 
 def map(
     *__content: str | DOMNode,
-    name: str,
+    name: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1068,17 +1103,17 @@ def mark(
 
 def marquee(
     *__content: str | DOMNode,
-    behavior: str,
-    bgcolor: str,
-    direction: str,
-    height: str,
-    hspace: str,
-    loop: str,
-    scrollamount: str,
-    scrolldelay: str,
-    truespeed: str,
-    vspace: str,
-    width: str,
+    behavior: str | None = None,
+    bgcolor: str | None = None,
+    direction: str | None = None,
+    height: str | None = None,
+    hspace: str | None = None,
+    loop: str | None = None,
+    scrollamount: str | None = None,
+    scrolldelay: str | None = None,
+    truespeed: str | None = None,
+    vspace: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1110,14 +1145,14 @@ def menu(
 
 def menuitem(
     *__content: str | DOMNode,
-    checked: str,
-    command: str,
-    default: str,
-    disabled: str,
-    icon: str,
-    label: str,
-    radiogroup: str,
-    type: str,
+    checked: str | None = None,
+    command: str | None = None,
+    default: str | None = None,
+    disabled: str | None = None,
+    icon: str | None = None,
+    label: str | None = None,
+    radiogroup: str | None = None,
+    type: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1139,10 +1174,10 @@ def menuitem(
 
 def meta(
     *__content: str | DOMNode,
-    charset: str,
-    content: str,
-    http_equiv: str,
-    name: str,
+    charset: str | None = None,
+    content: str | None = None,
+    http_equiv: str | None = None,
+    name: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1160,13 +1195,13 @@ def meta(
 
 def meter(
     *__content: str | DOMNode,
-    value: str,
-    min: str,
-    max: str,
-    low: str,
-    high: str,
-    optimum: str,
-    form: str,
+    value: str | None = None,
+    min: str | None = None,
+    max: str | None = None,
+    low: str | None = None,
+    high: str | None = None,
+    optimum: str | None = None,
+    form: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1222,20 +1257,20 @@ def noscript(
 
 def object(
     *__content: str | DOMNode,
-    archive: str,
-    border: str,
-    classid: str,
-    codebase: str,
-    codetype: str,
-    data: str,
-    declare: str,
-    form: str,
-    height: str,
-    name: str,
-    standby: str,
-    type: str,
-    usemap: str,
-    width: str,
+    archive: str | None = None,
+    border: str | None = None,
+    classid: str | None = None,
+    codebase: str | None = None,
+    codetype: str | None = None,
+    data: str | None = None,
+    declare: str | None = None,
+    form: str | None = None,
+    height: str | None = None,
+    name: str | None = None,
+    standby: str | None = None,
+    type: str | None = None,
+    usemap: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1263,9 +1298,9 @@ def object(
 
 def ol(
     *__content: str | DOMNode,
-    reversed: str,
-    start: str,
-    type: str,
+    reversed: str | None = None,
+    start: str | None = None,
+    type: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1282,8 +1317,8 @@ def ol(
 
 def optgroup(
     *__content: str | DOMNode,
-    disabled: str,
-    label: str,
+    disabled: str | None = None,
+    label: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1299,10 +1334,10 @@ def optgroup(
 
 def option(
     *__content: str | DOMNode,
-    disabled: str,
-    label: str,
-    selected: str,
-    value: str,
+    disabled: str | None = None,
+    label: str | None = None,
+    selected: str | None = None,
+    value: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1320,9 +1355,9 @@ def option(
 
 def output(
     *__content: str | DOMNode,
-    html_for: str,
-    form: str,
-    name: str,
+    html_for: str | None = None,
+    form: str | None = None,
+    name: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1346,10 +1381,10 @@ def p(
 
 def param(
     *__content: str | DOMNode,
-    name: str,
-    value: str,
-    type: str,
-    valuetype: str,
+    name: str | None = None,
+    value: str | None = None,
+    type: str | None = None,
+    valuetype: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1381,8 +1416,8 @@ def plaintext(
 
 def portal(
     *__content: str | DOMNode,
-    referrerpolicy: str,
-    src: str,
+    referrerpolicy: str | None = None,
+    src: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1398,9 +1433,9 @@ def portal(
 
 def pre(
     *__content: str | DOMNode,
-    cols: str,
-    width: str,
-    wrap: str,
+    cols: str | None = None,
+    width: str | None = None,
+    wrap: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1417,8 +1452,8 @@ def pre(
 
 def progress(
     *__content: str | DOMNode,
-    max: str,
-    value: str,
+    max: str | None = None,
+    value: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1434,7 +1469,7 @@ def progress(
 
 def q(
     *__content: str | DOMNode,
-    cite: str,
+    cite: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1498,17 +1533,17 @@ def samp(
 
 def script(
     *__content: str | DOMNode,
-    html_async: str,
-    crossorigin: str,
-    defer: str,
-    fetchpriority: str,
-    integrity: str,
-    nomodule: str,
-    nonce: str,
-    referrerpolicy: str,
-    src: str,
-    type: str,
-    blocking: str,
+    html_async: str | None = None,
+    crossorigin: str | None = None,
+    defer: str | None = None,
+    fetchpriority: str | None = None,
+    integrity: str | None = None,
+    nomodule: str | None = None,
+    nonce: str | None = None,
+    referrerpolicy: str | None = None,
+    src: str | None = None,
+    type: str | None = None,
+    blocking: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1547,14 +1582,14 @@ def section(
 
 def select(
     *__content: str | DOMNode,
-    autocomplete: str,
-    autofocus: str,
-    disabled: str,
-    form: str,
-    multiple: str,
-    name: str,
-    required: str,
-    size: str,
+    autocomplete: str | None = None,
+    autofocus: str | None = None,
+    disabled: str | None = None,
+    form: str | None = None,
+    multiple: str | None = None,
+    name: str | None = None,
+    required: str | None = None,
+    size: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1576,7 +1611,7 @@ def select(
 
 def slot(
     *__content: str | DOMNode,
-    name: str,
+    name: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1598,13 +1633,13 @@ def small(
 
 def source(
     *__content: str | DOMNode,
-    type: str,
-    src: str,
-    srcset: str,
-    sizes: str,
-    media: str,
-    height: str,
-    width: str,
+    type: str | None = None,
+    src: str | None = None,
+    srcset: str | None = None,
+    sizes: str | None = None,
+    media: str | None = None,
+    height: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1646,10 +1681,10 @@ def strong(
 
 def style(
     *__content: str | DOMNode,
-    media: str,
-    nonce: str,
-    title: str,
-    blocking: str,
+    media: str | None = None,
+    nonce: str | None = None,
+    title: str | None = None,
+    blocking: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1702,9 +1737,9 @@ def tbody(
 
 def td(
     *__content: str | DOMNode,
-    colspan: str,
-    headers: str,
-    rowspan: str,
+    colspan: str | None = None,
+    headers: str | None = None,
+    rowspan: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1728,22 +1763,22 @@ def template(
 
 def textarea(
     *__content: str | DOMNode,
-    autocomplete: str,
-    autocorrect: str,
-    autofocus: str,
-    cols: str,
-    dirname: str,
-    disabled: str,
-    form: str,
-    maxlength: str,
-    minlength: str,
-    name: str,
-    placeholder: str,
-    readonly: str,
-    required: str,
-    rows: str,
-    spellcheck: str,
-    wrap: str,
+    autocomplete: str | None = None,
+    autocorrect: str | None = None,
+    autofocus: str | None = None,
+    cols: str | None = None,
+    dirname: str | None = None,
+    disabled: str | None = None,
+    form: str | None = None,
+    maxlength: str | None = None,
+    minlength: str | None = None,
+    name: str | None = None,
+    placeholder: str | None = None,
+    readonly: str | None = None,
+    required: str | None = None,
+    rows: str | None = None,
+    spellcheck: str | None = None,
+    wrap: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1780,11 +1815,11 @@ def tfoot(
 
 def th(
     *__content: str | DOMNode,
-    abbr: str,
-    colspan: str,
-    headers: str,
-    rowspan: str,
-    scope: str,
+    abbr: str | None = None,
+    colspan: str | None = None,
+    headers: str | None = None,
+    rowspan: str | None = None,
+    scope: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1810,7 +1845,7 @@ def thead(
 
 def time(
     *__content: str | DOMNode,
-    datetime: str,
+    datetime: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1839,11 +1874,11 @@ def tr(
 
 def track(
     *__content: str | DOMNode,
-    default: str,
-    kind: str,
-    label: str,
-    src: str,
-    srclang: str,
+    default: str | None = None,
+    kind: str | None = None,
+    label: str | None = None,
+    src: str | None = None,
+    srclang: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1876,8 +1911,8 @@ def u(
 
 def ul(
     *__content: str | DOMNode,
-    compact: str,
-    type: str,
+    compact: str | None = None,
+    type: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1900,20 +1935,20 @@ def var(
 
 def video(
     *__content: str | DOMNode,
-    autoplay: str,
-    controls: str,
-    controlslist: str,
-    crossorigin: str,
-    disablepictureinpicture: str,
-    disableremoteplayback: str,
-    height: str,
-    loop: str,
-    muted: str,
-    playsinline: str,
-    poster: str,
-    preload: str,
-    src: str,
-    width: str,
+    autoplay: str | None = None,
+    controls: str | None = None,
+    controlslist: str | None = None,
+    crossorigin: str | None = None,
+    disablepictureinpicture: str | None = None,
+    disableremoteplayback: str | None = None,
+    height: str | None = None,
+    loop: str | None = None,
+    muted: str | None = None,
+    playsinline: str | None = None,
+    poster: str | None = None,
+    preload: str | None = None,
+    src: str | None = None,
+    width: str | None = None,
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node(
@@ -1952,6 +1987,24 @@ def xmp(
 ) -> DOMNode:
     return _node("xmp", __content, {}, kwargs)
 
+_head_cache = head
+
+def page(*__content: str | DOMNode, head: str | DOMNode | Iterable[str | DOMNode] | None = None) -> DOMNode:
+    if head:
+        try:
+            head_content = head
+        except:
+            head_content = (head)
+    else:
+        head_content = ()
+
+    return html(_head_cache(*head_content), body(*__content))
+
+def stylesheet(url: str) -> DOMNode:
+    return link(rel="stylesheet", href=url)
+
+def js(url: str) -> DOMNode:
+    return script(src=url)
 
 __all__ = (
     "a",
@@ -1999,7 +2052,12 @@ __all__ = (
     "form",
     "frame",
     "frameset",
-    "Heading_Elements",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
     "head",
     "header",
     "hgroup",
@@ -2082,5 +2140,7 @@ __all__ = (
     "video",
     "wbr",
     "xmp",
-    "component"
+    "page",
+    "stylesheet",
+    "js"
 )

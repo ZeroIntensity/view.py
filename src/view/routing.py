@@ -71,7 +71,7 @@ class Route(Generic[P, T], LoadChecker):
         return wrapper
 
     def __repr__(self):
-        return f"route for {self.path or '<unknown at this time>'}"
+        return f"[{self.method.name} route for {self.path or '<unknown at this time>'}]"  # noqa
 
     __str__ = __repr__
 
@@ -183,7 +183,7 @@ def _method_wrapper(
     method: Method,
 ) -> Path[P, T]:
     def inner(r: RouteOrCallable[P, T]) -> Route[P, T]:
-        if not isinstance(path_or_route, str):
+        if (not isinstance(path_or_route, str)) and path_or_route:
             raise TypeError(f"{path_or_route!r} is not a string")
 
         return _method(r, path_or_route, doc, method)

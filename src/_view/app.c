@@ -785,7 +785,7 @@ static const char* get_err_str(int status) {
         );
     }
 
-    assert(!"got bad status code");
+    Py_FatalError("got bad status code");
 }
 
 static int find_result_for(
@@ -794,11 +794,34 @@ static int find_result_for(
     int* status,
     PyObject* headers
 ) {
+    PyObject* view_result = PyObject_GetAttrString(
+        target,
+        "__view_result__"
+    );
+
     if (Py_IS_TYPE(
         target,
         &PyUnicode_Type
-        )) {
-        const char* tmp = PyUnicode_AsUTF8(target);
+        ) || view_result) {
+        PyObject* str_target;
+
+        if (view_result) {
+            str_target = PyObject_CallNoArgs(view_result);
+            if (!str_target) return -1;
+            if (!Py_IS_TYPE(
+                str_target,
+                &PyUnicode_Type
+                )) {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "%R.__view_result__ returned %R, expected str instance",
+                    target,
+                    str_target
+                );
+            }
+        } else str_target = target;
+
+        const char* tmp = PyUnicode_AsUTF8(str_target);
         if (!tmp) return -1;
         *res_str = strdup(tmp);
     } else if (Py_IS_TYPE(
@@ -966,12 +989,35 @@ static int handle_result(
                 ) < 0) return -1;
         }
     } else {
-        PyErr_Format(
-            PyExc_TypeError,
-            "%R is not a valid return value for route",
-            result
+        PyObject* view_result = PyObject_GetAttrString(
+            result,
+            "__view_result__"
         );
-        return -1;
+        if (view_result) {
+            PyObject* str = PyObject_CallNoArgs(view_result);
+            if (!str) return -1;
+            if (!Py_IS_TYPE(
+                str,
+                &PyUnicode_Type
+                )) {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "%R.__view_result__ returned %R, expected str instance",
+                    view_result,
+                    str
+                );
+            }
+            const char* tmp = PyUnicode_AsUTF8(str);
+            if (!tmp) return -1;
+            res_str = strdup(tmp);
+        } else {
+            PyErr_Format(
+                PyExc_TypeError,
+                "%R is not a valid return value for route",
+                result
+            );
+            return -1;
+        }
     }
 
     *res_target = res_str;
@@ -1179,7 +1225,8 @@ static int lifespan(PyObject* awaitable, PyObject* result) {
     PyObject* send_dict = Py_BuildValue(
         "{s:s}",
         "type",
-        is_startup ? "lifespan.startup.complete" : "lifespan.shutdown.complete"
+        is_startup ? "lifespan.startup.complete" :
+        "lifespan.shutdown.complete"
     );
 
     if (!send_dict)
@@ -1303,7 +1350,12 @@ static int route_error(
         return -1;
     }
 
-    if (!handler_was_called && tp && value && tb) {
+    if (!handler_was_called) {
+        PyErr_NormalizeException(
+            &tp,
+            &value,
+            &tb
+        );
         PyErr_Display(
             tp,
             value,
@@ -1315,7 +1367,8 @@ static int route_error(
 }
 
 
-static int handle_route_callback(PyObject* awaitable, PyObject* result) {
+static int handle_route_callback(PyObject* awaitable,
+                                 PyObject* result) {
     PyObject* send;
     route* r;
 
@@ -1344,7 +1397,6 @@ static int handle_route_callback(PyObject* awaitable, PyObject* result) {
         &status,
         &headers
         ) < 0) {
-        Py_DECREF(awaitable);
         return -1;
     }
 
@@ -1817,7 +1869,7 @@ static int handle_route(PyObject* awaitable, char* query) {
         ) < 0)
         return -1;
 
-    char* buf = malloc(1); // null terminator
+    char* buf = malloc(1);         // null terminator
 
     if (!buf) {
         PyErr_NoMemory();
@@ -1897,7 +1949,8 @@ static int handle_route(PyObject* awaitable, char* query) {
     return 0;
 }
 
-static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
+static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
+                     nargs) {
     PyObject* scope = args[0];
     PyObject* receive = args[1];
     PyObject* send = args[2];
@@ -2076,7 +2129,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
         map* target = ptr;
         route* rt = NULL;
         bool did_save = false;
-        size = malloc(sizeof(Py_ssize_t)); // so it can be stored in the awaitable
+        size = malloc(sizeof(Py_ssize_t));         // so it can be stored in the awaitable
         if (!size) {
             Py_DECREF(awaitable);
             free(path);
@@ -2093,7 +2146,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
             free(path);
             return PyErr_NoMemory();
         }
-        bool skip = true; // skip leading /
+        bool skip = true;         // skip leading /
         route* last_r = NULL;
 
         while ((token = strsep(
@@ -2141,7 +2194,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
                 params[*size - 1] = unicode;
                 if (this_r->routes) target = this_r->routes;
                 if (!this_r->r) last_r = NULL;
-                did_save = true; // prevent this code from looping, but also preserve rt in case the iteration ends
+                did_save = true;         // prevent this code from looping, but also preserve rt in case the iteration ends
                 continue;
             } else if (did_save) did_save = false;
 
@@ -2181,7 +2234,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t nargs) {
 
         r = rt->r;
         if (r && !r->callable) {
-            r = r->r; // edge case
+            r = r->r;         // edge case
             if (!r) failed = true;
         } else if (!r) failed = true;
 
@@ -2853,7 +2906,8 @@ static PyMethodDef methods[] = {
     {"_options", (PyCFunction) options, METH_VARARGS, NULL},
     {"_set_dev_state", (PyCFunction) set_dev_state, METH_VARARGS, NULL},
     {"_err", (PyCFunction) err_handler, METH_VARARGS, NULL},
-    {"_supply_parsers", (PyCFunction) supply_parsers, METH_VARARGS, NULL},
+    {"_supply_parsers", (PyCFunction) supply_parsers, METH_VARARGS,
+     NULL},
     {NULL, NULL, 0, NULL}
 };
 

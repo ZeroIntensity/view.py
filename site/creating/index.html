@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+    </style>
+    <title>
+        Creating an app - view.py
+    </title>
+    <link rel="stylesheet" href="/dist.css" />
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script>
+        dayjs.extend(window.dayjs_plugin_utc);
+        dayjs.extend(window.dayjs_plugin_relativeTime);
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body class="bg-zinc-50">
+    <nav class="bg-emerald-700 sticky top-0 bg-opacity-90 backdrop-blur-sm z-40">
+        <div class="mx-auto flex items-center p-4 space-x-6 flex-wrap justify-between">
+            <p class="text-xl lg:text-3xl font-thin lg:pl-32 self-center text-white">
+                view.py
+                <span class="font-bold">docs</span>
+            </p>
+            <button onclick="toggleNav()" type="button"
+                class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-white bg-emerald-700 rounded-lg lg:hidden hover:opacity-50 transition-all"
+                aria-controls="navbar" aria-expanded="false">
+                <!-- i stole this -->
+                <span class="sr-only">Open main menu</span>
+                <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 17 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M1 1h15M1 7h15M1 13h15" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <div class="flex">
+        <div class="rounded bg-zinc-100 p-4 w-1/6 lg:block hidden">
+            
+            <div>
+                 
+                <div
+                    class="rounded  p-1 flex items-center justify-center">
+                    <a href=".." class="text-black">Home</a>
+                </div>
+                  
+                <div
+                    class="rounded bg-zinc-200 p-1 flex items-center justify-center">
+                    <a href="./" class="text-black">Creating an app</a>
+                </div>
+                 
+            </div>
+            
+        </div>
+        <div class="p-8 lg:pl-32 lg:w-2/3 w-full">
+            <div class="flex flex-col lg:flex-row w-full">
+                <div class="self-center">
+                    <a class="self-center text-emerald-600 p-2 " href="https://github.com/ZeroIntensity/iew.py/edit/master/docs/creating.md">
+                        Edit on GitHub
+                    </a>
+                </div>
+                <div class="lg:ml-auto self-center">
+                    <p class="font-thin text-black">
+                        Last edited
+                        <span id="dayjs-target">2023-08-16 20:11:40.710170+00:00</span>
+                    </p>
+                </div>
+            </div>
+            <hr />
+            <h1 id="creating-an-app">Creating An App</h1>
+<h2 id="project-initialization">Project Initialization</h2>
+<p>A new view.py project may be created via the <code>view init</code> command.</p>
+<p>You will be prompted to select a path to initialize our app. For this example, let's use <code>my_app</code> (so if you were in <code>/root</code>, our app would be found in <code>/root/my_app</code>).</p>
+<p>After this prompt, you will be asked for a loader strategy. More on this later, for now just set it to manual.</p>
+<p>Here's what this should look like:</p>
+<pre><code>$ view init
+Path to initialize to [./]: my_app
+Loader strategy (manual, filesystem, simple) [filesystem]: manual
+Created `view.toml`
+Created `app.py`
+Created `pyproject.toml`
+Created `scripts`
+Created `routes`
+Created `routes/index.py`
+Successfully initalized app in `/root/my_app`
+</code></pre>
+<h2 id="standalone">Standalone</h2>
+<p>Looking for a more simple approach with your app? Nothing that <code>view init</code> does is required, and you may just import and use view.py in any Python file like it were a minimalist such as <a href="https://flask.palletprojects.com">Flask</a>.</p>
+<p>Example:</p>
+<pre><code class="language-py">from view import new_app
+
+app = new_app()
+
+# App content...
+
+app.run()
+</code></pre>
+<h2 id="loaders">Loaders</h2>
+<p>If you chose the <code>view init</code> approach earlier, the CLI would have asked you to choose a loader, but what actually is that?</p>
+<p>A loader is what tells view.py how to load your routes. There are a few loader options to choose from, which are <code>manual</code>, <code>simple</code>, and <code>filesystem</code>.</p>
+<h3 id="manual-loading">Manual Loading</h3>
+<p>Manual is the simplest of the three, and you can pretty much figure it out just from it's name: an approach in which none of the route loading is done by view.</p>
+<p>In the manual strategy, you have to import functions decorated with <code>@get()</code> and pass them into the <code>app.load()</code> call. However, this may seem tedious to some users, which means that you probably don't want to use this loader.</p>
+<p>An example of manual loading could look like this:</p>
+<pre><code class="language-py">from view import new_app, get
+
+app = new_app()
+
+# Pretend that both index and about are in seperate files
+@get(&quot;/&quot;)
+async def index():
+    return &quot;...&quot;
+
+@get(&quot;/about&quot;)
+async def about():
+    return &quot;...&quot;
+
+app.load((index, about))
+app.run()
+
+</code></pre>
+<h4 id="directly-loading">Directly Loading</h4>
+<p>In the example code above, this is actually not the best way to do it. We are decorating a route with view's <code>get</code> function to declare it as a route, but we don't need to do that. If your route is in the same file as your <code>app</code> (or you import it), then you can instead just call <code>app.get()</code> to avoid the <code>app.load()</code> call, like so:</p>
+<pre><code class="language-py">from view import new_app
+
+app = new_app()
+
+@app.get(&quot;/&quot;)
+async def index():
+    return &quot;...&quot;
+
+# app.get automatically registers our route, no need for a call to load()
+app.run()
+</code></pre>
+<p>I would generally recommend to use manual loading on very small apps with just a few pages, since <code>simple</code> and <code>filesystem</code> would actually generate more work to do in those scenarios.</p>
+<h3 id="simple-loading">Simple Loading</h3>
+<p>Simple loading is roughly the same as manual, but instead of putting each route in a call to <code>app.load()</code>, files are just recursively checked for files in a routes directory (<code>your_app/routes</code> by default).</p>
+<p>For example, your main <code>app.py</code> file could look like this:</p>
+<pre><code class="language-py">from view import new_app
+
+app = new_app()
+app.run()
+</code></pre>
+<p>But in a file called <code>routes/pages.py</code>, it could look like this:</p>
+<pre><code class="language-py">from view import get
+
+@get(&quot;/&quot;)
+async def index():
+    return &quot;...&quot;
+
+
+@get(&quot;/about&quot;)
+async def about():
+    return &quot;...&quot;
+</code></pre>
+<p>The routes above would be properly loaded by view.py without any need for a <code>load()</code> call.</p>
+<p>Simple loading is probably the best option for most developers, but if you come from a different language, such as JavaScript, then the <code>filesystem</code> strategy may be for you.</p>
+<h3 id="filesystem-loading">Filesystem Loading</h3>
+<p>If you've played with a framework like <a href="https://nextjs.org">Next</a>, then you may already understand what filesystem loading is. </p>
+<p>Filesystem loading uses the directory structure to decide how to define route names, so <code>./routes/login.py</code> would evaluate to the route <code>/login</code> in the browser. This tends to be looked down on by Python developers, but it can be quite handy when building web apps.</p>
+<p>You can name a file <code>index.py</code> to give it the route name of the parent directory, so <code>/routes/something/index.py</code> would be <code>/something</code> in the browser.</p>
+<p>An example of a filesystem routed file is like this:</p>
+<pre><code class="language-py">from view import get, post
+
+# Notice how the path parameter in get() and post() is omitted
+@get()
+async def my_page():
+    return &quot;...&quot;
+
+
+@post()
+async def my_post_page():
+    return &quot;...&quot;
+</code></pre>
+<p>If you were to put this in a file under <code>routes/index.py</code>, <code>my_page</code> would be when <code>/</code> is requested in the browser, and <code>my_post_page</code> would be used when <code>POST /</code> is requested in the browser.</p>
+<h3 id="omitting-routes">Omitting Routes</h3>
+<p>If you would like to omit a file from being loaded by filesystem or simple loading, prefix it with a <code>_</code>. As an example, <code>my_page.py</code> would get loaded, but <code>_my_page.py</code> would not.</p>
+<p>This could be useful is you want to hold a utilities file directly in your routes directory, but for that scenario the <code>scripts</code> directory is suggested instead.</p>
+            <div class="py-4">
+                <hr class="w-full border-t border-zinc-200" />
+            </div>
+            <div class="flex pt-3">
+                
+                <div class="flex space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-6 h-6 text-sky-600">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18" />
+                    </svg>
+
+                    <a href="/">Home</a>
+                </div>
+                 
+            </div>
+        </div>
+        <div class="lg:w-1/3 lg:block hidden">
+            <div class="px-4 py-4 break-words h-screen pr-8">
+                <div
+                    class="rounded p-4 bg-zinc-100 drop-shadow-xl h-3/4 flex flex-col space-y-3 border-zinc-100 border-2">
+                    
+                    <div class="flex flex-col space-y-3">
+                        <a href="#creating-an-app">Creating An App</a>
+
+                        
+                        <div class="indent-4 flex flex-col space-y-3">
+                            <a href="#project-initialization">Project Initialization</a>
+                            
+                        </div>
+                        
+                        <div class="indent-4 flex flex-col space-y-3">
+                            <a href="#standalone">Standalone</a>
+                            
+                        </div>
+                        
+                        <div class="indent-4 flex flex-col space-y-3">
+                            <a href="#loaders">Loaders</a>
+                            
+                            <div class="indent-8 flex flex-col space-y-3">
+                                <a href="#manual-loading">Manual Loading</a>
+                                
+                                <div class="indent-12 flex flex-col space-y-3">
+                                    <a href="#directly-loading">Directly Loading</a>
+                                </div>
+                                
+                            </div>
+                            
+                            <div class="indent-8 flex flex-col space-y-3">
+                                <a href="#simple-loading">Simple Loading</a>
+                                
+                            </div>
+                            
+                            <div class="indent-8 flex flex-col space-y-3">
+                                <a href="#filesystem-loading">Filesystem Loading</a>
+                                
+                            </div>
+                            
+                            <div class="indent-8 flex flex-col space-y-3">
+                                <a href="#omitting-routes">Omitting Routes</a>
+                                
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        <div class="w-full h-screen z-30 hidden sticky top-0 pt-16" id="small-nav">
+            <div class="py-4 px-4">
+                <div class="rounded bg-zinc-100 drop-shadow-xl p-2">
+                    
+                    <div>
+                         
+                        <div class="rounded  p-1">
+                            <a href=".." class="text-black">Home</a>
+                        </div>
+                          
+                        <div class="rounded bg-zinc-200 p-1">
+                            <a href="./" class="text-black">Creating an app</a>
+                        </div>
+                         
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        <div class="w-screen h-screen z-40 absolute hidden" id="small-toc">
+            <div class="px-4 py-4 break-words h-screen">
+                <div class="rounded p-4 bg-zinc-100 drop-shadow-xl h-3/4 flex flex-col space-y-3">
+                    
+                    <div class="flex flex-col space-y-3">
+                        <a href="#creating-an-app">Creating An App</a>
+
+                        
+                        <div class="indent-8 flex flex-col space-y-3">
+                            <a href="#project-initialization">Project Initialization</a>
+                            
+                        </div>
+                        
+                        <div class="indent-8 flex flex-col space-y-3">
+                            <a href="#standalone">Standalone</a>
+                            
+                        </div>
+                        
+                        <div class="indent-8 flex flex-col space-y-3">
+                            <a href="#loaders">Loaders</a>
+                            
+                            <div class="indent-16 flex flex-col space-y-3">
+                                <a href="#manual-loading">Manual Loading</a>
+                            </div>
+                            
+                            <div class="indent-16 flex flex-col space-y-3">
+                                <a href="#simple-loading">Simple Loading</a>
+                            </div>
+                            
+                            <div class="indent-16 flex flex-col space-y-3">
+                                <a href="#filesystem-loading">Filesystem Loading</a>
+                            </div>
+                            
+                            <div class="indent-16 flex flex-col space-y-3">
+                                <a href="#omitting-routes">Omitting Routes</a>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        hljs.highlightAll();
+
+        let e = document.getElementById("dayjs-target");
+        e.innerHTML = dayjs.utc(e.innerHTML).local().fromNow();
+
+        let openedNav = false;
+        let openedToc = false;
+        let nav = document.getElementById("small-nav");
+        let toc = document.getElementById("small-toc");
+
+        function toggleNav() {
+            toc.classList.add("hidden");
+            openedToc = false;
+            openedNav = !openedNav;
+
+            if (openedNav) {
+                nav.classList.remove("hidden");
+            } else {
+                nav.classList.add("hidden");
+            }
+        }
+
+        function toggleToc() {
+            nav.classList.add("hidden");
+            openedNav = false;
+            openedToc = !openedToc;
+
+            if (openedToc) {
+                toc.classList.remove("hidden");
+            } else {
+                toc.classList.add("hidden");
+            }
+        }
+
+        document.querySelectorAll("hr").forEach(hr => {
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("divider");
+            hr.parentNode.replaceChild(wrapper, hr);
+            wrapper.appendChild(hr);
+        })
+    </script>
+</body>
+
+</html>

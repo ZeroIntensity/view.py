@@ -33,7 +33,7 @@ Source = "https://github.com/ZeroIntensity/view.py"
 path = "src/view/__about__.py"
 
 [tool.hatch.envs.docs]
-dependencies = ["mkdocs", "mkdocs-material"]
+dependencies = ["mkdocs"]
 
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build"
@@ -50,7 +50,7 @@ cov = "coverage run -m ward"
 no-cov = "ward"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
+python = ["38", "39", "310", "311"]
 
 [tool.coverage.run]
 branch = true

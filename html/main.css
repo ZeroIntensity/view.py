@@ -27,15 +27,15 @@ p {
 }
 
 pre {
-    @apply rounded p-2 drop-shadow-md;
+    @apply rounded drop-shadow-md;
 }
 
 a {
-    @apply transition-opacity hover:opacity-50 duration-75 cursor-pointer text-emerald-600;
+    @apply transition-opacity hover:opacity-50 duration-75 cursor-pointer bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-400 text-transparent;
 }
 
 code {
-    @apply text-rose-700 p-1 rounded bg-zinc-100;
+    @apply text-emerald-300 p-1 rounded bg-zinc-800;
 }
 
 ul {
@@ -47,7 +47,7 @@ ol {
 }
 
 hr {
-    @apply border-t border-zinc-300;
+    @apply border-t border-zinc-700;
 }
 
 table {
@@ -68,4 +68,40 @@ th {
 
 .divider {
     @apply py-4;
+}
+
+.hljs {
+    @apply bg-zinc-800;
+}
+
+.admonition {
+    @apply bg-zinc-800 drop-shadow-lg p-2 rounded-lg py-1;
+}
+
+.admonition-title {
+    @apply text-xl font-bold pb-1 text-emerald-300;
+}
+
+.note {
+    @apply border-2 border-sky-300;
+}
+
+.warning {
+    @apply border-2 border-amber-300;
+}
+
+.danger {
+    @apply border-2 border-rose-300;
+}
+
+.danger-text {
+    @apply text-rose-300;
+}
+
+.warning-text {
+    @apply text-amber-300;
+}
+
+.note-text {
+    @apply text-sky-300;
 }

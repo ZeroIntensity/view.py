@@ -73,18 +73,19 @@ def should_continue(msg: str):
 
 @click.group(invoke_without_command=True)
 @click.option("--debug", "-d", is_flag=True)
-def main(debug: bool):
+@click.pass_context
+def main(ctx: click.Context, debug: bool) -> None:
     if debug:
         from .util import debug as enable_debug
 
         enable_debug()
-    else:
+    elif not ctx.invoked_subcommand:
         click.secho("Welcome to view.py!", fg="green", bold=True)
         click.echo("Docs: ", nl=False)
         click.secho("https://view.zintensity.dev", fg="blue", bold=True)
         click.echo("GitHub: ", nl=False)
         click.secho(
-            "https://github.com/ZeroIntensity/view.py", fg="blue", bold=True
+            "https://github.com/ZeroIntensity/view.py", fg="blue", bold=True,
         )
 
 
@@ -151,15 +152,26 @@ def clear(path: Path):
     os.remove(service)
 
 
-@main.command()
-def serve():
+def _run(*, force_prod: bool = False) -> None:
     from .config import load_config
     from .util import run as run_path
 
     os.environ["_VIEW_RUN"] = "1"
 
     conf = load_config()
+    if force_prod:
+        conf.dev = True
     run_path(conf.app.app_path)
+
+
+@main.command()
+def serve():
+    _run()
+
+
+@main.command()
+def prod():
+    _run(force_prod=True)
 
 
 @main.command()
@@ -191,7 +203,7 @@ def deploy(target: str):
     "-t",
     help="Configuration type to initalize.",
     default="toml",
-    type=click.Choice(("toml", "json", "ini", "yml", "xml", "properties")),
+    type=click.Choice(("toml", "json", "ini", "yml")),
 )
 @click.option(
     "--load",

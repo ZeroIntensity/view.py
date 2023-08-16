@@ -3,11 +3,14 @@ from __future__ import annotations
 import os
 import runpy
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+from .exceptions import LoaderWarning
 
 from ._logging import Internal
 from ._util import set_load, validate_body
-from .routing import Method, Part, Route, RouteInput, _NoDefault
+from .routing import Method, Route, RouteInput, _NoDefault
 from .typing import RouteInputDict
 
 if TYPE_CHECKING:
@@ -38,6 +41,8 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
 
 
 def finalize(routes: list[Route], app: ViewApp):
+    virtual_routes: dict[str, list[Route]] = {}
+
     targets = {
         Method.GET: app._get,
         Method.PATCH: app._post,
@@ -52,7 +57,18 @@ def finalize(routes: list[Route], app: ViewApp):
         target = targets[route.method]
 
         if (not route.path) and (not route.parts):
-            raise TypeError("route did not specify a path")
+            raise TypeError("route did not specify a path")       
+        assert route.path
+        lst = virtual_routes.get(route.path)
+
+        if lst:
+            if route.method in [i.method for i in lst]:
+                raise ValueError(
+                    f"duplicate route: {route.method.name} for {route.path}",
+                )
+            lst.append(route)
+        else:
+            virtual_routes[route.path] = [route]
 
         target(
             route.path,  # type: ignore
@@ -64,7 +80,7 @@ def finalize(routes: list[Route], app: ViewApp):
         )
 
 
-def load_fs(app: ViewApp, target_dir: str):
+def load_fs(app: ViewApp, target_dir: Path):
     Internal.info("loading using filesystem")
     Internal.debug(f"loading {app}")
 
@@ -78,30 +94,45 @@ def load_fs(app: ViewApp, target_dir: str):
             path = os.path.join(root, f)
             Internal.info(f"loading: {path}")
             mod = runpy.run_path(path)
-            route: Route | None = None
+            current_routes: list[Route] = []
 
             for i in mod.values():
                 if isinstance(i, Route):
-                    if route:
-                        warnings.warn("set route twice!")
-                    route = i
+                    if i.method in [x.method for x in current_routes]:
+                        warnings.warn(
+                            "same method used twice during filesystem loading",
+                            LoaderWarning,
+                        )
+                    current_routes.append(i)
 
-            if not route:
-                raise ValueError(f"{path} has no set route")
+            if not current_routes:
+                raise ValueError(f"{path} has no set routes")
 
-            if route.path:
-                warnings.warn(
-                    "path was passed when filesystem loading is enabled"
-                )
-            else:
-                route.path = path.rsplit(".", maxsplit=1)[0]
+            for x in current_routes:
+                if x.path:
+                    warnings.warn(
+                        f"path was passed for {x} when filesystem loading is enabled" # noqa
+                    )
+                else:
+                    path_obj = Path(path)
+                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa 
+                    if stripped[-1] == 'index.py':
+                        stripped.pop(len(stripped) - 1)
 
-            routes.append(route)
+                    stripped_obj = Path(*stripped)
+                    stripped_path = str(stripped_obj).rsplit(
+                        ".",
+                        maxsplit=1
+                    )[0]
+                    x.path = '/' + stripped_path
+
+            for x in current_routes:
+                routes.append(x)
 
     finalize(routes, app)
 
 
-def load_simple(app: ViewApp, target_dir: str):
+def load_simple(app: ViewApp, target_dir: Path):
     Internal.info("loading using simple strategy")
     routes: list[Route] = []
 
