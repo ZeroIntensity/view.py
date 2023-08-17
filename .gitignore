@@ -13,3 +13,4 @@ a.py
 node_modules/
 *.lock
 site/
+benchmark.py
