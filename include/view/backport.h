@@ -3,9 +3,6 @@
 
 #include <Python.h>
 
-
-
-
 #ifndef Py_NewRef
 static inline PyObject* Py_NewRef(PyObject* o) {
     Py_INCREF(o);
@@ -21,7 +18,6 @@ static inline PyObject* Py_XNewRef(PyObject* o) {
 #endif
 
 #ifndef _PyObject_Vectorcall
-#include <cpython/abstract.h>
 #define PyObject_CallNoArgs(o) PyObject_CallObject( \
     o, \
     NULL \
