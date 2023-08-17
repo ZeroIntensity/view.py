@@ -25,7 +25,7 @@ app.run()
 
 !!! note "Do you have too much free time?"
 
-    If so, helping improve view.py is a great way to spend some of it. Take a look [here](https://Zerointensity/view.py/blob/master/CONTRIBUTING.md) if you're interested.
+    If so, helping improve view.py is a great way to spend some of it. Take a look [here](https://github.com/Zerointensity/view.py/blob/master/CONTRIBUTING.md) if you're interested.
 
 ## What's coming for view.py?
 
