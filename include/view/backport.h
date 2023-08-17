@@ -17,12 +17,13 @@ static inline PyObject* Py_XNewRef(PyObject* o) {
 }
 #endif
 
-#if PY_MINOR_VERSION < 9
+#ifndef _PyObject_Vectorcall
 #define PyObject_CallNoArgs(o) PyObject_CallObject( \
     o, \
     NULL \
 )
 #define PyObject_Vectorcall _PyObject_Vectorcall
+#define PyObject_VectorcallDict _PyObject_FastCallDict
 #endif
 
 #endif
