@@ -22,6 +22,10 @@ async def hello(name: str):
 app.run()
 ```
 
+### Help! I have too much free time!
+
+Fear not! view.py is currently in a very high alpha stage of development, and always looking for new contributors. If you're interested, you can take a look at the [issues tab](https://github.com/ZeroIntensity/view.py/issues) or [CONTRIBUTING.md](https://Zerointensity/view.py/blob/master/CONTRIBUTING.md).
+
 ### Installation
 
 **CPython 3.7+ is required.**

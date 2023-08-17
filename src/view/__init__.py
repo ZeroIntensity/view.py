@@ -13,7 +13,7 @@ except ImportError as e:
     ) from e
 
 from . import _codec
-from .__about__ import __license__, __version__, __author__
+from .__about__ import __license__, __version__
 from .app import App, new_app
 from .components import *
 from .exceptions import *

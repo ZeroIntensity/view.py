@@ -253,10 +253,8 @@ def query(
     *,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
-    def inner(
-        r: RouteOrCallable[Concatenate[V, P], T]
-    ) -> Route[Concatenate[V, P], T]:
-        route: Route[Concatenate[V, P], T] = _ensure_route(r)
+    def inner(r: RouteOrCallable) -> Route:
+        route = _ensure_route(r)
         route.inputs.append(RouteInput(name, False, tp, default, doc, []))
         return route
 

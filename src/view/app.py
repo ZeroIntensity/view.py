@@ -16,10 +16,10 @@ from threading import Thread
 from types import TracebackType as Traceback
 from typing import (Any, Awaitable, Callable, Coroutine, Generic, TypeVar,
                     get_type_hints)
-
+from pathlib import Path
 from rich import print
 from rich.traceback import install
-
+from .typing import Callback
 from _view import ViewApp
 
 from ._loader import finalize, load_fs, load_simple
@@ -296,11 +296,34 @@ class App(ViewApp, Generic[A]):
 def new_app(
     *,
     start: bool = False,
+    config_path: Path | str | None = None,
+    config_directory: Path | str | None = None,
+    post_init: Callback | None = None,
+    app_dealloc: Callback | None = None,
 ) -> App:
-    config = load_config()
+    """Create a new view app.
+
+Args:
+    start: Should the app be started automatically? (In a new thread)
+    config_path: Path of the target configuration file
+    config_directory: Directory path to search for a configuration
+    post_init: Callback to run after the App instance has been created
+    app_dealloc: Callback to run when the App instance is freed from memory
+"""
+    config = load_config(
+        path=Path(config_path) if config_path else None,
+        directory=Path(config_directory) if config_directory else None,
+    )
+
     app = App(config)
+
+    if post_init:
+        post_init()
 
     if start:
         app.run_threaded()
+
+    if app_dealloc:
+        weakref.finalize(app, app_dealloc)
 
     return app

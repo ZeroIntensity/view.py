@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import (Any, Awaitable, Callable, ClassVar, Generic, Literal,
+from typing import (Any, Awaitable, Callable, ClassVar, Generic,
                     TypeVar)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
@@ -100,3 +100,6 @@ Parser = Callable[[str], ViewBody]
 class Part(Protocol[V]):
     name: str
     tp: type[V] | None
+
+
+Callback = Callable[[], Any]

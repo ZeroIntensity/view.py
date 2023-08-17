@@ -203,7 +203,7 @@ def deploy(target: str):
     "-t",
     help="Configuration type to initalize.",
     default="toml",
-    type=click.Choice(("toml", "json", "ini", "yml")),
+    type=click.Choice(("toml", "json", "ini", "yml", "py")),
 )
 @click.option(
     "--load",

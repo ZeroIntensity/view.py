@@ -1,7 +1,8 @@
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Literal
-
+import importlib.util
+import sys
 from configzen import ConfigField, ConfigModel
 
 
@@ -15,7 +16,7 @@ class AppConfig(ConfigModel):
 class ServerConfig(ConfigModel):
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
-    backend: Literal["uvicorn", "hypercorn"] = "uvicorn"
+    backend: Literal["uvicorn"] = "uvicorn"
     extra_args: dict[str, Any] = ConfigField(default_factory=dict)
 
 
@@ -35,7 +36,12 @@ class Config(ConfigModel):
     log: LogConfig = ConfigField(default_factory=LogConfig)
 
 
-def make_preset(tp: str, loader: str):
+B_OPEN = "{"
+B_CLOSE = "}"
+B_OC = "{}"
+
+
+def make_preset(tp: str, loader: str) -> str:
     if tp == "toml":
         return f"""dev = true
 
@@ -48,16 +54,14 @@ loader = "{loader}"
 """
     if tp == "json":
         return (
-            '''{
+            f'''{B_OPEN}
     "dev": true,
-    "app": {
-        "loader": "'''
-            + loader
-            + """"
-    },
-    "server": {},
-    "log": {}
-}"""
+    "app": {B_OPEN}
+        "loader": "{loader}"
+    {B_CLOSE}
+    "server": {B_OC},
+    "log": {B_OC}
+{B_CLOSE}'''
         )
 
     if tp == "ini":
@@ -77,20 +81,53 @@ app:
     loader: "{loader}"
 """
 
-    raise ValueError("bad type")
+    if tp == "py":
+        return f"""dev = True
+
+app = {B_OPEN}
+    "loader": "{loader}"
+{B_CLOSE}
+
+server = {B_OC}
+log = {B_OC}"""
+
+    raise ValueError("bad file type")
 
 
-def load_config() -> Config:
+def load_config(
+    path: Path | None = None,
+    *,
+    directory: Path | None = None,
+) -> Config:
     paths = (
         "view.toml",
         "view.json",
         "view.ini",
         "view.yaml",
         "view.yml",
+        "view_config.py",
+        "config.py"
     )
 
+    if path:
+        if directory:
+            return Config.load(directory / path)
+            # idk why someone would do this, but i guess its good to support it
+        return Config.load(path)
+
     for i in paths:
-        p = Path(i)
+        p = Path(i) if not directory else directory / i
+
+        if p.suffix == ".py":
+            spec = importlib.util.spec_from_file_location(str(p))
+            assert spec, "spec is none"
+            mod = importlib.util.module_from_spec(spec)
+            assert mod, "mod is none"
+            sys.modules[p.stem] = mod
+            assert spec.loader, "spec.loader is none"
+            spec.loader.exec_module(mod)
+            return Config.wrap_module(mod)
+
         if p.exists():
             return Config.load(p)
 

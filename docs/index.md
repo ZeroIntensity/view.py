@@ -23,6 +23,10 @@ async def hello(name: str):
 app.run()
 ```
 
+!!! note "Do you have too much free time?"
+
+    If so, helping improve view.py is a great way to spend some of it. Take a look [here](https://Zerointensity/view.py/blob/master/CONTRIBUTING.md) if you're interested.
+
 ## What's coming for view.py?
 
 view.py is currently in a high alpha state, and many new features are on the way, such as:
