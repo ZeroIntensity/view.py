@@ -19,26 +19,25 @@ class CustomBuildHook(BuildHookInterface):
         c.add_include_dir(sysconfig.get_path("include"))
         c.add_include_dir("./include")
         c.compile(
-            glob("src/_view/*.c"),
+            glob("./src/_view/*.c"),
             "./ext/obj",
-            extra_preargs=["-fPIC", "-v"]
-            if os.name != "nt"
-            else [],
+            extra_preargs=["-fPIC", "-v"] if os.name != "nt" else [],
         )
 
         files = []
 
         for root, dir, fls in os.walk("./ext/obj"):
             for i in fls:
-                if i.endswith(".o"):
+                if (i.endswith(".o")) or (i.endswith(".obj")):
                     files.append(os.path.join(root, i))
-
+        
+        print(os.listdir())  # debugging in prod yay
         c.link_shared_lib(files, "_view", "./ext/lib")
 
         with suppress(KeyError):
             data["force_include"][
                 os.path.join("./ext/lib", "lib_view.so")
-            ] = "src/_view.so"
+            ] = "./src/_view.so"
 
         with suppress(KeyError):
             data["infer_tag"] = True
