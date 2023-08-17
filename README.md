@@ -28,7 +28,7 @@ Fear not! view.py is currently in a very high alpha stage of development, and al
 
 ### Installation
 
-**CPython 3.7+ is required.**
+**CPython 3.8+ is required.**
 
 #### Linux/macOS
 
