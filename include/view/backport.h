@@ -3,6 +3,7 @@
 
 #include <Python.h>
 
+
 #ifndef Py_NewRef
 static inline PyObject* Py_NewRef(PyObject* o) {
     Py_INCREF(o);

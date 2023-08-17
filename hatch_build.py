@@ -22,6 +22,7 @@ class CustomBuildHook(BuildHookInterface):
             glob("./src/_view/*.c"),
             "./ext/obj",
             extra_preargs=["-fPIC", "-v"] if os.name != "nt" else [],
+            debug=True
         )
 
         files = []
@@ -32,7 +33,7 @@ class CustomBuildHook(BuildHookInterface):
                     files.append(os.path.join(root, i))
         
         print(os.listdir())  # debugging in prod yay
-        c.link_shared_lib(files, "_view", "./ext/lib")
+        c.link_shared_lib(files, "_view", "./ext/lib", debug=True)
 
         with suppress(KeyError):
             data["force_include"][
