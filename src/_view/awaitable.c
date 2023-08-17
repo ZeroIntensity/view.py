@@ -11,7 +11,6 @@
 #include <view/awaitable.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <threads.h>
 
 typedef struct {
     PyObject *coro;
@@ -175,7 +174,6 @@ static void virtual_start(virtual_data *data) {
         Py_DECREF(data->awaitable);
         PyMem_Free(data);
         PyGILState_Release(state);
-        thrd_exit(-1);
     }
 
     if (data->cb->v_cb) {
@@ -183,14 +181,12 @@ static void virtual_start(virtual_data *data) {
             Py_DECREF(data->awaitable);
             PyMem_Free(data);
             PyGILState_Release(state);
-            thrd_exit(-1);
         };
     }
 
     Py_DECREF(data->awaitable);
     PyMem_Free(data);
     PyGILState_Release(state);
-    thrd_exit(0);
 }
 
 static PyObject *
@@ -210,34 +206,6 @@ gen_next(PyObject *self)
 
     if (g->gw_current_await == NULL) {
         cb = aw->aw_callbacks[aw->aw_state++];
-
-        if (cb->coro == NULL) {
-            thrd_t thread;
-            virtual_data *data = PyMem_Malloc(sizeof(virtual_data));
-            if (data == NULL) {
-                return PyErr_NoMemory();
-            }
-
-            data->awaitable = Py_NewRef(self);
-            data->cb = cb;
-            int res;
-
-            res = thrd_create(&thread, (thrd_start_t) virtual_start,
-                                  data);
-
-            if (res == thrd_success) {
-                return gen_next(self);
-            }
-
-            if (res == thrd_nomem) {
-                return PyErr_NoMemory();
-            }
-
-            if (res == thrd_error) {
-                PyErr_SetString(PyExc_RuntimeError, "failed to create thread");
-                return NULL;
-            }
-        }
 
         if (Py_TYPE(cb->coro)->tp_as_async == NULL ||
             Py_TYPE(cb->coro)->tp_as_async->am_await == NULL) {
