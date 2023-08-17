@@ -1,6 +1,5 @@
 #include <Python.h>
 #include <view/view.h>
-#include <threads.h>
 
 // i hate my formatter
 
