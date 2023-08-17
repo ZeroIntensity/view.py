@@ -26,7 +26,7 @@ static inline PyObject* Py_XNewRef(PyObject* o) {
     NULL \
 )
 static PyObject* _PyObject_VectorcallBackport(PyObject* obj,
-                                              const PyObject** args,
+                                              PyObject** args,
                                               size_t nargsf, PyObject* kwargs) {
     PyObject* tuple = PyTuple_New(nargsf);
     if (!tuple) return NULL;
