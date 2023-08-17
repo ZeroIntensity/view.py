@@ -21,6 +21,7 @@ static inline PyObject* Py_XNewRef(PyObject* o) {
 #endif
 
 #ifndef _PyObject_Vectorcall
+#include <cpython/abstract.h>
 #define PyObject_CallNoArgs(o) PyObject_CallObject( \
     o, \
     NULL \
@@ -51,7 +52,7 @@ static PyObject* _PyObject_VectorcallBackport(PyObject* obj,
 #endif
 
 #ifndef Py_IS_TYPE
-#define Py_IS_TYPE(p, type) (Py_TYPE(o) == type)
+#define Py_IS_TYPE(o, type) (Py_TYPE(o) == type)
 #endif
 
 #endif
