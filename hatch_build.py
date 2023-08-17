@@ -22,7 +22,7 @@ class CustomBuildHook(BuildHookInterface):
             glob("./src/_view/*.c"),
             "./ext/obj",
             extra_preargs=["-fPIC", "-v"] if os.name != "nt" else [],
-            debug=True
+            debug=True,
         )
 
         files = []
@@ -31,8 +31,7 @@ class CustomBuildHook(BuildHookInterface):
             for i in fls:
                 if (i.endswith(".o")) or (i.endswith(".obj")):
                     files.append(os.path.join(root, i))
-        
-        print(os.listdir())  # debugging in prod yay
+
         c.link_shared_lib(files, "_view", "./ext/lib", debug=True)
 
         with suppress(KeyError):
