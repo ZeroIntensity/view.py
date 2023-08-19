@@ -24,15 +24,18 @@ class CustomBuildHook(BuildHookInterface):
             extra_preargs=["-fPIC", "-v"] if os.name != "nt" else [],
             debug=True,
         )
-
-        c.create_static_lib(
-            objects, "_view", "./ext/lib", debug=True, target_lang="c"
+        c.link_shared_lib(
+            objects,
+            "_view",
+            "./ext/lib",
+            debug=True,
+            target_lang="c",
         )
 
         with suppress(KeyError):
             data["force_include"][
                 os.path.join("./ext/lib", "lib_view.so")
-            ] = "./src/_view.so"
+            ] = "./src/lib_view.so"
 
         with suppress(KeyError):
             data["infer_tag"] = True

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling", "setuptools"]
-build-backend = "hatchling.build"
+requires = ["hatchling", "setuptools", "toml"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "view.py"
@@ -80,8 +80,8 @@ include = ["src/view/**/*.py", "src/_view/_view.pyi"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/view"]
 
-[tool.hatch.build.hooks.custom]
-enable-by-default = true
+# [tool.hatch.build.hooks.custom]
+# enable-by-default = true
 
 # [tool.hatch.build.targets.wheel.hooks.autorun]
 # dependencies = ["hatch-autorun"]
