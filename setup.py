@@ -15,6 +15,7 @@ if __name__ == "__main__":
         packages=["view"],
         project_urls=data["project"]["urls"],
         package_dir={"": "src"},
+        license="MIT",
         ext_modules=[
             Extension(
                 "_view",
