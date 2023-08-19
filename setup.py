@@ -19,7 +19,7 @@ if __name__ == "__main__":
         ext_modules=[
             Extension(
                 "_view",
-                glob("src/view/*.c"),
+                glob("src/_view/*.c"),
                 include_dirs=["./include"],
             )
         ],
