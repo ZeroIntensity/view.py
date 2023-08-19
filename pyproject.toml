@@ -21,7 +21,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = ["rich", "click", "typing_extensions", "ujson", "configzen"]
-dynamic = ["version"]
+dynamic = ["version", "license"]
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"

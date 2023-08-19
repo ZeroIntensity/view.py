@@ -1,0 +1,2 @@
+[console_scripts]
+view = view.__main__:main
