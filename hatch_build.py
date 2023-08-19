@@ -3,7 +3,6 @@ import shutil
 import sysconfig
 from contextlib import suppress
 from glob import glob
-from find_libpython import find_libpython
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.plugin import hookimpl
 from setuptools._distutils.ccompiler import new_compiler
@@ -19,22 +18,16 @@ class CustomBuildHook(BuildHookInterface):
         c.define_macro("PY_SSIZE_T_CLEAN")
         c.add_include_dir(sysconfig.get_path("include"))
         c.add_include_dir("./include")
-        c.add_library_dir(str(Path(find_libpython()).parent))
-        c.compile(
+        objects = c.compile(
             glob("./src/_view/*.c"),
             "./ext/obj",
             extra_preargs=["-fPIC", "-v"] if os.name != "nt" else [],
             debug=True,
         )
 
-        files = []
-
-        for root, dir, fls in os.walk("./ext/obj"):
-            for i in fls:
-                if (i.endswith(".o")) or (i.endswith(".obj")):
-                    files.append(os.path.join(root, i))
-
-        c.link_shared_lib(files, "_view", "./ext/lib", debug=True)
+        c.create_static_lib(
+            objects, "_view", "./ext/lib", debug=True, target_lang="c"
+        )
 
         with suppress(KeyError):
             data["force_include"][

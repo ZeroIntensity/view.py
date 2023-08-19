@@ -25,6 +25,7 @@ env:
     HATCH_BUILD_HOOKS_ENABLE
   CIBW_SKIP: >
     pp*
+  CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
 
 jobs:
   binary-wheels-standard:

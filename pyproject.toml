@@ -1,12 +1,12 @@
 [build-system]
-requires = ["hatchling", "setuptools", "find-libpython"]
+requires = ["hatchling", "setuptools"]
 build-backend = "hatchling.build"
 
 [project]
 name = "view.py"
 description = 'Lightning fast, modern web framework.'
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = "MIT"
 keywords = []
 authors = [
