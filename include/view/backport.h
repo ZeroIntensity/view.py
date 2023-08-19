@@ -27,7 +27,7 @@ static PyObject* _PyObject_VectorcallBackport(PyObject* obj,
                                               size_t nargsf, PyObject* kwargs) {
     PyObject* tuple = PyTuple_New(nargsf);
     if (!tuple) return NULL;
-    for (int i = 0; i < nargsf; i++) {
+    for (size_t i = 0; i < nargsf; i++) {
         Py_INCREF(args[i]);
         PyTuple_SET_ITEM(
             tuple,

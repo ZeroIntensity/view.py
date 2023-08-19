@@ -20,7 +20,7 @@ if __name__ == "__main__":
             Extension(
                 "_view",
                 glob("src/_view/*.c"),
-                include_dirs=["./include"],
+                include_dirs=["include"],
             )
         ],
     )
