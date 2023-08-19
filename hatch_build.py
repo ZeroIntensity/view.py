@@ -3,10 +3,11 @@ import shutil
 import sysconfig
 from contextlib import suppress
 from glob import glob
-
+from find_libpython import find_libpython
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.plugin import hookimpl
 from setuptools._distutils.ccompiler import new_compiler
+from pathlib import Path
 
 
 class CustomBuildHook(BuildHookInterface):
@@ -18,6 +19,7 @@ class CustomBuildHook(BuildHookInterface):
         c.define_macro("PY_SSIZE_T_CLEAN")
         c.add_include_dir(sysconfig.get_path("include"))
         c.add_include_dir("./include")
+        c.add_library_dir(str(Path(find_libpython()).parent))
         c.compile(
             glob("./src/_view/*.c"),
             "./ext/obj",
