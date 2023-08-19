@@ -15,3 +15,5 @@ node_modules/
 site/
 benchmark.py
 dist/
+*.egg-info
+build/
