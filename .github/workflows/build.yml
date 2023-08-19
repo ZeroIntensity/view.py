@@ -1,122 +1,226 @@
-name: CI
+name: build
 
 on:
-    push:
-        tags:
-            - v*
-        branches:
-            - master
-    pull_request:
-        branches:
-            - master
+  push:
+    tags:
+    - v*
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 concurrency:
-    group: build-${{ github.head_ref }}
-    cancel-in-progress: true
+  group: build-${{ github.head_ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
 
 env:
-    CIBW_SKIP: >
-        pp*
+  STABLE_PYTHON_VERSION: "3.10"
+  CIBW_BUILD_FRONTEND: build
+  CIBW_ENVIRONMENT_PASS_LINUX: >
+    HATCH_BUILD_HOOKS_ENABLE
+  CIBW_SKIP: >
+    pp*
 
 jobs:
-    binary-wheels-standard:
-        name: Binary wheels for ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false
-            matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
+  binary-wheels-standard:
+    name: Binary wheels for ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  # Fetch all tags
-                  fetch-depth: 0
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # Fetch all tags
+        fetch-depth: 0
 
-            - name: Build wheels
-              uses: pypa/cibuildwheel@v2.3.1
-              env:
-                  CIBW_ARCHS_MACOS: x86_64
-                  HATCH_BUILD_HOOKS_ENABLE: "true"
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.11.4
+      env:
+        CIBW_ARCHS_MACOS: x86_64
+        HATCH_BUILD_HOOKS_ENABLE: 'true'
 
-            - uses: actions/upload-artifact@v2
-              with:
-                  name: artifacts
-                  path: wheelhouse/*.whl
-                  if-no-files-found: error
+    - uses: actions/upload-artifact@v3
+      with:
+        name: artifacts
+        path: wheelhouse/*.whl
+        if-no-files-found: error
 
-    pure-python-wheel-and-sdist:
-        name: Build a pure Python wheel and source distribution
-        runs-on: ubuntu-latest
+  pure-python-wheel-and-sdist:
+    name: Build a pure Python wheel and source distribution
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  # Fetch all tags
-                  fetch-depth: 0
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # Fetch all tags
+        fetch-depth: 0
 
-            - name: Install build dependencies
-              run: python -m pip install --upgrade build
+    - name: Install build dependencies
+      run: python -m pip install --upgrade build
 
-            - name: Build
-              run: python -m build
+    - name: Build
+      run: python -m build
 
-            - uses: actions/upload-artifact@v2
-              with:
-                  name: artifacts
-                  path: dist/*
-                  if-no-files-found: error
+    - uses: actions/upload-artifact@v3
+      with:
+        name: artifacts
+        path: dist/*
+        if-no-files-found: error
 
-    binary-wheels-arm:
-        name: Build Linux wheels for ARM
-        runs-on: ubuntu-latest
-        # Very slow, no need to run on PRs
-        if: >
-            github.event_name == 'push'
-            &&
-            (github.ref == 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags'))
+  binary-wheels-arm:
+    name: Build Linux wheels for ARM
+    runs-on: ubuntu-latest
+    # Very slow, no need to run on PRs
+    if: >
+      github.event_name == 'push'
+      &&
+      (github.ref == 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags'))
 
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  # Fetch all tags
-                  fetch-depth: 0
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # Fetch all tags
+        fetch-depth: 0
 
-            - name: Set up QEMU
-              uses: docker/setup-qemu-action@v1
-              with:
-                  platforms: arm64
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: arm64
 
-            - name: Build wheels
-              uses: pypa/cibuildwheel@v2.3.1
-              env:
-                  CIBW_ARCHS_LINUX: aarch64
-                  HATCH_BUILD_HOOKS_ENABLE: "true"
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.11.4
+      env:
+        CIBW_ARCHS_LINUX: aarch64
+        HATCH_BUILD_HOOKS_ENABLE: 'true'
 
-            - uses: actions/upload-artifact@v2
-              with:
-                  name: artifacts
-                  path: wheelhouse/*.whl
-                  if-no-files-found: error
+    - uses: actions/upload-artifact@v3
+      with:
+        name: artifacts
+        path: wheelhouse/*.whl
+        if-no-files-found: error
 
-    publish:
-        name: Publish release
-        needs:
-            - binary-wheels-standard
-            - pure-python-wheel-and-sdist
-            - binary-wheels-arm
-        runs-on: ubuntu-latest
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+  build-binaries:
+    name: ${{ matrix.job.target }} (${{ matrix.job.os }})
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+        # Linux
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-22.04
+          cross: true
+        - target: x86_64-unknown-linux-musl
+          os: ubuntu-22.04
+          cross: true
+        - target: aarch64-unknown-linux-gnu
+          os: ubuntu-22.04
+          cross: true
+        - target: i686-unknown-linux-gnu
+          os: ubuntu-22.04
+          cross: true
+        # Windows
+        - target: x86_64-pc-windows-msvc
+          os: windows-2022
+        - target: i686-pc-windows-msvc
+          os: windows-2022
+        # macOS
+        - target: aarch64-apple-darwin
+          os: macos-12
+        - target: x86_64-apple-darwin
+          os: macos-12
 
-        steps:
-            - uses: actions/download-artifact@v2
-              with:
-                  name: artifacts
-                  path: dist
+    env:
+      CARGO: cargo
+      CARGO_BUILD_TARGET: ${{ matrix.job.target }}
+      PYAPP_REPO: pyapp
+      PYAPP_VERSION: v0.5.0
 
-            - name: Push build artifacts to PyPI
-              uses: pypa/gh-action-pypi-publish@v1.4.2
-              with:
-                  skip_existing: true
-                  user: __token__
-                  password: ${{ secrets.PYPI_API_TOKEN }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Clone PyApp
+      run: git clone --depth 1 --branch $PYAPP_VERSION https://github.com/ofek/pyapp $PYAPP_REPO
+
+    - name: Set up Python ${{ env.STABLE_PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.STABLE_PYTHON_VERSION }}
+
+    - name: Install Hatch
+      run: pip install -U hatch
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.job.target }}
+
+    - name: Set up cross compiling
+      if: matrix.job.cross
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cross
+
+    - name: Configure cross compiling
+      if: matrix.job.cross
+      run: echo "CARGO=cross" >> $GITHUB_ENV
+
+    - name: Show toolchain information
+      run: |-
+        rustup toolchain list
+        rustup default
+        rustup -V
+        rustc -V
+        cargo -V
+        hatch --version
+
+    - name: Build
+      run: hatch -v build --target app
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: binaries
+        path: dist/app/*
+        if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs:
+    - binary-wheels-standard
+    - pure-python-wheel-and-sdist
+    - binary-wheels-arm
+    - build-binaries
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: artifacts
+        path: dist
+
+    - name: Push build artifacts to PyPI
+      uses: pypa/gh-action-pypi-publish@v1.6.4
+      with:
+        skip_existing: true
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: binaries
+        path: bin
+
+    - name: Add binary assets to current release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: bin/*

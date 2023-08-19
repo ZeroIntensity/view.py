@@ -83,9 +83,11 @@ packages = ["src/view"]
 [tool.hatch.build.hooks.custom]
 enable-by-default = true
 
-[tool.hatch.build.targets.wheel.hooks.autorun]
-dependencies = ["hatch-autorun"]
-code = "import view._codec"
+# [tool.hatch.build.targets.wheel.hooks.autorun]
+# dependencies = ["hatch-autorun"]
+# code = "import view._codec"
 
 [project.scripts]
 view = "view.__main__:main"
+
+
