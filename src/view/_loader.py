@@ -57,7 +57,7 @@ def finalize(routes: list[Route], app: ViewApp):
         target = targets[route.method]
 
         if (not route.path) and (not route.parts):
-            raise TypeError("route did not specify a path")       
+            raise TypeError("route did not specify a path")
         assert route.path
         lst = virtual_routes.get(route.path)
 
