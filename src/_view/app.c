@@ -65,7 +65,7 @@ typedef struct _app_parsers {
 } app_parsers;
 
 typedef struct _ViewApp {
-    PyObject_HEAD;
+    PyObject ob_base; // PyObject_HEAD doesn't work on windows for some reason
     PyObject* startup;
     PyObject* cleanup;
     map* get;
