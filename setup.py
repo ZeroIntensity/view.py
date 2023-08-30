@@ -9,7 +9,6 @@ with open("./README.md") as f:
 if __name__ == "__main__":
     with open("./pyproject.toml", "r") as f:
         data = toml.load(f)
-    print(glob("./src/_view/*.c"))
     setup(
         name="view.py",
         version="1.0.0-alpha1",
