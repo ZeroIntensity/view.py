@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import builtins
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, Literal, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 
-from typing_extensions import Concatenate, ParamSpec
+from typing_extensions import ParamSpec
 
 from ._util import LoadChecker, make_hint
 from .exceptions import MistakeError
-from .typing import Context, Validator, ValueType, ViewResponse, ViewRoute
+from .typing import Validator, ValueType, ViewResponse, ViewRoute
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
 
@@ -71,7 +72,7 @@ class Route(Generic[P, T], LoadChecker):
         return wrapper
 
     def __repr__(self):
-        return f"[{self.method.name} route for {self.path or '<unknown at this time>'}]"  # noqa
+        return f"<{self.method.name} route for {self.path or '<unknown at this time>'}>"  # noqa
 
     __str__ = __repr__
 
@@ -159,7 +160,11 @@ def _method(
                 parts.append(
                     Part(
                         match.group(3),
-                        {**globals(), **route.extra_types}[match.group(5)],
+                        {
+                            **globals(),
+                            **route.extra_types,
+                            **{i: getattr(builtins, i) for i in dir(builtins)},
+                        }[match.group(5)],
                     )
                 )
 

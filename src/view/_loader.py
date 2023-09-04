@@ -6,10 +6,9 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .exceptions import LoaderWarning
-
 from ._logging import Internal
 from ._util import set_load, validate_body
+from .exceptions import LoaderWarning
 from .routing import Method, Route, RouteInput, _NoDefault
 from .typing import RouteInputDict
 
@@ -58,8 +57,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if (not route.path) and (not route.parts):
             raise TypeError("route did not specify a path")
-        assert route.path
-        lst = virtual_routes.get(route.path)
+        lst = virtual_routes.get(route.path or "")
 
         if lst:
             if route.method in [i.method for i in lst]:
@@ -68,7 +66,7 @@ def finalize(routes: list[Route], app: ViewApp):
                 )
             lst.append(route)
         else:
-            virtual_routes[route.path] = [route]
+            virtual_routes[route.path or ""] = [route]
 
         target(
             route.path,  # type: ignore
@@ -111,20 +109,19 @@ def load_fs(app: ViewApp, target_dir: Path):
             for x in current_routes:
                 if x.path:
                     warnings.warn(
-                        f"path was passed for {x} when filesystem loading is enabled" # noqa
+                        f"path was passed for {x} when filesystem loading is enabled"  # noqa
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa 
-                    if stripped[-1] == 'index.py':
+                    stripped = list(
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
+                    if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
                     stripped_obj = Path(*stripped)
-                    stripped_path = str(stripped_obj).rsplit(
-                        ".",
-                        maxsplit=1
-                    )[0]
-                    x.path = '/' + stripped_path
+                    stripped_path = str(stripped_obj).rsplit(".", maxsplit=1)[0]
+                    x.path = "/" + stripped_path
 
             for x in current_routes:
                 routes.append(x)

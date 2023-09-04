@@ -20,7 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = ["rich", "click", "typing_extensions", "ujson", "configzen"]
+dependencies = ["rich", "click", "typing_extensions", "ujson", "configzen", "psutil", "plotext"]
 dynamic = ["version", "license"]
 
 [project.urls]

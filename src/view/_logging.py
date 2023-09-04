@@ -1,25 +1,32 @@
 from __future__ import annotations
 
-import asyncio
 import logging
+import os
 import queue
 import random
 import re
 import sys
 import warnings
 from abc import ABC
-from threading import Thread
-from typing import Callable, NamedTuple, TextIO
+from threading import Event, Thread
+from typing import IO, Callable, NamedTuple, TextIO, Iterable
 
+import plotext as plt
+import psutil
 from rich import box
 from rich.align import Align
-from rich.console import Console, Group
+from rich.console import Console, ConsoleOptions,  RenderResult
+from rich.file_proxy import FileProxy
+from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, Task
+from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
 from typing_extensions import Literal
+import time
 
 UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
 
@@ -58,7 +65,7 @@ def _showwarning(
                 title=f"[bold red]{category.__name__}",
                 subtitle=f"[bold green]\n{filename}, line {lineno}",
                 highlight=True,
-                expand=False
+                expand=False,
             )
         )
     else:
@@ -159,11 +166,44 @@ class QueueItem(NamedTuple):
     level: LogLevel
     message: str
     route: RouteInfo | None = None
+    is_stdout: bool = False
+    is_stderr: bool = False
 
 
 _LIVE: bool = False
 _QUEUE: queue.Queue[QueueItem] = queue.Queue()
-_CLOSE = asyncio.Event()
+_CLOSE = Event()
+
+
+class _StandardOutProxy(FileProxy):
+    def __init__(
+        self,
+        console: Console,
+        file: IO[str],
+        qu: queue.Queue[QueueItem],
+    ) -> None:
+        super().__init__(console, file)
+        self._queue = qu
+
+    def write(self, text: str) -> int:
+        self._queue.put(QueueItem(False, False, "info", text, is_stdout=True))
+        return super().write(text)
+
+
+class _StandardErrProxy(FileProxy):
+    def __init__(
+        self,
+        console: Console,
+        file: IO[str],
+        qu: queue.Queue[QueueItem],
+    ) -> None:
+        super().__init__(console, file)
+        self._queue = qu
+
+    def write(self, text: str) -> int:
+        self._queue.put(QueueItem(False, False, "info", text, is_stderr=True))
+        return super().write(text)
+
 
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 
@@ -197,7 +237,7 @@ class ServiceIntercept(logging.Filter):
         if _LIVE:
             Internal.info(f"deferring service logger: {record}")
             _defer(record.getMessage(), LOGS[record.levelno], True)
-            return False
+            return os.environ.get("VIEW_DEBUG") == "1"
         return True
 
 
@@ -288,7 +328,11 @@ def route(path: str, status: int, method: str):
     if _LIVE:
         return _QUEUE.put_nowait(
             QueueItem(
-                True, True, "info", "", route=RouteInfo(status, path, method)
+                True,
+                True,
+                "info",
+                "",
+                route=RouteInfo(status, path, method),
             )
         )
     Service.info(
@@ -571,7 +615,19 @@ ___ _________________ __ ___    ______________
 )
 
 
-COLOR = ("red", "blue", "pink", "white", "yellow")
+COLOR = (
+    "red",
+    "blue",
+    "pink",
+    "cyan",
+    "magenta",
+    "yellow",
+    "dim yellow",
+    "dim red",
+    "green",
+    "dim blue",
+    "dim green",
+)
 
 _LOG_COLORS: dict[LogLevel, str] = {
     "debug": "blue",
@@ -582,40 +638,286 @@ _LOG_COLORS: dict[LogLevel, str] = {
 }
 
 
+class LogPanel(Panel):
+    def __init__(self, **kwargs):
+        self._lines = [""]
+        self._line_index = 0
+        super().__init__("", **kwargs)
+
+    def _inc(self):
+        self._lines.append("")
+        self._line_index += 1
+
+    def write(self, text: str) -> None:
+        for i in text:
+            if i == "\n":
+                self._inc()
+            else:
+                self._lines[self._line_index] += i
+
+    def __rich_console__(
+        self,
+        console: Console,
+        options: ConsoleOptions,
+    ) -> RenderResult:
+        height = options.max_height
+        width = options.max_width
+
+        while height < len(self._lines):
+            self._lines.pop(0)
+            self._line_index -= 1
+
+        final_lines = []
+
+        for i in self._lines:
+            if len(i) < (width - 3):  # - 3 because the ellipsis
+                final_lines.append(i)
+            else:
+                final_lines.append(f"{i[:width - 7]}...")
+
+        self.renderable = "\n".join(final_lines)
+
+        return super().__rich_console__(console, options)
+
+
+class LogTable(Table):
+    def __rich_console__(
+        self, console: "Console", options: "ConsoleOptions"
+    ) -> "RenderResult":
+        height = options.max_height
+        while len(self.rows) > (height - 4):
+            # - 4 because the header and footer lines
+            self.rows.pop(0)
+            for i in self.columns:
+                i._cells.pop(0)
+
+        return super().__rich_console__(console, options)
+
+
+class Dataset:
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.points: dict[float, float] = {}
+
+    def add_point(self, x: float, y: float) -> None:
+        self.points[x] = y
+
+    def add_points(self, *args: tuple[float, float]) -> None:
+        for i in args:
+            x, y = i
+            self.points[x] = y
+
+
+class Plot:
+    def __init__(self, name: str, x: str, y: str) -> None:
+        plt.xscale("linear")
+        plt.yscale("linear")
+
+        self.title = name
+        self.x_label = x
+        self.y_label = y
+        self.datasets: dict[str, Dataset] = {}
+
+    def dataset(self, name: str) -> Dataset:
+        found = self.datasets.get(name)
+        if found:
+            return found
+
+        ds = Dataset(name)
+        self.datasets[name] = ds
+        return ds
+
+    def _render(self, width: int, height: int) -> None:
+        plt.clf()
+        plt.plotsize(width, height)
+
+        for ds in self.datasets.values():
+            if ds.points:
+                plt.plot(
+                    [x for x in ds.points.keys()],
+                    [y for y in ds.points.values()],
+                    label=ds.name,
+                )
+
+        plt.title(self.title)
+        plt.xlabel(self.x_label)
+        plt.ylabel(self.y_label)
+        plt.theme("pro")
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        self._render(options.max_width, options.max_height)
+        yield Text.from_ansi(plt.build())
+
+
+def _heat_color(amount: float) -> str:
+    if amount < 20:
+        return "dim blue"
+    if amount < 40:
+        return "cyan"
+    if amount < 60:
+        return "dim green"
+    if amount < 80:
+        return "yellow"
+    if amount < 100:
+        return "red"
+
+    if amount == 100:
+        return "dim red"
+
+    raise ValueError("invalid percentage")
+
+class HeatedProgress(Progress):
+    def make_tasks_table(self, tasks: Iterable[Task]) -> Table:
+        result = super().make_tasks_table(tasks)
+        
+        for col in result.columns:
+            for cell in col._cells:
+                if isinstance(cell, ProgressBar):
+                    cell.complete_style = _heat_color(cell.completed)
+                elif isinstance(cell, Text):
+                    text = str(cell)
+                    
+                    if "%" not in text:
+                        continue
+                    
+                    cell.stylize(_heat_color(float(text[:-1])))
+        return result
+
+
+def convert_mb(value: float):
+    r = value
+    for i in range(2):
+        r /= 1024
+    return r
+
 def _server_logger():
     global _LIVE
     _LIVE = True
-    table = Table(box=box.HORIZONTALS)
+    table = LogTable(box=box.ROUNDED, expand=True)
 
-    for i in ("method", "route", "status"):
+    for i in ("Method", "Route", "Status"):
         table.add_column(i)
 
-    panel = Panel("", title="Feed")
-    group = Group(
+    feed = LogPanel(title="Feed")
+    errors = LogPanel(title="Exceptions")
+    stdout = LogPanel(title="Standard Output")
+    layout = Layout()
+    layout.split_row(
+        Layout(name="left"),
+        Layout(name="right"),
+    )
+    layout["left"].split_column(
         Align.center(
             Text(
                 random.choice(VIEW_TEXT),
                 style=f"bold {random.choice(COLOR)}",
-            )
+            ),
+            vertical="middle",
         ),
-        Align.center(table),
-        panel,
+        errors,
+        stdout,
     )
-    lines = []
+    layout["right"].split_column(
+        feed,
+        Layout(name="corner"),
+    )
+    os = HeatedProgress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(finished_style="dim red"),
+        TaskProgressColumn(),
+    )
+    cpu = os.add_task("CPU")
+    mem = os.add_task("Memory (Virtual)")
+    smem = os.add_task("Memory (Swap)")
+    disk = os.add_task("Disk Usage")
 
-    with Live(Align.center(group), screen=True, transient=True):
+    layout["corner"].split_row(
+        Layout(name="left_corner"),
+        Layout(name="very_corner"),
+    )
+    network = Plot("Network", "Seconds", "Speed (MbPS)")
+    layout["very_corner"].split_column(Panel(os, title="System"), network)
+
+    io = Plot("IO", "Seconds", "Count")
+    layout["left_corner"].split_column(table, io)
+
+    console = Console()
+
+    preserved = sys.stdout
+    preserved_2 = sys.stderr
+    sys.stdout = _StandardOutProxy(console, sys.stdout, _QUEUE)  # type: ignore
+    sys.stderr = _StandardErrProxy(console, sys.stderr, _QUEUE)  # type: ignore
+
+    def inner():
+        while not _CLOSE.wait(0.3):
+            os.update(cpu, completed=psutil.cpu_percent())
+            os.update(mem, completed=psutil.virtual_memory().percent)
+            os.update(smem, completed=psutil.swap_memory().percent)
+            os.update(disk, completed=psutil.disk_usage("/").percent)
+
+    network.dataset("Upload").add_point(0, 0)
+    network.dataset("Download").add_point(0, 0)
+
+    def net():
+        base = time.time()
+        net_io = psutil.net_io_counters()
+
+        while not _CLOSE.wait(0.5):
+            net_io2 = psutil.net_io_counters()
+            ua = (net_io2.bytes_sent - net_io.bytes_sent)
+            da = (net_io2.bytes_recv - net_io.bytes_recv)
+            us = convert_mb(ua)
+            ds = convert_mb(da)
+
+            network.dataset("Upload").add_point(time.time() - base, us / 0.5)
+            network.dataset("Download").add_point(time.time() - base, ds / 0.5)
+
+            net_io = net_io2
+
+    def io_count():
+        base = time.time()
+
+        while not _CLOSE.wait(1):
+            p = psutil.Process()
+            pio = p.io_counters()
+            io.dataset("Read").add_point(time.time() - base, pio.read_count)
+            io.dataset("Write").add_point(time.time() - base, pio.write_count)
+
+    for thread in (inner, net, io_count):
+        Thread(target=thread).start()
+
+    with Live(
+        Align.center(layout),
+        screen=True,
+        transient=True,
+        redirect_stdout=False,
+        redirect_stderr=False,
+        console=console,
+    ):
         while True:
             if _CLOSE.is_set():
-                break
+                sys.stdout = preserved
+                sys.stderr = preserved_2
+                return
+
             result = _QUEUE.get()
+
+            if result.is_stdout:
+                stdout.write(result.message)
+                continue
+
+            if result.is_stderr:
+                errors.write(result.message)
+                continue
+
             if not result.is_route:
                 if result.service:
-                    assert isinstance(panel.renderable, str)
-                    lines.append(
+                    feed.write(
                         f"[bold {_LOG_COLORS[result.level]}]"
-                        f"{result.level}[/]: {result.message}"
+                        f"{result.level}[/]: {result.message}\n"
                     )
-                    panel.renderable = "\n".join(lines)
             else:
                 info = result.route
                 assert info, "result has no route"
@@ -628,10 +930,10 @@ def _server_logger():
 
 
 def enter_server():
-    Thread(target=_server_logger).start()
-
     if _CLOSE.is_set():
         _CLOSE.clear()
+
+    Thread(target=_server_logger).start()
 
 
 def exit_server():

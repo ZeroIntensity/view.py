@@ -2089,7 +2089,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
             return PyErr_NoMemory();
         }
 
-        for (int i = 0; i < len - 1; i++)
+        for (size_t i = 0; i < len - 1; i++)
             path[i] = raw_path[i];
 
         path[len - 1] = '\0';
@@ -2199,6 +2199,11 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
             } else if (did_save) did_save = false;
 
             puts("searching map");
+            printf(
+                "target: %p, s: %p\n",
+                target,
+                s
+            );
             rt = map_get(
                 target,
                 s

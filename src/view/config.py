@@ -118,6 +118,9 @@ def load_config(
     for i in paths:
         p = Path(i) if not directory else directory / i
 
+        if not p.exists():
+            continue
+
         if p.suffix == ".py":
             spec = importlib.util.spec_from_file_location(str(p))
             assert spec, "spec is none"
@@ -128,7 +131,6 @@ def load_config(
             spec.loader.exec_module(mod)
             return Config.wrap_module(mod)
 
-        if p.exists():
-            return Config.load(p)
+        return Config.load(p)
 
     return Config()

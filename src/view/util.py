@@ -58,11 +58,9 @@ def debug():
     internal = Internal.log
     internal.disabled = False
     internal.setLevel(logging.DEBUG)
-    internal.addHandler(
-        logging.FileHandler("view_internal.log", mode="w", encoding="utf-8")
-    )
+    internal.addHandler(logging.StreamHandler(open("view_internal.log", "w", encoding="utf-8")))
     Service.log.addHandler(
-        logging.FileHandler("view_service.log", mode="w", encoding="utf-8")
+        logging.StreamHandler(open("view_service.log", "w", encoding="utf-8"))
     )
 
     Internal.info("debug mode enabled")

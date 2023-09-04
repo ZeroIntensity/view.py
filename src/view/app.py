@@ -260,7 +260,10 @@ class App(ViewApp, Generic[A]):
         else:
             raise NotImplementedError("viewserver is not implemented yet")
 
-    def run(self) -> None:
+    def run(self, *, fancy: bool | None = None) -> None:
+        if fancy is not None:
+            self.config.log.fancy = fancy
+
         frame = inspect.currentframe()
         assert frame, "failed to get frame"
         assert frame.f_back, "frame has no f_back"
