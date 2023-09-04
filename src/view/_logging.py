@@ -786,11 +786,8 @@ class HeatedProgress(Progress):
         return result
 
 
-def convert_mb(value: float):
-    r = value
-    for i in range(2):
-        r /= 1024
-    return r
+def convert_kb(value: float):
+    return value / 1024
 
 def _server_logger():
     global _LIVE
@@ -837,7 +834,7 @@ def _server_logger():
         Layout(name="left_corner"),
         Layout(name="very_corner"),
     )
-    network = Plot("Network", "Seconds", "Speed (MbPS)")
+    network = Plot("Network", "Seconds", "Usage (KbPS)")
     layout["very_corner"].split_column(Panel(os, title="System"), network)
 
     io = Plot("IO", "Seconds", "Count")
@@ -868,8 +865,8 @@ def _server_logger():
             net_io2 = psutil.net_io_counters()
             ua = (net_io2.bytes_sent - net_io.bytes_sent)
             da = (net_io2.bytes_recv - net_io.bytes_recv)
-            us = convert_mb(ua)
-            ds = convert_mb(da)
+            us = convert_kb(ua)
+            ds = convert_kb(da)
 
             network.dataset("Upload").add_point(time.time() - base, us / 0.5)
             network.dataset("Download").add_point(time.time() - base, ds / 0.5)
