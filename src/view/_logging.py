@@ -6,27 +6,28 @@ import queue
 import random
 import re
 import sys
+import time
 import warnings
 from abc import ABC
 from threading import Event, Thread
-from typing import IO, Callable, NamedTuple, TextIO, Iterable
+from typing import IO, Callable, Iterable, NamedTuple, TextIO
 
 import plotext as plt
 import psutil
 from rich import box
 from rich.align import Align
-from rich.console import Console, ConsoleOptions,  RenderResult
+from rich.console import Console, ConsoleOptions, RenderResult
 from rich.file_proxy import FileProxy
 from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, Task
+from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
+                           TextColumn)
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
 from typing_extensions import Literal
-import time
 
 UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
 
@@ -695,17 +696,24 @@ class LogTable(Table):
 
 
 class Dataset:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, point_limit: int | None = None) -> None:
         self.name = name
         self.points: dict[float, float] = {}
+        self.point_limit = point_limit
+        self.point_order = []
 
     def add_point(self, x: float, y: float) -> None:
+        Internal.info(f"{self.point_limit} {len(self.point_order)}")
+        if self.point_limit and (len(self.point_order) >= self.point_limit):
+            to_del = self.point_order.pop(0)
+            del self.points[to_del]
+
+        self.point_order.append(x)
         self.points[x] = y
 
     def add_points(self, *args: tuple[float, float]) -> None:
         for i in args:
-            x, y = i
-            self.points[x] = y
+            self.add_point(*i)
 
 
 class Plot:
@@ -718,12 +726,12 @@ class Plot:
         self.y_label = y
         self.datasets: dict[str, Dataset] = {}
 
-    def dataset(self, name: str) -> Dataset:
+    def dataset(self, name: str, *, point_limit: int | None = None) -> Dataset:
         found = self.datasets.get(name)
         if found:
             return found
 
-        ds = Dataset(name)
+        ds = Dataset(name, point_limit=point_limit)
         self.datasets[name] = ds
         return ds
 
@@ -837,7 +845,7 @@ def _server_logger():
     network = Plot("Network", "Seconds", "Usage (KbPS)")
     layout["very_corner"].split_column(Panel(os, title="System"), network)
 
-    io = Plot("IO", "Seconds", "Count")
+    io = Plot("IO", "Seconds", "Usage (Per Second)")
     layout["left_corner"].split_column(table, io)
 
     console = Console()
@@ -854,8 +862,8 @@ def _server_logger():
             os.update(smem, completed=psutil.swap_memory().percent)
             os.update(disk, completed=psutil.disk_usage("/").percent)
 
-    network.dataset("Upload").add_point(0, 0)
-    network.dataset("Download").add_point(0, 0)
+    network.dataset("Upload", point_limit=1).add_point(0, 0)
+    network.dataset("Download", point_limit=1).add_point(0, 0)
 
     def net():
         base = time.time()
@@ -868,19 +876,23 @@ def _server_logger():
             us = convert_kb(ua)
             ds = convert_kb(da)
 
-            network.dataset("Upload").add_point(time.time() - base, us / 0.5)
-            network.dataset("Download").add_point(time.time() - base, ds / 0.5)
+            network.dataset("Upload").add_point(time.time() - base, us)
+            network.dataset("Download").add_point(time.time() - base, ds)
 
             net_io = net_io2
 
     def io_count():
         base = time.time()
+        p = psutil.Process()
+        pio_base = p.io_counters()
 
         while not _CLOSE.wait(1):
             p = psutil.Process()
             pio = p.io_counters()
-            io.dataset("Read").add_point(time.time() - base, pio.read_count)
-            io.dataset("Write").add_point(time.time() - base, pio.write_count)
+            io.dataset("Read").add_point(time.time() - base, pio.read_count - pio_base.read_count)
+            io.dataset("Write").add_point(time.time() - base, pio.write_count - pio_base.write_count)
+
+            pio_base = pio
 
     for thread in (inner, net, io_count):
         Thread(target=thread).start()
