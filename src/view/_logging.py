@@ -731,7 +731,9 @@ class Plot:
         if found:
             return found
 
-        ds = Dataset(name, point_limit=point_limit)
+        size = os.get_terminal_size().lines // 3
+
+        ds = Dataset(name, point_limit=point_limit or size)
         self.datasets[name] = ds
         return ds
 
@@ -862,8 +864,8 @@ def _server_logger():
             os.update(smem, completed=psutil.swap_memory().percent)
             os.update(disk, completed=psutil.disk_usage("/").percent)
 
-    network.dataset("Upload", point_limit=1).add_point(0, 0)
-    network.dataset("Download", point_limit=1).add_point(0, 0)
+    network.dataset("Upload").add_point(0, 0)
+    network.dataset("Download").add_point(0, 0)
 
     def net():
         base = time.time()

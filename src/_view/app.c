@@ -128,6 +128,22 @@ static int PyErr_BadASGI(void) {
     return -1;
 }
 
+// port of strsep for use on windows
+char* v_strsep(char** stringp, const char* delim) {
+    char* rv = *stringp;
+    if (rv) {
+        *stringp += strcspn(
+            *stringp,
+            delim
+        );
+        if (**stringp)
+            *(*stringp)++ = '\0';
+        else
+            *stringp = 0;
+    }
+    return rv;
+}
+
 route* route_new(
     PyObject* callable,
     Py_ssize_t inputs_size,
@@ -2149,7 +2165,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
         bool skip = true;         // skip leading /
         route* last_r = NULL;
 
-        while ((token = strsep(
+        while ((token = v_strsep(
             &path,
             "/"
                         ))) {

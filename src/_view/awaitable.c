@@ -350,7 +350,9 @@ static PyAsyncMethods async_methods = {
 };
 
 PyTypeObject _PyAwaitable_GenWrapper_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    // windows decided it didnt want to expand the PyVarObject_HEAD_INIT macro
+    // so we're doing it manually
+    {{1, &PyType_Type}, 0},
     "_GenWrapper", 
     sizeof(GenWrapperObject),
     0,
@@ -391,7 +393,7 @@ PyTypeObject _PyAwaitable_GenWrapper_Type = {
 };
 
 PyTypeObject PyAwaitable_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    {{1, &PyType_Type}, 0},
     "awaitable",
     sizeof(PyAwaitableObject),
     0,
