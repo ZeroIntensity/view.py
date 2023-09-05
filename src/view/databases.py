@@ -12,14 +12,8 @@ P = ParamSpec("P")
 A = TypeVar("A")
 
 
-class Id(Generic[A]):
-    def __init__(self, value: A) -> None:
-        self.value = value
-
-
 class ViewModel:
     _conn: ClassVar[_Connection | None]
-
 
 T = TypeVar("T", bound=ViewModel)
 

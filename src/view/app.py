@@ -21,7 +21,7 @@ from rich import print
 from rich.traceback import install
 from .typing import Callback
 from _view import ViewApp
-
+from io import UnsupportedOperation
 from ._loader import finalize, load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server, format_warnings)
@@ -81,7 +81,8 @@ class App(ViewApp, Generic[A]):
                         print(value.hint)
 
             sys.excepthook = _hook
-            faulthandler.enable()
+            with suppress(UnsupportedOperation):
+                faulthandler.enable()
         else:
             os.environ["VIEW_PROD"] = "1"
 

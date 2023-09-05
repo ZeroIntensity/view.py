@@ -1,6 +1,11 @@
 from ward import test
 
+from view import new_app
 
-@test("foo")
+
+@test("app startup")
 def _():
-    print("hi")
+    app = new_app()
+    app.load()
+    proc = app.run_proc()
+    proc.kill()

@@ -2123,7 +2123,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
     PyObject** params = NULL;
     Py_ssize_t* size = NULL;
 
-    if (!r) {
+    if (!r || r->r) {
         if (!self->has_path_params) {
             if (fire_error(
                 self,
@@ -2169,6 +2169,7 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
             &path,
             "/"
                         ))) {
+            puts(token);
             if (skip) {
                 skip = false;
                 continue;
@@ -2214,12 +2215,6 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
                 continue;
             } else if (did_save) did_save = false;
 
-            puts("searching map");
-            printf(
-                "target: %p, s: %p\n",
-                target,
-                s
-            );
             rt = map_get(
                 target,
                 s
@@ -2277,7 +2272,6 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
                 return NULL;
             }
         }
-        route_print(r);
     }
 
     if ((r->cache_index++ < r->cache_rate) && r->cache) {
