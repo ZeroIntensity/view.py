@@ -1,3 +1,5 @@
+
+from __future__ import annotations
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Literal

@@ -1,3 +1,5 @@
+
+from __future__ import annotations
 from rich.console import RenderableType
 
 __all__ = (
