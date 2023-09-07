@@ -11,7 +11,6 @@ import warnings
 import weakref
 from contextlib import suppress
 from functools import lru_cache
-from multiprocessing import Process
 from threading import Thread
 from types import TracebackType as Traceback
 from typing import (Any, Awaitable, Callable, Coroutine, Generic, TypeVar,
@@ -205,8 +204,8 @@ class App(ViewApp, Generic[A]):
         Internal.info("server closed")
 
     def _run(
-        self, start_target: Callable[[Awaitable[Any]], None] | None = None
-    ) -> None:
+        self, start_target: Callable[..., Any] | None = None
+    ) -> Any:
         self.load()
         Internal.info("starting server!")
         server = self.config.server.backend
@@ -240,7 +239,7 @@ class App(ViewApp, Generic[A]):
             )
             server = uvicorn.Server(config)
 
-            start(self._spawn(server.serve()))
+            return start(self._spawn(server.serve()))
 
         elif server == "hypercorn":
             hypercorn = attempt_import("hypercorn")
@@ -253,7 +252,7 @@ class App(ViewApp, Generic[A]):
             for k, v in self.config.server.extra_args.items():
                 setattr(conf, k, v)
 
-            start(
+            return start(
                 importlib.import_module("hypercorn.asyncio").serve(
                     self._app, conf
                 )
@@ -283,13 +282,11 @@ class App(ViewApp, Generic[A]):
         thread.start()
         return thread
 
-    def run_proc(self) -> Process:
-        proc = Process(target=self._run)
-        proc.start()
-        return proc
-
-    async def run_async(self, loop: asyncio.AbstractEventLoop):
+    def run_async(self, loop: asyncio.AbstractEventLoop | None = None,) -> None:
         self._run((loop or asyncio.get_event_loop()).run_until_complete)
+
+    def run_task(self, loop: asyncio.AbstractEventLoop | None = None,) -> asyncio.Task[None]:
+        return self._run((loop or asyncio.get_event_loop()).create_task)
 
     start = run
 

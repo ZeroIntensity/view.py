@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar
+from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar, Union
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
-AsgiSerial = (
-    bytes
-    | str
-    | int
-    | float
-    | list
-    | tuple
-    | dict[str, "AsgiSerial"]
-    | bool
-    | None
-)
+AsgiSerial = Union[
+    bytes,
+    str,
+    int,
+    float,
+    list,
+    tuple,
+    dict[str, "AsgiSerial"],
+    bool,
+    None,
+]
 
 AsgiDict = dict[str, AsgiSerial]
 
@@ -34,19 +34,19 @@ _ViewResponseTupleH = tuple[ResponseHeaders, str]
 _ViewResponseTupleI = tuple[str, int]
 _ViewResponseTupleJ = tuple[int, str]
 
-_ViewResponseType = (
-    _ViewResponseTupleA
-    | _ViewResponseTupleB
-    | _ViewResponseTupleC
-    | _ViewResponseTupleD
-    | _ViewResponseTupleE
-    | _ViewResponseTupleF
-    | _ViewResponseTupleG
-    | _ViewResponseTupleH
-    | _ViewResponseTupleI
-    | _ViewResponseTupleJ
-    | str
-)
+_ViewResponseType = Union[
+    _ViewResponseTupleA,
+    _ViewResponseTupleB,
+    _ViewResponseTupleC,
+    _ViewResponseTupleD,
+    _ViewResponseTupleE,
+    _ViewResponseTupleF,
+    _ViewResponseTupleG,
+    _ViewResponseTupleH,
+    _ViewResponseTupleI,
+    _ViewResponseTupleJ,
+    str,
+]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")
 
@@ -60,8 +60,8 @@ class BodyLike(Protocol):
     __view_body__: ClassVar[dict[str, ValueType]]
 
 
-ValueType = BodyLike | str | int | dict[str, "ValueType"] | bool | float
-ValidatorResult = bool | tuple[bool, str]
+ValueType = Union[BodyLike, str, int, dict[str, "ValueType"], bool, float]
+ValidatorResult = Union[bool, tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
 
 
@@ -74,7 +74,7 @@ class RouteInputDict(TypedDict, Generic[V]):
     has_default: bool
 
 
-ViewBodyType = str | int | dict | bool | float
+ViewBodyType = Union[str, int, dict, bool, float]
 ViewBody = dict[str, ViewBodyType]
 
 
@@ -91,8 +91,8 @@ class _SupportsAnnotations(Protocol):
     __annotations__: ClassVar[dict[str, Any]]
 
 
-SupportsViewBody = _SupportsViewBodyCV | _SupportsViewBodyF
-ViewBodyLike = SupportsViewBody | _SupportsAnnotations
+SupportsViewBody = Union[_SupportsViewBodyCV, _SupportsViewBodyF]
+ViewBodyLike = Union[SupportsViewBody, _SupportsAnnotations]
 Parser = Callable[[str], ViewBody]
 
 

@@ -4,8 +4,8 @@ from view import new_app
 
 
 @test("app startup")
-def _():
+async def _():
     app = new_app()
-    app.load()
-    proc = app.run_proc()
-    proc.kill()
+    app.config.log.fancy = False
+    proc = app.run_task()
+    proc.cancel()
