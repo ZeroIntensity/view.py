@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar, Union
+from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar, Union, Dict, Tuple
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
@@ -16,23 +16,23 @@ AsgiSerial = Union[
     None,
 ]
 
-AsgiDict = dict[str, AsgiSerial]
+AsgiDict = Dict[str, AsgiSerial]
 
 AsgiReceive = Callable[[], Awaitable[AsgiDict]]
 AsgiSend = Callable[[AsgiDict], Awaitable[None]]
 
-ResponseHeaders = dict[str, str]
+ResponseHeaders = Dict[str, str]
 
-_ViewResponseTupleA = tuple[str, int, ResponseHeaders]
-_ViewResponseTupleB = tuple[int, str, ResponseHeaders]
-_ViewResponseTupleC = tuple[str, ResponseHeaders, int]
-_ViewResponseTupleD = tuple[int, ResponseHeaders, str]
-_ViewResponseTupleE = tuple[ResponseHeaders, str, int]
-_ViewResponseTupleF = tuple[ResponseHeaders, int, str]
-_ViewResponseTupleG = tuple[str, ResponseHeaders]
-_ViewResponseTupleH = tuple[ResponseHeaders, str]
-_ViewResponseTupleI = tuple[str, int]
-_ViewResponseTupleJ = tuple[int, str]
+_ViewResponseTupleA = Tuple[str, int, ResponseHeaders]
+_ViewResponseTupleB = Tuple[int, str, ResponseHeaders]
+_ViewResponseTupleC = Tuple[str, ResponseHeaders, int]
+_ViewResponseTupleD = Tuple[int, ResponseHeaders, str]
+_ViewResponseTupleE = Tuple[ResponseHeaders, str, int]
+_ViewResponseTupleF = Tuple[ResponseHeaders, int, str]
+_ViewResponseTupleG = Tuple[str, ResponseHeaders]
+_ViewResponseTupleH = Tuple[ResponseHeaders, str]
+_ViewResponseTupleI = Tuple[str, int]
+_ViewResponseTupleJ = Tuple[int, str]
 
 _ViewResponseType = Union[
     _ViewResponseTupleA,
@@ -60,7 +60,7 @@ class BodyLike(Protocol):
     __view_body__: ClassVar[dict[str, ValueType]]
 
 
-ValueType = Union[BodyLike, str, int, dict[str, "ValueType"], bool, float]
+ValueType = Union[BodyLike, str, int, Dict[str, "ValueType"], bool, float]
 ValidatorResult = Union[bool, tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
 
@@ -75,7 +75,7 @@ class RouteInputDict(TypedDict, Generic[V]):
 
 
 ViewBodyType = Union[str, int, dict, bool, float]
-ViewBody = dict[str, ViewBodyType]
+ViewBody = Dict[str, ViewBodyType]
 
 
 class _SupportsViewBodyCV(Protocol):
