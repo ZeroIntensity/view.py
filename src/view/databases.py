@@ -15,6 +15,7 @@ A = TypeVar("A")
 class ViewModel:
     _conn: ClassVar[_Connection | None]
 
+
 T = TypeVar("T", bound=ViewModel)
 
 Where = dict[str, Any]
@@ -36,7 +37,7 @@ class Model(Generic[P, T]):
     def __init_subclass__(cls) -> None:
         raise MistakeError(
             "Model cannot be subclassed, did you mean ViewModel?",
-            hint=make_hint("This should be ViewModel, not Model")
+            hint=make_hint("This should be ViewModel, not Model"),
         )
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:

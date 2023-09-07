@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import getpass
 import os
@@ -87,7 +86,9 @@ def main(ctx: click.Context, debug: bool) -> None:
         click.secho("https://view.zintensity.dev", fg="blue", bold=True)
         click.echo("GitHub: ", nl=False)
         click.secho(
-            "https://github.com/ZeroIntensity/view.py", fg="blue", bold=True,
+            "https://github.com/ZeroIntensity/view.py",
+            fg="blue",
+            bold=True,
         )
 
 
@@ -307,9 +308,7 @@ app.run()
     index = routes / "index.py"
 
     if index.exists():
-        should_continue(
-            f"`{index.relative_to('.')}` already exists, overwrite?"
-        )
+        should_continue(f"`{index.relative_to('.')}` already exists, overwrite?")
     pathstr = "" if load == "filesystem" else "'/'"
     with open(index, "w") as f:
         f.write(

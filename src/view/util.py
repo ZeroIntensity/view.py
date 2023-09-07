@@ -37,16 +37,12 @@ def run(app_or_path: str | App) -> None:
     try:
         mod = runpy.run_path(path)
     except FileNotFoundError as e:
-        raise FileNotFoundError(
-            f'"{split[0]}" in {app_or_path} does not exist'
-        ) from e
+        raise FileNotFoundError(f'"{split[0]}" in {app_or_path} does not exist') from e
 
     try:
         target = mod[split[1]]
     except KeyError:
-        raise AttributeError(
-            f'"{split[1]}" in {app_or_path} does not exist'
-        ) from None
+        raise AttributeError(f'"{split[1]}" in {app_or_path} does not exist') from None
 
     if not isinstance(target, App):
         raise MistakeError(f"{target!r} is not an instance of view.App")
@@ -58,7 +54,9 @@ def debug():
     internal = Internal.log
     internal.disabled = False
     internal.setLevel(logging.DEBUG)
-    internal.addHandler(logging.StreamHandler(open("view_internal.log", "w", encoding="utf-8")))
+    internal.addHandler(
+        logging.StreamHandler(open("view_internal.log", "w", encoding="utf-8"))
+    )
     Service.log.addHandler(
         logging.StreamHandler(open("view_service.log", "w", encoding="utf-8"))
     )
@@ -108,9 +106,7 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return int(value)
         except ValueError:
-            raise EnvironmentError(
-                f"{value!r} (key {key!r}) is not int-like"
-            ) from None
+            raise EnvironmentError(f"{value!r} (key {key!r}) is not int-like") from None
 
     if tp is dict:
         try:
@@ -126,4 +122,3 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         return value == "true"
 
     raise ValueError(f"{tp.__name__} cannot be converted")
-

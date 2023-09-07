@@ -8,6 +8,7 @@ from typing_extensions import (
     Unpack,
 )
 
+
 class DOMNode:
     def __init__(self, data: str | DOMNode) -> None:
         self.data = str(data)
@@ -50,7 +51,7 @@ def _node(
     kwargs: GlobalAttributes,
 ) -> DOMNode:
     attributes: dict[str, str | None] = {**kwargs, **attrs}
-    
+
     cls = kwargs.get("cls")
     if cls:
         attributes["class"] = cls
@@ -1987,24 +1988,32 @@ def xmp(
 ) -> DOMNode:
     return _node("xmp", __content, {}, kwargs)
 
+
 _head_cache = head
 
-def page(*__content: str | DOMNode, head: str | DOMNode | Iterable[str | DOMNode] | None = None) -> DOMNode:
+
+def page(
+    *__content: str | DOMNode,
+    head: str | DOMNode | Iterable[str | DOMNode] | None = None,
+) -> DOMNode:
     if head:
         try:
             head_content = head
         except:
-            head_content = (head)
+            head_content = head
     else:
         head_content = ()
 
     return html(_head_cache(*head_content), body(*__content))
 
+
 def stylesheet(url: str) -> DOMNode:
     return link(rel="stylesheet", href=url)
 
+
 def js(url: str) -> DOMNode:
     return script(src=url)
+
 
 __all__ = (
     "a",
@@ -2142,5 +2151,5 @@ __all__ = (
     "xmp",
     "page",
     "stylesheet",
-    "js"
+    "js",
 )

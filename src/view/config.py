@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 from ipaddress import IPv4Address
 from pathlib import Path
@@ -23,9 +22,7 @@ class ServerConfig(ConfigModel):
 
 
 class LogConfig(ConfigModel):
-    level: Literal[
-        "debug", "info", "warning", "error", "critical"
-    ] | int = "info"
+    level: Literal["debug", "info", "warning", "error", "critical"] | int = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True
@@ -55,16 +52,14 @@ loader = "{loader}"
 [log]
 """
     if tp == "json":
-        return (
-            f'''{B_OPEN}
+        return f"""{B_OPEN}
     "dev": true,
     "app": {B_OPEN}
         "loader": "{loader}"
     {B_CLOSE}
     "server": {B_OC},
     "log": {B_OC}
-{B_CLOSE}'''
-        )
+{B_CLOSE}"""
 
     if tp == "ini":
         return f"""dev = 'true'
@@ -108,7 +103,7 @@ def load_config(
         "view.yaml",
         "view.yml",
         "view_config.py",
-        "config.py"
+        "config.py",
     )
 
     if path:

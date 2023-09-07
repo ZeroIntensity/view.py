@@ -22,8 +22,7 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
-                           TextColumn)
+from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -778,26 +777,28 @@ def _heat_color(amount: float) -> str:
 
     raise ValueError("invalid percentage")
 
+
 class HeatedProgress(Progress):
     def make_tasks_table(self, tasks: Iterable[Task]) -> Table:
         result = super().make_tasks_table(tasks)
-        
+
         for col in result.columns:
             for cell in col._cells:
                 if isinstance(cell, ProgressBar):
                     cell.complete_style = _heat_color(cell.completed)
                 elif isinstance(cell, Text):
                     text = str(cell)
-                    
+
                     if "%" not in text:
                         continue
-                    
+
                     cell.stylize(_heat_color(float(text[:-1])))
         return result
 
 
 def convert_kb(value: float):
     return value / 1024
+
 
 def _server_logger():
     global _LIVE
@@ -873,8 +874,8 @@ def _server_logger():
 
         while not _CLOSE.wait(0.5):
             net_io2 = psutil.net_io_counters()
-            ua = (net_io2.bytes_sent - net_io.bytes_sent)
-            da = (net_io2.bytes_recv - net_io.bytes_recv)
+            ua = net_io2.bytes_sent - net_io.bytes_sent
+            da = net_io2.bytes_recv - net_io.bytes_recv
             us = convert_kb(ua)
             ds = convert_kb(da)
 
@@ -891,8 +892,12 @@ def _server_logger():
         while not _CLOSE.wait(1):
             p = psutil.Process()
             pio = p.io_counters()
-            io.dataset("Read").add_point(time.time() - base, pio.read_count - pio_base.read_count)
-            io.dataset("Write").add_point(time.time() - base, pio.write_count - pio_base.write_count)
+            io.dataset("Read").add_point(
+                time.time() - base, pio.read_count - pio_base.read_count
+            )
+            io.dataset("Write").add_point(
+                time.time() - base, pio.write_count - pio_base.write_count
+            )
 
             pio_base = pio
 

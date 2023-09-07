@@ -13,8 +13,7 @@ from contextlib import suppress
 from functools import lru_cache
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import (Any, Awaitable, Callable, Coroutine, Generic, TypeVar,
-                    get_type_hints)
+from typing import Any, Awaitable, Callable, Coroutine, Generic, TypeVar, get_type_hints
 from pathlib import Path
 from rich import print
 from rich.traceback import install
@@ -22,14 +21,19 @@ from .typing import Callback
 from _view import ViewApp
 from io import UnsupportedOperation
 from ._loader import finalize, load_fs, load_simple
-from ._logging import (Internal, Service, UvicornHijack, enter_server,
-                       exit_server, format_warnings)
+from ._logging import (
+    Internal,
+    Service,
+    UvicornHijack,
+    enter_server,
+    exit_server,
+    format_warnings,
+)
 from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
 from .exceptions import MissingLibraryError, ViewError
-from .routing import (Route, RouteOrCallable, delete, get, options, patch,
-                      post, put)
+from .routing import Route, RouteOrCallable, delete, get, options, patch, post, put
 from .util import debug as enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -99,9 +103,7 @@ class App(ViewApp, Generic[A]):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -203,9 +205,7 @@ class App(ViewApp, Generic[A]):
 
         Internal.info("server closed")
 
-    def _run(
-        self, start_target: Callable[..., Any] | None = None
-    ) -> Any:
+    def _run(self, start_target: Callable[..., Any] | None = None) -> Any:
         self.load()
         Internal.info("starting server!")
         server = self.config.server.backend
@@ -253,9 +253,7 @@ class App(ViewApp, Generic[A]):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(
-                    self._app, conf
-                )
+                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -282,10 +280,16 @@ class App(ViewApp, Generic[A]):
         thread.start()
         return thread
 
-    def run_async(self, loop: asyncio.AbstractEventLoop | None = None,) -> None:
+    def run_async(
+        self,
+        loop: asyncio.AbstractEventLoop | None = None,
+    ) -> None:
         self._run((loop or asyncio.get_event_loop()).run_until_complete)
 
-    def run_task(self, loop: asyncio.AbstractEventLoop | None = None,) -> asyncio.Task[None]:
+    def run_task(
+        self,
+        loop: asyncio.AbstractEventLoop | None = None,
+    ) -> asyncio.Task[None]:
         return self._run((loop or asyncio.get_event_loop()).create_task)
 
     start = run
@@ -304,13 +308,12 @@ def new_app(
 ) -> App:
     """Create a new view app.
 
-Args:
-    start: Should the app be started automatically? (In a new thread)
-    config_path: Path of the target configuration file
-    config_directory: Directory path to search for a configuration
-    post_init: Callback to run after the App instance has been created
-    app_dealloc: Callback to run when the App instance is freed from memory
-"""
+    Args:
+        start: Should the app be started automatically? (In a new thread)
+        config_path: Path of the target configuration file
+        config_directory: Directory path to search for a configuration
+        post_init: Callback to run after the App instance has been created
+        app_dealloc: Callback to run when the App instance is freed from memory"""
     config = load_config(
         path=Path(config_path) if config_path else None,
         directory=Path(config_directory) if config_directory else None,

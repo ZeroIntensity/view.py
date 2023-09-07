@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import getpass
 import importlib
@@ -26,9 +25,7 @@ class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (
-            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
-        ):
+        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -45,9 +42,7 @@ def shell_hint(command: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = (
-            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
-        )
+        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
     return Panel.fit(f"{shell_prefix} {command}", title="Terminal")
 
 
