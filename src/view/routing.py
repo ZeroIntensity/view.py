@@ -4,7 +4,7 @@ import builtins
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar, Union
 
 from typing_extensions import ParamSpec
 
@@ -80,7 +80,7 @@ class Route(Generic[P, T], LoadChecker):
         return self.func(*args, **kwargs)
 
 
-RouteOrCallable = Route[P, T] | ViewRoute[P, T]
+RouteOrCallable = Union[Route[P, T], ViewRoute[P, T]]
 
 
 def _ensure_route(r: RouteOrCallable[..., Any]) -> Route[..., Any]:
