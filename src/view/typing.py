@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, ClassVar, Generic, TypeVar, Union, Dict, Tuple
+from typing import (Any, Awaitable, Callable, ClassVar, Dict, Generic, Tuple,
+                    TypeVar, Union)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
@@ -11,7 +12,7 @@ AsgiSerial = Union[
     float,
     list,
     tuple,
-    dict[str, "AsgiSerial"],
+    Dict[str, "AsgiSerial"],
     bool,
     None,
 ]
