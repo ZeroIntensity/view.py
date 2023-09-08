@@ -22,7 +22,8 @@ class ViewNode(NamedTuple):
                 attrs.write(f"{k} ")
 
         return (
-            f"<{self.name}{attrs.getvalue()}>{''.join(self.content)}" f"</{self.name}>"
+            f"<{self.name}{attrs.getvalue()}>{''.join(self.content)}"
+            f"</{self.name}>"
         )
 
 

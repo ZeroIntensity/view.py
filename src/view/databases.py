@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, ClassVar, Generic, TypeVar, cast, overload
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Generic,
+    TypeVar,
+    cast,
+    overload,
+    Dict,
+)
 
 from typing_extensions import ParamSpec, dataclass_transform
 
@@ -18,8 +27,8 @@ class ViewModel:
 
 T = TypeVar("T", bound=ViewModel)
 
-Where = dict[str, Any]
-Value = dict[str, Any]
+Where = Dict[str, Any]
+Value = Dict[str, Any]
 
 
 class Model(Generic[P, T]):

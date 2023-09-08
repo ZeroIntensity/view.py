@@ -7,17 +7,13 @@
 
 ```py
 import view
-from view.components import *
+from view.components import h1
 
 app = view.new_app()
 
 @app.get("/")
 async def index():
     return h1("Hello, view.py!")
-
-@app.get("/hello/{name: str}")
-async def hello(name: str):
-    return p(f"Hello, {name}")
 
 app.run()
 ```

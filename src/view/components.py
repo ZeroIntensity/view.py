@@ -23,7 +23,9 @@ class DOMNode:
     __view_result__ = __str__
 
 
-AutoCapitalizeType = Literal["off", "none", "on", "sentences", "words", "characters"]
+AutoCapitalizeType = Literal[
+    "off", "none", "on", "sentences", "words", "characters"
+]
 DirType = Literal["ltr", "rtl", "auto"]
 
 
@@ -1987,24 +1989,6 @@ def xmp(
     **kwargs: Unpack[GlobalAttributes],
 ) -> DOMNode:
     return _node("xmp", __content, {}, kwargs)
-
-
-_head_cache = head
-
-
-def page(
-    *__content: str | DOMNode,
-    head: str | DOMNode | Iterable[str | DOMNode] | None = None,
-) -> DOMNode:
-    if head:
-        try:
-            head_content = head
-        except:
-            head_content = head
-    else:
-        head_content = ()
-
-    return html(_head_cache(*head_content), body(*__content))
 
 
 def stylesheet(url: str) -> DOMNode:

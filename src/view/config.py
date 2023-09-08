@@ -22,7 +22,9 @@ class ServerConfig(ConfigModel):
 
 
 class LogConfig(ConfigModel):
-    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
+    level: Union[
+        Literal["debug", "info", "warning", "error", "critical"], int
+    ] = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True

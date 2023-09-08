@@ -113,7 +113,9 @@ def load_fs(app: ViewApp, target_dir: Path):
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
+                    stripped = list(
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -148,7 +150,8 @@ def load_simple(app: ViewApp, target_dir: Path):
             for route in mini_routes:
                 if not route.path:
                     raise ValueError(
-                        "omitting path is only supported" " on filesystem loading",
+                        "omitting path is only supported"
+                        " on filesystem loading",
                     )
 
                 routes.append(route)

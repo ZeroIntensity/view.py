@@ -5,7 +5,7 @@ import logging
 import os
 import runpy
 import sys
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, overload, Union
 
 from ._logging import Internal, Service
 from ._util import shell_hint
@@ -37,12 +37,16 @@ def run(app_or_path: str | App) -> None:
     try:
         mod = runpy.run_path(path)
     except FileNotFoundError as e:
-        raise FileNotFoundError(f'"{split[0]}" in {app_or_path} does not exist') from e
+        raise FileNotFoundError(
+            f'"{split[0]}" in {app_or_path} does not exist'
+        ) from e
 
     try:
         target = mod[split[1]]
     except KeyError:
-        raise AttributeError(f'"{split[1]}" in {app_or_path} does not exist') from None
+        raise AttributeError(
+            f'"{split[1]}" in {app_or_path} does not exist'
+        ) from None
 
     if not isinstance(target, App):
         raise MistakeError(f"{target!r} is not an instance of view.App")
@@ -65,7 +69,7 @@ def debug():
     os.environ["VIEW_DEBUG"] = "1"
 
 
-EnvConv = str | int | bool | dict
+EnvConv = Union[str, int, bool, dict]
 
 
 @overload
@@ -106,7 +110,9 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return int(value)
         except ValueError:
-            raise EnvironmentError(f"{value!r} (key {key!r}) is not int-like") from None
+            raise EnvironmentError(
+                f"{value!r} (key {key!r}) is not int-like"
+            ) from None
 
     if tp is dict:
         try:

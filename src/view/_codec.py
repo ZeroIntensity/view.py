@@ -40,7 +40,9 @@ class _Parser(HTMLParser):
         self.source: list[_Item] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
-        dict_attrs = {tup[0]: (repr(tup[1]) if tup[1] else None) for tup in attrs}
+        dict_attrs = {
+            tup[0]: (repr(tup[1]) if tup[1] else None) for tup in attrs
+        }
         if not self._tags:
             self._tags.append(_Tag(tag, dict_attrs, []))
         else:
@@ -90,7 +92,10 @@ def _transform_recursive(tag: _Tag) -> str:
     if attrs:
         content.write(", ")
 
-    return f"_vpy_newnode({repr(tag.name)}{content.getvalue()}" f"{','.join(attrs)})"
+    return (
+        f"_vpy_newnode({repr(tag.name)}{content.getvalue()}"
+        f"{','.join(attrs)})"
+    )
 
 
 def _transform(code: str) -> str:
@@ -104,7 +109,9 @@ def _transform(code: str) -> str:
         else:
             assert tag.source
             source.write(tag.source)
-    return "from view.nodes import new_node as _vpy_newnode\n" + source.getvalue()
+    return (
+        "from view.nodes import new_node as _vpy_newnode\n" + source.getvalue()
+    )
 
 
 def decode(source: Input) -> str:

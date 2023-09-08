@@ -7,11 +7,11 @@ from pathlib import Path
 from types import CodeType as Code
 from types import FrameType as Frame
 from types import ModuleType
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Union
 
 from .__about__ import __version__
 
-SourceCodeLike = str | Code | Frame | Callable[..., Any] | ModuleType
+SourceCodeLike = Union[str, Code, Frame, Callable[..., Any], ModuleType]
 
 
 def pre(data: str, identifier: str | None = None):
@@ -49,7 +49,9 @@ def _issubclass(item: Any, tp: type[Any]) -> bool:
         return False
 
 
-_ERRORS: list[str] = [k for k, v in globals().items() if _issubclass(v, BaseException)]
+_ERRORS: list[str] = [
+    k for k, v in globals().items() if _issubclass(v, BaseException)
+]
 ERRORS = "\n".join([_err(i) for i in _ERRORS])
 PRINT = f"""function {nm('print')}(posargs, kwargs) {B_OPEN}
     if (kwargs.sep) {B_OPEN}
@@ -112,7 +114,7 @@ class Source(Symbol):
         return self.text
 
 
-Parameters = dict[str, str | None]
+Parameters = Dict[str, Union[str, None]]
 
 
 class FunctionBody(Symbol):
@@ -189,7 +191,8 @@ if (kwargs['{k}'] === undefined) {B_OPEN}
 
         if self.varg:
             params += (
-                f"\nlet {nm(self.varg)} = args.slice" f"({pindex}, args.length + 1);\n"
+                f"\nlet {nm(self.varg)} = args.slice"
+                f"({pindex}, args.length + 1);\n"
             )
 
         if self.vkwarg:
@@ -245,7 +248,10 @@ class Call(Symbol):
         if kwds:
             kwds = kwds[:-1]
 
-        return f"{self.name}" f"([{', '.join(self.args)}], {B_OPEN}{kwds}{B_CLOSE})"
+        return (
+            f"{self.name}"
+            f"([{', '.join(self.args)}], {B_OPEN}{kwds}{B_CLOSE})"
+        )
 
 
 class If(Symbol):
@@ -335,7 +341,9 @@ class _Compiler:
             if not has_default:
                 pos_only[value.arg] = None
             else:
-                pos_only[value.arg] = self.translate_expr(defaults.pop(0)).code()
+                pos_only[value.arg] = self.translate_expr(
+                    defaults.pop(0)
+                ).code()
 
         for index, value in enumerate(node.args.args):
             if len(node.args.defaults) == (full_len - index):
@@ -438,7 +446,8 @@ class _Compiler:
     def _translate_call(self, node: ast.Call):
         args = [self.translate_expr(i).code() for i in node.args]
         kwds: dict[str, str] = {  # type: ignore
-            arg.arg: self.translate_expr(arg.value).code() for arg in node.keywords
+            arg.arg: self.translate_expr(arg.value).code()
+            for arg in node.keywords
         }
         if isinstance(node.func, ast.Name):
             if node.func.id == "_compiler_preserve":
@@ -447,7 +456,9 @@ class _Compiler:
         return Call(self.translate_expr(node.func).code(), args, kwds)
 
     def _translate_attribute(self, node: ast.Attribute):
-        return Source(self.translate_expr(node.value).code() + "." + nm(node.attr))
+        return Source(
+            self.translate_expr(node.value).code() + "." + nm(node.attr)
+        )
 
     def _translate_starred(self, node: ast.Starred):
         return f"...{self.translate_expr(node.value).code()}"
@@ -512,7 +523,9 @@ class _Compiler:
             module = __import__(name.name)
             if not module.__file__:
                 raise TypeError(f"{module} has no __file__")
-            ast_mod = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
+            ast_mod = ast.parse(
+                Path(module.__file__).read_text(encoding="utf-8")
+            )
             symbols.append(
                 Source(
                     _Compiler.compile_mod(
@@ -573,7 +586,9 @@ class _Compiler:
         return source
 
     @classmethod
-    def compile_mod(cls, mod: ast.Module, *, namespace: str | None = None) -> str:
+    def compile_mod(
+        cls, mod: ast.Module, *, namespace: str | None = None
+    ) -> str:
         self = cls()
 
         for stmt in mod.body:
@@ -581,7 +596,10 @@ class _Compiler:
 
         if not namespace:
             return (
-                f"// view.py {__version__}\n\n" + PRESOURCE + "\n\n" + self.finalize()
+                f"// view.py {__version__}\n\n"
+                + PRESOURCE
+                + "\n\n"
+                + self.finalize()
             )
         else:
             return f"""const {nm(namespace)} = (function() {B_OPEN}

@@ -16,10 +16,6 @@ app = view.new_app()
 async def index():
     return h1("Hello, view.py!")
 
-@app.get("/hello/{name: str}")
-async def hello(name: str):
-    return p(f"Hello, {name}")
-
 app.run()
 ```
 

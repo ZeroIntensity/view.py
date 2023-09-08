@@ -184,7 +184,7 @@ def prod():
     prompt="Where to deploy to",
 )
 def deploy(target: str):
-    ...
+    raise NotImplementedError
 
 
 @main.command()
@@ -308,7 +308,9 @@ app.run()
     index = routes / "index.py"
 
     if index.exists():
-        should_continue(f"`{index.relative_to('.')}` already exists, overwrite?")
+        should_continue(
+            f"`{index.relative_to('.')}` already exists, overwrite?"
+        )
     pathstr = "" if load == "filesystem" else "'/'"
     with open(index, "w") as f:
         f.write(

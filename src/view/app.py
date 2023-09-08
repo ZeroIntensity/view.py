@@ -13,7 +13,15 @@ from contextlib import suppress
 from functools import lru_cache
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import Any, Awaitable, Callable, Coroutine, Generic, TypeVar, get_type_hints
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Generic,
+    TypeVar,
+    get_type_hints,
+)
 from pathlib import Path
 from rich import print
 from rich.traceback import install
@@ -33,7 +41,16 @@ from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
 from .exceptions import MissingLibraryError, ViewError
-from .routing import Route, RouteOrCallable, delete, get, options, patch, post, put
+from .routing import (
+    Route,
+    RouteOrCallable,
+    delete,
+    get,
+    options,
+    patch,
+    post,
+    put,
+)
 from .util import debug as enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -103,7 +120,9 @@ class App(ViewApp, Generic[A]):
         if self.loaded:
             return
 
-        warnings.warn("load() was never called (did you forget to start the app?)")
+        warnings.warn(
+            "load() was never called (did you forget to start the app?)"
+        )
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -253,7 +272,9 @@ class App(ViewApp, Generic[A]):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
+                importlib.import_module("hypercorn.asyncio").serve(
+                    self._app, conf
+                )
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -313,7 +334,8 @@ def new_app(
         config_path: Path of the target configuration file
         config_directory: Directory path to search for a configuration
         post_init: Callback to run after the App instance has been created
-        app_dealloc: Callback to run when the App instance is freed from memory"""
+        app_dealloc: Callback to run when the App instance is freed from memory
+    """
     config = load_config(
         path=Path(config_path) if config_path else None,
         directory=Path(config_directory) if config_directory else None,
