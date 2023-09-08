@@ -1,7 +1,7 @@
 from __future__ import annotations
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Union
 import importlib.util
 import sys
 from configzen import ConfigField, ConfigModel
@@ -10,7 +10,7 @@ from configzen import ConfigField, ConfigModel
 class AppConfig(ConfigModel):
     loader: Literal["manual", "simple", "filesystem"] = "manual"
     app_path: str = ConfigField("app.py:app")
-    uvloop: Literal["decide"] | bool = "decide"
+    uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
 
 
@@ -22,7 +22,7 @@ class ServerConfig(ConfigModel):
 
 
 class LogConfig(ConfigModel):
-    level: Literal["debug", "info", "warning", "error", "critical"] | int = "info"
+    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True
