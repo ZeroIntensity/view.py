@@ -71,7 +71,7 @@ class BodyLike(Protocol):
 
 
 ValueType = Union[BodyLike, str, int, Dict[str, "ValueType"], bool, float]
-ValidatorResult = Union[bool, tuple[bool, str]]
+ValidatorResult = Union[bool, Tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
 
 
