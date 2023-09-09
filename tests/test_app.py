@@ -28,7 +28,6 @@ async def _():
         assert res.status == 400
         assert res.message == "error"
 
-
 @test("headers")
 async def _():
     app = new_app()

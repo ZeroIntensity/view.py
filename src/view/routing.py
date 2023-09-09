@@ -4,7 +4,7 @@ import builtins
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, TypeVar, Union
+from typing import Any, Callable, Generic, Type, TypeVar, Union
 
 from typing_extensions import ParamSpec
 
@@ -248,7 +248,7 @@ class _NoDefault:
     ...
 
 
-_NoDefaultType = type[_NoDefault]
+_NoDefaultType = Type[_NoDefault]
 
 
 def query(
