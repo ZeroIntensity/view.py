@@ -2133,7 +2133,6 @@ __all__ = (
     "video",
     "wbr",
     "xmp",
-    "page",
     "stylesheet",
     "js",
 )

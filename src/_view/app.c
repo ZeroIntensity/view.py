@@ -1778,6 +1778,10 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         Py_DECREF(query_obj);
         return -1;
     }
+    Py_ssize_t fake_size = 0;
+
+    if (size == NULL)
+        size = &fake_size;
 
     PyObject** params = calloc(
         r->inputs_size,
@@ -1822,10 +1826,15 @@ static int handle_route_query(PyObject* awaitable, char* query) {
             params[i] = Py_NewRef(item);
     }
 
-    PyObject** merged = calloc(
+    PyObject** merged = PyMem_Calloc(
         final_size + (*size),
         sizeof(PyObject*)
     );
+
+    if (!merged) {
+        PyErr_NoMemory();
+        return -1;
+    }
 
     for (int i = 0; i < (*size); i++)
         merged[i] = path_params[i];
@@ -1843,9 +1852,10 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     for (int i = 0; i < final_size + *size; i++)
         Py_XDECREF(merged[i]);
 
-
+    PyMem_Free(merged);
     free(params);
     Py_DECREF(query_obj);
+
 
     if (!coro)
         return -1;
@@ -2145,13 +2155,6 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
         map* target = ptr;
         route* rt = NULL;
         bool did_save = false;
-        size = malloc(sizeof(Py_ssize_t));         // so it can be stored in the awaitable
-        if (!size) {
-            Py_DECREF(awaitable);
-            free(path);
-            return PyErr_NoMemory();
-        }
-        *size = 0;
         params = calloc(
             1,
             sizeof(PyObject*)
