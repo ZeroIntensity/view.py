@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `App.test()`
 - Added warning when filename does not match `app_path`
 - Added more tests
-- Upgrade CIBW version
+- Upgrade CIBW to work on 3.11
 
 ## [1.0.0-alpha1] - 2023-08-17
 

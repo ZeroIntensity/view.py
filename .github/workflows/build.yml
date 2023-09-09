@@ -4,8 +4,6 @@ on:
     push:
         tags:
             - v*
-        branches:
-            - master
     pull_request:
         branches:
             - master
@@ -34,7 +32,7 @@ jobs:
                   fetch-depth: 0
 
             - name: Build wheels
-              uses: pypa/cibuildwheel@v2.3.1
+              uses: pypa/cibuildwheel@v2.15.0
               env:
                   CIBW_ARCHS_MACOS: x86_64
                   HATCH_BUILD_HOOKS_ENABLE: "true"
@@ -66,7 +64,7 @@ jobs:
                   platforms: arm64
 
             - name: Build wheels
-              uses: pypa/cibuildwheel@v2.3.1
+              uses: pypa/cibuildwheel@v2.15.0
               env:
                   CIBW_ARCHS_LINUX: aarch64
                   HATCH_BUILD_HOOKS_ENABLE: "true"
