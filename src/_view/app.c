@@ -82,8 +82,18 @@ typedef struct _ViewApp {
     bool has_path_params;
 } ViewApp;
 
+typedef struct _type_info type_info;
+
+struct _type_info {
+    uint8_t typecode;
+    PyObject* ob;
+    type_info** children;
+    Py_ssize_t children_size;
+};
+
 typedef struct _route_input {
-    PyObject* type;
+    type_info** types;
+    Py_ssize_t types_size;
     PyObject* df;
     PyObject** validators;
     Py_ssize_t validators_size;
@@ -2559,6 +2569,94 @@ static inline int bad_input(const char* name) {
     return -1;
 }
 
+static void free_type_info(type_info* ti) {
+    Py_XDECREF(ti->ob);
+    for (int i = 0; i < ti->children_size; i++) {
+        free_type_info(ti->children[i]);
+    }
+}
+
+static type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
+    type_info** tps = calloc(
+        sizeof(type_info),
+        len
+    );
+
+    for (Py_ssize_t i = 0; i < len; i++) {
+        PyObject* info = PyList_GetItem(
+            type_codes,
+            i
+        );
+        type_info* ti = malloc(sizeof(type_info));
+
+        if (!info && ti) {
+            for (int x = 0; x < i; x++)
+                free_type_info(tps[x]);
+
+            free(tps);
+            if (ti) free(ti);
+            return NULL;
+        }
+
+        PyObject* type_code = PyTuple_GetItem(
+            info,
+            0
+        );
+        PyObject* obj = PyTuple_GetItem(
+            info,
+            1
+        );
+        PyObject* children = PyTuple_GetItem(
+            info,
+            2
+        );
+
+        if (!type_code || !obj || !children) {
+            for (int x = 0; x < i; x++)
+                free_type_info(tps[x]);
+
+            free(tps);
+            return NULL;
+        }
+
+        Py_ssize_t code = PyLong_AsLong(type_code);
+
+        Py_XINCREF(obj);
+        ti->ob = obj;
+        ti->typecode = code;
+
+        Py_ssize_t children_len = PySequence_Size(children);
+        if (children_len == -1) {
+            for (int x = 0; x < i; x++)
+                free_type_info(tps[x]);
+
+            free(tps);
+            Py_XDECREF(obj);
+            return NULL;
+        }
+
+        ti->children_size = children_len;
+        type_info** children_info = build_type_codes(
+            children,
+            children_len
+        );
+
+        if (!children_info) {
+            for (int x = 0; x < i; i++)
+                free_type_info(tps[x]);
+
+            free(tps);
+            Py_XDECREF(obj);
+            return NULL;
+        }
+
+        ti->children = children_info;
+        tps[i] = ti;
+    }
+
+    return tps;
+}
+
 static int load(
     route* r,
     PyObject* target
@@ -2658,19 +2756,41 @@ static int load(
 
         Py_DECREF(has_default);
 
-        inp->type = Py_XNewRef(
-            PyDict_GetItemString(
-                item,
-                "type"
-            )
+        PyObject* codes = PyDict_GetItemString(
+            item,
+            "type_codes"
         );
 
-        if (!inp->type) {
+        if (!codes) {
             Py_DECREF(iter);
             Py_XDECREF(inp->df);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
-            return bad_input("type");
+            return bad_input("type_codes");
+        }
+
+        Py_ssize_t len = PySequence_Size(codes);
+        if (len == -1) {
+            Py_DECREF(iter);
+            Py_XDECREF(inp->df);
+            PyMem_Free(r->inputs);
+            PyMem_Free(inp);
+            return -1;
+        }
+        inp->types_size = len;
+        if (!len) inp->types = NULL;
+        else {
+            inp->types = build_type_codes(
+                codes,
+                len
+            );
+            if (!inp->types) {
+                Py_DECREF(iter);
+                Py_XDECREF(inp->df);
+                PyMem_Free(r->inputs);
+                PyMem_Free(inp);
+                return -1;
+            }
         }
 
         PyObject* validators = PyDict_GetItemString(

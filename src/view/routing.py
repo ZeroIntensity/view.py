@@ -31,7 +31,7 @@ V = TypeVar("V", bound="ValueType")
 class RouteInput(Generic[V]):
     name: str
     is_body: bool
-    tp: type[V] | None
+    tp: tuple[type[V], ...]
     default: V | None | _NoDefaultType
     doc: str | None
     validators: list[Validator[V]]
@@ -253,14 +253,13 @@ _NoDefaultType = Type[_NoDefault]
 
 def query(
     name: str,
-    tp: type[V] | None = None,
+    *tps: type[V] | None,
     doc: str | None = None,
-    *,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
-        route.inputs.append(RouteInput(name, False, tp, default, doc, []))
+        route.inputs.append(RouteInput(name, False, tps, default, doc, []))
         return route
 
     return inner
@@ -268,14 +267,13 @@ def query(
 
 def body(
     name: str,
-    tp: type[V] | None = None,
+    *tps: type[V],
     doc: str | None = None,
-    *,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
-        route.inputs.append(RouteInput(name, True, tp, default, doc, []))
+        route.inputs.append(RouteInput(name, True, tps, default, doc, []))
         return route
 
     return inner
