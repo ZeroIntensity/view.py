@@ -273,6 +273,10 @@ gen_next(PyObject *self)
 
         Py_INCREF(aw);
         if (cb->callback((PyObject *) aw, value) < 0) {
+            if (!PyErr_Occurred()) {
+                PyErr_SetString(PyExc_SystemError, "callback returned -1 without exception set");
+                return NULL;
+            }
             if (fire_err_callback((PyObject *) aw, g->gw_current_await, cb) < 0) {
                 PyErr_Restore(type, value, traceback);
                 return NULL;
@@ -326,7 +330,7 @@ awaitable_dealloc(PyObject *self)
     for (int i = 0; i < aw->aw_callback_size; i++) {
         awaitable_callback *cb = aw->aw_callbacks[i];
         if (!cb->done) Py_DECREF(cb->coro);
-        PyMem_Free(cb);
+        free(cb);
     }
 
     if (aw->aw_arb_values) PyMem_Free(aw->aw_arb_values);
@@ -462,7 +466,7 @@ PyAwaitable_AddAwait(
     Py_INCREF(aw);
     PyAwaitableObject *a = (PyAwaitableObject *) aw;
 
-    awaitable_callback *aw_c = PyMem_Malloc(sizeof(awaitable_callback));
+    awaitable_callback *aw_c = malloc(sizeof(awaitable_callback));
     if (aw_c == NULL) {
         Py_DECREF(aw);
         Py_DECREF(coro);
@@ -484,7 +488,7 @@ PyAwaitable_AddAwait(
         --a->aw_callback_size;
         Py_DECREF(aw);
         Py_DECREF(coro);
-        PyMem_Free(aw_c);
+        free(aw_c);
         PyErr_NoMemory();
         return -1;
     }
