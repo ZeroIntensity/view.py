@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0-alpha2] - 2023-09-9
 
 - Added `App.test()`
-- 
+- Added warning when filename does not match `app_path`
+- Added more tests
 
 ## [1.0.0-alpha1] - 2023-08-17
 

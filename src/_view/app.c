@@ -814,6 +814,7 @@ static int find_result_for(
         target,
         "__view_result__"
     );
+    PyErr_Clear();
 
     if (Py_IS_TYPE(
         target,

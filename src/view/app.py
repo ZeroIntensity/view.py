@@ -60,12 +60,20 @@ class TestingContext:
         app: Callable[[Any, Any, Any], Any],
     ) -> None:
         self.app = app
+        self._lifespan = asyncio.Queue()
+        self._lifespan.put_nowait("lifespan.startup")
 
     async def start(self):
-        ...
+        async def receive():
+            return await self._lifespan.get()
+
+        async def send(obj: dict[str, Any]):
+            pass
+
+        await self.app({"type": "lifespan"}, receive, send)
 
     async def stop(self):
-        ...
+        await self._lifespan.put("lifespan.shutdown")
 
     async def _request(
         self,
@@ -128,6 +136,38 @@ class TestingContext:
         body: dict[str, Any] | None = None,
     ) -> TestingResponse:
         return await self._request("POST", route, body=body)
+
+    async def put(
+        self,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        return await self._request("PUT", route, body=body)
+
+    async def patch(
+        self,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        return await self._request("PATCH", route, body=body)
+
+    async def delete(
+        self,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        return await self._request("DELETE", route, body=body)
+
+    async def options(
+        self,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        return await self._request("OPTIONS", route, body=body)
 
 
 class App(ViewApp, Generic[A]):
@@ -353,6 +393,14 @@ class App(ViewApp, Generic[A]):
         assert frame.f_back, "frame has no f_back"
 
         back = frame.f_back
+        base = os.path.basename(back.f_code.co_filename)
+        app_path = self.config.app.app_path
+
+        if base != app_path:
+            fname = app_path.split(":")[0]
+            warnings.warn(
+                f"ran app from {base}, but app path is {fname} in config",
+            )
 
         if (not os.environ.get("_VIEW_RUN")) and (
             back.f_globals.get("__name__") == "__main__"
