@@ -1,9 +1,11 @@
 from __future__ import annotations
-from ipaddress import IPv4Address
-from pathlib import Path
-from typing import Any, Literal, Union
+
 import importlib.util
 import sys
+from ipaddress import IPv4Address
+from pathlib import Path
+from typing import Any, Dict, Literal, Union
+
 from configzen import ConfigField, ConfigModel
 
 
@@ -18,7 +20,7 @@ class ServerConfig(ConfigModel):
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
     backend: Literal["uvicorn"] = "uvicorn"
-    extra_args: dict[str, Any] = ConfigField(default_factory=dict)
+    extra_args: Dict[str, Any] = ConfigField(default_factory=dict)
 
 
 class LogConfig(ConfigModel):

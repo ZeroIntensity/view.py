@@ -8,6 +8,7 @@
     Follows PEP 7, not the _view style.
 */
 #include "Python.h"
+#include "pyerrors.h"
 #include <view/awaitable.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -134,6 +135,7 @@ _PyAwaitable_GenWrapper_SetResult(PyObject *gen, PyObject *result)
 static int
 fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
 {
+    assert(PyErr_Occurred() != NULL);
     if (!cb->err_callback) {
         cb->done = true;
         Py_DECREF(cb->coro);
@@ -273,8 +275,8 @@ gen_next(PyObject *self)
 
         Py_INCREF(aw);
         if (cb->callback((PyObject *) aw, value) < 0) {
+            PyErr_Restore(type, value, traceback);
             if (fire_err_callback((PyObject *) aw, g->gw_current_await, cb) < 0) {
-                PyErr_Restore(type, value, traceback);
                 return NULL;
             }
         }
