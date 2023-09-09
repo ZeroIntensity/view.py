@@ -8,6 +8,7 @@ nav:
     - Creating an app: creating.md
     - Running: running.md
     - Components: components.md
+    - Parameters: parameters.md
 
 theme:
     name: null
