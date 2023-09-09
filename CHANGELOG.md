@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tests for headers
 - Updated repr for `Route`
 - Patched responses with three values
+- Documented responses and result protocol
 
 ## [1.0.0-alpha2] - 2023-09-9
 
