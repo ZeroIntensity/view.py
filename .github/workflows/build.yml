@@ -81,7 +81,6 @@ jobs:
         name: Publish release
         needs:
             - binary-wheels-standard
-            - pure-python-wheel-and-sdist
             - binary-wheels-arm
         runs-on: ubuntu-latest
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
