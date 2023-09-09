@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import getpass
 import importlib
 import inspect
@@ -57,7 +58,7 @@ def make_hint(
     line: int | None = None,
     prepend: str = "",
     back_lines: int = 1,
-) -> Syntax:
+) -> Syntax | str:
     if not isinstance(caller, str):
         frame: Frame | None = inspect.currentframe()
 
@@ -87,7 +88,12 @@ def make_hint(
         )
         line = line or (back.f_lineno - back_lines)
     else:
-        txt = pathlib.Path(caller).read_text(encoding="utf-8")
+        caller_path = pathlib.Path(caller)
+
+        if not caller_path.exists():
+            return ""
+
+        txt = caller_path.read_text(encoding="utf-8")
         line = line or 0
 
     split = txt.split("\n")
