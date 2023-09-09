@@ -1,6 +1,42 @@
-# Components
+# Responses
 
-## Using built-in components
+## Basics
+
+view.py allows you to return three things from a route: the body, the headers, and the status code.
+
+You can simply return these via a tuple:
+
+```py
+@app.get("/")
+async def index():
+    return "you are not worthy", 400, {"x-worthiness": "0"}
+```
+
+In fact, it can be in any order you want:
+
+```py
+@app.get("/")
+async def index():
+    return {"x-worthiness": "0"}, "you are not worthy", 400
+```
+
+### Result Protocol
+
+If you need to return a more complicated object, you can put a `__view_result__` function on it:
+
+```py
+class MyObject:
+    def __view_result__(self) -> str:
+        return "123"
+
+@app.get("/")
+async def index():
+    return MyObject()
+```
+
+## Components
+
+### Using built-in components
 
 You can import any standard HTML components from the `view.components` module:
 
@@ -36,7 +72,7 @@ The above would translate to the following HTML snippet:
 </html>
 ```
 
-### Children
+#### Children
 
 You can pass an infinite number of children to a component, and it will be translated to the proper HTML:
 
@@ -54,7 +90,7 @@ Would translate to:
 </div>
 ```
 
-## Attributes
+### Attributes
 
 All built in components come with their respected attributes, per the HTML specification:
 
@@ -64,7 +100,7 @@ async def index():
     return html(lang="en")
 ```
 
-### Classes
+#### Classes
 
 Since the `class` keyword is reserved in Python, view.py uses the parameter name `cls` instead:
 
@@ -72,7 +108,7 @@ Since the `class` keyword is reserved in Python, view.py uses the parameter name
 div(cls="hello")
 ```
 
-## Custom Components
+### Custom Components
 
 There's no need for any fancy mechanics when making a custom component, so you can just use a normal function:
 

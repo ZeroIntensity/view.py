@@ -853,66 +853,76 @@ static int find_result_for(
                 target,
                 item
             );
+
             if (!v) {
                 Py_DECREF(iter);
                 return -1;
             }
-            PyObject* v_str = PyObject_Str(v);
-            if (v_str) {
+
+            const char* v_str = PyUnicode_AsUTF8(v);
+            if (!v_str) {
                 Py_DECREF(iter);
                 return -1;
             }
+
             PyObject* item_str = PyObject_Str(item);
             if (!item_str) {
-                Py_DECREF(v_str);
                 Py_DECREF(iter);
                 return -1;
             }
 
-            PyObject* v_bytes = PyBytes_FromObject(v_str);
-            if (!v_bytes) {
-                Py_DECREF(v_str);
+            const char* item_cc = PyUnicode_AsUTF8(item_str);
+
+            if (!item_cc) {
                 Py_DECREF(iter);
-                Py_DECREF(item_str);
                 return -1;
             }
-            PyObject* item_bytes = PyBytes_FromObject(item_str);
+
+            PyObject* item_bytes = PyBytes_FromString(item_cc);
+            Py_DECREF(item_str);
+
             if (!item_bytes) {
-                Py_DECREF(v_bytes);
-                Py_DECREF(v_str);
                 Py_DECREF(iter);
-                Py_DECREF(item_str);
                 return -1;
             }
 
-            PyObject* header_list = PyList_New(2);
-            if (PyList_Append(
+            PyObject* header_list = PyTuple_New(2);
+
+            if (!header_list) {
+                Py_DECREF(iter);
+                Py_DECREF(item_bytes);
+                return -1;
+            }
+
+            if (PyTuple_SetItem(
                 header_list,
+                0,
                 item_bytes
                 ) < 0) {
                 Py_DECREF(header_list);
-                Py_DECREF(item_str);
                 Py_DECREF(iter);
-                Py_DECREF(v_str);
                 Py_DECREF(item_bytes);
-                Py_DECREF(v_bytes);
             };
 
-            if (PyList_Append(
+            Py_DECREF(item_bytes);
+
+            PyObject* v_bytes = PyBytes_FromString(v_str);
+
+            if (!v_bytes) {
+                Py_DECREF(header_list);
+                Py_DECREF(iter);
+                return -1;
+            }
+
+            if (PyTuple_SetItem(
                 header_list,
+                1,
                 v_bytes
                 ) < 0) {
                 Py_DECREF(header_list);
-                Py_DECREF(item_str);
                 Py_DECREF(iter);
-                Py_DECREF(v_str);
-                Py_DECREF(item_bytes);
-                Py_DECREF(v_bytes);
             };
 
-            Py_DECREF(item_str);
-            Py_DECREF(v_str);
-            Py_DECREF(item_bytes);
             Py_DECREF(v_bytes);
 
             if (PyList_Append(
@@ -920,8 +930,10 @@ static int find_result_for(
                 header_list
                 ) < 0) {
                 Py_DECREF(header_list);
+                Py_DECREF(iter);
                 return -1;
             }
+            Py_DECREF(header_list);
         }
 
         Py_DECREF(iter);
@@ -998,8 +1010,8 @@ static int handle_result(
                 headers
                 ) < 0) return -1;
 
-            if (second && find_result_for(
-                second,
+            if (third && find_result_for(
+                third,
                 &res_str,
                 &status,
                 headers

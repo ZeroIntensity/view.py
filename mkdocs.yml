@@ -7,7 +7,7 @@ nav:
     - Home: index.md
     - Creating an app: creating.md
     - Running: running.md
-    - Components: components.md
+    - Responses: responses.md
     - Parameters: parameters.md
 
 theme:

@@ -95,7 +95,10 @@ class TestingContext:
         async def send(obj: dict[str, Any]):
             if obj["type"] == "http.response.start":
                 await start.put(
-                    ({k: v for k, v in obj["headers"]}, obj["status"])
+                    (
+                        {k.decode(): v.decode() for k, v in obj["headers"]},
+                        obj["status"],
+                    )
                 )
             elif obj["type"] == "http.response.body":
                 await body_q.put(obj["body"].decode())
