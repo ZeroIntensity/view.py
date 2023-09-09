@@ -9,48 +9,30 @@ import os
 import sys
 import warnings
 import weakref
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
+from dataclasses import dataclass
 from functools import lru_cache
+from io import UnsupportedOperation
+from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Coroutine,
-    Generic,
-    TypeVar,
-    get_type_hints,
-)
-from pathlib import Path
+from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
+
 from rich import print
 from rich.traceback import install
-from .typing import Callback
+
 from _view import ViewApp
-from io import UnsupportedOperation
+
 from ._loader import finalize, load_fs, load_simple
-from ._logging import (
-    Internal,
-    Service,
-    UvicornHijack,
-    enter_server,
-    exit_server,
-    format_warnings,
-)
+from ._logging import (Internal, Service, UvicornHijack, enter_server,
+                       exit_server, format_warnings)
 from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
 from .exceptions import MissingLibraryError, ViewError
-from .routing import (
-    Route,
-    RouteOrCallable,
-    delete,
-    get,
-    options,
-    patch,
-    post,
-    put,
-)
+from .routing import (Route, RouteOrCallable, delete, get, options, patch,
+                      post, put)
+from .typing import Callback
 from .util import debug as enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -63,6 +45,89 @@ A = TypeVar("A")
 _ROUTES_WARN_MSG = "routes argument should only be passed when load strat"
 
 B = TypeVar("B", bound=BaseException)
+
+
+@dataclass()
+class TestingResponse:
+    message: str
+    headers: dict[str, str]
+    status: int
+
+
+class TestingContext:
+    def __init__(
+        self,
+        app: Callable[[Any, Any, Any], Any],
+    ) -> None:
+        self.app = app
+
+    async def start(self):
+        ...
+
+    async def stop(self):
+        ...
+
+    async def _request(
+        self,
+        method: str,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        body_q = asyncio.Queue()
+        start = asyncio.Queue()
+
+        async def receive():
+            return (
+                {**body, "more_body": False, "type": "http.request"}
+                if body
+                else b""
+            )
+
+        async def send(obj: dict[str, Any]):
+            if obj["type"] == "http.response.start":
+                await start.put(
+                    ({k: v for k, v in obj["headers"]}, obj["status"])
+                )
+            elif obj["type"] == "http.response.body":
+                await body_q.put(obj["body"].decode())
+            else:
+                raise TypeError(f"bad type: {obj['type']}")
+
+        qs = route[route.find("?") :] if "?" in route else ""  # noqa
+        await self.app(
+            {
+                "type": "http",
+                "http_version": "1.1",
+                "path": route,
+                "query_string": qs.encode(),
+                "headers": [],
+                "method": method,
+            },
+            receive,
+            send,
+        )
+
+        headers, status = await start.get()
+        body_s = await body_q.get()
+
+        return TestingResponse(body_s, headers, status)
+
+    async def get(
+        self,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        return await self._request("GET", route, body=body)
+
+    async def post(
+        self,
+        route: str,
+        *,
+        body: dict[str, Any] | None = None,
+    ) -> TestingResponse:
+        return await self._request("POST", route, body=body)
 
 
 class App(ViewApp, Generic[A]):
@@ -317,6 +382,15 @@ class App(ViewApp, Generic[A]):
 
     def __repr__(self) -> str:
         return f"App(config={self.config!r})"
+
+    @asynccontextmanager
+    async def test(self):
+        self.load()
+        ctx = TestingContext(self.asgi_app_entry)
+        try:
+            yield ctx
+        finally:
+            await ctx.stop()
 
 
 def new_app(
