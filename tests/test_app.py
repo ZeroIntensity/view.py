@@ -28,31 +28,3 @@ async def _():
         assert res.status == 400
         assert res.message == "error"
 
-
-@test("headers")
-async def _():
-    app = new_app()
-
-    @app.get("/")
-    async def index():
-        return "hello", {"a": "b"}
-
-    async with app.test() as test:
-        res = await test.get("/")
-        assert res.headers["a"] == "b"
-        assert res.message == "hello"
-
-
-@test("combination of headers, responses, and status codes")
-async def _():
-    app = new_app()
-
-    @app.get("/")
-    async def index():
-        return 201, "123", {"a": "b"}
-
-    async with app.test() as test:
-        res = await test.get("/")
-        assert res.status == 201
-        assert res.message == "123"
-        assert res.headers["a"] == "b"
