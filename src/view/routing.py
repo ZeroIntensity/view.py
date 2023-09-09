@@ -72,7 +72,7 @@ class Route(Generic[P, T], LoadChecker):
         return wrapper
 
     def __repr__(self):
-        return f"Route({self.method.name} {self.path or '/???'})"  # noqa
+        return f"Route({self.method.name}(\"{self.path or '/???'}\"))"  # noqa
 
     __str__ = __repr__
 

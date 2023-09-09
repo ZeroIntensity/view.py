@@ -49,7 +49,7 @@ async def _():
 
     @app.get("/")
     async def index():
-        return "123", 201, {"a": "b"}
+        return 201, "123", {"a": "b"}
 
     async with app.test() as test:
         res = await test.get("/")

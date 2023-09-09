@@ -1010,8 +1010,8 @@ static int handle_result(
                 headers
                 ) < 0) return -1;
 
-            if (second && find_result_for(
-                second,
+            if (third && find_result_for(
+                third,
                 &res_str,
                 &status,
                 headers
