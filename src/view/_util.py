@@ -12,14 +12,12 @@ from collections.abc import Iterable
 from types import FrameType as Frame
 from types import FunctionType as Function
 from types import ModuleType as Module
-from typing import get_type_hints
 
 from rich.panel import Panel
 from rich.syntax import Syntax
 
 from ._logging import Internal
-from .exceptions import InvalidBodyError, MissingLibraryError, NotLoadedWarning
-from .typing import Any, ViewBody, ViewBodyLike
+from .exceptions import MissingLibraryError, NotLoadedWarning
 
 
 class LoadChecker:
@@ -119,34 +117,3 @@ def attempt_import(name: str, *, repr_name: str | None = None) -> Module:
             f"{repr_name or name} is not installed!",
             hint=shell_hint(f"pip install [bold]{name}[/]"),
         ) from e
-
-
-_VALID_BODY = {str, int, type, dict, float, bool}
-
-
-def validate_body(v: ViewBody) -> None:
-    Internal.info(f"validating {v!r}")
-    if type(v) not in _VALID_BODY:
-        raise InvalidBodyError(
-            f"{type(v).__name__} is not a valid type for a body",
-        )
-
-    if isinstance(v, dict):
-        for i in v.values():
-            validate_body(get_body(i))
-
-    if isinstance(v, type):
-        validate_body(get_body(v))
-
-
-def get_body(tp: ViewBodyLike | Any) -> ViewBody:
-    body_attr: ViewBody | None = getattr(tp, "__view_body__", None)
-
-    if body_attr:
-        if callable(body_attr):
-            return body_attr()
-
-        assert isinstance(body_attr, dict), "__view_body__ is not a dict"
-        return body_attr
-
-    return get_type_hints(tp)

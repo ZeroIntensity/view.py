@@ -1,16 +1,7 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    ClassVar,
-    Dict,
-    Generic,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import (Any, Awaitable, Callable, ClassVar, Dict, Generic, List,
+                    Tuple, Type, TypeVar, Union)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
@@ -65,27 +56,22 @@ Context = Any
 R = TypeVar("R", bound="ViewResponse")
 ViewRoute = Callable[P, R]
 
-
-class BodyLike(Protocol):
-    __view_body__: ClassVar[dict[str, ValueType]]
-
-
-ValueType = Union[BodyLike, str, int, Dict[str, "ValueType"], bool, float]
 ValidatorResult = Union[bool, Tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
+
+TypeInfo = Tuple[int, Union[Type[Any], None], List["TypeInfo"]]
 
 
 class RouteInputDict(TypedDict, Generic[V]):
     name: str
-    type: type[V] | None
+    type_codes: list[TypeInfo]
     default: V | None
     validators: list[Validator[V]]
     is_body: bool
     has_default: bool
 
 
-ViewBodyType = Union[str, int, dict, bool, float]
-ViewBody = Dict[str, ViewBodyType]
+ViewBody = Dict[str, "ValueType"]
 
 
 class _SupportsViewBodyCV(Protocol):
@@ -103,6 +89,15 @@ class _SupportsAnnotations(Protocol):
 
 SupportsViewBody = Union[_SupportsViewBodyCV, _SupportsViewBodyF]
 ViewBodyLike = Union[SupportsViewBody, _SupportsAnnotations]
+ValueType = Union[
+    ViewBodyLike,
+    str,
+    int,
+    Dict[str, "ValueType"],
+    bool,
+    float,
+    Type[Any],
+]
 Parser = Callable[[str], ViewBody]
 
 

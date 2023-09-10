@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha4] - 2023-09-10
+- Added type validation (without support for `__view_body__`)
+- Patched query strings on app testing
+- Added tests for query and body parameters
+- Patched body parameters
+- Documented type validation
+- Patched bodies with testing
+
 ## [1.0.0-alpha3] - 2023-09-9
 - Patched header responses
 - Added tests for headers

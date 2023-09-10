@@ -4,13 +4,13 @@ import os
 import runpy
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, get_args
 
 from ._logging import Internal
-from ._util import set_load, validate_body
-from .exceptions import LoaderWarning
+from ._util import set_load
+from .exceptions import InvalidBodyError, LoaderWarning
 from .routing import Method, Route, RouteInput, _NoDefault
-from .typing import RouteInputDict
+from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 if TYPE_CHECKING:
     from .app import ViewApp
@@ -18,17 +18,94 @@ if TYPE_CHECKING:
 __all__ = "load_fs", "load_simple", "finalize"
 
 
+TYPECODE_ANY = 0
+TYPECODE_STR = 1
+TYPECODE_INT = 2
+TYPECODE_BOOL = 3
+TYPECODE_FLOAT = 4
+TYPECODE_DICT = 5
+TYPECODE_NONE = 6
+TYPECODE_CLASS = 7
+
+
+_BASIC_CODES = {
+    str: TYPECODE_STR,
+    int: TYPECODE_INT,
+    bool: TYPECODE_BOOL,
+    float: TYPECODE_FLOAT,
+    dict: TYPECODE_DICT,
+    None: TYPECODE_NONE,
+    Any: TYPECODE_ANY,
+}
+
+"""
+Type info should contain three things:
+    - Type Code
+    - Type Object (only set when using a __view_body__ object)
+    - Children (i.e. the `int` part of dict[str, int])
+
+This can be formatted as so:
+    [(union1_tc, None, []), (union2_tc, None, [(type_tc, obj, [])])]
+"""
+
+
+def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
+    if not inp:
+        return []
+
+    codes: list[TypeInfo] = []
+
+    for tp in inp:
+        type_code = _BASIC_CODES.get(tp)
+
+        if type_code:
+            codes.append((type_code, None, []))
+            continue
+
+        vbody = getattr(tp, "__view_body__", None)
+        if vbody:
+            raise NotImplementedError
+            """
+            if callable(vbody):
+                vbody_types = vbody()
+            else:
+                vbody_types = vbody
+
+            codes.append((TYPECODE_CLASS, tp, _build_type_codes(vbody_types)))
+            """
+
+        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
+
+        if (not origin) and (origin is not dict):
+            raise InvalidBodyError(f"{tp} is not a valid type for routes")
+
+        key, value = get_args(tp)
+
+        if key is not str:
+            raise InvalidBodyError(
+                f"dictionary keys must be strings, not {key}"
+            )
+
+        value_args = get_args(value)
+
+        if not len(value_args):
+            value_args = (value,)
+
+        tp_codes = _build_type_codes(value_args)
+        codes.append((TYPECODE_DICT, None, tp_codes))
+
+    return codes
+
+
 def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
     result: list[RouteInputDict] = []
 
     for i in inputs:
-        if i.tp:
-            validate_body(i.tp)
-
+        type_codes = _build_type_codes(i.tp)
         result.append(
             {
                 "name": i.name,
-                "type": i.tp,
+                "type_codes": type_codes,
                 "default": i.default,  # type: ignore
                 "validators": i.validators,
                 "is_body": i.is_body,

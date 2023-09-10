@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 from typing_extensions import (
     NotRequired,
