@@ -59,7 +59,7 @@ ViewRoute = Callable[P, R]
 ValidatorResult = Union[bool, Tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
 
-TypeInfo = Tuple[int, Type[Any] | None, List["TypeInfo"]]
+TypeInfo = Tuple[int, Union[Type[Any], None], List["TypeInfo"]]
 
 
 class RouteInputDict(TypedDict, Generic[V]):
