@@ -76,7 +76,7 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
 
         origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
 
-        if (not origin) or (origin is not dict):
+        if (not origin) and (origin is not dict):
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
 
         key, value = get_args(tp)
@@ -85,7 +85,7 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             raise InvalidBodyError(
                 f"dictionary keys must be strings, not {key}"
             )
-        
+
         value_args = get_args(value)
 
         if not len(value_args):

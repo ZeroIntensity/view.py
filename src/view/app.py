@@ -17,6 +17,7 @@ from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
 from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
+from urllib.parse import urlencode
 
 from rich import print
 from rich.traceback import install
@@ -81,6 +82,7 @@ class TestingContext:
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
         body_q = asyncio.Queue()
         start = asyncio.Queue()
@@ -105,13 +107,13 @@ class TestingContext:
             else:
                 raise TypeError(f"bad type: {obj['type']}")
 
-        qs = route[route.find("?") :] if "?" in route else ""  # noqa
+        truncated_route = route[: route.find("?")] if "?" in route else route
         await self.app(
             {
                 "type": "http",
                 "http_version": "1.1",
-                "path": route,
-                "query_string": qs.encode(),
+                "path": truncated_route,
+                "query_string": urlencode(query).encode() if query else b"",
                 "headers": [],
                 "method": method,
             },
@@ -129,48 +131,54 @@ class TestingContext:
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
-        return await self._request("GET", route, body=body)
+        return await self._request("GET", route, body=body, query=query)
 
     async def post(
         self,
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
-        return await self._request("POST", route, body=body)
+        return await self._request("POST", route, body=body, query=query)
 
     async def put(
         self,
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
-        return await self._request("PUT", route, body=body)
+        return await self._request("PUT", route, body=body, query=query)
 
     async def patch(
         self,
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
-        return await self._request("PATCH", route, body=body)
+        return await self._request("PATCH", route, body=body, query=query)
 
     async def delete(
         self,
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
-        return await self._request("DELETE", route, body=body)
+        return await self._request("DELETE", route, body=body, query=query)
 
     async def options(
         self,
         route: str,
         *,
         body: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
     ) -> TestingResponse:
-        return await self._request("OPTIONS", route, body=body)
+        return await self._request("OPTIONS", route, body=body, query=query)
 
 
 class App(ViewApp, Generic[A]):
