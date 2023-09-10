@@ -85,8 +85,13 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             raise InvalidBodyError(
                 f"dictionary keys must be strings, not {key}"
             )
+        
+        value_args = get_args(value)
 
-        tp_codes = _build_type_codes(value)
+        if not len(value_args):
+            value_args = (value,)
+
+        tp_codes = _build_type_codes(value_args)
         codes.append((TYPECODE_DICT, None, tp_codes))
 
     return codes
