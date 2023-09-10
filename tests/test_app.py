@@ -1,7 +1,7 @@
 from ward import test
 
 from view import body, new_app, query
-
+from typing import Union
 
 @test("responses")
 async def _():
