@@ -1746,7 +1746,6 @@ static int handle_route_impl(
         );
     }
 
-
     PyObject** params = json_parser(
         &self->parsers,
         body,
@@ -2207,8 +2206,11 @@ static int handle_route(PyObject* awaitable, char* query) {
     return 0;
 }
 
-static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
-                     nargs) {
+static PyObject* app(
+    ViewApp* self,
+    PyObject* const* args,
+    Py_ssize_t nargs
+) {
     PyObject* scope = args[0];
     PyObject* receive = args[1];
     PyObject* send = args[2];
@@ -2650,7 +2652,6 @@ static PyObject* app(ViewApp* self, PyObject* const* args, Py_ssize_t
         Py_DECREF(awaitable);
         return NULL;
     }
-
     if (r->inputs_size != 0) {
         if (!r->has_body) {
             if (handle_route_query(
@@ -3053,9 +3054,13 @@ static bool figure_has_body(PyObject* inputs) {
     PyObject* item;
     bool res = false;
 
+    if (!iter) {
+        return false;
+    }
+
     while ((item = PyIter_Next(iter))) {
         PyObject* is_body = PyDict_GetItemString(
-            inputs,
+            item,
             "is_body"
         );
 

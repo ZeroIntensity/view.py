@@ -102,7 +102,6 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
 
     for i in inputs:
         type_codes = _build_type_codes(i.tp)
-
         result.append(
             {
                 "name": i.name,
