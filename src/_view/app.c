@@ -1,3 +1,4 @@
+#include <Python.h>
 #include <view/app.h>
 #include <view/awaitable.h>
 #include <view/map.h>
@@ -472,6 +473,10 @@ static PyObject* cast_from_typecodes(
             break;
         }
         case TYPECODE_INT: {
+            if (PyObject_IsInstance(
+                item,
+                (PyObject*) &PyLong_Type
+                )) return item;
             PyObject* py_int = PyLong_FromUnicodeObject(
                 item,
                 10
@@ -483,6 +488,10 @@ static PyObject* cast_from_typecodes(
             return py_int;
         }
         case TYPECODE_BOOL: {
+            if (PyObject_IsInstance(
+                item,
+                (PyObject*) &PyBool_Type
+                )) return item;
             const char* str = PyUnicode_AsUTF8(item);
             PyObject* py_bool = NULL;
             if (!str) return NULL;
@@ -502,6 +511,10 @@ static PyObject* cast_from_typecodes(
             break;
         }
         case TYPECODE_FLOAT: {
+            if (PyObject_IsInstance(
+                item,
+                (PyObject*) &PyFloat_Type
+                )) return item;
             PyObject* flt = PyFloat_FromString(item);
             if (!flt) {
                 PyErr_Clear();
@@ -517,8 +530,14 @@ static PyObject* cast_from_typecodes(
                 NULL
             );
             if (!obj) {
-                PyErr_Clear();
-                break;
+                if (PyObject_IsInstance(
+                    item,
+                    (PyObject*) &PyDict_Type
+                    )) obj = item;
+                else {
+                    PyErr_Clear();
+                    break;
+                }
             }
             int res = verify_dict_typecodes(
                 ti->children,
@@ -532,8 +551,15 @@ static PyObject* cast_from_typecodes(
         default: Py_FatalError("invalid typecode");
         }
     }
-    if ((CHECK(NULL_ALLOWED)) && (item == NULL)) Py_RETURN_NONE;
-    if (CHECK(STRING_ALLOWED)) return Py_NewRef(item);
+    if ((CHECK(NULL_ALLOWED)) && (item == NULL || item ==
+                                  Py_None)) Py_RETURN_NONE;
+    if (CHECK(STRING_ALLOWED)) {
+        if (!PyObject_IsInstance(
+            item,
+            (PyObject*) &PyUnicode_Type
+            )) return NULL;
+        return Py_NewRef(item);
+    }
     return NULL;
 }
 
@@ -545,7 +571,6 @@ static PyObject** json_parser(
     Py_ssize_t inputs_size
 ) {
     PyObject* py_str = PyUnicode_FromString(data);
-
     if (!py_str)
         return NULL;
 
@@ -555,7 +580,6 @@ static PyObject** json_parser(
         1,
         NULL
     );
-
     Py_DECREF(py_str);
 
     if (!obj)
@@ -587,7 +611,6 @@ static PyObject** json_parser(
 
         if (!item) {
             Py_DECREF(obj);
-            Py_DECREF(item);
             free(ob);
             return NULL;
         }
@@ -599,7 +622,6 @@ static PyObject** json_parser(
                 1,
                 NULL
             );
-
             if (!PyObject_IsTrue(o)) {
                 Py_DECREF(o);
                 free(ob);
@@ -1710,7 +1732,6 @@ static int handle_route_impl(
     ViewApp* self;
     Py_ssize_t* size;
     PyObject** path_params;
-
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
@@ -1758,7 +1779,6 @@ static int handle_route_impl(
 
     if (!params) {
         // parsing failed
-
         PyErr_Clear();
 
         return fire_error(
@@ -1858,6 +1878,7 @@ static int body_inc_buf(PyObject* awaitable, PyObject* result) {
         Py_DECREF(more_body);
         return -1;
     }
+
 
     char* buf;
     Py_ssize_t* size;

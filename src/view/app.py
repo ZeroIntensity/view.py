@@ -4,6 +4,7 @@ import asyncio
 import faulthandler
 import importlib
 import inspect
+import json
 import logging
 import os
 import sys
@@ -88,11 +89,11 @@ class TestingContext:
         start = asyncio.Queue()
 
         async def receive():
-            return (
-                {**body, "more_body": False, "type": "http.request"}
-                if body
-                else b""
-            )
+            return {
+                "body": json.dumps(body).encode(),
+                "more_body": False,
+                "type": "http.request",
+            }
 
         async def send(obj: dict[str, Any]):
             if obj["type"] == "http.response.start":
