@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ward import test
 
 from view import body, new_app, query
