@@ -1,4 +1,3 @@
-from __future__ import annotations
 from ward import test
 
 from view import body, new_app, query
@@ -98,7 +97,7 @@ async def _():
 
     @app.get("/union")
     @body("test", bool, int)
-    async def union(test: bool | int):
+    async def union(test: Union[bool, int]):
         if type(test) is bool:
             return "1"
         elif type(test) is int:
@@ -144,7 +143,7 @@ async def _():
 
     @app.get("/union")
     @query("test", bool, int)
-    async def union(test: bool | int):
+    async def union(test: Union[bool, int]):
         if type(test) is bool:
             return "1"
         elif type(test) is int:
