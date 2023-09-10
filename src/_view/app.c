@@ -467,12 +467,19 @@ static PyObject* cast_from_typecodes(
             typecode_flags |= STRING_ALLOWED;
             break;
         }
+        case TYPECODE_NONE: {
+            typecode_flags |= NULL_ALLOWED;
+            break;
+        }
         case TYPECODE_INT: {
             PyObject* py_int = PyLong_FromUnicodeObject(
                 item,
                 10
             );
-            if (!py_int) break;
+            if (!py_int) {
+                PyErr_Clear();
+                break;
+            }
             return py_int;
         }
         case TYPECODE_BOOL: {
@@ -496,7 +503,10 @@ static PyObject* cast_from_typecodes(
         }
         case TYPECODE_FLOAT: {
             PyObject* flt = PyFloat_FromString(item);
-            if (!flt) break;
+            if (!flt) {
+                PyErr_Clear();
+                break;
+            }
             return flt;
         }
         case TYPECODE_DICT: {
@@ -506,7 +516,10 @@ static PyObject* cast_from_typecodes(
                 1,
                 NULL
             );
-            if (!obj) break;
+            if (!obj) {
+                PyErr_Clear();
+                break;
+            }
             int res = verify_dict_typecodes(
                 ti->children,
                 ti->children_size,
@@ -519,7 +532,8 @@ static PyObject* cast_from_typecodes(
         default: Py_FatalError("invalid typecode");
         }
     }
-
+    if ((CHECK(NULL_ALLOWED)) && (item == NULL)) Py_RETURN_NONE;
+    if (CHECK(STRING_ALLOWED)) return Py_NewRef(item);
     return NULL;
 }
 
@@ -1575,8 +1589,10 @@ static int route_error(
 }
 
 
-static int handle_route_callback(PyObject* awaitable,
-                                 PyObject* result) {
+static int handle_route_callback(
+    PyObject* awaitable,
+    PyObject* result
+) {
     PyObject* send;
     route* r;
 
@@ -2022,7 +2038,6 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 item,
                 self->parsers.json
             );
-            puts("abc");
             if (!parsed_item) {
                 PyErr_Clear();
                 for (int i = 0; i < r->inputs_size; i++) {
@@ -2039,7 +2054,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                     NULL
                 );
             }
-            params[i] = Py_NewRef(parsed_item);
+            params[i] = parsed_item;
         }
     }
 
