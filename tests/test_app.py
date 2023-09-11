@@ -1,7 +1,9 @@
+from typing import Union
+
 from ward import test
 
 from view import body, new_app, query
-from typing import Union
+
 
 @test("responses")
 async def _():
@@ -171,3 +173,24 @@ async def _():
         res = await test.get("/multi", query={"status": 404, "name": "test"})
         assert res.status == 404
         assert res.message == "test"
+
+
+@test("queries directly from app and body")
+async def _():
+    app = new_app()
+
+    @app.query("name", str)
+    @app.get("/")
+    async def query_route(name: str):
+        return name
+
+    @app.get("/body")
+    @app.body("name", str)
+    async def body_route(name: str):
+        return name
+
+    async with app.test() as test:
+        assert (await test.get("/", query={"name": "test"})).message == "test"
+        assert (
+            await test.get("/body", body={"name": "test"})
+        ).message == "test"

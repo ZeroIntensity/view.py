@@ -253,7 +253,7 @@ _NoDefaultType = Type[_NoDefault]
 
 def query(
     name: str,
-    *tps: type[V] | None,
+    *tps: type[V],
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
