@@ -32,8 +32,10 @@ from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
 from .exceptions import MissingLibraryError, ViewError
-from .routing import (Route, RouteOrCallable, delete, get, options, patch,
-                      post, put)
+from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
+from .routing import body as body_impl
+from .routing import delete, get, options, patch, post, put
+from .routing import query as query_impl
 from .typing import Callback
 from .util import debug as enable_debug
 
@@ -256,6 +258,12 @@ class App(ViewApp, Generic[A]):
             )
         )
 
+    def _push_route(self, route: Route) -> None:
+        if route in self._manual_routes:
+            return
+
+        self._manual_routes.append(route)
+
     def _method_wrapper(
         self,
         path: str,
@@ -265,7 +273,7 @@ class App(ViewApp, Generic[A]):
     ) -> Callable[[RouteOrCallable], Route]:
         def inner(route: RouteOrCallable) -> Route:
             new_route = target(path, doc)(route)
-            self._manual_routes.append(new_route)
+            self._push_route(new_route)
             return new_route
 
         return inner
@@ -287,6 +295,34 @@ class App(ViewApp, Generic[A]):
 
     def options(self, path: str, *, doc: str | None = None):
         return self._method_wrapper(path, doc, options)
+
+    def query(
+        self,
+        name: str,
+        *tps: type[V],
+        doc: str | None = None,
+        default: V | None | _NoDefaultType = _NoDefault,
+    ):
+        def inner(func: RouteOrCallable) -> Route:
+            route = query_impl(name, *tps, doc=doc, default=default)(func)
+            self._push_route(route)
+            return route
+
+        return inner
+
+    def body(
+        self,
+        name: str,
+        *tps: type[V],
+        doc: str | None = None,
+        default: V | None | _NoDefaultType = _NoDefault,
+    ):
+        def inner(func: RouteOrCallable) -> Route:
+            route = body_impl(name, *tps, doc=doc, default=default)(func)
+            self._push_route(route)
+            return route
+
+        return inner
 
     async def _app(self, scope, receive, send) -> None:
         return await self.asgi_app_entry(scope, receive, send)

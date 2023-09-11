@@ -34,6 +34,19 @@ async def goodbye(name: str):
 
     As of now, only bodies sent in JSON are supported.
 
+## From App
+
+In a case where you have direct access to your `App` instance (i.e. in manual loading), you don't have to even use `body` and `query`, and instead use the app methods instead:
+
+```py
+@app.get("/hello")
+@app.query("name", str)
+async def hello(name: str):
+    return f"hello, {name}"
+```
+
+`app.query` and `app.body` work exactly the same as `@query` and `@body`.
+
 ## Path
 
 Path parameters are even simpler, just wrap a route part in brackets, like so:
