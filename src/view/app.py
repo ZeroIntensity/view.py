@@ -443,9 +443,8 @@ class App(ViewApp, Generic[A]):
         back = frame.f_back
         base = os.path.basename(back.f_code.co_filename)
         app_path = self.config.app.app_path
-
-        if base != app_path:
-            fname = app_path.split(":")[0]
+        fname = app_path.split(":")[0]
+        if base != fname:
             warnings.warn(
                 f"ran app from {base}, but app path is {fname} in config",
             )

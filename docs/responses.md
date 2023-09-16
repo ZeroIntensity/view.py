@@ -116,3 +116,45 @@ There's no need for any fancy mechanics when making a custom component, so you c
 def my_header(content: str):
     return div(h1(content))
 ```
+
+## Response Type
+
+If you need to, you can use `view.Response` as an object wrapper for responses:
+
+```py
+import view
+
+app = view.new_app()
+
+
+@app.get("/")
+async def index():
+    res = view.Response("my response!")
+    return res
+
+
+app.run()
+```
+
+You may also easily use cookies with the response type:
+
+```py
+@app.get("/")
+async def index():
+    res = view.Response("my response!")
+    res.cookie("hello", "world")
+    return res
+```
+
+### HTML Responses
+
+While it's not required, the `view.HTML` type may come in handy if you're returning lots of HTML. You may pass 4 total types:
+
+```py
+view.HTML("<h1>Hi!</h1>")  # Renders HTML from a string
+view.HTML(pathlib.Path("my_file.html"))  # Renders HTML from a file
+view.HTML(view.html(...))  # Render HTML from a component
+
+with open("my_file.html") as f:
+    view.HTML(f)  # Render HTML from a file wrapper
+```

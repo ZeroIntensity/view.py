@@ -12,6 +12,19 @@ from ._util import LoadChecker, make_hint
 from .exceptions import MistakeError
 from .typing import Validator, ValueType, ViewResponse, ViewRoute
 
+__all__ = (
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "options",
+    "query",
+    "body",
+    "route_types",
+    "cache"
+)
+
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
 
 
