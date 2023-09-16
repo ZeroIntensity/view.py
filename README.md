@@ -1,4 +1,5 @@
-# view.py
+<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=200 height=auto /></div>
+
 ## Lightning fast, modern web framework
 
 - [Docs](https://view.zintensity.dev)
@@ -18,7 +19,7 @@ async def index():
 app.run()
 ```
 
-### Help! I have too much free time!
+### Help! I have too much free time
 
 Fear not! view.py is currently in a very high alpha stage of development, and always looking for new contributors. If you're interested, you can take a look at the [issues tab](https://github.com/ZeroIntensity/view.py/issues) or [CONTRIBUTING.md](https://github.com/Zerointensity/view.py/blob/master/CONTRIBUTING.md).
 
@@ -28,9 +29,8 @@ Fear not! view.py is currently in a very high alpha stage of development, and al
 
 #### Linux/macOS
 
-
 ```
-$ python3 -m pip install -U view.py
+python3 -m pip install -U view.py
 ```
 
 #### Windows
@@ -38,4 +38,3 @@ $ python3 -m pip install -U view.py
 ```
 > py -3 -m pip install -U view.py
 ```
-
