@@ -1025,35 +1025,11 @@ static int find_result_for(
     int* status,
     PyObject* headers
 ) {
-    PyObject* view_result = PyObject_GetAttrString(
-        target,
-        "__view_result__"
-    );
-    PyErr_Clear();
-
     if (Py_IS_TYPE(
         target,
         &PyUnicode_Type
-        ) || view_result) {
-        PyObject* str_target;
-
-        if (view_result) {
-            str_target = PyObject_CallNoArgs(view_result);
-            if (!str_target) return -1;
-            if (!Py_IS_TYPE(
-                str_target,
-                &PyUnicode_Type
-                )) {
-                PyErr_Format(
-                    PyExc_TypeError,
-                    "%R.__view_result__ returned %R, expected str instance",
-                    target,
-                    str_target
-                );
-            }
-        } else str_target = target;
-
-        const char* tmp = PyUnicode_AsUTF8(str_target);
+        )) {
+        const char* tmp = PyUnicode_AsUTF8(target);
         if (!tmp) return -1;
         *res_str = strdup(tmp);
     } else if (Py_IS_TYPE(
@@ -1158,6 +1134,38 @@ static int find_result_for(
         &PyLong_Type
                )) {
         *status = (int) PyLong_AsLong(target);
+    } else if (Py_IS_TYPE(
+        target,
+        &PyTuple_Type
+               )) {
+        PyObject* t_iter = PyObject_GetIter(target);
+        if (!t_iter) return -1;
+
+        PyObject* t_value;
+        while ((t_value = PyIter_Next(t_iter))) {
+            if (!PyObject_IsInstance(
+                t_value,
+                (PyObject*) &PyTuple_Type
+                )) {
+                PyErr_SetString(
+                    PyExc_TypeError,
+                    "raw header tuple should contain tuples"
+                );
+                Py_DECREF(t_iter);
+                return -1;
+            }
+
+            PyList_Append(
+                headers,
+                t_value
+            );
+        }
+
+        Py_DECREF(t_iter);
+
+        if (PyErr_Occurred()) {
+            return -1;
+        }
     } else {
         PyErr_SetString(
             PyExc_TypeError,
@@ -1169,7 +1177,7 @@ static int find_result_for(
     return 0;
 }
 static int handle_result(
-    PyObject* result,
+    PyObject* raw_result,
     char** res_target,
     int* status_target,
     PyObject** headers_target
@@ -1177,6 +1185,19 @@ static int handle_result(
     char* res_str = NULL;
     int status = 200;
     PyObject* headers = PyList_New(0);
+    PyObject* result;
+
+    PyObject* view_result = PyObject_GetAttrString(
+        raw_result,
+        "__view_result__"
+    );
+    PyErr_Clear();
+
+    if (view_result) {
+        result = PyObject_CallNoArgs(view_result);
+        if (!result)
+            return -1;
+    } else result = raw_result;
 
     if (PyObject_IsInstance(
         result,
@@ -1233,35 +1254,12 @@ static int handle_result(
                 ) < 0) return -1;
         }
     } else {
-        PyObject* view_result = PyObject_GetAttrString(
-            result,
-            "__view_result__"
+        PyErr_Format(
+            PyExc_TypeError,
+            "%R is not a valid return value for route",
+            result
         );
-        if (view_result) {
-            PyObject* str = PyObject_CallNoArgs(view_result);
-            if (!str) return -1;
-            if (!Py_IS_TYPE(
-                str,
-                &PyUnicode_Type
-                )) {
-                PyErr_Format(
-                    PyExc_TypeError,
-                    "%R.__view_result__ returned %R, expected str instance",
-                    view_result,
-                    str
-                );
-            }
-            const char* tmp = PyUnicode_AsUTF8(str);
-            if (!tmp) return -1;
-            res_str = strdup(tmp);
-        } else {
-            PyErr_Format(
-                PyExc_TypeError,
-                "%R is not a valid return value for route",
-                result
-            );
-            return -1;
-        }
+        return -1;
     }
 
     *res_target = res_str;

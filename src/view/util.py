@@ -5,7 +5,9 @@ import logging
 import os
 import runpy
 import sys
-from typing import TYPE_CHECKING, overload, Union
+from datetime import datetime as DateTime
+from email.utils import formatdate
+from typing import TYPE_CHECKING, Union, overload
 
 from ._logging import Internal, Service
 from ._util import shell_hint
@@ -14,7 +16,7 @@ from .exceptions import EnvironmentError, MistakeError
 if TYPE_CHECKING:
     from .app import App
 
-__all__ = ("run", "env", "debug")
+__all__ = ("run", "env", "debug", "timestamp")
 
 
 def run(app_or_path: str | App) -> None:
@@ -128,3 +130,13 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         return value == "true"
 
     raise ValueError(f"{tp.__name__} cannot be converted")
+
+
+_Now = None
+
+
+def timestamp(tm: DateTime | None = _Now) -> str:
+    """RFC 1123 Compliant Timestamp"""
+    stamp: float = DateTime.now().timestamp() if not tm else tm.timestamp()
+
+    return formatdate(stamp, usegmt=True)

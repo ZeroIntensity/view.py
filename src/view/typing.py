@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import (Any, Awaitable, Callable, ClassVar, Dict, Generic, List,
-                    Tuple, Type, TypeVar, Union)
+                    Literal, Tuple, Type, TypeVar, Union)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
@@ -35,7 +35,7 @@ _ViewResponseTupleH = Tuple[ResponseHeaders, str]
 _ViewResponseTupleI = Tuple[str, int]
 _ViewResponseTupleJ = Tuple[int, str]
 
-_ViewResponseType = Union[
+ViewResult = Union[
     _ViewResponseTupleA,
     _ViewResponseTupleB,
     _ViewResponseTupleC,
@@ -51,7 +51,8 @@ _ViewResponseType = Union[
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")
 
-ViewResponse = Awaitable[_ViewResponseType]
+
+ViewResponse = Awaitable[ViewResult]
 Context = Any
 R = TypeVar("R", bound="ViewResponse")
 ViewRoute = Callable[P, R]
@@ -107,3 +108,5 @@ class Part(Protocol[V]):
 
 
 Callback = Callable[[], Any]
+SameSite = Literal["strict", "lax", "none"]
+BodyTranslateStrategy = Literal["str", "repr", "result"]
