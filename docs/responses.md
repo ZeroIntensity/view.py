@@ -20,6 +20,14 @@ async def index():
     return {"x-worthiness": "0"}, "you are not worthy", 400
 ```
 
+**Note:** The entirety of this documentation will use the `async def` notation for routes, but synchronous routes work just fine:
+
+```py
+@app.get("/")
+def index():
+    return "i am not async"
+```
+
 ### Result Protocol
 
 If you need to return a more complicated object, you can put a `__view_result__` function on it:

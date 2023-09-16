@@ -2719,6 +2719,39 @@ static PyObject* app(
             return NULL;
         }
 
+        if (!res_coro) {
+            if (fire_error(
+                self,
+                awaitable,
+                500,
+                r,
+                NULL
+                ) < 0)
+                return NULL;
+            return awaitable;
+        }
+
+        if (!PyObject_IsInstance(
+            res_coro,
+            (PyObject*) &PyCoro_Type
+            )) {
+            if (handle_route_callback(
+                awaitable,
+                res_coro
+                ) < 0) {
+                if (fire_error(
+                    self,
+                    awaitable,
+                    500,
+                    r,
+                    NULL
+                    ) < 0)
+                    return NULL;
+                return awaitable;
+            };
+            return awaitable;
+        }
+
         if (PyAwaitable_AddAwait(
             awaitable,
             res_coro,
