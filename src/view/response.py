@@ -12,6 +12,8 @@ T = TypeVar("T")
 
 __all__ = "Response", "HTML"
 
+_Find = None
+
 
 class Response(Generic[T]):
     def __init__(
@@ -20,13 +22,18 @@ class Response(Generic[T]):
         status: int = 200,
         headers: dict[str, str] | None = None,
         *,
-        body_translate: BodyTranslateStrategy = "str",
+        body_translate: BodyTranslateStrategy | None = _Find,
     ) -> None:
         self.body = body
         self.status = status
         self.headers = headers or {}
         self._raw_headers: list[tuple[bytes, bytes]] = []
-        self.translate = body_translate
+        if body_translate:
+            self.translate = body_translate
+        else:
+            self.translate = (
+                "str" if not hasattr(body, "__view_result__") else "result"
+            )
 
     def cookie(
         self,

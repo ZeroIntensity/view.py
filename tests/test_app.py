@@ -2,7 +2,7 @@ from typing import Union
 
 from ward import test
 
-from view import body, new_app, query
+from view import Response, body, new_app, query
 
 
 @test("responses")
@@ -74,7 +74,7 @@ async def _():
 
     @app.get("/multi")
     async def multi():
-        return 201, MyObject()
+        return Response(MyObject(), 201)
 
     async with app.test() as test:
         assert (await test.get("/")).message == "hello"
@@ -194,3 +194,19 @@ async def _():
         assert (
             await test.get("/body", body={"name": "test"})
         ).message == "test"
+
+
+@test("response type")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return Response("hello world", 201, {"hello": "world"})
+
+    async with app.test() as test:
+        res = await test.get("/")
+
+        assert res.message == "hello world"
+        assert res.status == 201
+        assert res.headers["hello"] == "world"

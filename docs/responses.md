@@ -146,6 +146,18 @@ async def index():
     return res
 ```
 
+A response object may also be used to wrap a `__view_result__`, like so:
+
+```py
+class MyObject():
+    def __view_result__(self):
+        return "hello", 201
+
+@app.get("/")
+async def index():
+    return view.Response(MyObject(), 200)  # Returns 200 instead of 201
+```
+
 ### HTML Responses
 
 While it's not required, the `view.HTML` type may come in handy if you're returning lots of HTML. You may pass 4 total types:
