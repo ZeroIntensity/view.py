@@ -78,7 +78,7 @@ view.py will ensure that the type sent to the server is compatible with what you
 
 ```py
 @app.get("/")
-@query("number", int)
+@app.query("number", int)
 async def index(number: int):
     # number will always be an int.
     # if it isn't, an error 400 is sent back to the user automatically
@@ -94,12 +94,15 @@ The following types are supported:
 - `float`
 - `dict` (or `typing.Dict`)
 - `None`
+- Pydantic Models
+- Dataclasses
+- `NamedTuple`
 
 You can allow unions by just passing more parameters:
 
 ```py
 @app.get('/hello')
-@query("name", str, None)
+@app.query("name", str, None)
 async def hello(name: str | None):
     if not name:
         return "hello world"
@@ -111,11 +114,48 @@ You can pass type arguments to a `dict`, which are also validated by the server:
 
 ```py
 @app.get("/something")
-@body("data", dict[str, int])  # typing.Dict on 3.8 and 3.9
+@app.body("data", dict[str, int])  # typing.Dict on 3.8 and 3.9
 async def something(data: dict[str, int]):
     # data will always be a dictionary of strings and integers
     return "..."
 ```
 
 The key in a dictionary must always be `str` (i.e. `dict[int, str]` is not allowed), but the value can be any supported type (including other dictionaries!)
+
+### Objects
+
+Here's an example of using an object type with `dataclasses`:
+
+```py
+from view import new_app, query
+from dataclasses import dataclass, field
+
+app = new_app()
+
+def now() -> str:
+    ...  # Calculate current time
+
+@dataclass
+class Post:
+    content: str
+    created_at = field(default_factory=now)
+
+
+@app.post("/create")
+@app.query("data", Post)
+async def create(data: Post):
+    print(f"Created post {data.created_at}")
+    return "Success", 201
+```
+
+You may also have recursive types, like so:
+
+```py
+class MyOtherObject(NamedTuple):
+    something: int
+
+class MyObject(NamedTuple):
+    something: str
+    another_thing: MyOtherObject
+```
 

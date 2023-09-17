@@ -63,6 +63,7 @@
 #define TYPECODE_DICT 5
 #define TYPECODE_NONE 6
 #define TYPECODE_CLASS 7
+#define TYPECODE_CLASSTYPES 8
 
 typedef struct _route_input route_input;
 typedef struct _app_parsers app_parsers;
@@ -99,6 +100,7 @@ struct _type_info {
     PyObject* ob;
     type_info** children;
     Py_ssize_t children_size;
+    PyObject* df;
 };
 
 typedef struct _route_input {
@@ -171,6 +173,7 @@ char* v_strsep(char** stringp, const char* delim) {
 
 static void free_type_info(type_info* ti) {
     Py_XDECREF(ti->ob);
+    if ((intptr_t) ti->df > 0) Py_DECREF(ti->df);
     for (int i = 0; i < ti->children_size; i++) {
         free_type_info(ti->children[i]);
     }
@@ -374,9 +377,8 @@ static PyObject* query_parser(
     return obj; // no need for null check
 }
 
-#define TC_VERIFY(typeobj) { if (PyObject_IsInstance( \
-                    value, \
-                    (PyObject*) &typeobj \
+#define TC_VERIFY(typeobj) { if (typeobj( \
+                    value \
                     )) { \
                     verified = true; \
                 }; break; }
@@ -407,10 +409,15 @@ static int verify_dict_typecodes(
                 if (value == Py_None) verified = true;
                 break;
             }
-            case TYPECODE_STR: TC_VERIFY(PyUnicode_Type);
-            case TYPECODE_INT: TC_VERIFY(PyLong_Type);
-            case TYPECODE_BOOL: TC_VERIFY(PyBool_Type);
-            case TYPECODE_FLOAT: TC_VERIFY(PyFloat_Type);
+            case TYPECODE_STR: TC_VERIFY(PyUnicode_CheckExact);
+            case TYPECODE_INT: {
+                if (PyLong_CheckExact(value)) {
+                    verified = true;
+                }
+                break;
+            };
+            case TYPECODE_BOOL: TC_VERIFY(PyBool_Check);
+            case TYPECODE_FLOAT: TC_VERIFY(PyFloat_CheckExact);
             case TYPECODE_DICT: {
                 if (PyObject_IsInstance(
                     value,
@@ -427,6 +434,7 @@ static int verify_dict_typecodes(
                 };
                 break;
             };
+            case TYPECODE_CLASSTYPES:
             default: Py_FatalError("invalid dict typecode");
             };
         }
@@ -473,9 +481,8 @@ static PyObject* cast_from_typecodes(
             break;
         }
         case TYPECODE_INT: {
-            if (PyObject_IsInstance(
-                item,
-                (PyObject*) &PyLong_Type
+            if (PyLong_CheckExact(
+                item
                 )) return item;
             PyObject* py_int = PyLong_FromUnicodeObject(
                 item,
@@ -488,9 +495,8 @@ static PyObject* cast_from_typecodes(
             return py_int;
         }
         case TYPECODE_BOOL: {
-            if (PyObject_IsInstance(
-                item,
-                (PyObject*) &PyBool_Type
+            if (PyBool_Check(
+                item
                 )) return item;
             const char* str = PyUnicode_AsUTF8(item);
             PyObject* py_bool = NULL;
@@ -511,9 +517,8 @@ static PyObject* cast_from_typecodes(
             break;
         }
         case TYPECODE_FLOAT: {
-            if (PyObject_IsInstance(
-                item,
-                (PyObject*) &PyFloat_Type
+            if (PyFloat_CheckExact(
+                item
                 )) return item;
             PyObject* flt = PyFloat_FromString(item);
             if (!flt) {
@@ -530,9 +535,8 @@ static PyObject* cast_from_typecodes(
                 NULL
             );
             if (!obj) {
-                if (PyObject_IsInstance(
-                    item,
-                    (PyObject*) &PyDict_Type
+                if (PyDict_Check(
+                    item
                     )) obj = item;
                 else {
                     PyErr_Clear();
@@ -544,11 +548,129 @@ static PyObject* cast_from_typecodes(
                 ti->children_size,
                 obj
             );
-            if (res == -1) return NULL;
-            if (res == 1) return NULL;
+            if (res == -1) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+            if (res == 1) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             return obj;
         }
-        default: Py_FatalError("invalid typecode");
+        case TYPECODE_CLASS: {
+            PyObject* kwargs = PyDict_New();
+            if (!kwargs) return NULL;
+            PyObject* obj = PyObject_Vectorcall(
+                json_parser,
+                (PyObject*[]) { item },
+                1,
+                NULL
+            );
+
+            if (!obj) {
+                if (PyDict_CheckExact(item) || PyObject_IsInstance(
+                    item,
+                    (PyObject*) Py_TYPE(ti->ob)
+                    )) {
+                    PyErr_Clear();
+                    obj = item;
+                }
+                else {
+                    PyErr_Clear();
+                    Py_DECREF(kwargs);
+                    break;
+                }
+            }
+            for (Py_ssize_t i = 0; i < ti->children_size; i++) {
+                type_info* info = ti->children[i];
+                PyObject* got_item = PyDict_GetItem(
+                    obj,
+                    info->ob
+                );
+
+                if (!got_item) {
+                    if ((intptr_t) info->df != -1) {
+                        if (info->df) {
+                            got_item = info->df;
+                            if (PyCallable_Check(got_item)) {
+                                got_item = PyObject_CallNoArgs(got_item); // its a factory
+                                if (!got_item) {
+                                    PyErr_Print();
+                                    Py_DECREF(kwargs);
+                                    Py_DECREF(obj);
+                                    return NULL;
+                                }
+                            }
+                        } else {
+                            Py_DECREF(kwargs);
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+                PyObject* parsed_item = cast_from_typecodes(
+                    info->children,
+                    info->children_size,
+                    got_item,
+                    json_parser
+                );
+
+                if (!parsed_item) {
+                    Py_DECREF(kwargs);
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+
+                if (PyDict_SetItem(
+                    kwargs,
+                    info->ob,
+                    parsed_item
+                    ) < 0) {
+                    Py_DECREF(kwargs);
+                    Py_DECREF(obj);
+                    Py_DECREF(parsed_item);
+                    return NULL;
+                };
+                Py_DECREF(parsed_item);
+            };
+
+            PyObject* caller;
+            caller = PyObject_GetAttrString(
+                ti->ob,
+                "__view_construct__"
+            );
+            if (!caller) {
+                PyErr_Clear();
+                caller = ti->ob;
+            }
+
+            PyObject* built = PyObject_VectorcallDict(
+                caller,
+                NULL,
+                0,
+                kwargs
+            );
+
+            Py_DECREF(kwargs);
+            if (!built) {
+                PyErr_Print();
+                return NULL;
+            }
+
+            return built;
+        }
+        case TYPECODE_CLASSTYPES:
+        default: {
+            fprintf(
+                stderr,
+                "got bad typecode in cast_from_typecodes: %d\n",
+                ti->typecode
+            );
+            Py_FatalError("invalid typecode");
+        }
         }
     }
     if ((CHECK(NULL_ALLOWED)) && (item == NULL || item ==
@@ -1143,9 +1265,8 @@ static int find_result_for(
 
         PyObject* t_value;
         while ((t_value = PyIter_Next(t_iter))) {
-            if (!PyObject_IsInstance(
-                t_value,
-                (PyObject*) &PyTuple_Type
+            if (!PyTuple_Check(
+                t_value
                 )) {
                 PyErr_SetString(
                     PyExc_TypeError,
@@ -1199,16 +1320,14 @@ static int handle_result(
             return -1;
     } else result = raw_result;
 
-    if (PyObject_IsInstance(
-        result,
-        (PyObject*) &PyUnicode_Type
+    if (PyUnicode_CheckExact(
+        result
         )) {
         const char* tmp = PyUnicode_AsUTF8(result);
         if (!tmp) return -1;
         res_str = strdup(tmp);
-    } else if (PyObject_IsInstance(
-        result,
-        (PyObject*) &PyTuple_Type
+    } else if (PyTuple_CheckExact(
+        result
                )) {
         if (PySequence_Size(result) > 3) {
             PyErr_SetString(
@@ -2834,6 +2953,23 @@ static type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             2
         );
 
+        PyObject* df = PyTuple_GetItem(
+            info,
+            3
+        );
+
+        if (df) {
+            if (PyObject_HasAttrString(
+                df,
+                "__VIEW_NODEFAULT__"
+                )) df = NULL;
+            else if (PyObject_HasAttrString(
+                df,
+                "__VIEW_NOREQ__"
+                     ))
+                df = (PyObject*) -1;
+        }
+
         if (!type_code || !obj || !children) {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
@@ -2842,11 +2978,16 @@ static type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             return NULL;
         }
 
+        if (!df) PyErr_Clear();
+
         Py_ssize_t code = PyLong_AsLong(type_code);
 
         Py_XINCREF(obj);
         ti->ob = obj;
         ti->typecode = code;
+        // we cant use Py_XINCREF or Py_XDECREF because it could be -1
+        if ((intptr_t) df > 0) Py_INCREF(df);
+        ti->df = df;
 
         Py_ssize_t children_len = PySequence_Size(children);
         if (children_len == -1) {
@@ -2855,6 +2996,7 @@ static type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
 
             free(tps);
             Py_XDECREF(obj);
+            if ((intptr_t) df > 0) Py_DECREF(df);
             return NULL;
         }
 
@@ -2870,6 +3012,7 @@ static type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
 
             free(tps);
             Py_XDECREF(obj);
+            if ((intptr_t) df) Py_DECREF(df);
             return NULL;
         }
 
@@ -3122,9 +3265,8 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
     while ((item = PyIter_Next(iter))) {
         ++index;
 
-        if (PyObject_IsInstance(
-            item,
-            (PyObject*) &PyUnicode_Type
+        if (PyUnicode_CheckExact(
+            item
             )) {
             // path part
             const char* str = PyUnicode_AsUTF8(item);
