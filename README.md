@@ -5,6 +5,7 @@
 - [Docs](https://view.zintensity.dev)
 - [Source](https://github.com/ZeroIntensity/view.py)
 - [PyPI](https://pypi.org/project/view.py)
+- [Discord](https://discord.gg/tZAfuWAbm2)
 
 ```py
 import view
