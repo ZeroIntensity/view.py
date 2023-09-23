@@ -18,3 +18,4 @@ dist/
 *.egg-info
 build/
 *.so
+html/dist.css
