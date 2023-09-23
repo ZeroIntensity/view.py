@@ -14,7 +14,7 @@ from typing import (
 
 from typing_extensions import ParamSpec, dataclass_transform
 
-from ._util import attempt_import, get_body, make_hint
+from ._util import attempt_import, make_hint
 from .exceptions import MistakeError
 
 P = ParamSpec("P")
@@ -202,3 +202,23 @@ def model(
         return impl(ob_or_none)
 
     return impl
+
+
+
+#database
+import psycopg2  # Import the PostgreSQL driver library
+
+class PostgresConnection(_Connection):
+    def connect(self, l) -> None:
+        # Establish a connection to the PostgreSQL database
+        self.connection = psycopg2.connect(
+            database="your_database_name",
+            user="your_username",
+            password="your_password",
+            host="your_host",
+            port="your_port"
+        )
+
+    def close(self) -> None:
+        # Close the PostgreSQL database connection
+        self.connection.close()
