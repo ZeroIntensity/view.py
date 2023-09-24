@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for `__view_body__` and `__view_construct__`
 - Added support for Pydantic, `NamedTuple`, and dataclasses for type validation
 - Support for direct union types (i.e. `str | int`, `Union[str, int]`) on type validation
+- Added support for non async routes
 
 ## [1.0.0-alpha4] - 2023-09-10
 - Added type validation (without support for `__view_body__`)
