@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
-from typing import NamedTuple, Union
+from typing import NamedTuple, TypedDict, Union
 
 from pydantic import BaseModel, Field
+from typing_extensions import NotRequired
 from ward import test
 
 from view import BodyParam, Response, body, new_app, query
@@ -247,6 +248,21 @@ async def _():
             assert isinstance(hello, str)
             assert world == "hello"
 
+    class TypedD(TypedDict):
+        a: str
+        b: str | int
+        c: dict[str, int]
+        d: NotRequired[str]
+
+    @app.get("/td")
+    @app.query("data", TypedD)
+    async def td(data: TypedD):
+        assert data["a"] == "1"
+        assert data["b"] == 2
+        assert data["c"]["3"] == 4
+        assert "d" not in data
+        return "hello"
+
     @app.get("/dc")
     @app.query("data", Dataclass)
     async def dc(data: Dataclass):
@@ -295,6 +311,11 @@ async def _():
     async with app.test() as test:
         assert (
             await test.get(
+                "/td", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
+        ).message == "hello"
+        assert (
+            await test.get(
                 "/dc", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
             )
         ).message == "hello"
@@ -334,6 +355,11 @@ async def _():
         ).message == "hello"
         assert (
             await test.get("/nested", query={"data": {"a": {"b": {"c": {}}}}})
+        ).status == 400
+        assert (
+            await test.get(
+                "/dc", query={"data": {"a": "1", "b": True, "c": {"3": 4}}}
+            )
         ).status == 400
 
 

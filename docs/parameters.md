@@ -96,6 +96,7 @@ The following types are supported:
 - `None`
 - Pydantic Models
 - Dataclasses
+- `typing.TypedDict`
 - `NamedTuple`
 
 You can allow unions by just passing more parameters:
@@ -159,3 +160,98 @@ class MyObject(NamedTuple):
     another_thing: MyOtherObject
 ```
 
+### Typed Dictionaries
+
+You may use `typing.TypedDict` to type your dictionary inputs if you don't want to use a basic `dict[..., ...]` (or `typing.Dict`), like so:
+
+```py
+from view import new_app
+from typing import TypedDict
+
+app = new_app()
+
+class MyDict(TypedDict):
+    a: str
+    b: int
+
+@app.get("/")
+@app.query("data", MyDict)
+async def index(data: MyDict):
+    return data["a"]
+
+app.run()
+```
+
+You may also use `NotRequired` to allow certain keys to get omitted:
+
+```py
+class MyDict(TypedDict):
+    a: str
+    b: NotRequired[int]
+```
+
+## View Body Protocol
+
+If you would like to create your own object that gets validated by view.py, you may use the `__view_body__` protocol.
+
+A `__view_body__` should contain a dictionary containing the keys and their corresponding types, like so:
+
+```py
+from view import new_app
+
+app = new_app()
+
+class MyObject:
+    __view_body__ = {"a": str, "b": int}
+
+@app.get("/")
+@app.query("data", MyObject)
+async def index(data: MyObject):
+    ...
+
+app.run()
+```
+
+The above would ensure the body contains something like the following in JSON:
+
+```json
+{
+    "data": {
+        "a": "...",
+        "b": 0
+    }
+}
+```
+
+A default type can be annotated via `view.BodyParam`:
+
+```py
+class MyObject:
+    __view_body__ = {
+        "hello": BodyParam(types=(str, int), default="world"),
+        "world": BodyParam(types=str, default="hello"),
+    }
+```
+
+Note that `__view_body__` can also be a static function, like so:
+
+```py
+class MyObject:
+    @staticmethod
+    def __view_body__():
+        return {"a": str, "b": int}
+```
+
+### Initialization
+
+By default, an object supporting `__view_body__` will have the proper keyword arguments passed to it's `__init__`.
+
+If you would like to have special behavior in your `__init__`, you may instead add a static `__view_construct__` function that returns an instance:
+
+```py
+class MyObject:
+    __view_body__ = {"a": str, "b": int}
+
+    def __view_construct__(**kwargs):
+        return MyObject()
+```
