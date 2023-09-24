@@ -1,8 +1,10 @@
-from typing import Union
+from dataclasses import dataclass, field
+from typing import NamedTuple, Union
 
+from pydantic import BaseModel, Field
 from ward import test
 
-from view import Response, body, new_app, query
+from view import BodyParam, Response, body, new_app, query
 
 
 @test("responses")
@@ -65,8 +67,8 @@ async def _():
     app = new_app()
 
     class MyObject:
-        def __view_result__(self) -> str:
-            return "hello"
+        def __view_result__(self):
+            return "hello", 200
 
     @app.get("/")
     async def index():
@@ -210,3 +212,150 @@ async def _():
         assert res.message == "hello world"
         assert res.status == 201
         assert res.headers["hello"] == "world"
+
+
+@test("object validation")
+async def _():
+    app = new_app()
+
+    @dataclass
+    class Dataclass:
+        a: str
+        b: str | int
+        c: dict[str, int]
+        d: dict = field(default_factory=dict)
+
+    class Pydantic(BaseModel):
+        a: str
+        b: str | int
+        c: dict[str, int]
+        d: dict = Field(default_factory=dict)
+
+    class ND(NamedTuple):
+        a: str
+        b: str | int
+        c: dict[str, int]
+
+    class VB:
+        __view_body__ = {
+            "hello": str,
+            "world": BodyParam((str, int), default="hello"),
+        }
+
+        @staticmethod
+        def __view_construct__(hello: str, world: str | int):
+            assert isinstance(hello, str)
+            assert world == "hello"
+
+    @app.get("/dc")
+    @app.query("data", Dataclass)
+    async def dc(data: Dataclass):
+        assert data.a == "1"
+        assert data.b == 2
+        assert data.c["3"] == 4
+        assert data.d == {}
+        return "hello"
+
+    @app.get("/pd")
+    @app.query("data", Pydantic)
+    async def pd(data: Pydantic):
+        assert data.a == "1"
+        assert data.c["3"] == 4
+        assert data.d == {}
+        return "world"
+
+    @app.get("/nd")
+    @app.query("data", ND)
+    async def nd(data: ND):
+        assert data.a == "1"
+        assert data.b == 2
+        assert data.c["3"] == 4
+        return "foo"
+
+    @app.get("/vb")
+    @app.query("data", VB)
+    async def vb(data: VB):
+        return "yay"
+
+    class NestedC(NamedTuple):
+        c: str | int
+
+    class NestedB(NamedTuple):
+        b: NestedC
+
+    class NestedA(NamedTuple):
+        a: NestedB
+
+    @app.get("/nested")
+    @app.query("data", NestedA)
+    async def nested(data: NestedA):
+        assert data.a.b.c in {"hello", 1}
+        return "hello"
+
+    async with app.test() as test:
+        assert (
+            await test.get(
+                "/dc", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
+        ).message == "hello"
+        assert (
+            await test.get(
+                "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
+        ).message == "world"
+        assert (
+            await test.get(
+                "/nd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
+        ).message == "foo"
+        assert (
+            await test.get(
+                "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}}
+            )
+        ).status == 400
+        assert (
+            await test.get("/vb", query={"data": {"hello": "world"}})
+        ).message == "yay"
+        assert (
+            await test.get("/vb", query={"data": {"hello": 2}})
+        ).status == 400
+        assert (
+            await test.get(
+                "/vb", query={"data": {"hello": "world", "world": {}}}
+            )
+        ).status == 400
+        assert (
+            await test.get(
+                "/nested", query={"data": {"a": {"b": {"c": "hello"}}}}
+            )
+        ).message == "hello"
+        assert (
+            await test.get("/nested", query={"data": {"a": {"b": {"c": 1}}}})
+        ).message == "hello"
+        assert (
+            await test.get("/nested", query={"data": {"a": {"b": {"c": {}}}}})
+        ).status == 400
+
+
+@test("dict validation")
+async def _():
+    app = new_app()
+
+    class Object(NamedTuple):
+        a: str
+        b: str | int
+
+    @app.get("/")
+    @app.query("data", dict[str, Object])
+    async def index(data: dict[str, Object]):
+        assert data["a"].a == "a"
+        assert data["b"].b in {"a", 1}
+        return "hello"
+
+    async with app.test() as test:
+        assert (
+            await test.get(
+                "/",
+                query={"a": {"a": "a", "b": "b"}, "b": {"a": "a", "b": "a"}},
+            )
+        ).message

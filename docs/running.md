@@ -1,12 +1,5 @@
 # Running
 
-Is your view app running, you better go catch it!
-
-!!! danger "Apologies"
-
-    I'm sorry, you may make a PR to delete this.
-
-
 ## Serving
 
 You can simply run a view app via the `view serve` command, but if you're like me and would rather to just use the `python3` command, that's just as easy.

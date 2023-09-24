@@ -220,7 +220,7 @@ route* route_new(
 
 void route_free(route* r) {
     for (int i = 0; i < r->inputs_size; i++) {
-        Py_DECREF(r->inputs[i]->df);
+        Py_XDECREF(r->inputs[i]->df);
         free_type_codes(
             r->inputs[i]->types,
             r->inputs[i]->types_size
@@ -377,17 +377,18 @@ static PyObject* query_parser(
     return obj; // no need for null check
 }
 
-#define TC_VERIFY(typeobj) { if (typeobj( \
+#define TC_VERIFY(typeobj) if (typeobj( \
                     value \
                     )) { \
                     verified = true; \
-                }; break; }
+                } break;
 
 static int verify_dict_typecodes(
     type_info** codes,
     Py_ssize_t len,
     PyObject* dict
 ) {
+    if (!PyDict_Size(dict)) return 0;
     PyObject* iter = PyObject_GetIter(dict);
     PyObject* key;
     while ((key = PyIter_Next(iter))) {
@@ -438,14 +439,14 @@ static int verify_dict_typecodes(
             default: Py_FatalError("invalid dict typecode");
             };
         }
-
         if (!verified) return 1;
     }
 
     Py_DECREF(iter);
-
-    if (PyErr_Occurred())
+    if (PyErr_Occurred()) {
+        PyErr_Print();
         return -1;
+    }
 
     return 0;
 }
@@ -483,7 +484,9 @@ static PyObject* cast_from_typecodes(
         case TYPECODE_INT: {
             if (PyLong_CheckExact(
                 item
-                )) return item;
+                )) {
+                return Py_NewRef(item);
+            }
             PyObject* py_int = PyLong_FromUnicodeObject(
                 item,
                 10
@@ -497,7 +500,7 @@ static PyObject* cast_from_typecodes(
         case TYPECODE_BOOL: {
             if (PyBool_Check(
                 item
-                )) return item;
+                )) return Py_NewRef(item);
             const char* str = PyUnicode_AsUTF8(item);
             PyObject* py_bool = NULL;
             if (!str) return NULL;
@@ -519,7 +522,7 @@ static PyObject* cast_from_typecodes(
         case TYPECODE_FLOAT: {
             if (PyFloat_CheckExact(
                 item
-                )) return item;
+                )) return Py_NewRef(item);
             PyObject* flt = PyFloat_FromString(item);
             if (!flt) {
                 PyErr_Clear();
@@ -528,20 +531,22 @@ static PyObject* cast_from_typecodes(
             return flt;
         }
         case TYPECODE_DICT: {
-            PyObject* obj = PyObject_Vectorcall(
-                json_parser,
-                (PyObject*[]) { item },
-                1,
-                NULL
-            );
+            PyObject* obj;
+            if (PyDict_Check(
+                item
+                )) {
+                obj = Py_NewRef(item);
+            } else {
+                obj = PyObject_Vectorcall(
+                    json_parser,
+                    (PyObject*[]) { item },
+                    1,
+                    NULL
+                );
+            }
             if (!obj) {
-                if (PyDict_Check(
-                    item
-                    )) obj = item;
-                else {
-                    PyErr_Clear();
-                    break;
-                }
+                PyErr_Clear();
+                break;
             }
             int res = verify_dict_typecodes(
                 ti->children,
@@ -561,26 +566,26 @@ static PyObject* cast_from_typecodes(
         case TYPECODE_CLASS: {
             PyObject* kwargs = PyDict_New();
             if (!kwargs) return NULL;
-            PyObject* obj = PyObject_Vectorcall(
-                json_parser,
-                (PyObject*[]) { item },
-                1,
-                NULL
-            );
+            PyObject* obj;
+            if (PyDict_CheckExact(item) || PyObject_IsInstance(
+                item,
+                (PyObject*) Py_TYPE(ti->ob)
+                )) {
+                obj = Py_NewRef(item);
+            } else {
+                obj = PyObject_Vectorcall(
+                    json_parser,
+                    (PyObject*[]) { item },
+                    1,
+                    NULL
+                );
+            }
 
             if (!obj) {
-                if (PyDict_CheckExact(item) || PyObject_IsInstance(
-                    item,
-                    (PyObject*) Py_TYPE(ti->ob)
-                    )) {
-                    PyErr_Clear();
-                    obj = item;
-                }
-                else {
-                    PyErr_Clear();
-                    Py_DECREF(kwargs);
-                    break;
-                }
+                PyErr_Print();
+                PyErr_Clear();
+                Py_DECREF(kwargs);
+                break;
             }
             for (Py_ssize_t i = 0; i < ti->children_size; i++) {
                 type_info* info = ti->children[i];
@@ -1883,7 +1888,6 @@ static int handle_route_impl(
             NULL
         );
     }
-
     PyObject** params = json_parser(
         &self->parsers,
         body,
@@ -2104,6 +2108,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         &self->parsers,
         query
     );
+
     if (!query_obj) {
         PyErr_Clear();
         return fire_error(
@@ -2128,7 +2133,6 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     if (size == NULL)
         size = &fake_size;
-
     PyObject** params = calloc(
         r->inputs_size,
         sizeof(PyObject*)
@@ -2349,6 +2353,7 @@ static PyObject* app(
     PyObject* const* args,
     Py_ssize_t nargs
 ) {
+    assert(nargs == 3);
     PyObject* scope = args[0];
     PyObject* receive = args[1];
     PyObject* send = args[2];
@@ -2779,7 +2784,6 @@ static PyObject* app(
         return awaitable;
     }
 
-
     if (PyAwaitable_SaveArbValues(
         awaitable,
         3,
@@ -2790,6 +2794,7 @@ static PyObject* app(
         Py_DECREF(awaitable);
         return NULL;
     }
+
     if (r->inputs_size != 0) {
         if (!r->has_body) {
             if (handle_route_query(

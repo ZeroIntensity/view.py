@@ -5,7 +5,9 @@ import runpy
 import warnings
 from dataclasses import _MISSING_TYPE, Field
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, TypedDict, get_args, get_type_hints, NamedTuple
+from types import UnionType
+from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
+                    get_args, get_type_hints)
 
 from pydantic.fields import ModelField
 
@@ -35,6 +37,7 @@ if TYPE_CHECKING:
 
 __all__ = "load_fs", "load_simple", "finalize"
 
+TypingUnionType = type(Union[str, int])
 
 TYPECODE_ANY = 0
 TYPECODE_STR = 1
@@ -184,10 +187,13 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             tps = {}
 
             for k, v in pydantic_fields.items():
-                if not v.default:
-                    tps[k] = v.type_
+                if (not v.default) and (not v.default_factory):
+                    tps[k] = v.outer_type_
                 else:
-                    tps[k] = BodyParam(v.type_, v.default)
+                    tps[k] = BodyParam(
+                        v.outer_type_,
+                        v.default or v.default_factory,
+                    )
 
             codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
             continue
@@ -202,9 +208,13 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types)))
             continue
 
-        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
+        if type(tp) in {UnionType, TypingUnionType}:
+            new_codes = _build_type_codes(get_args(tp))
+            codes.extend(new_codes)
+            continue
 
-        if (not origin) and (origin is not dict):
+        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
+        if origin is not dict:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
 
         key, value = get_args(tp)
