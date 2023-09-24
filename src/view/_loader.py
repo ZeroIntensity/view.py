@@ -99,6 +99,7 @@ def _format_body(vbody_types: dict) -> list[TypeInfo]:
 
         if getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES:
             v = get_args(raw_v)
+            default = _ViewNotRequired
 
         iter_v = v if isinstance(v, (tuple, list)) else (v,)
         vbody_final[k] = _build_type_codes(iter_v)
@@ -127,10 +128,6 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             body = get_type_hints(tp)
 
             class _Transport:
-                @staticmethod
-                def __view_body__():
-                    return body
-
                 @staticmethod
                 def __view_construct__(**kwargs):
                     return kwargs
