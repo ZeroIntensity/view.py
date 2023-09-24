@@ -222,7 +222,7 @@ async def _():
     @dataclass
     class Dataclass:
         a: str
-        b: str | int
+        b: Union[str, int]
         c: dict[str, int]
         d: dict = field(default_factory=dict)
 
@@ -234,7 +234,7 @@ async def _():
 
     class ND(NamedTuple):
         a: str
-        b: str | int
+        b: Union[str, int]
         c: dict[str, int]
 
     class VB:
@@ -250,7 +250,7 @@ async def _():
 
     class TypedD(TypedDict):
         a: str
-        b: str | int
+        b: Union[str, int]
         c: dict[str, int]
         d: NotRequired[str]
 
@@ -369,7 +369,7 @@ async def _():
 
     class Object(NamedTuple):
         a: str
-        b: str | int
+        b: Union[str, int]
 
     @app.get("/")
     @app.query("data", dict[str, Object])
