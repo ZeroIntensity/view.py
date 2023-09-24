@@ -2,6 +2,7 @@
 
 ## Modern, lightning fast web framework
 
+- [Discord](https://discord.gg/tZAfuWAbm2)
 - [Source](https://github.com/ZeroIntensity/view.py)
 - [PyPI](https://pypi.org/project/view.py)
 

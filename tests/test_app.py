@@ -385,3 +385,19 @@ async def _():
                 query={"a": {"a": "a", "b": "b"}, "b": {"a": "a", "b": "a"}},
             )
         ).message
+
+        
+@test("non async routes")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    def index():
+        return "hello world", 201, {"a": "b"}
+
+    async with app.test() as test:
+        res = await test.get("/")
+
+        assert res.message == "hello world"
+        assert res.status == 201
+        assert res.headers["a"] == "b"
