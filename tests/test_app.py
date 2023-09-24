@@ -228,7 +228,7 @@ async def _():
 
     class Pydantic(BaseModel):
         a: str
-        b: str | int
+        b: Union[str, int]
         c: Dict[str, int]
         d: dict = Field(default_factory=dict)
 
@@ -244,7 +244,7 @@ async def _():
         }
 
         @staticmethod
-        def __view_construct__(hello: str, world: str | int):
+        def __view_construct__(hello: str, world: Union[str, int]):
             assert isinstance(hello, str)
             assert world == "hello"
 
@@ -294,7 +294,7 @@ async def _():
         return "yay"
 
     class NestedC(NamedTuple):
-        c: str | int
+        c: Union[str, int]
 
     class NestedB(NamedTuple):
         b: NestedC
