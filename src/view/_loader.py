@@ -5,7 +5,11 @@ import runpy
 import warnings
 from dataclasses import _MISSING_TYPE, Field
 from pathlib import Path
-from types import UnionType
+
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = None
 from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
                     get_args, get_type_hints)
 
