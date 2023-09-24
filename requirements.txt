@@ -1,1 +1,2 @@
 hatch
+psycopg2-binary

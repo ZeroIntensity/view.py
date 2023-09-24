@@ -100,7 +100,7 @@ class MongoDriver(_Driver):
 
 class _Connection(ABC):
     @abstractmethod
-    def connect(self) -> None:
+    def __init__(self) -> None:
         ...
 
     @abstractmethod
@@ -198,7 +198,7 @@ def model(
 
         return Model(ob, name, conn=conn)
 
-    if ob_or_none:
+    if ob_or_none: 
         return impl(ob_or_none)
 
     return impl
@@ -209,16 +209,51 @@ def model(
 import psycopg2  # Import the PostgreSQL driver library
 
 class PostgresConnection(_Connection):
-    def connect(self, l) -> None:
-        # Establish a connection to the PostgreSQL database
-        self.connection = psycopg2.connect(
-            database="your_database_name",
-            user="your_username",
-            password="your_password",
-            host="your_host",
-            port="your_port"
-        )
+    '''
+    This class is used to connect to a PostgreSQL database. Pass the connection details as a dictionary to the constructor. \n
+        ```
+        dict = {
+            "database": **db_name**,
+            "user": **user_name**,
+            "password": **password**,
+            "host": **host_name**,
+            "port": **port_num**,
+        }
+        ```
+    '''
 
-    def close(self) -> None:
+    def __init__(self, connection_list) -> None:
+        self.database = connection_list["database"]
+        self.user = connection_list["user"]
+        self.password = connection_list["password"]
+        self.host = connection_list["host"]
+        self.port = connection_list["port"]
+
+    async def establish_connection(self):
+        # Create a cursor to perform database operations
+        self.connection = psycopg2.connect(
+            database= self.database,
+            user= self.user,
+            password= self.password,
+            host= self.host,
+            port= self.port,
+        )
+        self.cursor = self.connection.cursor()
+        return self.cursor
+    
+    async def remove_connection(self):
         # Close the PostgreSQL database connection
         self.connection.close()
+
+    async def connect(self):
+        '''
+        This method is used to connect to the database. \n
+        '''
+        return await self.establish_connection()
+
+    async def close(self):
+        '''
+        This method is used to close the connection to the database. \n
+        '''
+        return await self.remove_connection()
+    
