@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import NamedTuple, TypedDict, Union, Dict
+from typing import Dict, NamedTuple, TypedDict, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
@@ -386,7 +386,7 @@ async def _():
             )
         ).message
 
-        
+
 @test("non async routes")
 async def _():
     app = new_app()
