@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import NamedTuple, TypedDict, Union
+from typing import NamedTuple, TypedDict, Union, Dict
 
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
@@ -223,19 +223,19 @@ async def _():
     class Dataclass:
         a: str
         b: Union[str, int]
-        c: dict[str, int]
+        c: Dict[str, int]
         d: dict = field(default_factory=dict)
 
     class Pydantic(BaseModel):
         a: str
         b: str | int
-        c: dict[str, int]
+        c: Dict[str, int]
         d: dict = Field(default_factory=dict)
 
     class ND(NamedTuple):
         a: str
         b: Union[str, int]
-        c: dict[str, int]
+        c: Dict[str, int]
 
     class VB:
         __view_body__ = {
@@ -251,7 +251,7 @@ async def _():
     class TypedD(TypedDict):
         a: str
         b: Union[str, int]
-        c: dict[str, int]
+        c: Dict[str, int]
         d: NotRequired[str]
 
     @app.get("/td")
@@ -372,8 +372,8 @@ async def _():
         b: Union[str, int]
 
     @app.get("/")
-    @app.query("data", dict[str, Object])
-    async def index(data: dict[str, Object]):
+    @app.query("data", Dict[str, Object])
+    async def index(data: Dict[str, Object]):
         assert data["a"].a == "a"
         assert data["b"].b in {"a", 1}
         return "hello"
