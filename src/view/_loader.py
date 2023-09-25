@@ -160,7 +160,7 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             try:
                 hints = get_type_hints(tp)
             except KeyError:
-                hints = tp._field_types  # type: ignore
+                hints = getattr(tp, "_field_types", tp.__annotations__)
 
             for k, v in hints.items():
                 if k in defaults:
