@@ -4,7 +4,6 @@ import asyncio
 import faulthandler
 import importlib
 import inspect
-import json
 import logging
 import os
 import sys
@@ -18,8 +17,9 @@ from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
 from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
-from urllib.parse import urlencode
+from urllib.parse import quote_plus, urlencode
 
+import ujson
 from rich import print
 from rich.traceback import install
 
@@ -92,7 +92,7 @@ class TestingContext:
 
         async def receive():
             return {
-                "body": json.dumps(body).encode(),
+                "body": ujson.dumps(body).encode(),
                 "more_body": False,
                 "type": "http.request",
             }
@@ -111,12 +111,19 @@ class TestingContext:
                 raise TypeError(f"bad type: {obj['type']}")
 
         truncated_route = route[: route.find("?")] if "?" in route else route
+        query_str = {}
+
+        for k, v in (query or {}).items():
+            query_str[k] = v if not isinstance(v, dict) else ujson.dumps(v)
+        
         await self.app(
             {
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query).encode() if query else b"",
+                "query_string": urlencode(query_str).encode()
+                if query
+                else b"",  # noqa
                 "headers": [],
                 "method": method,
             },

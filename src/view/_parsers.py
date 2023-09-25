@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 def query_parser(data: str) -> ViewBody:
     parsed = parse_qs(data)
+
     final = {}
     for k, v in parsed.items():
         if len(v) == 1:
