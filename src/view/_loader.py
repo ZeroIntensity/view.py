@@ -86,7 +86,8 @@ class _ViewNotRequired:
     __VIEW_NOREQ__ = 1
 
 
-def _format_body(vbody_types: dict) -> list[TypeInfo]:
+def _format_body(vbody_types: dict, *, not_required: set[str] | None = None) -> list[TypeInfo]:
+    not_required = not_required or set()
     if not isinstance(vbody_types, dict):
         raise InvalidBodyError(
             f"__view_body__ should return a dict, not {type(vbody_types)}",  # noqa
@@ -106,8 +107,8 @@ def _format_body(vbody_types: dict) -> list[TypeInfo]:
 
         if isinstance(raw_v, BodyParam):
             default = raw_v.default
-
-        if getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES:
+        
+        if (getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES) or (k in not_required):
             v = get_args(raw_v)
             default = _ViewNotRequired
 
@@ -139,6 +140,8 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                 body = get_type_hints(tp)
             except KeyError:
                 body = tp.__annotations__
+            
+            opt = getattr(tp, "__optional_keys__", None)
 
             class _Transport:
                 @staticmethod
@@ -149,7 +152,7 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                 (
                     TYPECODE_CLASS,
                     _Transport,
-                    _format_body(body),
+                    _format_body(body, not_required=opt),
                 ),
             )
             continue
