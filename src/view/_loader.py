@@ -13,7 +13,10 @@ except ImportError:
 from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
                     get_args, get_type_hints)
 
-from pydantic.fields import ModelField
+try:
+    from pydantic.fields import ModelField
+except ImportError:
+    from pydantic.fields import FieldInfo as ModelField
 
 from ._logging import Internal
 from ._util import set_load
@@ -38,6 +41,9 @@ if NotRequired:
 
 if TYPE_CHECKING:
     from .app import ViewApp
+    _TypedDictMeta = None
+else:
+    from typing import _TypedDictMeta
 
 __all__ = "load_fs", "load_simple", "finalize"
 
@@ -127,9 +133,12 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
         if type_code:
             codes.append((type_code, None, []))
             continue
-
-        if TypedDict in getattr(tp, "__orig_bases__", []):
-            body = get_type_hints(tp)
+        
+        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (type(tp) == _TypedDictMeta):
+            try:
+                body = get_type_hints(tp)
+            except KeyError:
+                body = tp.__annotations__
 
             class _Transport:
                 @staticmethod
@@ -145,10 +154,13 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             )
             continue
 
-        if NamedTuple in getattr(tp, "__orig_bases__", []):
+        if (NamedTuple in getattr(tp, "__orig_bases__", [])) or (hasattr(tp, "_field_defaults")):
             defaults = tp._field_defaults  # type: ignore
             tps = {}
-            hints = get_type_hints(tp)
+            try:
+                hints = get_type_hints(tp)
+            except KeyError:
+                hints = tp._field_types  # type: ignore
 
             for k, v in hints.items():
                 if k in defaults:
@@ -183,7 +195,7 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
 
         pydantic_fields: dict[str, ModelField] | None = getattr(
             tp, "__fields__", None
-        )
+        ) or getattr(tp, "model_fields", None)
         if pydantic_fields:
             tps = {}
 
@@ -208,13 +220,14 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
 
             codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types)))
             continue
-
-        if type(tp) in {UnionType, TypingUnionType}:
+    
+        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
+        
+        if (type(tp) in {UnionType, TypingUnionType}) and (origin is not dict):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
             continue
 
-        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
         if origin is not dict:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
 

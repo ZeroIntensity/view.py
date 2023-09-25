@@ -582,12 +582,14 @@ static PyObject* cast_from_typecodes(
             }
 
             if (!obj) {
-                PyErr_Print();
                 PyErr_Clear();
                 Py_DECREF(kwargs);
                 break;
             }
+
+            bool ok = true;
             for (Py_ssize_t i = 0; i < ti->children_size; i++) {
+
                 type_info* info = ti->children[i];
                 PyObject* got_item = PyDict_GetItem(
                     obj,
@@ -604,18 +606,21 @@ static PyObject* cast_from_typecodes(
                                     PyErr_Print();
                                     Py_DECREF(kwargs);
                                     Py_DECREF(obj);
-                                    return NULL;
+                                    ok = false;
+                                    break;
                                 }
                             }
                         } else {
+                            ok = false;
                             Py_DECREF(kwargs);
                             Py_DECREF(obj);
-                            return NULL;
+                            break;
                         }
                     } else {
                         continue;
                     }
                 }
+
                 PyObject* parsed_item = cast_from_typecodes(
                     info->children,
                     info->children_size,
@@ -626,7 +631,8 @@ static PyObject* cast_from_typecodes(
                 if (!parsed_item) {
                     Py_DECREF(kwargs);
                     Py_DECREF(obj);
-                    return NULL;
+                    ok = false;
+                    break;
                 }
 
                 if (PyDict_SetItem(
@@ -641,6 +647,8 @@ static PyObject* cast_from_typecodes(
                 };
                 Py_DECREF(parsed_item);
             };
+
+            if (!ok) break;
 
             PyObject* caller;
             caller = PyObject_GetAttrString(
@@ -684,7 +692,8 @@ static PyObject* cast_from_typecodes(
         if (!PyObject_IsInstance(
             item,
             (PyObject*) &PyUnicode_Type
-            )) return NULL;
+            ))
+            return NULL;
         return Py_NewRef(item);
     }
     return NULL;
@@ -981,166 +990,166 @@ static uint16_t hash_client_error(int status) {
 
 static const char* get_err_str(int status) {
     switch (status) {
-        ER(
-            400,
-            "Bad Request"
-        );
-        ER(
-            401,
-            "Unauthorized"
-        );
-        ER(
-            402,
-            "Payment Required"
-        );
-        ER(
-            403,
-            "Forbidden"
-        );
-        ER(
-            404,
-            "Not Found"
-        );
-        ER(
-            405,
-            "Method Not Allowed"
-        );
-        ER(
-            406,
-            "Not Acceptable"
-        );
-        ER(
-            407,
-            "Proxy Authentication Required"
-        );
-        ER(
-            408,
-            "Request Timeout"
-        );
-        ER(
-            409,
-            "Conflict"
-        );
-        ER(
-            410,
-            "Gone"
-        );
-        ER(
-            411,
-            "Length Required"
-        );
-        ER(
-            412,
-            "Precondition Failed"
-        );
-        ER(
-            413,
-            "Payload Too Large"
-        );
-        ER(
-            414,
-            "URI Too Long"
-        );
-        ER(
-            415,
-            "Unsupported Media Type"
-        );
-        ER(
-            416,
-            "Range Not Satisfiable"
-        );
-        ER(
-            417,
-            "Expectation Failed"
-        );
-        ER(
-            418,
-            "I'm a teapot"
-        );
-        ER(
-            421,
-            "Misdirected Request"
-        );
-        ER(
-            422,
-            "Unprocessable Content"
-        );
-        ER(
-            423,
-            "Locked"
-        );
-        ER(
-            424,
-            "Failed Dependency"
-        );
-        ER(
-            425,
-            "Too Early"
-        );
-        ER(
-            426,
-            "Upgrade Required"
-        );
-        ER(
-            428,
-            "Precondition Required"
-        );
-        ER(
-            429,
-            "Too Many Requests"
-        );
-        ER(
-            431,
-            "Request Header Fields Too Large"
-        );
-        ER(
-            451,
-            "Unavailable for Legal Reasons"
-        );
-        ER(
-            500,
-            "Internal Server Error"
-        );
-        ER(
-            501,
-            "Not Implemented"
-        );
-        ER(
-            502,
-            "Bad Gateway"
-        );
-        ER(
-            503,
-            "Service Unavailable"
-        );
-        ER(
-            504,
-            "Gateway Timeout"
-        );
-        ER(
-            505,
-            "HTTP Version Not Supported"
-        );
-        ER(
-            506,
-            "Variant Also Negotiates"
-        );
-        ER(
-            507,
-            "Insufficent Storage"
-        );
-        ER(
-            508,
-            "Loop Detected"
-        );
-        ER(
-            510,
-            "Not Extended"
-        );
-        ER(
-            511,
-            "Network Authentication Required"
-        );
+    ER(
+        400,
+        "Bad Request"
+    );
+    ER(
+        401,
+        "Unauthorized"
+    );
+    ER(
+        402,
+        "Payment Required"
+    );
+    ER(
+        403,
+        "Forbidden"
+    );
+    ER(
+        404,
+        "Not Found"
+    );
+    ER(
+        405,
+        "Method Not Allowed"
+    );
+    ER(
+        406,
+        "Not Acceptable"
+    );
+    ER(
+        407,
+        "Proxy Authentication Required"
+    );
+    ER(
+        408,
+        "Request Timeout"
+    );
+    ER(
+        409,
+        "Conflict"
+    );
+    ER(
+        410,
+        "Gone"
+    );
+    ER(
+        411,
+        "Length Required"
+    );
+    ER(
+        412,
+        "Precondition Failed"
+    );
+    ER(
+        413,
+        "Payload Too Large"
+    );
+    ER(
+        414,
+        "URI Too Long"
+    );
+    ER(
+        415,
+        "Unsupported Media Type"
+    );
+    ER(
+        416,
+        "Range Not Satisfiable"
+    );
+    ER(
+        417,
+        "Expectation Failed"
+    );
+    ER(
+        418,
+        "I'm a teapot"
+    );
+    ER(
+        421,
+        "Misdirected Request"
+    );
+    ER(
+        422,
+        "Unprocessable Content"
+    );
+    ER(
+        423,
+        "Locked"
+    );
+    ER(
+        424,
+        "Failed Dependency"
+    );
+    ER(
+        425,
+        "Too Early"
+    );
+    ER(
+        426,
+        "Upgrade Required"
+    );
+    ER(
+        428,
+        "Precondition Required"
+    );
+    ER(
+        429,
+        "Too Many Requests"
+    );
+    ER(
+        431,
+        "Request Header Fields Too Large"
+    );
+    ER(
+        451,
+        "Unavailable for Legal Reasons"
+    );
+    ER(
+        500,
+        "Internal Server Error"
+    );
+    ER(
+        501,
+        "Not Implemented"
+    );
+    ER(
+        502,
+        "Bad Gateway"
+    );
+    ER(
+        503,
+        "Service Unavailable"
+    );
+    ER(
+        504,
+        "Gateway Timeout"
+    );
+    ER(
+        505,
+        "HTTP Version Not Supported"
+    );
+    ER(
+        506,
+        "Variant Also Negotiates"
+    );
+    ER(
+        507,
+        "Insufficent Storage"
+    );
+    ER(
+        508,
+        "Loop Detected"
+    );
+    ER(
+        510,
+        "Not Extended"
+    );
+    ER(
+        511,
+        "Network Authentication Required"
+    );
     }
 
     Py_FatalError("got bad status code");
@@ -2549,7 +2558,6 @@ static PyObject* app(
             &path,
             "/"
                         ))) {
-            puts(token);
             if (skip) {
                 skip = false;
                 continue;
@@ -2561,7 +2569,6 @@ static PyObject* app(
                 "/%s",
                 token
             );
-            puts(s);
             assert(target);
 
             if ((!did_save && rt && rt->r) || last_r) {
