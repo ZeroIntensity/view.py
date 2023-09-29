@@ -3,22 +3,15 @@ from __future__ import annotations
 import os
 import runpy
 import warnings
-from dataclasses import _MISSING_TYPE, Field
+from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
 
 try:
     from types import UnionType
 except ImportError:
     UnionType = None
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    NamedTuple,
-    TypedDict,
-    Union,
-    get_args,
-    get_type_hints,
-)
+from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
+                    get_args, get_type_hints)
 
 try:
     from pydantic.fields import ModelField
@@ -49,7 +42,7 @@ if NotRequired:
     _NOT_REQUIRED_TYPES.append(NotRequired)
 
 if TYPE_CHECKING:
-    from .app import ViewApp
+    from .app import App as ViewApp
 
     _TypedDictMeta = None
 else:
@@ -97,7 +90,10 @@ class _ViewNotRequired:
 
 
 def _format_body(
-    vbody_types: dict, doc: dict[Any, str], *, not_required: set[str] | None = None
+    vbody_types: dict,
+    doc: dict[Any, LoaderDoc],
+    *,
+    not_required: set[str] | None = None,
 ) -> list[TypeInfo]:
     not_required = not_required or set()
     if not isinstance(vbody_types, dict):
@@ -125,13 +121,18 @@ def _format_body(
         ):
             v = get_args(raw_v)
             default = _ViewNotRequired
-
         iter_v = v if isinstance(v, (tuple, list)) else (v,)
-        vbody_final[k] = _build_type_codes(iter_v, doc)
+        vbody_final[k] = _build_type_codes(
+            iter_v,
+            doc,
+            key_name=k,
+            default=default,
+        )
         vbody_defaults[k] = default
 
     return [
-        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k]) for k, v in vbody_final.items()
+        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
+        for k, v in vbody_final.items()
     ]
 
 
@@ -142,11 +143,23 @@ def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
     return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
 
 
+@dataclass
+class LoaderDoc:
+    desc: str
+    tp: Any
+    default: Any
+
+
+class _NotSet:
+    ...
+
+
 def _build_type_codes(
     inp: Iterable[type[ValueType]],
-    doc: dict[Any, str] | None = None,
+    doc: dict[Any, LoaderDoc] | None = None,
     *,
     key_name: str | None = None,
+    default: Any | _NoDefault = _NotSet,
 ) -> list[TypeInfo]:
     if not inp:
         return []
@@ -158,8 +171,23 @@ def _build_type_codes(
             if doc is None:
                 raise TypeError(f"Annotated is not valid here ({tp})")
 
-            doc[tp] = tp.__metadata__
-            tp = tp.__origin__
+            if not key_name:
+                raise RuntimeError("internal error: key_name is None")
+
+            if default is _NotSet:
+                raise RuntimeError("internal error: default is _NotSet")
+
+            tmp = tp.__origin__
+            doc[key_name] = LoaderDoc(tp.__metadata__[0], tmp, default)
+            tp = tmp
+        elif doc is not None:
+            if not key_name:
+                raise RuntimeError("internal error: key_name is None")
+
+            if default is _NotSet:
+                raise RuntimeError("internal error: default is _NotSet")
+
+            doc[key_name] = LoaderDoc("No description provided.", tp, default)
 
         type_code = _BASIC_CODES.get(tp)
 
@@ -283,7 +311,9 @@ def _build_type_codes(
         key, value = get_args(tp)
 
         if key is not str:
-            raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
+            raise InvalidBodyError(
+                f"dictionary keys must be strings, not {key}"
+            )
 
         value_args = get_args(value)
 
@@ -390,7 +420,9 @@ def load_fs(app: ViewApp, target_dir: Path):
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
+                    stripped = list(
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -428,7 +460,8 @@ def load_simple(app: ViewApp, target_dir: Path):
             for route in mini_routes:
                 if not route.path:
                     raise ValueError(
-                        "omitting path is only supported" " on filesystem loading",
+                        "omitting path is only supported"
+                        " on filesystem loading",
                     )
 
                 routes.append(route)
