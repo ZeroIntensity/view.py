@@ -27,14 +27,8 @@ from rich.traceback import install
 from _view import ViewApp
 
 from ._loader import finalize, load_fs, load_simple
-from ._logging import (
-    Internal,
-    Service,
-    UvicornHijack,
-    enter_server,
-    exit_server,
-    format_warnings,
-)
+from ._logging import (Internal, Service, UvicornHijack, enter_server,
+                       exit_server, format_warnings)
 from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
@@ -129,7 +123,9 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
+                "query_string": urlencode(query_str).encode()
+                if query
+                else b"",  # noqa
                 "headers": [],
                 "method": method,
             },
@@ -267,7 +263,9 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn("load() was never called (did you forget to start the app?)")
+        warnings.warn(
+            "load() was never called (did you forget to start the app?)"
+        )
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -468,7 +466,9 @@ class App(ViewApp):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
+                importlib.import_module("hypercorn.asyncio").serve(
+                    self._app, conf
+                )
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -592,4 +592,3 @@ def get_app(*, address: int | None = None) -> App:
     app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
     ctypes.pythonapi.Py_IncRef(app)
     return app
-

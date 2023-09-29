@@ -10,13 +10,21 @@ try:
     from types import UnionType
 except ImportError:
     UnionType = None
-from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
-                    get_args, get_type_hints)
+from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
+                    Union, get_args, get_type_hints)
 
 try:
     from pydantic.fields import ModelField
 except ImportError:
     from pydantic.fields import FieldInfo as ModelField
+
+if not TYPE_CHECKING:
+    from typing import _eval_type
+else:
+
+    def _eval_type(*args) -> Any:
+        ...
+
 
 from ._logging import Internal
 from ._util import set_load
@@ -92,6 +100,7 @@ class _ViewNotRequired:
 def _format_body(
     vbody_types: dict,
     doc: dict[Any, LoaderDoc],
+    origin: type[Any],
     *,
     not_required: set[str] | None = None,
 ) -> list[TypeInfo]:
@@ -112,6 +121,10 @@ def _format_body(
 
         default = _NoDefault
         v = raw_v.types if isinstance(raw_v, BodyParam) else raw_v
+
+        if isinstance(v, str):
+            scope = getattr(origin, "_view_scope", globals())
+            v = _eval_type(ForwardRef(v), scope, scope)
 
         if isinstance(raw_v, BodyParam):
             default = raw_v.default
@@ -215,7 +228,7 @@ def _build_type_codes(
                 (
                     TYPECODE_CLASS,
                     _Transport,
-                    _format_body(body, doc, not_required=opt),
+                    _format_body(body, doc, tp, not_required=opt),
                 ),
             )
             setattr(tp, "_view_doc", doc)
@@ -238,7 +251,7 @@ def _build_type_codes(
                     tps[k] = v
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc)))
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -262,7 +275,7 @@ def _build_type_codes(
                     tps[k] = BodyParam(v.type, default)
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc)))
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -282,7 +295,7 @@ def _build_type_codes(
                     )
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc)))
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -294,7 +307,9 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc)))
+            codes.append(
+                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
+            )
             setattr(tp, "_view_doc", doc)
             continue
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import builtins
+import inspect
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Generic, Type, TypeVar, Union
@@ -124,7 +126,8 @@ def route_types(
         route.extra_types[data.__name__] = data
     else:
         raise TypeError(
-            "expected type, tuple of tuples," f" or a dict, got {type(data).__name__}"
+            "expected type, tuple of tuples,"
+            f" or a dict, got {type(data).__name__}"
         )
 
     return route
@@ -143,13 +146,17 @@ def _method(
     if not util_path.startswith("/"):
         raise MistakeError(
             "paths must started with a slash",
-            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2),
+            hint=make_hint(
+                f'This should be "/{util_path}" instead', back_lines=2
+            ),
         )
 
     if util_path.endswith("/") and (len(util_path) != 1):
         raise MistakeError(
             "paths must not end with a slash",
-            hint=make_hint(f'This should be "{util_path[:-1]}" instead', back_lines=2),
+            hint=make_hint(
+                f'This should be "{util_path[:-1]}" instead', back_lines=2
+            ),
         )
 
     if "{" in util_path:
@@ -274,6 +281,18 @@ def query(
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
+    frame = inspect.currentframe()
+    assert frame, "currentframe() returned None"
+
+    assert frame.f_back, "frame has no f_back"
+    assert frame.f_back.f_back, "frame 2 has no f_back"
+
+    target = frame.f_back.f_back
+
+    for i in tps:
+        with suppress(AttributeError):
+            setattr(i, "_view_scope", {**target.f_locals, **target.f_globals})
+
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, False, tps, default, doc, []))
