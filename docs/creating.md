@@ -154,3 +154,47 @@ If you were to put this in a file under `routes/index.py`, `my_page` would be wh
 If you would like to omit a file from being loaded by filesystem or simple loading, prefix it with a `_`. As an example, `my_page.py` would get loaded, but `_my_page.py` would not.
 
 This could be useful is you want to hold a utilities file directly in your routes directory, but for that scenario the `scripts` directory is suggested instead.
+
+## Acquiring the App
+
+Sometimes you might have a case where you need to access the `App` instance, but trying to import it from your main file can be a headache because of circular import errors. view.py lets you get around this with the use of `get_app`.
+
+Say this is your `app.py` code:
+
+```py
+# app.py
+from view import new_app, get_app
+from my_route import index
+
+app = new_app()
+
+app.load([index])
+app.run()
+```
+
+And this is `my_route.py`:
+
+```py
+# my_route.py
+from view import get
+from app import app
+
+@get("/")
+async def index():
+    return f"Running on {app.config.server.port}"
+```
+
+You would get an error, since both of these files try to import from each other. This can be a common problem when using an app.
+
+To avoid this, view.py introduces the `get_app` function, which gets an `App` instance created by `new_app` and directly fetches it without an import:
+
+```py
+# my_route.py
+from view import get, get_app
+
+app = get_app()
+
+@get("/")
+async def index():
+    return f"Running on {app.config.server.port}"
+```

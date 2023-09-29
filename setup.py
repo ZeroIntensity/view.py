@@ -11,7 +11,7 @@ if __name__ == "__main__":
         data = toml.load(f)
     setup(
         name="view.py",
-        version="1.0.0-alpha5",
+        version="1.0.0-alpha6",
         packages=["view"],
         project_urls=data["project"]["urls"],
         package_dir={"": "src"},
