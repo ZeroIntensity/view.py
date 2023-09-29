@@ -17,7 +17,7 @@ from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
 from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
-from urllib.parse import quote_plus, urlencode
+from urllib.parse import urlencode
 
 import ujson
 from rich import print
@@ -26,8 +26,14 @@ from rich.traceback import install
 from _view import ViewApp
 
 from ._loader import finalize, load_fs, load_simple
-from ._logging import (Internal, Service, UvicornHijack, enter_server,
-                       exit_server, format_warnings)
+from ._logging import (
+    Internal,
+    Service,
+    UvicornHijack,
+    enter_server,
+    exit_server,
+    format_warnings,
+)
 from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
@@ -36,7 +42,7 @@ from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
-from .typing import Callback
+from .typing import Callback, DocsType
 from .util import debug as enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -45,6 +51,7 @@ __all__ = "App", "new_app"
 
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
+T = TypeVar("T")
 
 _ROUTES_WARN_MSG = "routes argument should only be passed when load strat"
 
@@ -115,15 +122,13 @@ class TestingContext:
 
         for k, v in (query or {}).items():
             query_str[k] = v if not isinstance(v, dict) else ujson.dumps(v)
-        
+
         await self.app(
             {
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode()
-                if query
-                else b"",  # noqa
+                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
                 "headers": [],
                 "method": method,
             },
@@ -191,7 +196,21 @@ class TestingContext:
         return await self._request("OPTIONS", route, body=body, query=query)
 
 
-class App(ViewApp, Generic[A]):
+@dataclass
+class InputDoc(Generic[T]):
+    desc: str
+    type: tuple[type[T], ...]
+    default: T | _NoDefaultType
+
+
+@dataclass
+class RouteDoc:
+    desc: str
+    body: dict[str, InputDoc]
+    query: dict[str, InputDoc]
+
+
+class App(ViewApp):
     def __init__(self, config: Config) -> None:
         supply_parsers(self)
         self.config = config
@@ -200,6 +219,9 @@ class App(ViewApp, Generic[A]):
         self.routes: list[Route] = []
         self.loaded: bool = False
         self.running = False
+        self.docs: DocsType = {}
+        self.loaded_routes: list[Route] = []
+
         Service.log.setLevel(
             config.log.level
             if not isinstance(config.log.level, str)
@@ -236,8 +258,6 @@ class App(ViewApp, Generic[A]):
             enable_debug()
 
         self.running = False
-        self.user_settings: type[A] | None = None
-        self._supplied_config: dict[str, Any] | None = {}
 
     def _finalize(self) -> None:
         if os.environ.get("_VIEW_CANCEL_FINALIZERS"):
@@ -246,9 +266,7 @@ class App(ViewApp, Generic[A]):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -352,6 +370,23 @@ class App(ViewApp, Generic[A]):
 
         self.loaded = True
 
+        for r in self.loaded_routes:
+            if not r.path:
+                continue
+
+            body = {}
+            query = {}
+
+            for i in r.inputs:
+                target = body if i.is_body else query
+                target[i.name] = InputDoc(
+                    i.doc or "No description provided.", i.tp, i.default
+                )
+
+            self.docs[(r.method.name, r.path)] = RouteDoc(
+                r.doc or "No description provided.", body, query
+            )
+
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")
         Internal.info(f"spawning {coro}")
@@ -432,9 +467,7 @@ class App(ViewApp, Generic[A]):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(
-                    self._app, conf
-                )
+                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")

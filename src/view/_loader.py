@@ -10,8 +10,15 @@ try:
     from types import UnionType
 except ImportError:
     UnionType = None
-from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
-                    get_args, get_type_hints)
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    NamedTuple,
+    TypedDict,
+    Union,
+    get_args,
+    get_type_hints,
+)
 
 try:
     from pydantic.fields import ModelField
@@ -31,6 +38,8 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
+from typing_extensions import Annotated, TypeGuard
+
 _NOT_REQUIRED_TYPES = []
 
 if ExtNotRequired:
@@ -41,6 +50,7 @@ if NotRequired:
 
 if TYPE_CHECKING:
     from .app import ViewApp
+
     _TypedDictMeta = None
 else:
     from typing import _TypedDictMeta
@@ -86,7 +96,9 @@ class _ViewNotRequired:
     __VIEW_NOREQ__ = 1
 
 
-def _format_body(vbody_types: dict, *, not_required: set[str] | None = None) -> list[TypeInfo]:
+def _format_body(
+    vbody_types: dict, doc: dict[Any, str], *, not_required: set[str] | None = None
+) -> list[TypeInfo]:
     not_required = not_required or set()
     if not isinstance(vbody_types, dict):
         raise InvalidBodyError(
@@ -107,40 +119,62 @@ def _format_body(vbody_types: dict, *, not_required: set[str] | None = None) -> 
 
         if isinstance(raw_v, BodyParam):
             default = raw_v.default
-        
-        if (getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES) or (k in not_required):
+
+        if (getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES) or (
+            k in not_required
+        ):
             v = get_args(raw_v)
             default = _ViewNotRequired
 
         iter_v = v if isinstance(v, (tuple, list)) else (v,)
-        vbody_final[k] = _build_type_codes(iter_v)
+        vbody_final[k] = _build_type_codes(iter_v, doc)
         vbody_defaults[k] = default
 
     return [
-        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
-        for k, v in vbody_final.items()
+        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k]) for k, v in vbody_final.items()
     ]
 
 
-def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
+AnnotatedType = type(Annotated[str, ""])
+
+
+def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
+    return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
+
+
+def _build_type_codes(
+    inp: Iterable[type[ValueType]],
+    doc: dict[Any, str] | None = None,
+    *,
+    key_name: str | None = None,
+) -> list[TypeInfo]:
     if not inp:
         return []
 
     codes: list[TypeInfo] = []
 
     for tp in inp:
+        if is_annotated(tp):
+            if doc is None:
+                raise TypeError(f"Annotated is not valid here ({tp})")
+
+            doc[tp] = tp.__metadata__
+            tp = tp.__origin__
+
         type_code = _BASIC_CODES.get(tp)
 
         if type_code:
             codes.append((type_code, None, []))
             continue
-        
-        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (type(tp) == _TypedDictMeta):
+
+        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (
+            type(tp) == _TypedDictMeta
+        ):
             try:
                 body = get_type_hints(tp)
             except KeyError:
                 body = tp.__annotations__
-            
+
             opt = getattr(tp, "__optional_keys__", None)
 
             class _Transport:
@@ -148,16 +182,20 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                 def __view_construct__(**kwargs):
                     return kwargs
 
+            doc = {}
             codes.append(
                 (
                     TYPECODE_CLASS,
                     _Transport,
-                    _format_body(body, not_required=opt),
+                    _format_body(body, doc, not_required=opt),
                 ),
             )
+            setattr(tp, "_view_doc", doc)
             continue
 
-        if (NamedTuple in getattr(tp, "__orig_bases__", [])) or (hasattr(tp, "_field_defaults")):
+        if (NamedTuple in getattr(tp, "__orig_bases__", [])) or (
+            hasattr(tp, "_field_defaults")
+        ):
             defaults = tp._field_defaults  # type: ignore
             tps = {}
             try:
@@ -171,7 +209,9 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                 else:
                     tps[k] = v
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc)))
+            setattr(tp, "_view_doc", doc)
             continue
 
         dataclass_fields: dict[str, Field] | None = getattr(
@@ -193,7 +233,9 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                     )
                     tps[k] = BodyParam(v.type, default)
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc)))
+            setattr(tp, "_view_doc", doc)
             continue
 
         pydantic_fields: dict[str, ModelField] | None = getattr(
@@ -211,7 +253,9 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                         v.default or v.default_factory,
                     )
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc)))
+            setattr(tp, "_view_doc", doc)
             continue
 
         vbody = getattr(tp, "__view_body__", None)
@@ -221,11 +265,13 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             else:
                 vbody_types = vbody
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc)))
+            setattr(tp, "_view_doc", doc)
             continue
-    
+
         origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
-        
+
         if (type(tp) in {UnionType, TypingUnionType}) and (origin is not dict):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
@@ -237,9 +283,7 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
         key, value = get_args(tp)
 
         if key is not str:
-            raise InvalidBodyError(
-                f"dictionary keys must be strings, not {key}"
-            )
+            raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
 
         value_args = get_args(value)
 
@@ -300,6 +344,7 @@ def finalize(routes: list[Route], app: ViewApp):
         else:
             virtual_routes[route.path or ""] = [route]
 
+        app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore
             route.callable,
@@ -345,9 +390,7 @@ def load_fs(app: ViewApp, target_dir: Path):
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(
-                        path_obj.parts[len(target_dir.parts) :]  # noqa
-                    )
+                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -385,8 +428,7 @@ def load_simple(app: ViewApp, target_dir: Path):
             for route in mini_routes:
                 if not route.path:
                     raise ValueError(
-                        "omitting path is only supported"
-                        " on filesystem loading",
+                        "omitting path is only supported" " on filesystem loading",
                     )
 
                 routes.append(route)
