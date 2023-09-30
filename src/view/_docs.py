@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, get_args
+
+from typing_extensions import get_origin
 
 from .typing import DocsType
 
@@ -26,7 +28,21 @@ def _tp_name(tp: Any, types: list[Any]) -> str:
         return f"`{prim}`"
     else:
         if tp not in types:
-            doc: dict[str, LoaderDoc] = getattr(tp, "_view_doc")
+            doc: dict[str, LoaderDoc] | None = getattr(tp, "_view_doc", None)
+            if not doc:
+                if hasattr(tp, "__origin__"):
+                    origin = get_origin(tp)
+                    args = get_args(tp)
+                    tp_name = _PRIMITIVES.get(origin) or getattr(
+                        origin, "__name__", str(origin)
+                    )
+                    parsed_args = [
+                        (_PRIMITIVES.get(i) or i.__name__) for i in args
+                    ]
+                    return f"`{tp_name}<{', '.join(parsed_args)}>`"
+
+                return f"`{doc}`"
+
             types.append(tp)
 
             for v in doc.values():

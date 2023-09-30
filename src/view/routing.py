@@ -290,7 +290,7 @@ def query(
     target = frame.f_back.f_back
 
     for i in tps:
-        with suppress(AttributeError):
+        with suppress(TypeError):
             setattr(i, "_view_scope", {**target.f_locals, **target.f_globals})
 
     def inner(r: RouteOrCallable) -> Route:
