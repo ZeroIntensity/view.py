@@ -7,11 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Added `get_app`
+
+## [1.0.0-alpha5] - 2023-09-24
+
 - Added `app.query` and `app.body`
 - Patched warning with starting app from incorrect filename
 - Updated `__all__` for `routing.py`
 - Added `view.Response` and `view.HTML`
 - Fixed `__view_result__`
+- Added support for `__view_body__` and `__view_construct__`
+- Added support for Pydantic, `NamedTuple`, and dataclasses for type validation
+- Support for direct union types (i.e. `str | int`, `Union[str, int]`) on type validation
 - Added support for non async routes
 
 ## [1.0.0-alpha4] - 2023-09-10

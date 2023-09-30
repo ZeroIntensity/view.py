@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import ctypes
 import faulthandler
 import importlib
 import inspect
-import json
 import logging
 import os
 import sys
@@ -20,6 +20,7 @@ from types import TracebackType as Traceback
 from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
 from urllib.parse import urlencode
 
+import ujson
 from rich import print
 from rich.traceback import install
 
@@ -41,7 +42,7 @@ from .util import debug as enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
 
-__all__ = "App", "new_app"
+__all__ = "App", "new_app", "get_app"
 
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
@@ -92,7 +93,7 @@ class TestingContext:
 
         async def receive():
             return {
-                "body": json.dumps(body).encode(),
+                "body": ujson.dumps(body).encode(),
                 "more_body": False,
                 "type": "http.request",
             }
@@ -111,12 +112,19 @@ class TestingContext:
                 raise TypeError(f"bad type: {obj['type']}")
 
         truncated_route = route[: route.find("?")] if "?" in route else route
+        query_str = {}
+
+        for k, v in (query or {}).items():
+            query_str[k] = v if not isinstance(v, dict) else ujson.dumps(v)
+
         await self.app(
             {
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query).encode() if query else b"",
+                "query_string": urlencode(query_str).encode()
+                if query
+                else b"",  # noqa
                 "headers": [],
                 "method": method,
             },
@@ -495,6 +503,7 @@ def new_app(
     config_directory: Path | str | None = None,
     post_init: Callback | None = None,
     app_dealloc: Callback | None = None,
+    store_address: bool = True,
 ) -> App:
     """Create a new view app.
 
@@ -504,6 +513,7 @@ def new_app(
         config_directory: Directory path to search for a configuration
         post_init: Callback to run after the App instance has been created
         app_dealloc: Callback to run when the App instance is freed from memory
+        store_address: Whether to store the address of the instance to allow use from get_app
     """
     config = load_config(
         path=Path(config_path) if config_path else None,
@@ -518,7 +528,35 @@ def new_app(
     if start:
         app.run_threaded()
 
-    if app_dealloc:
-        weakref.finalize(app, app_dealloc)
+    def finalizer():
+        if "_VIEW_APP_ADDRESS" in os.environ:
+            del os.environ["_VIEW_APP_ADDRESS"]
+
+        if app_dealloc:
+            app_dealloc()
+
+    weakref.finalize(app, finalizer)
+
+    if store_address:
+        os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
+        # id() on cpython returns the address, but it is
+        # implementation dependent however, view.py
+        # only supports cpython anyway
 
     return app
+
+
+ctypes.pythonapi.Py_IncRef.argtypes = (ctypes.py_object,)
+
+
+def get_app(*, address: int | None = None) -> App:
+    env = os.environ.get("_VIEW_APP_ADDRESS")
+    addr = address or env
+
+    if (not addr) and (not env):
+        raise ValueError("no view app registered")
+
+    app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
+    ctypes.pythonapi.Py_IncRef(app)
+    return app
+

@@ -18,3 +18,7 @@ dist/
 *.egg-info
 build/
 *.so
+html/dist.css
+38venv
+39venv
+311venv

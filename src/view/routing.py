@@ -22,7 +22,8 @@ __all__ = (
     "query",
     "body",
     "route_types",
-    "cache"
+    "cache",
+    "BodyParam",
 )
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
@@ -38,6 +39,12 @@ class Method(Enum):
 
 
 V = TypeVar("V", bound="ValueType")
+
+
+@dataclass
+class BodyParam(Generic[V]):
+    types: type[V] | list[type[V]] | tuple[type[V], ...]
+    default: V
 
 
 @dataclass
@@ -258,7 +265,7 @@ def options(
 
 
 class _NoDefault:
-    ...
+    __VIEW_NODEFAULT__ = 1
 
 
 _NoDefaultType = Type[_NoDefault]

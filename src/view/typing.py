@@ -60,7 +60,11 @@ ViewRoute = Callable[P, R]
 ValidatorResult = Union[bool, Tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
 
-TypeInfo = Tuple[int, Union[Type[Any], None], List["TypeInfo"]]
+TypeObject = Union[Type[Any], None]
+TypeInfo = Union[
+    Tuple[int, TypeObject, List["TypeInfo"]],
+    Tuple[int, TypeObject, List["TypeInfo"], Any],
+]
 
 
 class RouteInputDict(TypedDict, Generic[V]):
@@ -80,16 +84,12 @@ class _SupportsViewBodyCV(Protocol):
 
 
 class _SupportsViewBodyF(Protocol):
-    def __view_body__(self) -> ViewBody:
+    @staticmethod
+    def __view_body__() -> ViewBody:
         ...
 
 
-class _SupportsAnnotations(Protocol):
-    __annotations__: ClassVar[dict[str, Any]]
-
-
-SupportsViewBody = Union[_SupportsViewBodyCV, _SupportsViewBodyF]
-ViewBodyLike = Union[SupportsViewBody, _SupportsAnnotations]
+ViewBodyLike = Union[_SupportsViewBodyCV, _SupportsViewBodyF]
 ValueType = Union[
     ViewBodyLike,
     str,
@@ -97,7 +97,7 @@ ValueType = Union[
     Dict[str, "ValueType"],
     bool,
     float,
-    Type[Any],
+    Any,
 ]
 Parser = Callable[[str], ViewBody]
 
