@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import builtins
+import inspect
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Generic, Type, TypeVar, Union
@@ -195,6 +197,8 @@ def _method(
 
     if doc:
         route.doc = doc
+    else:
+        route.doc = route.callable.__doc__
 
     return route
 
@@ -277,6 +281,18 @@ def query(
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
+    frame = inspect.currentframe()
+    assert frame, "currentframe() returned None"
+
+    assert frame.f_back, "frame has no f_back"
+    assert frame.f_back.f_back, "frame 2 has no f_back"
+
+    target = frame.f_back.f_back
+
+    for i in tps:
+        with suppress(TypeError):
+            setattr(i, "_view_scope", {**target.f_locals, **target.f_globals})
+
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, False, tps, default, doc, []))
