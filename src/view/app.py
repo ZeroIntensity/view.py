@@ -17,7 +17,8 @@ from io import UnsupportedOperation
 from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
+from typing import (Any, Callable, Coroutine, Generic, TextIO, TypeVar,
+                    get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -26,6 +27,7 @@ from rich.traceback import install
 
 from _view import ViewApp
 
+from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server, format_warnings)
@@ -216,7 +218,7 @@ class App(ViewApp):
         self.routes: list[Route] = []
         self.loaded: bool = False
         self.running = False
-        self.docs: DocsType = {}
+        self._docs: DocsType = {}
         self.loaded_routes: list[Route] = []
 
         Service.log.setLevel(
@@ -353,6 +355,8 @@ class App(ViewApp):
 
     def load(self, routes: list[Route] | None = None) -> None:
         if self.loaded:
+            if routes:
+                finalize(routes, self)
             Internal.warning("load called twice")
             return
 
@@ -382,7 +386,7 @@ class App(ViewApp):
                     i.doc or "No description provided.", i.tp, i.default
                 )
 
-            self.docs[(r.method.name, r.path)] = RouteDoc(
+            self._docs[(r.method.name, r.path)] = RouteDoc(
                 r.doc or "No description provided.", body, query
             )
 
@@ -527,6 +531,62 @@ class App(ViewApp):
             yield ctx
         finally:
             await ctx.stop()
+
+    @overload
+    def docs(self, file: None = None) -> str:
+        ...
+
+    @overload
+    def docs(self, file: TextIO) -> None:
+        ...
+
+    @overload
+    def docs(
+        self,
+        file: Path,
+        *,
+        encoding: str = "utf-8",
+        overwrite: bool = True,
+    ) -> None:
+        ...
+
+    @overload
+    def docs(
+        self,
+        file: str,
+        *,
+        encoding: str = "utf-8",
+        overwrite: bool = True,
+    ) -> None:
+        ...
+
+    def docs(
+        self,
+        file: str | TextIO | Path | None = None,
+        *,
+        encoding: str = "utf-8",
+        overwrite: bool = True,
+    ) -> str | None:
+        self.load()
+        md = markdown_docs(self._docs)
+
+        if not file:
+            return md
+
+        if isinstance(file, str):
+            if not overwrite:
+                Path(file).write_text(md, encoding=encoding)
+            else:
+                with open(file, "w", encoding=encoding) as f:
+                    f.write(md)
+        elif isinstance(file, Path):
+            if overwrite:
+                with open(file, "w", encoding=encoding) as f:
+                    f.write(md)
+            else:
+                file.write_text(md)
+        else:
+            file.write(md)
 
 
 def new_app(

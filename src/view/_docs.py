@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .app import InputDoc
 from .typing import DocsType
 
 if TYPE_CHECKING:
     from ._loader import LoaderDoc
+    from .app import InputDoc
     from .routing import _NoDefaultType
-
-from .routing import _NoDefault
 
 _PRIMITIVES = {
     str: "string",
@@ -81,7 +79,10 @@ def _make_table(
 def markdown_docs(docs: DocsType) -> str:
     final: list[str] = []
     types: list[Any] = []
-    final.append(f"\n## Routes")
+    if docs:
+        final.append(f"\n## Routes")
+    else:
+        final.append("\n*This app is empty...*")
 
     for k, v in docs.items():
         final.append(f"### {k[0]} `{k[1]}`")
@@ -90,7 +91,7 @@ def markdown_docs(docs: DocsType) -> str:
         _make_table(final, "Query Parameters", v.query, types)
         _make_table(final, "Body Parameters", v.body, types)
 
-    part = ["\n## Types"]
+    part = ["\n## Types"] if types else [""]
 
     for i in types:
         doc: dict[str, LoaderDoc] = getattr(i, "_view_doc")
