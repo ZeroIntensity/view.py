@@ -44,7 +44,7 @@ with open("my_docs.md", "w") as f:
 
 If you were to generate docs for the average view app, there will be a lot of "No description provided" everywhere. So, how do we actually add descriptions?
 
-To start, you can document a route via its decorator, like so:
+To start, you can document a route via it's decorator, like so:
 
 ```py
 from view import new_app
