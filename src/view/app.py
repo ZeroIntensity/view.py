@@ -17,7 +17,8 @@ from io import UnsupportedOperation
 from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import Any, Callable, Coroutine, Generic, TypeVar, get_type_hints
+from typing import (Any, Callable, Coroutine, Generic, TextIO, TypeVar,
+                    get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -26,6 +27,7 @@ from rich.traceback import install
 
 from _view import ViewApp
 
+from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server, format_warnings)
@@ -37,7 +39,7 @@ from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
-from .typing import Callback
+from .typing import Callback, DocsType
 from .util import debug as enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -46,6 +48,7 @@ __all__ = "App", "new_app", "get_app"
 
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
+T = TypeVar("T")
 
 _ROUTES_WARN_MSG = "routes argument should only be passed when load strat"
 
@@ -192,7 +195,21 @@ class TestingContext:
         return await self._request("OPTIONS", route, body=body, query=query)
 
 
-class App(ViewApp, Generic[A]):
+@dataclass
+class InputDoc(Generic[T]):
+    desc: str
+    type: tuple[type[T], ...]
+    default: T | _NoDefaultType
+
+
+@dataclass
+class RouteDoc:
+    desc: str
+    body: dict[str, InputDoc]
+    query: dict[str, InputDoc]
+
+
+class App(ViewApp):
     def __init__(self, config: Config) -> None:
         supply_parsers(self)
         self.config = config
@@ -201,6 +218,9 @@ class App(ViewApp, Generic[A]):
         self.routes: list[Route] = []
         self.loaded: bool = False
         self.running = False
+        self._docs: DocsType = {}
+        self.loaded_routes: list[Route] = []
+
         Service.log.setLevel(
             config.log.level
             if not isinstance(config.log.level, str)
@@ -237,8 +257,6 @@ class App(ViewApp, Generic[A]):
             enable_debug()
 
         self.running = False
-        self.user_settings: type[A] | None = None
-        self._supplied_config: dict[str, Any] | None = {}
 
     def _finalize(self) -> None:
         if os.environ.get("_VIEW_CANCEL_FINALIZERS"):
@@ -337,6 +355,8 @@ class App(ViewApp, Generic[A]):
 
     def load(self, routes: list[Route] | None = None) -> None:
         if self.loaded:
+            if routes:
+                finalize(routes, self)
             Internal.warning("load called twice")
             return
 
@@ -352,6 +372,23 @@ class App(ViewApp, Generic[A]):
             finalize([*(routes or ()), *self._manual_routes], self)
 
         self.loaded = True
+
+        for r in self.loaded_routes:
+            if not r.path:
+                continue
+
+            body = {}
+            query = {}
+
+            for i in r.inputs:
+                target = body if i.is_body else query
+                target[i.name] = InputDoc(
+                    i.doc or "No description provided.", i.tp, i.default
+                )
+
+            self._docs[(r.method.name, r.path)] = RouteDoc(
+                r.doc or "No description provided.", body, query
+            )
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")
@@ -495,6 +532,62 @@ class App(ViewApp, Generic[A]):
         finally:
             await ctx.stop()
 
+    @overload
+    def docs(self, file: None = None) -> str:
+        ...
+
+    @overload
+    def docs(self, file: TextIO) -> None:
+        ...
+
+    @overload
+    def docs(
+        self,
+        file: Path,
+        *,
+        encoding: str = "utf-8",
+        overwrite: bool = True,
+    ) -> None:
+        ...
+
+    @overload
+    def docs(
+        self,
+        file: str,
+        *,
+        encoding: str = "utf-8",
+        overwrite: bool = True,
+    ) -> None:
+        ...
+
+    def docs(
+        self,
+        file: str | TextIO | Path | None = None,
+        *,
+        encoding: str = "utf-8",
+        overwrite: bool = True,
+    ) -> str | None:
+        self.load()
+        md = markdown_docs(self._docs)
+
+        if not file:
+            return md
+
+        if isinstance(file, str):
+            if not overwrite:
+                Path(file).write_text(md, encoding=encoding)
+            else:
+                with open(file, "w", encoding=encoding) as f:
+                    f.write(md)
+        elif isinstance(file, Path):
+            if overwrite:
+                with open(file, "w", encoding=encoding) as f:
+                    f.write(md)
+            else:
+                file.write_text(md)
+        else:
+            file.write(md)
+
 
 def new_app(
     *,
@@ -559,4 +652,3 @@ def get_app(*, address: int | None = None) -> App:
     app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
     ctypes.pythonapi.Py_IncRef(app)
     return app
-

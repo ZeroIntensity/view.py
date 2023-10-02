@@ -9,6 +9,7 @@ nav:
     - Running: running.md
     - Responses: responses.md
     - Parameters: parameters.md
+    - Documenting Your App: docs.md
 
 theme:
     name: null

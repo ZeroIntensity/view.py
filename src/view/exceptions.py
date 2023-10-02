@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from rich.console import RenderableType
 
 __all__ = (
@@ -10,6 +11,7 @@ __all__ = (
     "InvalidBodyError",
     "MistakeError",
     "LoaderWarning",
+    "AppNotFoundError",
 )
 
 
@@ -48,4 +50,8 @@ class InvalidBodyError(ViewError):
 
 
 class MistakeError(ViewError):
+    ...
+
+
+class AppNotFoundError(ViewError, FileNotFoundError):
     ...

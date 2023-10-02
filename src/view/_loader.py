@@ -3,20 +3,28 @@ from __future__ import annotations
 import os
 import runpy
 import warnings
-from dataclasses import _MISSING_TYPE, Field
+from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
 
 try:
     from types import UnionType
 except ImportError:
     UnionType = None
-from typing import (TYPE_CHECKING, Iterable, NamedTuple, TypedDict, Union,
-                    get_args, get_type_hints)
+from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
+                    Union, get_args, get_type_hints)
 
 try:
     from pydantic.fields import ModelField
 except ImportError:
     from pydantic.fields import FieldInfo as ModelField
+
+if not TYPE_CHECKING:
+    from typing import _eval_type
+else:
+
+    def _eval_type(*args) -> Any:
+        ...
+
 
 from ._logging import Internal
 from ._util import set_load
@@ -31,6 +39,8 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
+from typing_extensions import Annotated, TypeGuard
+
 _NOT_REQUIRED_TYPES = []
 
 if ExtNotRequired:
@@ -40,7 +50,8 @@ if NotRequired:
     _NOT_REQUIRED_TYPES.append(NotRequired)
 
 if TYPE_CHECKING:
-    from .app import ViewApp
+    from .app import App as ViewApp
+
     _TypedDictMeta = None
 else:
     from typing import _TypedDictMeta
@@ -86,7 +97,13 @@ class _ViewNotRequired:
     __VIEW_NOREQ__ = 1
 
 
-def _format_body(vbody_types: dict, *, not_required: set[str] | None = None) -> list[TypeInfo]:
+def _format_body(
+    vbody_types: dict,
+    doc: dict[Any, LoaderDoc],
+    origin: type[Any],
+    *,
+    not_required: set[str] | None = None,
+) -> list[TypeInfo]:
     not_required = not_required or set()
     if not isinstance(vbody_types, dict):
         raise InvalidBodyError(
@@ -105,15 +122,25 @@ def _format_body(vbody_types: dict, *, not_required: set[str] | None = None) -> 
         default = _NoDefault
         v = raw_v.types if isinstance(raw_v, BodyParam) else raw_v
 
+        if isinstance(v, str):
+            scope = getattr(origin, "_view_scope", globals())
+            v = _eval_type(ForwardRef(v), scope, scope)
+
         if isinstance(raw_v, BodyParam):
             default = raw_v.default
-        
-        if (getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES) or (k in not_required):
+
+        if (getattr(raw_v, "__origin__", None) in _NOT_REQUIRED_TYPES) or (
+            k in not_required
+        ):
             v = get_args(raw_v)
             default = _ViewNotRequired
-
         iter_v = v if isinstance(v, (tuple, list)) else (v,)
-        vbody_final[k] = _build_type_codes(iter_v)
+        vbody_final[k] = _build_type_codes(
+            iter_v,
+            doc,
+            key_name=k,
+            default=default,
+        )
         vbody_defaults[k] = default
 
     return [
@@ -122,25 +149,73 @@ def _format_body(vbody_types: dict, *, not_required: set[str] | None = None) -> 
     ]
 
 
-def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
+AnnotatedType = type(Annotated[str, ""])
+
+
+def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
+    return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
+
+
+@dataclass
+class LoaderDoc:
+    desc: str
+    tp: Any
+    default: Any
+
+
+class _NotSet:
+    ...
+
+
+def _build_type_codes(
+    inp: Iterable[type[ValueType]],
+    doc: dict[Any, LoaderDoc] | None = None,
+    *,
+    key_name: str | None = None,
+    default: Any | _NoDefault = _NotSet,
+) -> list[TypeInfo]:
     if not inp:
         return []
 
     codes: list[TypeInfo] = []
 
     for tp in inp:
+        if is_annotated(tp):
+            if doc is None:
+                raise TypeError(f"Annotated is not valid here ({tp})")
+
+            if not key_name:
+                raise RuntimeError("internal error: key_name is None")
+
+            if default is _NotSet:
+                raise RuntimeError("internal error: default is _NotSet")
+
+            tmp = tp.__origin__
+            doc[key_name] = LoaderDoc(tp.__metadata__[0], tmp, default)
+            tp = tmp
+        elif doc is not None:
+            if not key_name:
+                raise RuntimeError("internal error: key_name is None")
+
+            if default is _NotSet:
+                raise RuntimeError("internal error: default is _NotSet")
+
+            doc[key_name] = LoaderDoc("No description provided.", tp, default)
+
         type_code = _BASIC_CODES.get(tp)
 
         if type_code:
             codes.append((type_code, None, []))
             continue
-        
-        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (type(tp) == _TypedDictMeta):
+
+        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (
+            type(tp) == _TypedDictMeta
+        ):
             try:
                 body = get_type_hints(tp)
             except KeyError:
                 body = tp.__annotations__
-            
+
             opt = getattr(tp, "__optional_keys__", None)
 
             class _Transport:
@@ -148,16 +223,20 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                 def __view_construct__(**kwargs):
                     return kwargs
 
+            doc = {}
             codes.append(
                 (
                     TYPECODE_CLASS,
                     _Transport,
-                    _format_body(body, not_required=opt),
+                    _format_body(body, doc, tp, not_required=opt),
                 ),
             )
+            setattr(tp, "_view_doc", doc)
             continue
 
-        if (NamedTuple in getattr(tp, "__orig_bases__", [])) or (hasattr(tp, "_field_defaults")):
+        if (NamedTuple in getattr(tp, "__orig_bases__", [])) or (
+            hasattr(tp, "_field_defaults")
+        ):
             defaults = tp._field_defaults  # type: ignore
             tps = {}
             try:
@@ -171,7 +250,9 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                 else:
                     tps[k] = v
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
+            setattr(tp, "_view_doc", doc)
             continue
 
         dataclass_fields: dict[str, Field] | None = getattr(
@@ -193,7 +274,9 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                     )
                     tps[k] = BodyParam(v.type, default)
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
+            setattr(tp, "_view_doc", doc)
             continue
 
         pydantic_fields: dict[str, ModelField] | None = getattr(
@@ -211,7 +294,9 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
                         v.default or v.default_factory,
                     )
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(tps)))
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
+            setattr(tp, "_view_doc", doc)
             continue
 
         vbody = getattr(tp, "__view_body__", None)
@@ -221,11 +306,15 @@ def _build_type_codes(inp: Iterable[type[ValueType]]) -> list[TypeInfo]:
             else:
                 vbody_types = vbody
 
-            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types)))
+            doc = {}
+            codes.append(
+                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
+            )
+            setattr(tp, "_view_doc", doc)
             continue
-    
+
         origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
-        
+
         if (type(tp) in {UnionType, TypingUnionType}) and (origin is not dict):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
@@ -300,6 +389,7 @@ def finalize(routes: list[Route], app: ViewApp):
         else:
             virtual_routes[route.path or ""] = [route]
 
+        app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore
             route.callable,
@@ -346,8 +436,8 @@ def load_fs(app: ViewApp, target_dir: Path):
                 else:
                     path_obj = Path(path)
                     stripped = list(
-                        path_obj.parts[len(target_dir.parts) :]  # noqa
-                    )
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 

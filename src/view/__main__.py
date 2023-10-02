@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 import getpass
 import os
 import re
 from pathlib import Path
 
 import click
+
+from .exceptions import AppNotFoundError
 
 B_OPEN = "{"
 B_CLOSE = "}"
@@ -164,7 +167,11 @@ def _run(*, force_prod: bool = False) -> None:
     conf = load_config()
     if force_prod:
         conf.dev = True
-    run_path(conf.app.app_path)
+
+    try:
+        run_path(conf.app.app_path)
+    except AppNotFoundError as e:
+        error(str(e).replace('"', "`"))
 
 
 @main.command()
@@ -308,9 +315,7 @@ app.run()
     index = routes / "index.py"
 
     if index.exists():
-        should_continue(
-            f"`{index.relative_to('.')}` already exists, overwrite?"
-        )
+        should_continue(f"`{index.relative_to('.')}` already exists, overwrite?")
     pathstr = "" if load == "filesystem" else "'/'"
     with open(index, "w") as f:
         f.write(
