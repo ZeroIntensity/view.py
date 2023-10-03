@@ -1,2 +1,5 @@
 hatch
 psycopg2-binary
+mysql-connector-python
+sqlite3
+pymongo
