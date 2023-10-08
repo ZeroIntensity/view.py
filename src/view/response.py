@@ -16,6 +16,8 @@ _Find = None
 
 
 class Response(Generic[T]):
+    """Wrapper for responses."""
+
     def __init__(
         self,
         body: T | None = None,
@@ -31,7 +33,9 @@ class Response(Generic[T]):
         if body_translate:
             self.translate = body_translate
         else:
-            self.translate = "str" if not hasattr(body, "__view_result__") else "result"
+            self.translate = (
+                "str" if not hasattr(body, "__view_result__") else "result"
+            )
 
     def cookie(
         self,
@@ -47,6 +51,18 @@ class Response(Generic[T]):
         partitioned: bool = False,
         secure: bool = False,
     ) -> None:
+        """Set a cookie.
+
+        Args:
+            key: Cookie name.
+            value: Cookie value.
+            max_age: Max age of the cookies.
+            expires: When the cookie expires.
+            domain: Domain the cookie is valid at.
+            http_only: Whether the cookie should be HTTP only.
+            same_site: SameSite setting for the cookie.
+            partitioned: Whether to tie it to the top level site.
+            secure: Whether the cookie should enforce HTTPS."""
         cookie_str = f"{key}={value}; SameSite={same_site}".encode()
 
         if expires:
@@ -110,6 +126,8 @@ class Response(Generic[T]):
 
 
 class HTML(Response[str]):
+    """HTML response wrapper."""
+
     def __init__(
         self,
         body: TextIO | str | Path | DOMNode,

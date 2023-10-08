@@ -5,11 +5,16 @@ repo_name: ZeroIntensity/view.py
 
 nav:
     - Home: index.md
-    - Creating an app: creating.md
-    - Running: running.md
-    - Responses: responses.md
-    - Parameters: parameters.md
-    - Documenting Your App: docs.md
+    - User Guide:
+      - Creating an app: creating.md
+      - Running: running.md
+      - Responses: responses.md
+      - Parameters: parameters.md
+      - Documenting Your App: docs.md
+      - Reference: reference.md
+    - Development Guide:
+      - Home: dev/welcome.md
+      - Workflow: dev/workflow.md
 
 theme:
     name: null
@@ -17,3 +22,9 @@ theme:
 
 markdown_extensions:
   - admonition
+
+plugins:
+    - mkdocstrings:
+          handlers:
+              python:
+                  paths: [src]
