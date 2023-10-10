@@ -300,22 +300,6 @@ class SQLiteConnection:
         except sqlite3.Error as e:
             raise ValueError("Unable to connect to the database - invalid file or permissions") from e
 
-    # async def execute_query(self, query: str, params: tuple = None):
-    #     '''
-    #     This method is used to execute a query on the database.
-    #     '''
-    #     if self.cursor is not None:
-    #         try:
-    #             if params:
-    #                 await asyncio.to_thread(self.cursor.execute, query, params)
-    #             else:
-    #                 await asyncio.to_thread(self.cursor.execute, query)
-    #             return self.cursor.fetchall()
-    #         except sqlite3.Error as e:
-    #             raise ValueError("Error executing query") from e
-    #     else:
-    #         raise ValueError("Database connection is not established")
-
     async def close(self):
         '''
         This method is used to close the connection to the database.
@@ -364,22 +348,6 @@ class MySQLConnection:
             self.cursor = await asyncio.to_thread(self.connection.cursor)
         except mysql.connector.Error as e:
             raise ValueError("Unable to connect to the database - invalid credentials") from e
-
-    # async def execute_query(self, query: str, params: tuple = None):
-    #     '''
-    #     This method is used to execute a query on the database.
-    #     '''
-    #     if self.cursor is not None:
-    #         try:
-    #             if params:
-    #                 await asyncio.to_thread(self.cursor.execute, query, params)
-    #             else:
-    #                 await asyncio.to_thread(self.cursor.execute, query)
-    #             return self.cursor.fetchall()
-    #         except mysql.connector.Error as e:
-    #             raise ValueError("Error executing query") from e
-    #     else:
-    #         raise ValueError("Database connection is not established")
 
     async def close(self):
         '''
