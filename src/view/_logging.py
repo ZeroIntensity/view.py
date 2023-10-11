@@ -22,13 +22,8 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import (
-    BarColumn,
-    Progress,
-    Task,
-    TaskProgressColumn,
-    TextColumn,
-)
+from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
+                           TextColumn)
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -182,6 +177,8 @@ _CLOSE = Event()
 
 
 class _StandardOutProxy(FileProxy):
+    """Wrap standard out to fancy logging."""
+
     def __init__(
         self,
         console: Console,
@@ -197,6 +194,8 @@ class _StandardOutProxy(FileProxy):
 
 
 class _StandardErrProxy(FileProxy):
+    """Wrap standard error to fancy logging."""
+
     def __init__(
         self,
         console: Console,
@@ -248,6 +247,8 @@ class ServiceIntercept(logging.Filter):
 
 
 class _Logger(ABC):
+    """Wrapper around the built in logger."""
+
     log: logging.Logger
 
     @staticmethod
@@ -268,34 +269,44 @@ class _Logger(ABC):
 
     @classmethod
     def debug(cls, *msg: object, **kwargs):
+        """Write debug message."""
         cls._log(cls.log.debug, *msg, **kwargs)
 
     @classmethod
     def info(cls, *msg: object, **kwargs):
+        """Write info message."""
         cls._log(cls.log.info, *msg, **kwargs)
 
     @classmethod
     def warning(cls, *msg: object, **kwargs):
+        """Write warning message."""
         cls._log(cls.log.warning, *msg, **kwargs)
 
     @classmethod
     def error(cls, *msg: object, **kwargs):
+        """Write error message."""
         cls._log(cls.log.error, *msg, **kwargs)
 
     @classmethod
     def critical(cls, *msg: object, **kwargs):
+        """Write critical message."""
         cls._log(cls.log.critical, *msg, **kwargs)
 
     @classmethod
     def exception(cls, *msg: object, **kwargs):
+        """Write exception."""
         cls._log(cls.log.exception, *msg, **kwargs)
 
 
 class Service(_Logger):
+    """Logger to be seen by the user when the app is running."""
+
     log = svc
 
 
 class Internal(_Logger):
+    """Logger to be seen by view.py developers for debugging purposes."""
+
     log = internal
 
 
@@ -645,6 +656,8 @@ _LOG_COLORS: dict[LogLevel, str] = {
 
 
 class LogPanel(Panel):
+    """Panel with limit on number of lines relative to the terminal size."""
+
     def __init__(self, **kwargs):
         self._lines = [""]
         self._line_index = 0
@@ -655,6 +668,7 @@ class LogPanel(Panel):
         self._line_index += 1
 
     def write(self, text: str) -> None:
+        """Write text to the panel."""
         for i in text:
             if i == "\n":
                 self._inc()
@@ -687,6 +701,8 @@ class LogPanel(Panel):
 
 
 class LogTable(Table):
+    """Table with limit on number of columns relative to the terminal height."""
+
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
@@ -701,13 +717,23 @@ class LogTable(Table):
 
 
 class Dataset:
+    """Dataset in a graph."""
+
     def __init__(self, name: str, point_limit: int | None = None) -> None:
+        """Args:
+        name: Name of the dataset.
+        point_limit: Amount of points allowed in the dataset at a time."""
         self.name = name
         self.points: dict[float, float] = {}
         self.point_limit = point_limit
         self.point_order = []
 
     def add_point(self, x: float, y: float) -> None:
+        """Add a point to the dataset.
+
+        Args:
+            x: X value.
+            y: Y value."""
         Internal.info(f"{self.point_limit} {len(self.point_order)}")
         if self.point_limit and (len(self.point_order) >= self.point_limit):
             to_del = self.point_order.pop(0)
@@ -717,12 +743,19 @@ class Dataset:
         self.points[x] = y
 
     def add_points(self, *args: tuple[float, float]) -> None:
+        """Add multiple points to the dataset."""
         for i in args:
             self.add_point(*i)
 
 
 class Plot:
+    """Plot renderable for rich."""
+
     def __init__(self, name: str, x: str, y: str) -> None:
+        """Args:
+        name: Title of the graph.
+        x: X label of the graph.
+        y: Y label of the graph."""
         plt.xscale("linear")
         plt.yscale("linear")
 
@@ -732,6 +765,12 @@ class Plot:
         self.datasets: dict[str, Dataset] = {}
 
     def dataset(self, name: str, *, point_limit: int | None = None) -> Dataset:
+        """Generate or create a new dataset.
+
+        Args:
+            name: Name of the dataset.
+            point_limit: Limit on the number of points to be allowed on the graph at a time. If not set, terminal size divided by 3 is used.
+        """
         found = self.datasets.get(name)
         if found:
             return found
@@ -767,6 +806,7 @@ class Plot:
 
 
 def _heat_color(amount: float) -> str:
+    """Generate a color for a percentage."""
     if amount < 20:
         return "dim blue"
     if amount < 40:
@@ -785,6 +825,8 @@ def _heat_color(amount: float) -> str:
 
 
 class HeatedProgress(Progress):
+    """Progress that changes color based on how close the bar is to completion."""
+
     def make_tasks_table(self, tasks: Iterable[Task]) -> Table:
         result = super().make_tasks_table(tasks)
 
@@ -807,6 +849,7 @@ def convert_kb(value: float):
 
 
 def _server_logger():
+    """Fancy logger implementation."""
     global _LIVE
     _LIVE = True
     table = LogTable(box=box.ROUNDED, expand=True)
@@ -952,6 +995,7 @@ def _server_logger():
 
 
 def enter_server():
+    """Start fancy mode."""
     if _CLOSE.is_set():
         _CLOSE.clear()
 
@@ -959,4 +1003,5 @@ def enter_server():
 
 
 def exit_server():
+    """End fancy mode."""
     _CLOSE.set()
