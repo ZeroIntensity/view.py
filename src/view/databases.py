@@ -14,7 +14,7 @@ from typing import (
 
 from typing_extensions import ParamSpec, dataclass_transform
 
-from ._util import attempt_import, get_body, make_hint
+from ._util import attempt_import, make_hint
 from .exceptions import MistakeError
 
 P = ParamSpec("P")
@@ -100,7 +100,7 @@ class MongoDriver(_Driver):
 
 class _Connection(ABC):
     @abstractmethod
-    def connect(self) -> None:
+    def __init__(self) -> None:
         ...
 
     @abstractmethod
@@ -198,7 +198,216 @@ def model(
 
         return Model(ob, name, conn=conn)
 
-    if ob_or_none:
+    if ob_or_none: 
         return impl(ob_or_none)
 
     return impl
+
+
+
+#database
+import psycopg2  # Import the PostgreSQL driver library
+import sqlite3  # Import the SQLite3 driver library
+import mysql.connector # Import the MySQL driver library
+import pymongo # Import the MongoDB driver library
+import asyncio
+
+
+class PostgresConnection(_Connection):
+    '''
+    This class is used to connect to a PostgreSQL database. Pass the connection details as parameters to the constructor. \n
+        ``` 
+        obj = PostgresConnection(
+            "database": **db_name**,
+            "user": **user_name**,
+            "password": **password**,
+            "host": **host_name**,
+            "port": **port_num**
+        )
+        
+        ```
+    '''
+
+    def __init__(
+        self, 
+        database: str  | None = None,
+        user: str  | None = None,
+        password: str  | None = None,
+        host: str  | None = None,
+        port: int | None = None,
+    ) -> None:
+        self.database = database
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+        self.connection = None
+        self.cursor = None
+
+    def create_database_connection(self):
+        # ASGI error comes if I put this in connect method
+        return psycopg2.connect(
+            database=self.database,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+        )
+
+    async def connect(self):
+        '''
+            This method is used to connect to the database. \n
+        '''
+        try:
+            self.connection = await asyncio.to_thread(self.create_database_connection)
+            self.cursor = await asyncio.to_thread(self.connection.cursor)
+        except psycopg2.Error as e:
+            raise ValueError("Unable to connect to the database - invalid credentials") from e
+        
+    
+    async def close(self):
+        '''
+            This method is used to close the connection to the database. \n
+        '''
+        if self.connection is not None:
+            await asyncio.to_thread(self.connection.close)
+            self.connection = None
+            self.cursor = None
+
+
+
+
+class SQLiteConnection:
+    '''
+    This class is used to connect to an SQLite database. Pass the database file path as a parameter to the constructor.
+    Example usage:
+    
+    obj = SQLiteConnection("mydb.sqlite")
+    '''
+    
+    def __init__(self, database_file: str):
+        self.database_file = database_file
+        self.connection = None
+        self.cursor = None
+
+    async def connect(self):
+        '''
+        This method is used to connect to the SQLite database.
+        '''
+        try:
+            self.connection = await asyncio.to_thread(sqlite3.connect, self.database_file)
+            self.cursor = await asyncio.to_thread(self.connection.cursor)
+        except sqlite3.Error as e:
+            raise ValueError("Unable to connect to the database - invalid file or permissions") from e
+
+    async def close(self):
+        '''
+        This method is used to close the connection to the database.
+        '''
+        if self.connection is not None:
+            await asyncio.to_thread(self.cursor.close)
+            await asyncio.to_thread(self.connection.close)
+            self.connection = None
+            self.cursor = None
+
+
+
+class MySQLConnection:
+    '''
+    This class is used to connect to a MySQL database. Pass the connection details as parameters to the constructor.
+    Example usage:
+    
+    obj = MySQLConnection(
+        host="localhost",
+        user="username",
+        password="password",
+        database="mydb"
+    )
+    '''
+    
+    def __init__(self, host: str, user: str, password: str, database: str):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+        self.connection = None
+        self.cursor = None
+
+    async def connect(self):
+        '''
+        This method is used to connect to the MySQL database.
+        '''
+        try:
+            self.connection = await asyncio.to_thread(
+                mysql.connector.connect,
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            self.cursor = await asyncio.to_thread(self.connection.cursor)
+        except mysql.connector.Error as e:
+            raise ValueError("Unable to connect to the database - invalid credentials") from e
+
+    async def close(self):
+        '''
+        This method is used to close the connection to the database.
+        '''
+        if self.connection is not None:
+            await asyncio.to_thread(self.cursor.close)
+            await asyncio.to_thread(self.connection.close)
+            self.connection = None
+            self.cursor = None
+
+
+
+class MongoDBConnection:
+    '''
+    This class is used to connect to a MongoDB database. Pass the connection details as parameters to the constructor.
+    Example usage:
+    ```
+    obj = MongoDBConnection(
+        host="localhost",
+        port=27017,
+        username="username",
+        password="password",
+        database="mydb"
+    )
+    ```
+    '''
+
+    def __init__(self, host: str, port: int, username: str, password: str, database: str):
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.database = database
+        self.client = None
+        self.db = None
+
+    async def connect(self):
+        '''
+        This method is used to connect to the MongoDB database.
+        '''
+        try:
+            self.client = await asyncio.to_thread(
+                pymongo.MongoClient,
+                host=self.host,
+                port=self.port,
+                username=self.username,
+                password=self.password,
+                authSource=self.database
+            )
+            self.db = self.client[self.database]
+            print("connection mongo done")
+        except pymongo.errors.ConnectionFailure as e:
+            raise ValueError("Unable to connect to the database - connection failure") from e
+
+    async def close(self):
+        '''
+        This method is used to close the connection to the MongoDB database.
+        '''
+        if self.client is not None:
+            await asyncio.to_thread(self.client.close)
+            self.client = None
+            self.db = None
