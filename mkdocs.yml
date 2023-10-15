@@ -6,15 +6,20 @@ repo_name: ZeroIntensity/view.py
 nav:
     - Home: index.md
     - User Guide:
-      - Creating an app: creating.md
-      - Running: running.md
-      - Responses: responses.md
-      - Parameters: parameters.md
-      - Documenting Your App: docs.md
-      - Reference: reference.md
+      - Index: user-guide/index.md
+      - Creating an app: user-guide/creating.md
+      - Running: user-guide/running.md
+      - Responses: user-guide/responses.md
+      - Parameters: user-guide/parameters.md
+      - Documenting Your App: user-guide/docs.md
+      - Reference: user-guide/reference.md
     - Development Guide:
-      - Home: dev/welcome.md
-      - Workflow: dev/workflow.md
+      - Index: dev-guide/index.md
+      - Workflow: dev-guide/workflow.md
+      - App: dev-guide/app.md
+      - Routing: dev-guide/routing.md
+      - Loader: dev-guide/loader.md
+      - Logging: dev-guide/logging.md
 
 theme:
     name: null

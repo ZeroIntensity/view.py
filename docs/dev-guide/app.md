@@ -26,7 +26,7 @@ The possible config filenames are as follows:
 A new `App` instance takes in a `Config`, which is then used to handle behavior of the app. Upon creation of a new `App` instance, several attributes are set.
 
 - `config`, which is the `Config` object passed.
-- `_manual_routes` is a list containing routes passed to direct app route functions (i.e. `App.get` or `App.post`). This makes it easier on the end developer, since they don't have to manually `load()` their routes.
+- `_manual_routes` is a list containing routes passed to direct app route functions (e.g. `App.get` or `App.post`). This makes it easier on the end developer, since they don't have to manually `load()` their routes.
 - `loaded`, which is just whether `load()` has been called.
 - `running` is whether the app is started.
 - `_docs` is a dictionary containing auto-docs information.
@@ -34,4 +34,6 @@ A new `App` instance takes in a `Config`, which is then used to handle behavior 
 
 ## Routing
 
+Routes called directly on the `App` instance (e.g. `App.get`) are added to the `_manual_routes` attribute, which is then added to the loader when `App.load()` is called. Direct `App` routes are wrappers around things like `get()` in `routing.py`.
 
+`load()` simply chooses one of the loader entry points (`load_simple` or `load_fs`) based on the config settings. For more information on the loader, look at the loader docs.

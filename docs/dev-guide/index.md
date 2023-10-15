@@ -1,6 +1,8 @@
 # Development Guide
 
-**Thanks for wanting to contribute to view.py!** In this documentation, you'll learn all about the workflow of view.py development and all of its internal mechanisms.
+**Thanks for wanting to contribute to view.py!**
+
+In this documentation, you'll learn all about the workflow of view.py development and all of its internal mechanisms.
 
 Note that this documentation only provides information for files related to public features (so things like `compiler.py` and `_codec.py` that are not yet finished or public are not documented here).
 

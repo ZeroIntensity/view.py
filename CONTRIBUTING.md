@@ -6,6 +6,8 @@ If you're like me and that fun feeling of seeing your name on that big contribut
 
 Joining an open source project is hard, because well, code is messy, but I'm doing my best to try and make this as accessible to other developers as possible.
 
+Be sure to read our contributor documentation for information on how to project works.
+
 ## Tooling
 
 [Hatch](https://hatch.pypa.io) is used as a means of project management, [SemVer](https://semver.org) for versioning, [MkDocs](https://mkdocs.org) for documentation, and [Keep a Changelog](https://keepachangelog.com) for the changelog.
