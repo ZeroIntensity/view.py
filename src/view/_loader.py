@@ -410,7 +410,7 @@ def finalize(routes: list[Route], app: ViewApp):
         app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore
-            route.callable,
+            route.func,
             route.cache_rate,
             _format_inputs(route.inputs),
             route.errors or {},
