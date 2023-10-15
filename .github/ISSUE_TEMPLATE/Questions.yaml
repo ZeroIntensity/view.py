@@ -1,0 +1,19 @@
+name: Questions
+description: Ask Questions
+title: "[Questions]: "
+labels: ["question", "triage"]
+projects: ["view.py"]
+assignees:
+  - 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to ask this question!
+ - type: checkboxes
+    id: terms
+    attributes:
+      label: 
+      description: Have you asked this question on our Discord Server? If not please check below link
+[Discord server link](https://example.com)
+          required: true
