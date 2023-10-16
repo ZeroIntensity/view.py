@@ -24,7 +24,9 @@ class ServerConfig(ConfigModel):
 
 
 class LogConfig(ConfigModel):
-    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
+    level: Union[
+        Literal["debug", "info", "warning", "error", "critical"], int
+    ] = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True
@@ -98,6 +100,11 @@ def load_config(
     *,
     directory: Path | None = None,
 ) -> Config:
+    """Load the configuration file.
+
+    Args:
+        path: Path to get the configuration from.
+        directory: Where to look for the configuration."""
     paths = (
         "view.toml",
         "view.json",

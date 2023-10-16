@@ -20,6 +20,10 @@ __all__ = ("run", "env", "debug", "timestamp")
 
 
 def run(app_or_path: str | App) -> None:
+    """Run a view app. Should not be used over `App.run()`
+
+    Args:
+        app_or_path: App object or path to run."""
     from .app import App
 
     if isinstance(app_or_path, App):
@@ -46,7 +50,9 @@ def run(app_or_path: str | App) -> None:
     try:
         target = mod[split[1]]
     except KeyError:
-        raise AttributeError(f'"{split[1]}" in {app_or_path} does not exist') from None
+        raise AttributeError(
+            f'"{split[1]}" in {app_or_path} does not exist'
+        ) from None
 
     if not isinstance(target, App):
         raise MistakeError(f"{target!r} is not an instance of view.App")
@@ -55,6 +61,7 @@ def run(app_or_path: str | App) -> None:
 
 
 def debug():
+    """Enable debug mode."""
     internal = Internal.log
     internal.disabled = False
     internal.setLevel(logging.DEBUG)
@@ -93,6 +100,12 @@ def env(key: str, *, tp: type[dict] = ...) -> dict:
 
 
 def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
+    """Get and parse an environment variable.
+
+    Args:
+        key: Environment variable to access.
+        tp: Type to convert to.
+    """
     value = os.environ.get(key)
 
     if not value:
@@ -110,7 +123,9 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return int(value)
         except ValueError:
-            raise EnvironmentError(f"{value!r} (key {key!r}) is not int-like") from None
+            raise EnvironmentError(
+                f"{value!r} (key {key!r}) is not int-like"
+            ) from None
 
     if tp is dict:
         try:
@@ -132,7 +147,10 @@ _Now = None
 
 
 def timestamp(tm: DateTime | None = _Now) -> str:
-    """RFC 1123 Compliant Timestamp"""
+    """RFC 1123 Compliant Timestamp
+
+    Args:
+        tm: Date object to create a timestamp for. Now by default."""
     stamp: float = DateTime.now().timestamp() if not tm else tm.timestamp()
 
     return formatdate(stamp, usegmt=True)
