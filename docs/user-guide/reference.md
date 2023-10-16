@@ -6,3 +6,4 @@
 ::: view.response
 ::: view.routing
 ::: view.util
+::: view.components
