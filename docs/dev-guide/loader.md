@@ -2,7 +2,12 @@
 
 view.py's route loader works by generating a list of `Route` objects, and then passing them to `finalize()`.
 
+`load_fs`
+
 ::: view._loader.load_fs
+
+`load_simple`
+
 ::: view._loader.load_simple
 
 ## Finalizing
@@ -11,7 +16,12 @@ This function call method functions on the `App` instance. For example, a `Route
 
 If a route has inputs that do not have an `Any` type (e.g. in `@app.query("hello", str)` the type is `str`), then it will start a complicated process called type code generation.
 
+`finalize`
+
 ::: view._loader.finalize
+
+`_format_inputs`
+
 ::: view._loader._format_inputs
 
 ## Type Codes

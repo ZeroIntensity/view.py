@@ -52,7 +52,7 @@ hr {
 }
 
 table {
-    @apply w-full text-left p-4 bg-zinc-800 rounded drop-shadow-md;
+    @apply w-full text-left p-4 bg-zinc-800 rounded drop-shadow-md border-spacing-2 border border-collapse border-zinc-700 table-auto;
 }
 
 thead {
@@ -113,4 +113,8 @@ th {
 
 .note-text {
     @apply text-sky-300;
+}
+
+.doc-contents {
+    @apply flex flex-col space-y-2;
 }

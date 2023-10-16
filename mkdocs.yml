@@ -6,7 +6,7 @@ repo_name: ZeroIntensity/view.py
 nav:
     - Home: index.md
     - User Guide:
-      - Index: user-guide/index.md
+      - user-guide/index.md
       - Creating an app: user-guide/creating.md
       - Running: user-guide/running.md
       - Responses: user-guide/responses.md
@@ -14,7 +14,7 @@ nav:
       - Documenting Your App: user-guide/docs.md
       - Reference: user-guide/reference.md
     - Development Guide:
-      - Index: dev-guide/index.md
+      - dev-guide/index.md
       - Workflow: dev-guide/workflow.md
       - App: dev-guide/app.md
       - Routing: dev-guide/routing.md

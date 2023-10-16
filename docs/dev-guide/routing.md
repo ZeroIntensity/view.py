@@ -33,4 +33,6 @@ A `Route` object is a dataclass that contains the following attributes:
 - `extra_types`, extra types for inputs
 - `parts`, path parts
 
+`Route`
+
 ::: view.routing.Route

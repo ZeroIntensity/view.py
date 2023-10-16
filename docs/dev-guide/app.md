@@ -2,6 +2,8 @@
 
 `App` inherits from `_view`'s `ViewApp`, which is a base C class for defining the main ASGI entry point. More on that later, though. Most C app functions are called through accessing `self` inside of an `App` instance.
 
+`App`
+
 ::: view.app.App
 
 ## Config
@@ -18,6 +20,8 @@ The possible config filenames are as follows:
 - `view.yaml`
 - `view_config.py`
 - `config.py`
+
+`load_config`
 
 ::: view.config.load_config
 

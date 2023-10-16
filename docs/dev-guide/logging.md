@@ -17,6 +17,8 @@ class MyLogger(_Logger):
 MyLogger.info("something")
 ```
 
+`_Logger`
+
 ::: view._logging._Logger
 
 view.py has two loggers, `Service` and `Internal`. `Service` is meant for general app information that is sent to the user, whereas `Internal` is meant for debugging.
