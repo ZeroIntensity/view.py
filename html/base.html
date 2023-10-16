@@ -28,19 +28,16 @@
 
 <body class="bg-zinc-900 text-white">
     <nav class="bg-zinc-800 sticky top-0 z-40">
-        <div class="mx-auto flex items-center p-4 space-x-6 flex-wrap justify-between">
+        <div class="mx-auto flex items-center p-4 space-x-8 flex-wrap justify-between">
             <div class="flex space-x-12 items-center">
-                <p class="font-thin lg:pl-32 self-center text-white text-4xl">
+                <a href="/" class="font-thin lg:pl-32 self-center text-white text-4xl">
                     view.py
                     <span
                         class="font-bold bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400 text-transparent">docs</span>
-                </p>
-                <div class="flex space-x-4">
-                    {% for nav_item in nav %}
-                    {% if nav_item != nav.homepage %}
-                    <a href="{{ nav_item.url|url }}" class="text-xl">{{ nav_item.title }}</a>
-                    {% endif %}
-                    {% endfor %}
+                </a>
+                <div class="lg:flex space-x-6 hidden">
+                    <a href="/user-guide/" class="text-xl">User Guide</a>
+                    <a href="/dev-guide/" class="text-xl">Development Guide</a>
                 </div>
             </div>
             <div class="flex space-x-3">
@@ -94,10 +91,10 @@
         <div class="p-8 lg:pl-32 lg:w-2/3 w-full">
             <div class="flex flex-col lg:flex-row w-full">
                 <div class="self-center">
-                    <a class="self-center text-emerald-400 p-2 text-xl flex" href="{{ page.edit_url }}">
+                    <a class="self-center text-emerald-400 p-2 text-2xl flex" href="{{ page.edit_url }}">
                         Edit on GitHub
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6 text-emerald-400 pl-1">
+                            stroke="currentColor" class="w-7 h-7 text-emerald-400 pl-1">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                         </svg>
@@ -113,18 +110,18 @@
                 {% if page.previous_page %}
                 <div class="flex space-x-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="w-6 h-6 text-emerald-600">
+                        stroke="currentColor" class="w-8 h-8 text-emerald-600">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18" />
                     </svg>
 
-                    <a href="/{{ page.previous_page.url }}">{{ page.previous_page.title }}</a>
+                    <a href="/{{ page.previous_page.url }}" class="text-2xl">{{ page.previous_page.title }}</a>
                 </div>
                 {% endif %} {% if page.next_page %}
                 <div class="ml-auto self-center flex space-x-2">
-                    <a href="/{{ page.next_page.url }}">{{ page.next_page.title }}</a>
+                    <a href="/{{ page.next_page.url }}" class="text-2xl">{{ page.next_page.title }}</a>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="w-6 h-6 text-emerald-600">
+                        stroke="currentColor" class="w-8 h-8 text-emerald-600">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
                     </svg>
@@ -159,8 +156,8 @@
                 </div>
             </div>
         </div>
-        <div class="w-full h-screen z-30 hidden sticky top-0 pt-16" id="small-nav">
-            <div class="py-4 px-4">
+        <div class="w-full h-screen absolute z-30 hidden top-0 pt-16" id="small-nav">
+            <div class="py-4 px-4 sticky top-0">
                 <div class="rounded bg-zinc-800 drop-shadow-xl p-2">
                     {% if nav|length>1 %}
                     <div>
@@ -175,14 +172,16 @@
                             <div class="flex flex-col space-y-1">
                                 {% for nav_item in nav_item.children %}
                                 <div class="rounded {% if nav_item.active %}bg-zinc-700{% endif %} p-1">
-                                    <a href="{{ nav_item.url|url }}" class="text-black">{{ nav_item.title }}</a>
+                                    <a href="{{ nav_item.url|url }}" class="text-center text-xl">{{
+                                        nav_item.title
+                                        }}</a>
                                 </div>
                                 {% endfor %}
                             </div>
                         </div>
                         {% else %}
                         <div class="rounded {% if nav_item.active %}bg-zinc-700{% endif %} p-1">
-                            <a href="{{ nav_item.url|url }}" class="text-black">{{ nav_item.title }}</a>
+                            <a href="{{ nav_item.url|url }}" class="text-xl">{{ nav_item.title }}</a>
                         </div>
                         {% endif %} {% endfor %}
                     </div>

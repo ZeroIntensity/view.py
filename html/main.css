@@ -28,7 +28,7 @@ p {
 }
 
 pre {
-    @apply rounded drop-shadow-md text-base;
+    @apply rounded drop-shadow-sm text-base;
 }
 
 a {
@@ -52,7 +52,7 @@ hr {
 }
 
 table {
-    @apply w-full text-left p-4 bg-zinc-800 rounded drop-shadow-md border-spacing-2 border border-collapse border-zinc-700 table-auto;
+    @apply w-full text-left p-4 bg-zinc-800 rounded drop-shadow-sm border-spacing-2 border-4 border-separate border-zinc-700 table-auto;
 }
 
 thead {
@@ -63,12 +63,12 @@ tbody {
     @apply p-2;
 }
 
-th td {
+td {
     @apply px-6 py-3 font-thin;
 }
 
 tr {
-    @apply border-b;
+    @apply border-4 border-zinc-700 border-solid;
 }
 
 th {
@@ -88,7 +88,7 @@ th {
 }
 
 .admonition-title {
-    @apply text-xl font-bold pb-1 text-emerald-300;
+    @apply text-xl pb-1 text-emerald-300;
 }
 
 .note {

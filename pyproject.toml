@@ -32,7 +32,7 @@ Source = "https://github.com/ZeroIntensity/view.py"
 path = "src/view/__about__.py"
 
 [tool.hatch.envs.docs]
-dependencies = ["mkdocs", "mkdocstrings[python]", "mkdocs-material"]
+dependencies = ["mkdocs", "mkdocstrings[python]"]
 
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build"
