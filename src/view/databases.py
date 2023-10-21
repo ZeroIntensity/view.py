@@ -189,7 +189,11 @@ class Model:
     view_conn: Union[_Connection, None] = None
 
     def __init__(self, *args: Any, **kwargs: Any):
-        ...
+        for index, k in enumerate(self.__view_body__):
+            if index >= len(args):
+                setattr(self, k, kwargs[k])
+            else:
+                setattr(self, k, args[index])
 
     def __init_subclass__(cls):
         model_hints = get_type_hints(Model)
@@ -205,6 +209,12 @@ class Model:
                 cls.__view_body__[k] = BodyParam(types=v, default=df)
             else:
                 cls.__view_body__[k] = v
+
+    def __repr__(self) -> str:
+        body = [f"{k}={repr(getattr(self, k))}" for k in self.__view_body__]
+        return f"{type(self).__name__}({', '.join(body)})"
+
+    __str__ = __repr__
 
     @classmethod
     def find(cls) -> list[Self]:
