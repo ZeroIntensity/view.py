@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `get_app`
 - Added documentation generation
+- Added database support
+- Removed `attempt_import` and `MissingLibraryError`
 
 ## [1.0.0-alpha5] - 2023-09-24
 

@@ -24,10 +24,47 @@ class ServerConfig(ConfigModel):
 
 
 class LogConfig(ConfigModel):
-    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
+    level: Union[
+        Literal["debug", "info", "warning", "error", "critical"], int
+    ] = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True
+
+
+class MongoConfig(ConfigModel):
+    host: IPv4Address
+    port: int
+    username: str
+    password: str
+    database: str
+
+
+class PostgresConfig(ConfigModel):
+    database: str
+    user: str
+    password: str
+    host: IPv4Address
+    port: int
+
+
+class SQLiteConfig(ConfigModel):
+    file: Path
+
+
+class MySQLConfig(ConfigModel):
+    host: IPv4Address
+    user: str
+    password: str
+    database: str
+
+
+class DatabaseConfig(ConfigModel):
+    type: Literal["sqlite", "mysql", "postgres", "mongo"] = "sqlite"
+    mongo: Union[MongoConfig, None] = None
+    postgres: Union[PostgresConfig, None] = None
+    sqlite: Union[SQLiteConfig, None] = SQLiteConfig(file="view.db")
+    mysql: Union[MySQLConfig, None] = None
 
 
 class Config(ConfigModel):

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import getpass
-import importlib
 import inspect
 import os
 import pathlib
@@ -11,20 +10,20 @@ import weakref
 from collections.abc import Iterable
 from types import FrameType as Frame
 from types import FunctionType as Function
-from types import ModuleType as Module
 
 from rich.panel import Panel
 from rich.syntax import Syntax
 
-from ._logging import Internal
-from .exceptions import MissingLibraryError, NotLoadedWarning
+from .exceptions import NotLoadedWarning
 
 
 class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
+        if (not self._view_loaded) and (
+            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
+        ):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -41,7 +40,9 @@ def shell_hint(command: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
+        shell_prefix = (
+            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
+        )
     return Panel.fit(f"{shell_prefix} {command}", title="Terminal")
 
 
@@ -102,14 +103,3 @@ def make_hint(
         line_range=(line - 10, line + 20),
         highlight_lines={(line + 1) if not line < 0 else len(txt) - line},
     )
-
-
-def attempt_import(name: str, *, repr_name: str | None = None) -> Module:
-    Internal.info(f"attempting import: {name}")
-    try:
-        return importlib.import_module(name)
-    except ImportError as e:
-        raise MissingLibraryError(
-            f"{repr_name or name} is not installed!",
-            hint=shell_hint(f"pip install [bold]{name}[/]"),
-        ) from e

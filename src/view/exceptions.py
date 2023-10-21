@@ -6,7 +6,6 @@ __all__ = (
     "ViewWarning",
     "NotLoadedWarning",
     "ViewError",
-    "MissingLibraryError",
     "EnvironmentError",
     "InvalidBodyError",
     "MistakeError",
@@ -35,10 +34,6 @@ class ViewError(Exception):
     ) -> None:
         self.hint = hint
         super().__init__(*args)
-
-
-class MissingLibraryError(ViewError):
-    ...
 
 
 class EnvironmentError(ViewError):
