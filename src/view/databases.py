@@ -4,7 +4,7 @@ import asyncio
 import sqlite3
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, ClassVar, TypeVar, Union, get_type_hints
+from typing import Any, ClassVar, Set, TypeVar, Union, get_type_hints
 
 import mysql.connector
 import psycopg2
@@ -186,7 +186,9 @@ Id = Annotated[T, _ModelMeta(_Meta.ID)]
 class Model:
     view_initialized: ClassVar[bool] = False
     __view_body__: ClassVar[ViewBody] = {}
-    view_conn: Union[_Connection, None] = None
+    view_conn: ClassVar[Union[_Connection, None]] = None
+    __view_table__: ClassVar[str]
+    exclude: ClassVar[Set[str]]
 
     def __init__(self, *args: Any, **kwargs: Any):
         for index, k in enumerate(self.__view_body__):
@@ -195,7 +197,10 @@ class Model:
             else:
                 setattr(self, k, args[index])
 
-    def __init_subclass__(cls):
+    def __init_subclass__(cls, **kwargs: Any):
+        cls.__view_table__ = kwargs.get("table") or (
+            "vpy_" + cls.__name__.lower()
+        )
         model_hints = get_type_hints(Model)
         actual_hints = get_type_hints(cls)
         params = {
