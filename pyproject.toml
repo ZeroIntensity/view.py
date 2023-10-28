@@ -25,7 +25,8 @@ dynamic = ["version", "license"]
 
 [project.optional-dependencies]
 dev = [
-  "ruff"
+  "ruff",
+  "mypy"
 ]
 
 [project.urls]
