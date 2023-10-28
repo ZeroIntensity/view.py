@@ -39,7 +39,7 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
-from typing_extensions import Annotated, TypeGuard
+from typing_extensions import Annotated, TypeGuard, get_origin
 
 _NOT_REQUIRED_TYPES = []
 
@@ -69,6 +69,7 @@ TYPECODE_DICT = 5
 TYPECODE_NONE = 6
 TYPECODE_CLASS = 7
 TYPECODE_CLASSTYPES = 8
+TYPECODE_LIST = 9
 
 
 _BASIC_CODES = {
@@ -79,6 +80,7 @@ _BASIC_CODES = {
     dict: TYPECODE_DICT,
     None: TYPECODE_NONE,
     Any: TYPECODE_ANY,
+    list: TYPECODE_LIST,
 }
 
 """
@@ -323,30 +325,35 @@ def _build_type_codes(
             setattr(tp, "_view_doc", doc)
             continue
 
-        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
+        origin = get_origin(tp)
 
-        if (type(tp) in {UnionType, TypingUnionType}) and (origin is not dict):
+        if (type(tp) in {UnionType, TypingUnionType}) and (
+            origin not in {dict, list}
+        ):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
             continue
 
-        if origin is not dict:
+        if origin is dict:
+            key, value = get_args(tp)
+
+            if key is not str:
+                raise InvalidBodyError(
+                    f"dictionary keys must be strings, not {key}"
+                )
+
+            value_args = get_args(value)
+
+            if not len(value_args):
+                value_args = (value,)
+
+            tp_codes = _build_type_codes(value_args)
+            codes.append((TYPECODE_DICT, None, tp_codes))
+        elif origin is list:
+            tps = get_args(tp)
+            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))
+        else:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
-
-        key, value = get_args(tp)
-
-        if key is not str:
-            raise InvalidBodyError(
-                f"dictionary keys must be strings, not {key}"
-            )
-
-        value_args = get_args(value)
-
-        if not len(value_args):
-            value_args = (value,)
-
-        tp_codes = _build_type_codes(value_args)
-        codes.append((TYPECODE_DICT, None, tp_codes))
 
     return codes
 
@@ -358,6 +365,7 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
 
     for i in inputs:
         type_codes = _build_type_codes(i.tp)
+        print(type_codes)
         result.append(
             {
                 "name": i.name,

@@ -64,6 +64,7 @@
 #define TYPECODE_NONE 6
 #define TYPECODE_CLASS 7
 #define TYPECODE_CLASSTYPES 8
+#define TYPECODE_LIST 9
 
 typedef struct _route_input route_input;
 typedef struct _app_parsers app_parsers;
@@ -450,6 +451,42 @@ static int verify_dict_typecodes(
 
     return 0;
 }
+static PyObject* cast_from_typecodes(
+    type_info** codes,
+    Py_ssize_t len,
+    PyObject* item,
+    PyObject* json_parser
+);
+
+static int verify_list_typecodes(type_info** codes, Py_ssize_t len,
+                                 PyObject* list, PyObject* json_parser) {
+    Py_ssize_t list_len = PySequence_Size(list);
+    if (list_len == -1) return -1;
+    if (list_len == 0) return 0;
+
+    for (int i = 0; i < list_len; i++) {
+        PyObject* item = PyList_GET_ITEM(
+            list,
+            i
+        );
+
+        item = cast_from_typecodes(
+            codes,
+            len,
+            item,
+            json_parser
+        );
+
+        if (!item) return -1;
+        PyList_SET_ITEM(
+            list,
+            i,
+            item
+        );
+    }
+
+    return 0;
+}
 
 static PyObject* cast_from_typecodes(
     type_info** codes,
@@ -674,6 +711,15 @@ static PyObject* cast_from_typecodes(
             }
 
             return built;
+        }
+        case TYPECODE_LIST: {
+            PyObject_Print(
+                PyObject_Repr(item),
+                stdout,
+                Py_PRINT_RAW
+            );
+            puts("");
+            break;
         }
         case TYPECODE_CLASSTYPES:
         default: {
