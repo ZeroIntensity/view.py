@@ -2,6 +2,7 @@
 #include <view/app.h>
 #include <view/awaitable.h>
 #include <view/map.h>
+#include <view/view.h>
 #include <stdbool.h>
 #include <stdint.h>
 #define ER(code, str) case code: return str
@@ -384,10 +385,18 @@ static PyObject* query_parser(
                     verified = true; \
                 } break;
 
+static PyObject* cast_from_typecodes(
+    type_info** codes,
+    Py_ssize_t len,
+    PyObject* item,
+    PyObject* json_parser
+);
+
 static int verify_dict_typecodes(
     type_info** codes,
     Py_ssize_t len,
-    PyObject* dict
+    PyObject* dict,
+    PyObject* json_parser
 ) {
     if (!PyDict_Size(dict)) return 0;
     PyObject* iter = PyObject_GetIter(dict);
@@ -402,45 +411,22 @@ static int verify_dict_typecodes(
             return -1;
         }
 
-        bool verified = false;
-        for (Py_ssize_t i = 0; i < len; i++) {
-            if (verified) break;
-            switch (codes[i]->typecode) {
-            case TYPECODE_ANY: return 0;
-            case TYPECODE_NONE: {
-                if (value == Py_None) verified = true;
-                break;
-            }
-            case TYPECODE_STR: TC_VERIFY(PyUnicode_CheckExact);
-            case TYPECODE_INT: {
-                if (PyLong_CheckExact(value)) {
-                    verified = true;
-                }
-                break;
-            };
-            case TYPECODE_BOOL: TC_VERIFY(PyBool_Check);
-            case TYPECODE_FLOAT: TC_VERIFY(PyFloat_CheckExact);
-            case TYPECODE_DICT: {
-                if (PyObject_IsInstance(
-                    value,
-                    (PyObject*) &PyDict_Type
-                    )) {
-                    int res = verify_dict_typecodes(
-                        codes[i]->children,
-                        codes[i]->children_size,
-                        value
-                    );
-                    if (res == 0) verified = true;
-                    else if (res == -1) return -1;
-                    else return 1;
-                };
-                break;
-            };
-            case TYPECODE_CLASSTYPES:
-            default: Py_FatalError("invalid dict typecode");
-            };
+        value = cast_from_typecodes(
+            codes,
+            len,
+            value,
+            json_parser
+        );
+        if (!value) return -1;
+
+        if (PyDict_SetItem(
+            dict,
+            key,
+            value
+            ) < 0) {
+            Py_DECREF(iter);
+            return -1;
         }
-        if (!verified) return 1;
     }
 
     Py_DECREF(iter);
@@ -451,15 +437,13 @@ static int verify_dict_typecodes(
 
     return 0;
 }
-static PyObject* cast_from_typecodes(
+
+static int verify_list_typecodes(
     type_info** codes,
     Py_ssize_t len,
-    PyObject* item,
+    PyObject* list,
     PyObject* json_parser
-);
-
-static int verify_list_typecodes(type_info** codes, Py_ssize_t len,
-                                 PyObject* list, PyObject* json_parser) {
+) {
     Py_ssize_t list_len = PySequence_Size(list);
     if (list_len == -1) return -1;
     if (list_len == 0) return 0;
@@ -588,13 +572,10 @@ static PyObject* cast_from_typecodes(
             int res = verify_dict_typecodes(
                 ti->children,
                 ti->children_size,
-                obj
+                obj,
+                json_parser
             );
-            if (res == -1) {
-                Py_DECREF(obj);
-                return NULL;
-            }
-            if (res == 1) {
+            if ((res == -1 || res == 1)) {
                 Py_DECREF(obj);
                 return NULL;
             }
@@ -713,13 +694,47 @@ static PyObject* cast_from_typecodes(
             return built;
         }
         case TYPECODE_LIST: {
-            PyObject_Print(
-                PyObject_Repr(item),
-                stdout,
-                Py_PRINT_RAW
+            PyObject* list;
+
+            if (Py_IS_TYPE(
+                item,
+                &PyList_Type
+                )) {
+                Py_INCREF(item);
+                list = item;
+            }
+            else {
+                list = PyObject_Vectorcall(
+                    json_parser,
+                    (PyObject*[]) { item },
+                    1,
+                    NULL
+                );
+                if (!list) {
+                    PyErr_Print();
+                    return NULL;
+                }
+
+                if (!Py_IS_TYPE(
+                    list,
+                    &PyList_Type
+                    )) {
+                    return NULL;
+                }
+            }
+
+            int res = verify_list_typecodes(
+                ti->children,
+                ti->children_size,
+                list,
+                json_parser
             );
-            puts("");
-            break;
+            if ((res == -1 || res == 1)) {
+                Py_DECREF(list);
+                return NULL;
+            }
+
+            return list;
         }
         case TYPECODE_CLASSTYPES:
         default: {
@@ -728,7 +743,7 @@ static PyObject* cast_from_typecodes(
                 "got bad typecode in cast_from_typecodes: %d\n",
                 ti->typecode
             );
-            Py_FatalError("invalid typecode");
+            VIEW_FATAL("invalid typecode");
         }
         }
     }
@@ -881,7 +896,7 @@ static int send_raw_text(
     PyObject* send,
     int status,
     const char* res_str,
-    PyObject* headers /* may be NULL */
+    PyObject* headers     /* may be NULL */
 ) {
     PyObject* coro;
     PyObject* send_dict;
@@ -1198,7 +1213,8 @@ static const char* get_err_str(int status) {
     );
     }
 
-    Py_FatalError("got bad status code");
+    VIEW_FATAL("got bad status code");
+    return NULL;
 }
 
 static int find_result_for(
@@ -3402,7 +3418,7 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
             rt = transport;
         } else {
             app->has_path_params = true;
-            if (!rt) Py_FatalError("first path param was part");
+            if (!rt) VIEW_FATAL("first path param was part");
             if (index == size) {
                 rt->r = r;
                 set_r = true;

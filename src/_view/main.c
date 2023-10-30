@@ -19,6 +19,28 @@ static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};
 static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
                                     methods};
 
+
+void view_fatal(
+    const char* message,
+    const char* where,
+    const char* func,
+    int lineno
+) {
+    fprintf(
+        stderr,
+        "_view FATAL ERROR at [%s:%d] in %s: %s",
+        where,
+        lineno,
+        func,
+        message
+    );
+    fputs(
+        "Please report this at https://github.com/ZeroIntensity/view.py/issues",
+        stderr
+    );
+    Py_FatalError("view.py core died");
+}
+
 PyMODINIT_FUNC PyInit__view() {
     PyObject* m = PyModule_Create(&module);
 

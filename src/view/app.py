@@ -62,6 +62,21 @@ class TestingResponse:
     status: int
 
 
+def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
+    query_str = {}
+
+    for k, v in query.items():
+        if isinstance(v, (dict, list)):
+            if isinstance(v, dict):
+                query_str[k] = ujson.dumps(_format_qs(v))
+            else:
+                query_str[k] = ujson.dumps(v)
+        else:
+            query_str[k] = v
+
+    return query_str
+
+
 class TestingContext:
     def __init__(
         self,
@@ -115,10 +130,7 @@ class TestingContext:
                 raise TypeError(f"bad type: {obj['type']}")
 
         truncated_route = route[: route.find("?")] if "?" in route else route
-        query_str = {}
-
-        for k, v in (query or {}).items():
-            query_str[k] = v if not isinstance(v, dict) else ujson.dumps(v)
+        query_str = _format_qs(query or {})
 
         await self.app(
             {
