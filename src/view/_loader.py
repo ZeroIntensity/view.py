@@ -387,7 +387,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
     targets = {
         Method.GET: app._get,
-        Method.PATCH: app._post,
+        Method.POST: app._post,
         Method.PUT: app._put,
         Method.PATCH: app._patch,
         Method.DELETE: app._delete,
