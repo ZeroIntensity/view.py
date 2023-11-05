@@ -44,15 +44,6 @@ class ViewError(Exception):
         super().__init__(*args)
 
 
-<<<<<<< HEAD
-=======
-class MissingLibraryError(ViewError):
-    """A library is not installed."""
-
-    ...
-
-
->>>>>>> 2ea7b03fcb51ac30d69cf27ca61c7ad6484c8bb4
 class EnvironmentError(ViewError):
     """An environment variable is missing."""
 
