@@ -93,6 +93,7 @@ The following types are supported:
 - `bool`
 - `float`
 - `dict` (or `typing.Dict`)
+- `list` (or `typing.List`)
 - `None`
 - Pydantic Models
 - Dataclasses

@@ -49,6 +49,7 @@ More on what these mean in a second, but for reference here are the available ty
 - `TYPECODE_NONE` (6): `None` or `null` is allowed.
 - `TYPECODE_CLASS` (7): This is a `__view_body__` object. The second part should contain a Python class, and the children will be typecodes of `TYPECODE_CLASSTYPES`.
 - `TYPECODE_CLASSTYPES` (8): This is reserved for children under a `TYPECODE_CLASS` type code. If used otherwise, view.py will crash.
+- `TYPECODE_LIST` (9): Any list object. Works the same as dictionaries.
 
 So, how does it work?
 
