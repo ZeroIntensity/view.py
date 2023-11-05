@@ -26,6 +26,8 @@ else:
         ...
 
 
+import inspect
+
 from ._logging import Internal
 from ._util import set_load
 from .exceptions import InvalidBodyError, LoaderWarning
@@ -39,7 +41,7 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
-from typing_extensions import Annotated, TypeGuard
+from typing_extensions import Annotated, TypeGuard, get_origin
 
 _NOT_REQUIRED_TYPES = []
 
@@ -69,6 +71,7 @@ TYPECODE_DICT = 5
 TYPECODE_NONE = 6
 TYPECODE_CLASS = 7
 TYPECODE_CLASSTYPES = 8
+TYPECODE_LIST = 9
 
 
 _BASIC_CODES = {
@@ -79,6 +82,7 @@ _BASIC_CODES = {
     dict: TYPECODE_DICT,
     None: TYPECODE_NONE,
     Any: TYPECODE_ANY,
+    list: TYPECODE_LIST,
 }
 
 """
@@ -104,6 +108,7 @@ def _format_body(
     *,
     not_required: set[str] | None = None,
 ) -> list[TypeInfo]:
+    """Generate a type info list from view body types."""
     not_required = not_required or set()
     if not isinstance(vbody_types, dict):
         raise InvalidBodyError(
@@ -164,6 +169,8 @@ class LoaderDoc:
 
 
 class _NotSet:
+    """Sentinel value for default being not set in _build_type_codes."""
+
     ...
 
 
@@ -174,6 +181,13 @@ def _build_type_codes(
     key_name: str | None = None,
     default: Any | _NoDefault = _NotSet,
 ) -> list[TypeInfo]:
+    """Generate types from a list of types.
+
+    Args:
+        inp: Iterable containing each type.
+        doc: Auto-doc dictionary when a docstring is extracted.
+        key_name: Name of the current key. Only needed for auto-doc purposes.
+        default: Default value. Only needed for auto-doc purposes."""
     if not inp:
         return []
 
@@ -313,39 +327,41 @@ def _build_type_codes(
             setattr(tp, "_view_doc", doc)
             continue
 
-        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
-
-        if (type(tp) in {UnionType, TypingUnionType}) and (origin is not dict):
+        origin = get_origin(tp)
+        if (type(tp) in {UnionType, TypingUnionType}) and (
+            origin not in {dict, list}
+        ):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
             continue
 
-        if origin is not dict:
+        if origin is dict:
+            key, value = get_args(tp)
+
+            if key is not str:
+                raise InvalidBodyError(
+                    f"dictionary keys must be strings, not {key}"
+                )
+
+            tp_codes = _build_type_codes((value,))
+            codes.append((TYPECODE_DICT, None, tp_codes))
+        elif origin is list:
+            tps = get_args(tp)
+            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))
+        else:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
-
-        key, value = get_args(tp)
-
-        if key is not str:
-            raise InvalidBodyError(
-                f"dictionary keys must be strings, not {key}"
-            )
-
-        value_args = get_args(value)
-
-        if not len(value_args):
-            value_args = (value,)
-
-        tp_codes = _build_type_codes(value_args)
-        codes.append((TYPECODE_DICT, None, tp_codes))
 
     return codes
 
 
 def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
+    """Convert a list of route inputs to a proper dictionary that the C loader can handle.
+    This function also will generate the typecodes for the input."""
     result: list[RouteInputDict] = []
 
     for i in inputs:
         type_codes = _build_type_codes(i.tp)
+        Internal.info("built type codes:", type_codes)
         result.append(
             {
                 "name": i.name,
@@ -361,6 +377,12 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
 
 
 def finalize(routes: list[Route], app: ViewApp):
+    """Attach list of routes to an app and validate all parameters.
+
+    Args:
+        routes: List of routes.
+        app: App to attach to.
+    """
     virtual_routes: dict[str, list[Route]] = {}
 
     targets = {
@@ -389,10 +411,32 @@ def finalize(routes: list[Route], app: ViewApp):
         else:
             virtual_routes[route.path or ""] = [route]
 
+        sig = inspect.signature(route.func)
+        if len(sig.parameters) != len(route.inputs):
+            names = [i.name for i in route.inputs]
+            for k, v in sig.parameters.items():
+                if k in names:
+                    continue
+
+                tp = v.annotation if v.annotation is not inspect._empty else Any
+                default = (
+                    v.default if v.default is not inspect._empty else _NoDefault
+                )
+
+                route.inputs.append(
+                    RouteInput(
+                        k,
+                        False,
+                        (tp,),
+                        default,
+                        None,
+                        [],
+                    )
+                )
         app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore
-            route.callable,
+            route.func,
             route.cache_rate,
             _format_inputs(route.inputs),
             route.errors or {},
@@ -400,7 +444,17 @@ def finalize(routes: list[Route], app: ViewApp):
         )
 
 
-def load_fs(app: ViewApp, target_dir: Path):
+def load_fs(app: ViewApp, target_dir: Path) -> None:
+    """Filesystem loading implementation.
+    Similiar to NextJS's routing system. You take `target_dir` and search it,
+    if a file is found and not prefixed with _, then convert the directory structure
+    to a path. For example, target_dir/hello/world/index.py would be converted to a
+    route for /hello/world
+
+    Args:
+        app: App to attach routes to.
+        target_dir: Directory to search for routes.
+    """
     Internal.info("loading using filesystem")
     Internal.debug(f"loading {app}")
 
@@ -454,7 +508,18 @@ def load_fs(app: ViewApp, target_dir: Path):
     finalize(routes, app)
 
 
-def load_simple(app: ViewApp, target_dir: Path):
+def load_simple(app: ViewApp, target_dir: Path) -> None:
+    """Simple loading implementation.
+    Simple loading is essentially searching a directory recursively
+    for files, and then extracting Route instances from each file.
+
+    If a file is prefixed with _, it will not be loaded.
+
+    Args:
+        app: App to attach routes to.
+        target_dir: Directory to search for routes.
+
+    """
     Internal.info("loading using simple strategy")
     routes: list[Route] = []
 

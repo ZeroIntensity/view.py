@@ -135,6 +135,11 @@ def load_config(
     *,
     directory: Path | None = None,
 ) -> Config:
+    """Load the configuration file.
+
+    Args:
+        path: Path to get the configuration from.
+        directory: Where to look for the configuration."""
     paths = (
         "view.toml",
         "view.json",

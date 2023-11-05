@@ -3,31 +3,32 @@
 @tailwind utilities;
 
 html {
-    font-family: "Varela Round", sans-serif;
+    font-family: "Gabarito", sans-serif;
+    @apply text-base;
 }
 
 h1 {
-    @apply text-xl md:text-4xl font-bold py-4;
+    @apply text-2xl md:text-4xl font-bold py-4;
 }
 
 h2 {
-    @apply text-lg md:text-3xl font-bold py-3;
+    @apply text-2xl md:text-3xl font-bold py-3;
 }
 
 h3 {
-    @apply text-lg md:text-2xl font-bold py-2;
+    @apply text-xl md:text-2xl font-bold py-2;
 }
 
 h4 {
-    @apply font-bold py-1;
+    @apply font-bold py-1 text-xl;
 }
 
 p {
-    @apply py-2;
+    @apply py-2 text-base;
 }
 
 pre {
-    @apply rounded drop-shadow-md;
+    @apply rounded drop-shadow-sm text-base;
 }
 
 a {
@@ -35,7 +36,7 @@ a {
 }
 
 code {
-    @apply text-emerald-300 p-1 rounded bg-zinc-800;
+    @apply text-emerald-500 p-1 rounded bg-zinc-800 text-base;
 }
 
 ul {
@@ -51,15 +52,23 @@ hr {
 }
 
 table {
-    @apply w-full text-left;
+    @apply w-full text-left p-4 bg-zinc-800 rounded drop-shadow-sm border-spacing-2 border-4 border-separate border-zinc-700 table-auto;
 }
 
-th td {
+thead {
+    @apply p-2;
+}
+
+tbody {
+    @apply p-2;
+}
+
+td {
     @apply px-6 py-3 font-thin;
 }
 
 tr {
-    @apply border-b;
+    @apply border-4 border-zinc-700 border-solid;
 }
 
 th {
@@ -79,7 +88,7 @@ th {
 }
 
 .admonition-title {
-    @apply text-xl font-bold pb-1 text-emerald-300;
+    @apply text-xl pb-1 text-emerald-300;
 }
 
 .note {
@@ -104,4 +113,8 @@ th {
 
 .note-text {
     @apply text-sky-300;
+}
+
+.doc-contents {
+    @apply flex flex-col space-y-2;
 }

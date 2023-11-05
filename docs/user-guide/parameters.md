@@ -72,6 +72,24 @@ async def token(user_id: str, token: str):
 
     This is extremely buggy and not yet recommended for general use.
 
+## Implicit Queries
+
+If you would like to skip over the use of the `query` decorator, then you may just add a parameter to the function:
+
+```py
+@get("/")
+async def index(user_id: str):  # no @query() required!
+    ...
+```
+
+If you don't pass a type annotation, the type is `Any`:
+
+```py
+@get("/")
+async def index(user_id):  # user_id is Any
+    ...
+```
+
 ## Type Validation
 
 view.py will ensure that the type sent to the server is compatible with what you passed to the decorator. For example:
@@ -93,6 +111,7 @@ The following types are supported:
 - `bool`
 - `float`
 - `dict` (or `typing.Dict`)
+- `list` (or `typing.List`)
 - `None`
 - Pydantic Models
 - Dataclasses

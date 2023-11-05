@@ -116,7 +116,7 @@ _PyAwaitable_GenWrapper_New(PyAwaitableObject *aw)
     );
 
     if (g == NULL) return NULL;
-    g->gw_aw = (PyAwaitableObject *) Py_NewRef(aw);
+    g->gw_aw = (PyAwaitableObject *) Py_NewRef((PyObject *) aw);
     return (PyObject *) g;
 }
 

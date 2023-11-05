@@ -1,3 +1,5 @@
+<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=400 height=auto /></div>
+
 # Welcome to view.py's documentation!
 
 ## Modern, lightning fast web framework

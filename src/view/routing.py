@@ -71,15 +71,15 @@ class Part(Generic[V]):
 
 @dataclass
 class Route(Generic[P, T], LoadChecker):
+    """Standard Route Wrapper"""
+
     func: Callable[P, T]
     path: str | None
     method: Method
     inputs: list[RouteInput]
-    callable: ViewRoute
     doc: str | None = None
     cache_rate: int = -1
     errors: dict[int, ViewRoute] | None = None
-    pass_context: bool = False
     extra_types: dict[str, Any] = field(default_factory=dict)
     parts: list[str | Part[Any]] = field(default_factory=list)
 
@@ -109,7 +109,7 @@ def _ensure_route(r: RouteOrCallable[..., Any]) -> Route[..., Any]:
     if isinstance(r, Route):
         return r
 
-    return Route(r, None, Method.GET, [], r)
+    return Route(r, None, Method.GET, [])
 
 
 def route_types(
@@ -198,7 +198,7 @@ def _method(
     if doc:
         route.doc = doc
     else:
-        route.doc = route.callable.__doc__
+        route.doc = route.func.__doc__
 
     return route
 
