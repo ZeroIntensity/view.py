@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, NamedTuple, TypedDict, Union
+from typing import Dict, List, NamedTuple, TypedDict, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
@@ -333,7 +333,7 @@ async def _():
             await test.get(
                 "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}}
             )
-        ).status == 400
+        ).status == 200
         assert (
             await test.get("/vb", query={"data": {"hello": "world"}})
         ).message == "yay"
@@ -353,9 +353,6 @@ async def _():
         assert (
             await test.get("/nested", query={"data": {"a": {"b": {"c": 1}}}})
         ).message == "hello"
-        assert (
-            await test.get("/nested", query={"data": {"a": {"b": {"c": {}}}}})
-        ).status == 400
         assert (
             await test.get(
                 "/dc", query={"data": {"a": "1", "b": True, "c": {"3": 4}}}
@@ -401,3 +398,85 @@ async def _():
         assert res.message == "hello world"
         assert res.status == 201
         assert res.headers["a"] == "b"
+
+
+@test("list validation")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    @app.query("test", List[int])
+    async def index(test: List[int]):
+        return str(test[0])
+
+    @app.get("/union")
+    @app.query("test", List[Union[int, str]])
+    async def union(test: List[Union[int, str]]):
+        return str(test[0])
+
+    @app.get("/dict")
+    @app.query("test", Dict[str, List[str]])
+    async def d(test: Dict[str, List[str]]):
+        return test["a"][0]
+
+    @dataclass
+    class Body:
+        l: List[int]
+        d: Dict[str, List[str]]
+
+    @app.get("/body")
+    @app.body("test", Body)
+    async def bod(test: Body):
+        return test.d["a"][0], test.l[0]
+
+    @dataclass
+    class B:
+        test: str
+
+    @dataclass
+    class A:
+        l: List[B]
+
+    @app.get("/nested")
+    @app.body("test", A)
+    async def nested(test: A):
+        return test.l[0].test
+
+    async with app.test() as test:
+        assert (await test.get("/", query={"test": [1, 2, 3]})).message == "1"
+        assert (
+            await test.get("/union", query={"test": [1, "2", 3]})
+        ).message == "1"
+        assert (
+            await test.get("/", query={"test": [1, "2", True]})
+        ).status == 400
+        assert (
+            await test.get("/dict", query={"test": {"a": ["1", "2", "3"]}})
+        ).message == "1"
+        assert (
+            await test.get("/dict", query={"test": {"a": ["1", "2", 3]}})
+        ).status == 400
+        assert (
+            await test.get(
+                "/body",
+                body={"test": {"l": [200], "d": {"a": ["1", "2", "3"]}}},
+            )
+        ).message == "1"
+        assert (
+            await test.get(
+                "/body",
+                body={"test": {"l": [200], "d": {"a": ["1", "2", 3]}}},
+            )
+        ).status == 400
+        assert (
+            await test.get(
+                "/nested",
+                body={"test": {"l": [{"test": "1"}]}},
+            )
+        ).message == "1"
+        assert (
+            await test.get(
+                "/nested",
+                body={"test": {"l": [{"test": 2}]}},
+            )
+        ).status == 400
