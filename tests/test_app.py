@@ -480,3 +480,39 @@ async def _():
                 body={"test": {"l": [{"test": 2}]}},
             )
         ).status == 400
+
+
+@test("auto route inputs")
+async def _():
+    @dataclass()
+    class Data:
+        a: str
+        b: int
+
+    app = new_app()
+
+    @app.get("/")
+    async def index(name: str, status: int):
+        return name, status
+
+    @app.get("/merged")
+    @query("status", int)
+    async def merged(name: str, status: int):
+        return name, status
+
+    @app.get("/data")
+    async def test_data(data: Data):
+        return data.a, data.b
+
+    async with app.test() as test:
+        res = await test.get("/", query={"name": "hi", "status": 201})
+        assert res.message == "hi"
+        assert res.status == 201
+
+        res2 = await test.get("/merged", query={"name": "hi", "status": 201})
+        assert res2.message == "hi"
+        assert res2.status == 201
+
+        res3 = await test.get("/data", query={"data": {"a": "hi", "b": 201}})
+        assert res3.message == "hi"
+        assert res3.status == 201
