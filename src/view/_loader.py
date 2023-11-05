@@ -26,6 +26,8 @@ else:
         ...
 
 
+import inspect
+
 from ._logging import Internal
 from ._util import set_load
 from .exceptions import InvalidBodyError, LoaderWarning
@@ -409,6 +411,28 @@ def finalize(routes: list[Route], app: ViewApp):
         else:
             virtual_routes[route.path or ""] = [route]
 
+        sig = inspect.signature(route.func)
+        if len(sig.parameters) != len(route.inputs):
+            names = [i.name for i in route.inputs]
+            for k, v in sig.parameters.items():
+                if k in names:
+                    continue
+
+                tp = v.annotation if v.annotation is not inspect._empty else Any
+                default = (
+                    v.default if v.default is not inspect._empty else _NoDefault
+                )
+
+                route.inputs.append(
+                    RouteInput(
+                        k,
+                        False,
+                        (tp,),
+                        default,
+                        None,
+                        [],
+                    )
+                )
         app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore

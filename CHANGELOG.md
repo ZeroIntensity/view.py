@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `get_app`
 - Added documentation generation
 - Added support for lists in type validation
+- Added support for implicit query parameters
 
 ## [1.0.0-alpha5] - 2023-09-24
 
