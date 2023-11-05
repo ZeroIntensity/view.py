@@ -418,7 +418,6 @@ static int verify_dict_typecodes(
             json_parser
         );
         if (!value) return -1;
-
         if (PyDict_SetItem(
             dict,
             key,
@@ -461,7 +460,7 @@ static int verify_list_typecodes(
             json_parser
         );
 
-        if (!item) return -1;
+        if (!item) return 1;
         PyList_SET_ITEM(
             list,
             i,
@@ -575,10 +574,16 @@ static PyObject* cast_from_typecodes(
                 obj,
                 json_parser
             );
-            if ((res == -1 || res == 1)) {
+            if (res == -1) {
                 Py_DECREF(obj);
                 return NULL;
             }
+
+            if (res == 1) {
+                Py_DECREF(obj);
+                break;
+            }
+
             return obj;
         }
         case TYPECODE_CLASS: {
@@ -607,7 +612,6 @@ static PyObject* cast_from_typecodes(
 
             bool ok = true;
             for (Py_ssize_t i = 0; i < ti->children_size; i++) {
-
                 type_info* info = ti->children[i];
                 PyObject* got_item = PyDict_GetItem(
                     obj,
@@ -695,7 +699,6 @@ static PyObject* cast_from_typecodes(
         }
         case TYPECODE_LIST: {
             PyObject* list;
-
             if (Py_IS_TYPE(
                 item,
                 &PyList_Type
@@ -710,16 +713,17 @@ static PyObject* cast_from_typecodes(
                     1,
                     NULL
                 );
+
                 if (!list) {
-                    PyErr_Print();
-                    return NULL;
+                    PyErr_Clear();
+                    break;
                 }
 
                 if (!Py_IS_TYPE(
                     list,
                     &PyList_Type
                     )) {
-                    return NULL;
+                    break;
                 }
             }
 
@@ -729,9 +733,14 @@ static PyObject* cast_from_typecodes(
                 list,
                 json_parser
             );
-            if ((res == -1 || res == 1)) {
+            if (res == -1) {
                 Py_DECREF(list);
                 return NULL;
+            }
+
+            if (res == 1) {
+                Py_DECREF(list);
+                break;
             }
 
             return list;
@@ -798,7 +807,6 @@ static PyObject** json_parser(
             inp->is_body ? obj : query,
             inp->name
         );
-
         PyObject* item = cast_from_typecodes(
             inp->types,
             inp->types_size,

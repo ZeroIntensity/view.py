@@ -333,7 +333,7 @@ async def _():
             await test.get(
                 "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}}
             )
-        ).status == 400
+        ).status == 200
         assert (
             await test.get("/vb", query={"data": {"hello": "world"}})
         ).message == "yay"

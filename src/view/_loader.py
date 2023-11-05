@@ -326,7 +326,6 @@ def _build_type_codes(
             continue
 
         origin = get_origin(tp)
-
         if (type(tp) in {UnionType, TypingUnionType}) and (
             origin not in {dict, list}
         ):
@@ -342,12 +341,7 @@ def _build_type_codes(
                     f"dictionary keys must be strings, not {key}"
                 )
 
-            value_args = get_args(value)
-
-            if not len(value_args):
-                value_args = (value,)
-
-            tp_codes = _build_type_codes(value_args)
+            tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
         elif origin is list:
             tps = get_args(tp)
@@ -365,6 +359,7 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
 
     for i in inputs:
         type_codes = _build_type_codes(i.tp)
+        Internal.info("built type codes:", type_codes)
         result.append(
             {
                 "name": i.name,
