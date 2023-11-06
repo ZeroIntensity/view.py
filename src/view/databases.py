@@ -1,16 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Generic,
-    TypeVar,
-    cast,
-    overload,
-    Dict,
-)
+from typing import (Any, Callable, ClassVar, Dict, Generic, TypeVar, cast,
+                    overload)
 
 from typing_extensions import ParamSpec, dataclass_transform
 
