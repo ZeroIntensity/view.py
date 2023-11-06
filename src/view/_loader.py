@@ -5,13 +5,8 @@ import runpy
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-
-try:
-    from types import UnionType
-except ImportError:
-    UnionType = None
 from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
-                    Union, get_args, get_type_hints)
+                    get_args, get_type_hints)
 
 try:
     from pydantic.fields import ModelField
@@ -29,7 +24,7 @@ else:
 import inspect
 
 from ._logging import Internal
-from ._util import set_load
+from ._util import is_annotated, is_union, set_load
 from .exceptions import InvalidBodyError, LoaderWarning
 from .routing import BodyParam, Method, Route, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
@@ -41,7 +36,7 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
-from typing_extensions import Annotated, TypeGuard, get_origin
+from typing_extensions import get_origin
 
 _NOT_REQUIRED_TYPES = []
 
@@ -60,7 +55,6 @@ else:
 
 __all__ = "load_fs", "load_simple", "finalize"
 
-TypingUnionType = type(Union[str, int])
 
 TYPECODE_ANY = 0
 TYPECODE_STR = 1
@@ -152,13 +146,6 @@ def _format_body(
         (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
         for k, v in vbody_final.items()
     ]
-
-
-AnnotatedType = type(Annotated[str, ""])
-
-
-def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
-    return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
 
 
 @dataclass
@@ -328,9 +315,7 @@ def _build_type_codes(
             continue
 
         origin = get_origin(tp)
-        if (type(tp) in {UnionType, TypingUnionType}) and (
-            origin not in {dict, list}
-        ):
+        if is_union(type(tp)) and (origin not in {dict, list}):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
             continue

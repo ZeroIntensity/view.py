@@ -31,7 +31,8 @@ dependencies = [
     "psycopg2-binary",
     "mysql-connector-python",
     "pymongo",
-    "uvicorn"
+    "uvicorn",
+    "aiosqlite"
 ]
 dynamic = ["version", "license"]
 

@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-import sqlite3
 from abc import ABC, abstractmethod
+from datetime import datetime
 from enum import Enum
-from typing import Any, ClassVar, Set, TypeVar, Union, get_type_hints
+from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
+                    get_type_hints)
 
+import aiosqlite
 import mysql.connector
 import psycopg2
 import pymongo
-from typing_extensions import Annotated, Self, dataclass_transform
+from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
+from ._util import is_annotated, is_union
+from .exceptions import InvalidDatabaseSchemaError
 from .routing import BodyParam
 from .typing import ViewBody
 
@@ -19,12 +23,64 @@ __all__ = ("Model",)
 
 class _Connection(ABC):
     @abstractmethod
-    def connect(self) -> None:
+    async def connect(self) -> None:
         ...
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         ...
+
+    @abstractmethod
+    async def insert(self, table: str, json: dict) -> None:
+        ...
+
+    @abstractmethod
+    async def find(self, table: str, json: dict) -> None:
+        ...
+
+    @abstractmethod
+    async def migrate(self, table: str, vbody: dict) -> None:
+        ...
+
+
+_SQL_TYPES: dict[type, str] = {
+    str: "TEXT",
+    float: "FLOAT",
+    int: "INT",
+    bytes: "BLOB",
+    datetime: "DATETIME",
+}
+
+
+def _sql_translate(vbody: dict) -> str:
+    items: list[str] = []
+
+    for k, v in vbody.items():
+        tp = _SQL_TYPES.get(v)
+
+        if tp:
+            items.append(f"{k} {tp} NOT NULL")
+            continue
+
+        flags = ["NOT NULL"]
+        origin = get_origin(v)
+        print(v)
+        if is_union(type(origin)):
+            args = get_args(origin)
+            if (len(args) != 2) and (None not in args):
+                raise InvalidDatabaseSchemaError(
+                    "union types are not allowed in databases, other than None",
+                )
+
+            flags.pop(0)
+            v = args[0] if args[0] is not None else args[1]
+
+        if is_annotated(v):
+            print(get_args(v))
+
+        raise InvalidDatabaseSchemaError(f"{v} is not a supported type")
+
+    return ", ".join(items)
 
 
 class _PostgresConnection(_Connection):
@@ -71,25 +127,34 @@ class _PostgresConnection(_Connection):
             self.cursor = None
 
 
-class _SQLiteConnection:
+class _SQLiteConnection(_Connection):
     def __init__(self, database_file: str) -> None:
         self.database_file = database_file
-        self.connection: sqlite3.Connection | None = None
-        self.cursor: sqlite3.Cursor | None = None
+        self.connection: aiosqlite.Connection | None = None
+        self.cursor: aiosqlite.Cursor | None = None
 
     async def connect(self) -> None:
-        self.connection = await asyncio.to_thread(
-            sqlite3.connect, self.database_file
-        )
-        self.cursor = await asyncio.to_thread(self.connection.cursor)  # type: ignore
+        self.connection = await aiosqlite.connect(self.database_file)
+        self.cursor = await self.connection.cursor()
 
     async def close(self) -> None:
         if self.connection is not None:
             assert self.cursor is not None
-            await asyncio.to_thread(self.cursor.close)
-            await asyncio.to_thread(self.connection.close)
+            await self.cursor.close()
+            await self.connection.close()
             self.connection = None
             self.cursor = None
+
+    async def insert(self, table: str, json: dict) -> None:
+        ...
+
+    async def find(self, table: str, json: dict) -> None:
+        ...
+
+    async def migrate(self, table: str, vbody: dict):
+        assert self.cursor is not None
+        sql = _sql_translate(vbody)
+        await self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({sql})")
 
 
 class _MySQLConnection:
@@ -170,6 +235,7 @@ class _MongoDBConnection:
 class _Meta(Enum):
     HASH = 0
     ID = 1
+    EXCLUDE = 2
 
 
 class _ModelMeta:
@@ -180,15 +246,16 @@ class _ModelMeta:
 T = TypeVar("T")
 Hashed = Annotated[T, _ModelMeta(_Meta.HASH)]
 Id = Annotated[T, _ModelMeta(_Meta.ID)]
+Exclude = Annotated[T, _ModelMeta(_Meta.EXCLUDE)]
 
 
 @dataclass_transform()
 class Model:
     view_initialized: ClassVar[bool] = False
-    __view_body__: ClassVar[ViewBody] = {}
-    view_conn: ClassVar[Union[_Connection, None]] = None
-    __view_table__: ClassVar[str]
+    conn: ClassVar[Union[_Connection, None]] = None
     exclude: ClassVar[Set[str]]
+    __view_body__: ClassVar[ViewBody] = {}
+    __view_table__: ClassVar[str]
 
     def __init__(self, *args: Any, **kwargs: Any):
         for index, k in enumerate(self.__view_body__):
@@ -233,6 +300,11 @@ class Model:
         ...
 
     def save(self) -> None:
+        conn = self._assert_conn()
+
+        conn.insert(self.__view_table__, self._json())
+
+    def _json(self) -> dict[str, Any]:
         ...
 
     def json(self) -> dict[str, Any]:
@@ -241,3 +313,10 @@ class Model:
     @classmethod
     def from_json(cls, json: dict[str, Any]) -> Self:
         ...
+
+    @classmethod
+    def _assert_conn(cls) -> _Connection:
+        if not cls.conn:
+            raise Exception
+
+        return cls.conn

@@ -10,11 +10,40 @@ import weakref
 from collections.abc import Iterable
 from types import FrameType as Frame
 from types import FunctionType as Function
+from typing import Any, Union
 
 from rich.panel import Panel
 from rich.syntax import Syntax
+from typing_extensions import Annotated, TypeGuard
 
 from .exceptions import NotLoadedWarning
+
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = None
+
+TypingUnionType = type(Union[str, int])
+
+__all__ = (
+    "is_union",
+    "LoadChecker",
+    "set_load",
+    "shell_hint",
+    "make_hint",
+    "is_annotated",
+)
+
+
+def is_union(tp: type[Any]) -> bool:
+    return tp in {UnionType, TypingUnionType}
+
+
+AnnotatedType = type(Annotated[str, ""])
+
+
+def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
+    return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
 
 
 class LoadChecker:

@@ -11,6 +11,8 @@ __all__ = (
     "MistakeError",
     "LoaderWarning",
     "AppNotFoundError",
+    "DatabaseError",
+    "InvalidDatabaseSchemaError",
 )
 
 
@@ -65,4 +67,12 @@ class MistakeError(ViewError):
 class AppNotFoundError(ViewError, FileNotFoundError):
     """Couldn't find the app from the given path."""
 
+    ...
+
+
+class DatabaseError(ViewError):
+    ...
+
+
+class InvalidDatabaseSchemaError(DatabaseError):
     ...
