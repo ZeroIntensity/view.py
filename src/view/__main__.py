@@ -297,13 +297,13 @@ app.run()
 
             click.echo("Created `pyproject.toml`")
 
-    scripts = path / "scripts"
+    scripts = path / "utils"
 
     if scripts.exists():
-        should_continue("`scripts` already exists, overwrite?")
+        should_continue("`utils` already exists, overwrite?")
     else:
         scripts.mkdir()
-        click.echo("Created `scripts`")
+        click.echo("Created `utils`")
 
     routes = path / "routes"
     if routes.exists():
@@ -315,11 +315,13 @@ app.run()
     index = routes / "index.py"
 
     if index.exists():
-        should_continue(f"`{index.relative_to('.')}` already exists, overwrite?")
+        should_continue(
+            f"`{index.relative_to('.')}` already exists, overwrite?"
+        )
     pathstr = "" if load == "filesystem" else "'/'"
     with open(index, "w") as f:
         f.write(
-            f"""from view.routing import get
+            f"""from view import get
 
 @get({pathstr})
 async def index():

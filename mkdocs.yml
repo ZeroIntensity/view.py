@@ -8,6 +8,7 @@ nav:
     - User Guide:
       - Getting Started:
           - Installation: installation.md
+          - Configuration: configuration.md
           - Project Creation: creating_a_project.md
 
 theme:
