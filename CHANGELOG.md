@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `get_app`
 - Added documentation generation
 - Changed `scripts` to `utils` in `view init`
+- Patched not creating files if they exist in `view init`
+- Updated prompts in `view init`
 
 ## [1.0.0-alpha5] - 2023-09-24
 

@@ -206,14 +206,14 @@ def deploy(target: str):
         writable=True,
     ),
     default="./",
-    prompt="Path to initialize to",
+    prompt="Target path",
 )
 @click.option(
     "--type",
     "-t",
     help="Configuration type to initalize.",
     default="toml",
-    type=click.Choice(("toml", "json", "ini", "yml", "py")),
+    type=click.Choice(("toml", "json", "ini", "py")),
 )
 @click.option(
     "--load",
@@ -234,6 +234,7 @@ def deploy(target: str):
     help="Project name to be used in configuration.",
     type=str,
     default="my_app",
+    prompt="Project name",
 )
 def init(path: Path, type: str, load: str, no_project: bool, name: str):
     from .config import make_preset
@@ -291,26 +292,39 @@ app.run()
 
         if pyproject.exists():
             should_continue("`pyproject.toml` already exists, overwrite?")
-        else:
-            with pyproject.open("w", encoding="utf-8") as f:
-                f.write(PYPROJECT_BASE(name))
 
-            click.echo("Created `pyproject.toml`")
+        with pyproject.open("w", encoding="utf-8") as f:
+            f.write(PYPROJECT_BASE(name))
+
+        click.echo("Created `pyproject.toml`")
 
     scripts = path / "utils"
 
     if scripts.exists():
         should_continue("`utils` already exists, overwrite?")
-    else:
-        scripts.mkdir()
-        click.echo("Created `utils`")
+
+    scripts.mkdir()
+    click.echo("Created `utils`")
 
     routes = path / "routes"
     if routes.exists():
         should_continue("`routes` already exists, overwrite?")
-    else:
-        routes.mkdir()
-        click.echo("Created `routes`")
+
+    routes.mkdir()
+    click.echo("Created `routes`")
+
+    setup = path / "setup.py"
+
+    if setup.exists():
+        should_continue("`setup.py` already exists, overwrite?")
+
+    with open(setup, "w") as f:
+        f.write(
+            f"""from setuptools import setup
+
+if __name__ == '__main__':
+    setup()"""
+        )
 
     index = routes / "index.py"
 
