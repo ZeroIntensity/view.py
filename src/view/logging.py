@@ -5,14 +5,26 @@ import sys
 from datetime import datetime as DateTime
 from pathlib import Path
 from types import FrameType as Frame
-from typing import Literal, TextIO
+from typing import Literal, TextIO, TypedDict
 
 from rich.console import Console
-from rich.markup import escape
+from typing_extensions import NotRequired, Unpack
 
-__all__ = ("log",)
+from ._logging import _QUEUE
+from ._logging import LogLevel as Urgency
+from ._logging import QueueItem
 
-Urgency = Literal["debug", "info", "warn", "error"]
+__all__ = (
+    "log",
+    "FileWriteMethod",
+    "Urgency",
+    "log",
+    "debug",
+    "info",
+    "warning",
+    "error",
+    "critical",
+)
 FileWriteMethod = Literal["only", "never", "both"]
 
 _CurrentFrame = None
@@ -20,11 +32,12 @@ _Now = None
 _StandardOut = None
 _NoFile = None
 
-_URGENCY_COLORS: dict[Urgency, str] = {
+_URGENCY_COLORS: dict[str, str] = {
     "debug": "blue",
     "info": "green",
-    "warn": "dim yellow",
+    "warning": "dim yellow",
     "error": "red",
+    "critical": "dim red",
 }
 
 
@@ -72,6 +85,9 @@ def log(
             markup=show_color,
             highlight=show_color,
         )
+        _QUEUE.put_nowait(
+            QueueItem(True, False, urgency, msg + "\n", is_stdout=True)
+        )
 
     if (file_write != "never") and log_file:
         if isinstance(log_file, (str, Path)):
@@ -89,3 +105,51 @@ def log(
             markup=show_color,
             highlight=show_color,
         )
+
+
+class _LogArgs(TypedDict):
+    file_out: NotRequired[TextIO]
+    log_file: NotRequired[Path | str | TextIO]
+    caller_frame: NotRequired[Frame]
+    time: NotRequired[DateTime]
+    show_time: NotRequired[bool]
+    show_caller: NotRequired[bool]
+    show_color: NotRequired[bool]
+    show_urgency: NotRequired[bool]
+    file_write: NotRequired[FileWriteMethod]
+    strftime: NotRequired[str]
+
+
+def _get_last_frame() -> Frame:
+    f = inspect.currentframe()
+    assert f, "failed to get frame"
+    assert f.f_back, "failed to get f_back"
+    assert f.f_back.f_back, "f_back has no previous frame"
+    return f.f_back.f_back
+
+
+def _splat_args(args: _LogArgs) -> _LogArgs:
+    if "caller_frame" not in args:
+        args["caller_frame"] = _get_last_frame()
+
+    return args
+
+
+def debug(*messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+    log(*messages, urgency="debug", **_splat_args(kwargs))
+
+
+def info(*messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+    log(*messages, urgency="info", **_splat_args(kwargs))
+
+
+def warning(*messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+    log(*messages, urgency="warning", **_splat_args(kwargs))
+
+
+def error(*messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+    log(*messages, urgency="error", **_splat_args(kwargs))
+
+
+def critical(*messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+    log(*messages, urgency="critical", **_splat_args(kwargs))

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added documentation generation
 - Added support for lists in type validation
 - Added support for implicit query parameters
+- Renamed `debug` to `enable_debug`
+- Added `debug`, `info`, `warning`, `error`, and `critical` logging functions
 
 ## [1.0.0-alpha5] - 2023-09-24
 

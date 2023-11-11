@@ -16,7 +16,7 @@ from .exceptions import AppNotFoundError, EnvironmentError, MistakeError
 if TYPE_CHECKING:
     from .app import App
 
-__all__ = ("run", "env", "debug", "timestamp")
+__all__ = ("run", "env", "enable_debug", "timestamp")
 
 
 def run(app_or_path: str | App) -> None:
@@ -60,7 +60,7 @@ def run(app_or_path: str | App) -> None:
     target._run()
 
 
-def debug():
+def enable_debug():
     """Enable debug mode."""
     internal = Internal.log
     internal.disabled = False

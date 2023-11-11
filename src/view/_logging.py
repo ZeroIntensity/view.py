@@ -10,7 +10,7 @@ import time
 import warnings
 from abc import ABC
 from threading import Event, Thread
-from typing import IO, Callable, Iterable, NamedTuple, TextIO
+from typing import IO, Any, Callable, Iterable, NamedTuple, TextIO
 
 import plotext as plt
 import psutil
@@ -176,9 +176,7 @@ _QUEUE: queue.Queue[QueueItem] = queue.Queue()
 _CLOSE = Event()
 
 
-class _StandardOutProxy(FileProxy):
-    """Wrap standard out to fancy logging."""
-
+class _FileProxyWrapper(FileProxy):
     def __init__(
         self,
         console: Console,
@@ -187,23 +185,18 @@ class _StandardOutProxy(FileProxy):
     ) -> None:
         super().__init__(console, file)
         self._queue = qu
+
+
+class _StandardOutProxy(_FileProxyWrapper):
+    """Wrap standard out to fancy logging."""
 
     def write(self, text: str) -> int:
         self._queue.put(QueueItem(False, False, "info", text, is_stdout=True))
         return super().write(text)
 
 
-class _StandardErrProxy(FileProxy):
+class _StandardErrProxy(_FileProxyWrapper):
     """Wrap standard error to fancy logging."""
-
-    def __init__(
-        self,
-        console: Console,
-        file: IO[str],
-        qu: queue.Queue[QueueItem],
-    ) -> None:
-        super().__init__(console, file)
-        self._queue = qu
 
     def write(self, text: str) -> int:
         self._queue.put(QueueItem(False, False, "info", text, is_stderr=True))
@@ -904,8 +897,8 @@ def _server_logger():
 
     preserved = sys.stdout
     preserved_2 = sys.stderr
-    sys.stdout = _StandardOutProxy(console, sys.stdout, _QUEUE)  # type: ignore
-    sys.stderr = _StandardErrProxy(console, sys.stderr, _QUEUE)  # type: ignore
+    sys.stdout = _StandardOutProxy(console, sys.stdout, _QUEUE)
+    sys.stderr = _StandardErrProxy(console, sys.stderr, _QUEUE)
 
     def inner():
         while not _CLOSE.wait(0.3):

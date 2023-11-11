@@ -40,7 +40,7 @@ from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .typing import Callback, DocsType
-from .util import debug as enable_debug
+from .util import enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
 
