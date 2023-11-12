@@ -10,6 +10,8 @@ nav:
           - Installation: installation.md
           - Configuration: configuration.md
           - Project Creation: creating_a_project.md
+      - Building Projects:
+          - App Basics: app_basics.md
 
 theme:
     name: null

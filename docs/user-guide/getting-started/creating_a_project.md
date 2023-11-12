@@ -39,4 +39,8 @@ app.run()
 
 ## Structure
 
+First, in any view project, you need a file to contain your app. By default, view expects it to be in `app.py` under a variable called `app`. Again, you can change this via the `app_path` setting.
+
 Generally, you're going to want one of the configuration files talked about earlier, but if you're against configuration files that's OK, view.py will work just fine without it. If you choose to use something other than manual routing, you want a `routes` directory (unless you changed the `loader_path` setting).
+
+Finally, for mobility purposes, you may want to add a `pyproject.toml` that contains the dependencies for your project, in case you need to run your project on a different system.
