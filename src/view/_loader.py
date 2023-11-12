@@ -26,9 +26,12 @@ else:
         ...
 
 
+import inspect
+
 from ._logging import Internal
 from ._util import set_load
-from .exceptions import InvalidBodyError, LoaderWarning
+from .exceptions import (DuplicateRouteError, InvalidBodyError,
+                         InvalidRouteError, LoaderWarning)
 from .routing import BodyParam, Method, Route, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
@@ -39,7 +42,7 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
-from typing_extensions import Annotated, TypeGuard
+from typing_extensions import Annotated, TypeGuard, get_origin
 
 _NOT_REQUIRED_TYPES = []
 
@@ -69,6 +72,7 @@ TYPECODE_DICT = 5
 TYPECODE_NONE = 6
 TYPECODE_CLASS = 7
 TYPECODE_CLASSTYPES = 8
+TYPECODE_LIST = 9
 
 
 _BASIC_CODES = {
@@ -79,6 +83,7 @@ _BASIC_CODES = {
     dict: TYPECODE_DICT,
     None: TYPECODE_NONE,
     Any: TYPECODE_ANY,
+    list: TYPECODE_LIST,
 }
 
 """
@@ -192,7 +197,7 @@ def _build_type_codes(
     for tp in inp:
         if is_annotated(tp):
             if doc is None:
-                raise TypeError(f"Annotated is not valid here ({tp})")
+                raise InvalidBodyError(f"Annotated is not valid here ({tp})")
 
             if not key_name:
                 raise RuntimeError("internal error: key_name is None")
@@ -323,30 +328,29 @@ def _build_type_codes(
             setattr(tp, "_view_doc", doc)
             continue
 
-        origin = getattr(tp, "__origin__", None)  # typing.GenericAlias
-
-        if (type(tp) in {UnionType, TypingUnionType}) and (origin is not dict):
+        origin = get_origin(tp)
+        if (type(tp) in {UnionType, TypingUnionType}) and (
+            origin not in {dict, list}
+        ):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
             continue
 
-        if origin is not dict:
+        if origin is dict:
+            key, value = get_args(tp)
+
+            if key is not str:
+                raise InvalidBodyError(
+                    f"dictionary keys must be strings, not {key}"
+                )
+
+            tp_codes = _build_type_codes((value,))
+            codes.append((TYPECODE_DICT, None, tp_codes))
+        elif origin is list:
+            tps = get_args(tp)
+            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))
+        else:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
-
-        key, value = get_args(tp)
-
-        if key is not str:
-            raise InvalidBodyError(
-                f"dictionary keys must be strings, not {key}"
-            )
-
-        value_args = get_args(value)
-
-        if not len(value_args):
-            value_args = (value,)
-
-        tp_codes = _build_type_codes(value_args)
-        codes.append((TYPECODE_DICT, None, tp_codes))
 
     return codes
 
@@ -358,6 +362,7 @@ def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
 
     for i in inputs:
         type_codes = _build_type_codes(i.tp)
+        Internal.info("built type codes:", type_codes)
         result.append(
             {
                 "name": i.name,
@@ -395,18 +400,40 @@ def finalize(routes: list[Route], app: ViewApp):
         target = targets[route.method]
 
         if (not route.path) and (not route.parts):
-            raise TypeError("route did not specify a path")
+            raise InvalidRouteError("route did not specify a path")
         lst = virtual_routes.get(route.path or "")
 
         if lst:
             if route.method in [i.method for i in lst]:
-                raise ValueError(
+                raise DuplicateRouteError(
                     f"duplicate route: {route.method.name} for {route.path}",
                 )
             lst.append(route)
         else:
             virtual_routes[route.path or ""] = [route]
 
+        sig = inspect.signature(route.func)
+        if len(sig.parameters) != len(route.inputs):
+            names = [i.name for i in route.inputs]
+            for k, v in sig.parameters.items():
+                if k in names:
+                    continue
+
+                tp = v.annotation if v.annotation is not inspect._empty else Any
+                default = (
+                    v.default if v.default is not inspect._empty else _NoDefault
+                )
+
+                route.inputs.append(
+                    RouteInput(
+                        k,
+                        False,
+                        (tp,),
+                        default,
+                        None,
+                        [],
+                    )
+                )
         app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore
@@ -454,7 +481,7 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     current_routes.append(i)
 
             if not current_routes:
-                raise ValueError(f"{path} has no set routes")
+                raise InvalidRouteError(f"{path} has no set routes")
 
             for x in current_routes:
                 if x.path:
@@ -513,7 +540,7 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
 
             for route in mini_routes:
                 if not route.path:
-                    raise ValueError(
+                    raise InvalidRouteError(
                         "omitting path is only supported"
                         " on filesystem loading",
                     )

@@ -27,7 +27,9 @@ from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
-from typing_extensions import Literal
+
+from .exceptions import ViewInternalError
+from .typing import LogLevel
 
 UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
 
@@ -176,9 +178,7 @@ _QUEUE: queue.Queue[QueueItem] = queue.Queue()
 _CLOSE = Event()
 
 
-class _StandardOutProxy(FileProxy):
-    """Wrap standard out to fancy logging."""
-
+class _FileProxyWrapper(FileProxy):
     def __init__(
         self,
         console: Console,
@@ -187,30 +187,22 @@ class _StandardOutProxy(FileProxy):
     ) -> None:
         super().__init__(console, file)
         self._queue = qu
+
+
+class _StandardOutProxy(_FileProxyWrapper):
+    """Wrap standard out to fancy logging."""
 
     def write(self, text: str) -> int:
         self._queue.put(QueueItem(False, False, "info", text, is_stdout=True))
         return super().write(text)
 
 
-class _StandardErrProxy(FileProxy):
+class _StandardErrProxy(_FileProxyWrapper):
     """Wrap standard error to fancy logging."""
-
-    def __init__(
-        self,
-        console: Console,
-        file: IO[str],
-        qu: queue.Queue[QueueItem],
-    ) -> None:
-        super().__init__(console, file)
-        self._queue = qu
 
     def write(self, text: str) -> int:
         self._queue.put(QueueItem(False, False, "info", text, is_stderr=True))
         return super().write(text)
-
-
-LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 
 
 def _sep(target: tuple[object, ...]):
@@ -325,7 +317,7 @@ def _status_color(status: int) -> str:
     if status >= 100:
         return "blue"
 
-    raise ValueError(f"got bad status: {status}")
+    raise ViewInternalError(f"got bad status: {status}")
 
 
 _METHOD_COLORS: dict[str, str] = {
@@ -821,7 +813,7 @@ def _heat_color(amount: float) -> str:
     if amount == 100:
         return "dim red"
 
-    raise ValueError("invalid percentage")
+    raise ViewInternalError("invalid percentage")
 
 
 class HeatedProgress(Progress):
@@ -904,8 +896,8 @@ def _server_logger():
 
     preserved = sys.stdout
     preserved_2 = sys.stderr
-    sys.stdout = _StandardOutProxy(console, sys.stdout, _QUEUE)  # type: ignore
-    sys.stderr = _StandardErrProxy(console, sys.stderr, _QUEUE)  # type: ignore
+    sys.stdout = _StandardOutProxy(console, sys.stdout, _QUEUE)
+    sys.stderr = _StandardErrProxy(console, sys.stderr, _QUEUE)
 
     def inner():
         while not _CLOSE.wait(0.3):

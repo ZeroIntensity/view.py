@@ -1,4 +1,4 @@
-<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=200 height=auto /></div>
+<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=300 height=auto /></div>
 
 ## Lightning fast, modern web framework
 
@@ -8,10 +8,9 @@
 - [Discord](https://discord.gg/tZAfuWAbm2)
 
 ```py
-import view
-from view.components import h1
+from view import new_app, h1
 
-app = view.new_app()
+app = new_app()
 
 @app.get("/")
 async def index():

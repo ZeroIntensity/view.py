@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed `scripts` to `utils` in `view init`
 - Patched not creating files if they exist in `view init`
 - Updated prompts in `view init`
+- Added support for lists in type validation
+- Added support for implicit query parameters
+- Renamed `debug` to `enable_debug`
+- Added `debug`, `info`, `warning`, `error`, and `critical` logging functions
+- Added `InvalidRouteError`, `DuplicateRouteError`, `ViewInternalError`, and `ConfigurationError`
+- Renamed `EnvironmentError` to `BadEnvironmentError`
+- Added logging functions to `App`
+- Changed environment prefixes for configuration
 
 ## [1.0.0-alpha5] - 2023-09-24
 

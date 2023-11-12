@@ -80,7 +80,7 @@ def should_continue(msg: str):
 @click.pass_context
 def main(ctx: click.Context, debug: bool) -> None:
     if debug:
-        from .util import debug as enable_debug
+        from .util import enable_debug
 
         enable_debug()
     elif not ctx.invoked_subcommand:
