@@ -8,10 +8,9 @@
 - [Discord](https://discord.gg/tZAfuWAbm2)
 
 ```py
-import view
-from view.components import h1
+from view import new_app, h1
 
-app = view.new_app()
+app = new_app()
 
 @app.get("/")
 async def index():

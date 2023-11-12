@@ -6,13 +6,17 @@ __all__ = (
     "ViewWarning",
     "NotLoadedWarning",
     "ViewError",
-    "EnvironmentError",
+    "BadEnvironmentError",
     "InvalidBodyError",
     "MistakeError",
     "LoaderWarning",
     "AppNotFoundError",
     "DatabaseError",
     "InvalidDatabaseSchemaError",
+    "DuplicateRouteError",
+    "InvalidRouteError",
+    "ViewInternalError",
+    "ConfigurationError",
 )
 
 
@@ -46,7 +50,7 @@ class ViewError(Exception):
         super().__init__(*args)
 
 
-class EnvironmentError(ViewError):
+class BadEnvironmentError(ViewError):
     """An environment variable is missing."""
 
     ...
@@ -76,3 +80,25 @@ class DatabaseError(ViewError):
 
 class InvalidDatabaseSchemaError(DatabaseError):
     ...
+
+
+class DuplicateRouteError(ViewError):
+    """Duplicate routes in loader."""
+
+    ...
+
+
+class InvalidRouteError(ViewError):
+    """Something is wrong with a route."""
+
+    ...
+
+
+class ViewInternalError(ViewError):
+    """Something was wrong internally."""
+
+    ...
+
+
+class ConfigurationError(ViewError):
+    """Something is wrong with the configuration."""

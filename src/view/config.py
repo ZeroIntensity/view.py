@@ -8,28 +8,43 @@ from typing import Any, Dict, Literal, Union
 
 from configzen import ConfigField, ConfigModel
 
+from .exceptions import ViewInternalError
+from .logging import FileWriteMethod, Urgency
 
-class AppConfig(ConfigModel):
+
+class AppConfig(ConfigModel, env_prefix="view_app_"):
     loader: Literal["manual", "simple", "filesystem"] = "manual"
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
 
 
-class ServerConfig(ConfigModel):
+class ServerConfig(ConfigModel, env_prefix="view_server_"):
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
     backend: Literal["uvicorn"] = "uvicorn"
     extra_args: Dict[str, Any] = ConfigField(default_factory=dict)
 
 
-class LogConfig(ConfigModel):
+class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
+    urgency: Urgency = "info"
+    log_file: Union[Path, str, None] = None
+    show_time: bool = True
+    show_caller: bool = True
+    show_color: bool = True
+    show_urgency: bool = True
+    file_write: FileWriteMethod = "both"
+    strftime: str = "%H:%M:%S"
+
+
+class LogConfig(ConfigModel, env_prefix="view_log_"):
     level: Union[
         Literal["debug", "info", "warning", "error", "critical"], int
     ] = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True
+    user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
 
 
 class MongoConfig(ConfigModel):
@@ -127,7 +142,7 @@ app = {B_OPEN}
 server = {B_OC}
 log = {B_OC}"""
 
-    raise ValueError("bad file type")
+    raise ViewInternalError("bad file type")
 
 
 def load_config(

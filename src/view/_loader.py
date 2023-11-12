@@ -25,7 +25,8 @@ import inspect
 
 from ._logging import Internal
 from ._util import is_annotated, is_union, set_load
-from .exceptions import InvalidBodyError, LoaderWarning
+from .exceptions import (DuplicateRouteError, InvalidBodyError,
+                         InvalidRouteError, LoaderWarning)
 from .routing import BodyParam, Method, Route, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
@@ -183,7 +184,7 @@ def _build_type_codes(
     for tp in inp:
         if is_annotated(tp):
             if doc is None:
-                raise TypeError(f"Annotated is not valid here ({tp})")
+                raise InvalidBodyError(f"Annotated is not valid here ({tp})")
 
             if not key_name:
                 raise RuntimeError("internal error: key_name is None")
@@ -384,12 +385,12 @@ def finalize(routes: list[Route], app: ViewApp):
         target = targets[route.method]
 
         if (not route.path) and (not route.parts):
-            raise TypeError("route did not specify a path")
+            raise InvalidRouteError("route did not specify a path")
         lst = virtual_routes.get(route.path or "")
 
         if lst:
             if route.method in [i.method for i in lst]:
-                raise ValueError(
+                raise DuplicateRouteError(
                     f"duplicate route: {route.method.name} for {route.path}",
                 )
             lst.append(route)
@@ -465,7 +466,7 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     current_routes.append(i)
 
             if not current_routes:
-                raise ValueError(f"{path} has no set routes")
+                raise InvalidRouteError(f"{path} has no set routes")
 
             for x in current_routes:
                 if x.path:
@@ -524,7 +525,7 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
 
             for route in mini_routes:
                 if not route.path:
-                    raise ValueError(
+                    raise InvalidRouteError(
                         "omitting path is only supported"
                         " on filesystem loading",
                     )

@@ -11,7 +11,7 @@ from typing import Any, Callable, Generic, Type, TypeVar, Union
 from typing_extensions import ParamSpec
 
 from ._util import LoadChecker, make_hint
-from .exceptions import MistakeError
+from .exceptions import InvalidRouteError, MistakeError
 from .typing import Validator, ValueType, ViewResponse, ViewRoute
 
 __all__ = (
@@ -125,7 +125,7 @@ def route_types(
     elif isinstance(data, type):
         route.extra_types[data.__name__] = data
     else:
-        raise TypeError(
+        raise InvalidRouteError(
             "expected type, tuple of tuples,"
             f" or a dict, got {type(data).__name__}"
         )
