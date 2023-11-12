@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `debug`, `info`, `warning`, `error`, and `critical` logging functions
 - Added `InvalidRouteError`, `DuplicateRouteError`, `ViewInternalError`, and `ConfigurationError`
 - Renamed `EnvironmentError` to `BadEnvironmentError`
+- Added logging functions to `App`
+- Changed environment prefixes for configuration
 
 ## [1.0.0-alpha5] - 2023-09-24
 

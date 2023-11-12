@@ -24,6 +24,7 @@ from urllib.parse import urlencode
 import ujson
 from rich import print
 from rich.traceback import install
+from typing_extensions import Unpack
 
 from _view import ViewApp
 
@@ -36,6 +37,7 @@ from ._util import attempt_import, make_hint
 from .config import Config, load_config
 from .exceptions import (BadEnvironmentError, ConfigurationError,
                          MissingLibraryError, ViewError, ViewInternalError)
+from .logging import _LogArgs, log
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
@@ -346,6 +348,43 @@ class App(ViewApp):
     def options(self, path: str, *, doc: str | None = None):
         """Set a OPTIONS route."""
         return self._method_wrapper(path, doc, options)
+
+    def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
+        if key not in kwargs:
+            kwargs[key] = getattr(self.config.log.user, key)
+
+    def _splat_log_args(self, kwargs: _LogArgs) -> _LogArgs:
+        self._set_log_arg(kwargs, "log_file")
+        self._set_log_arg(kwargs, "show_time")
+        self._set_log_arg(kwargs, "show_caller")
+        self._set_log_arg(kwargs, "show_color")
+        self._set_log_arg(kwargs, "show_urgency")
+        self._set_log_arg(kwargs, "file_write")
+        self._set_log_arg(kwargs, "strftime")
+
+        if "caller_frame" not in kwargs:
+            frame = inspect.currentframe()
+            assert frame, "failed to get frame"
+            back = frame.f_back
+            assert back, "frame has no f_back"
+            kwargs["caller_frame"] = back
+
+        return kwargs
+
+    def debug(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="debug", **self._splat_log_args(kwargs))
+
+    def info(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="info", **self._splat_log_args(kwargs))
+
+    def warning(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="warning", **self._splat_log_args(kwargs))
+
+    def error(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="error", **self._splat_log_args(kwargs))
+
+    def critical(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="critical", **self._splat_log_args(kwargs))
 
     def query(
         self,

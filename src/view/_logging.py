@@ -27,9 +27,9 @@ from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
-from typing_extensions import Literal
 
 from .exceptions import ViewInternalError
+from .typing import LogLevel
 
 UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
 
@@ -203,9 +203,6 @@ class _StandardErrProxy(_FileProxyWrapper):
     def write(self, text: str) -> int:
         self._queue.put(QueueItem(False, False, "info", text, is_stderr=True))
         return super().write(text)
-
-
-LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 
 
 def _sep(target: tuple[object, ...]):

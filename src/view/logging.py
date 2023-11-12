@@ -5,18 +5,17 @@ import sys
 from datetime import datetime as DateTime
 from pathlib import Path
 from types import FrameType as Frame
-from typing import Literal, TextIO, TypedDict
+from typing import TextIO, TypedDict
 
 from rich.console import Console
 from typing_extensions import NotRequired, Unpack
 
-from ._logging import _QUEUE
-from ._logging import LogLevel as Urgency
-from ._logging import QueueItem
+from ._logging import _QUEUE, QueueItem
+from .typing import FileWriteMethod
+from .typing import LogLevel as Urgency
 
 __all__ = (
     "log",
-    "FileWriteMethod",
     "Urgency",
     "log",
     "debug",
@@ -25,7 +24,6 @@ __all__ = (
     "error",
     "critical",
 )
-FileWriteMethod = Literal["only", "never", "both"]
 
 _CurrentFrame = None
 _Now = None
