@@ -11,7 +11,7 @@ Loader strategy (manual, filesystem, simple) [filesystem]:
 Created `view.toml`
 Created `app.py`
 Created `pyproject.toml`
-Created `scripts`
+Created `utils`
 Created `routes`
 Created `routes/index.py`
 Successfully initalized app in `/path/omitted`
@@ -23,6 +23,20 @@ The loader strategy is related to routing, which you will learn more about later
 
 view.py doesn't actually need any big project structure. In fact, you can run an app in just a single Python file, but larger structures like this might be more convenient for big projects. The only real requirement for something to be a view app is that it calls `new_app`, but again, more on that later.
 
+Some "hello world" code for manually starting a view project would look like:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+def index():
+    return "..."
+
+app.run()
+```
+
 ## Structure
 
-Generally, you're going to want one of the configuration files talked about earlier, but if you're against more configuration files that's OK.
+Generally, you're going to want one of the configuration files talked about earlier, but if you're against configuration files that's OK, view.py will work just fine without it. If you choose to use something other than manual routing, you want a `routes` directory (unless you changed the `loader_path` setting).
