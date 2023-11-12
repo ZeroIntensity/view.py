@@ -7,11 +7,15 @@ __all__ = (
     "NotLoadedWarning",
     "ViewError",
     "MissingLibraryError",
-    "EnvironmentError",
+    "BadEnvironmentError",
     "InvalidBodyError",
     "MistakeError",
     "LoaderWarning",
     "AppNotFoundError",
+    "DuplicateRouteError",
+    "InvalidRouteError",
+    "ViewInternalError",
+    "ConfigurationError",
 )
 
 
@@ -51,7 +55,7 @@ class MissingLibraryError(ViewError):
     ...
 
 
-class EnvironmentError(ViewError):
+class BadEnvironmentError(ViewError):
     """An environment variable is missing."""
 
     ...
@@ -71,5 +75,29 @@ class MistakeError(ViewError):
 
 class AppNotFoundError(ViewError, FileNotFoundError):
     """Couldn't find the app from the given path."""
+
+    ...
+
+
+class DuplicateRouteError(ViewError):
+    """Duplicate routes in loader."""
+
+    ...
+
+
+class InvalidRouteError(ViewError):
+    """Something is wrong with a route."""
+
+    ...
+
+
+class ViewInternalError(ViewError):
+    """Something was wrong internally."""
+
+    ...
+
+
+class ConfigurationError(ViewError):
+    """Something is wrong with the configuration."""
 
     ...

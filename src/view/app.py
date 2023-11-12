@@ -34,7 +34,8 @@ from ._logging import (Internal, Service, UvicornHijack, enter_server,
 from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
-from .exceptions import MissingLibraryError, ViewError
+from .exceptions import (BadEnvironmentError, ConfigurationError,
+                         MissingLibraryError, ViewError, ViewInternalError)
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
@@ -127,7 +128,7 @@ class TestingContext:
             elif obj["type"] == "http.response.body":
                 await body_q.put(obj["body"].decode())
             else:
-                raise TypeError(f"bad type: {obj['type']}")
+                raise ViewInternalError(f"bad type: {obj['type']}")
 
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
@@ -455,7 +456,9 @@ class App(ViewApp):
 
         if self.config.log.fancy:
             if not self.config.log.hijack:
-                raise ValueError("hijack must be enabled for fancy mode")
+                raise ConfigurationError(
+                    "hijack must be enabled for fancy mode"
+                )
 
             enter_server()
 
@@ -701,7 +704,7 @@ def get_app(*, address: int | None = None) -> App:
     addr = address or env
 
     if (not addr) and (not env):
-        raise ValueError("no view app registered")
+        raise BadEnvironmentError("no view app registered")
 
     app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
     ctypes.pythonapi.Py_IncRef(app)

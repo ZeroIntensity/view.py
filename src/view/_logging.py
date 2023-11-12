@@ -10,7 +10,7 @@ import time
 import warnings
 from abc import ABC
 from threading import Event, Thread
-from typing import IO, Any, Callable, Iterable, NamedTuple, TextIO
+from typing import IO, Callable, Iterable, NamedTuple, TextIO
 
 import plotext as plt
 import psutil
@@ -28,6 +28,8 @@ from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
 from typing_extensions import Literal
+
+from .exceptions import ViewInternalError
 
 UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
 
@@ -318,7 +320,7 @@ def _status_color(status: int) -> str:
     if status >= 100:
         return "blue"
 
-    raise ValueError(f"got bad status: {status}")
+    raise ViewInternalError(f"got bad status: {status}")
 
 
 _METHOD_COLORS: dict[str, str] = {
@@ -814,7 +816,7 @@ def _heat_color(amount: float) -> str:
     if amount == 100:
         return "dim red"
 
-    raise ValueError("invalid percentage")
+    raise ViewInternalError("invalid percentage")
 
 
 class HeatedProgress(Progress):

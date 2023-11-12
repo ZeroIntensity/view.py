@@ -8,6 +8,8 @@ from typing import Any, Dict, Literal, Union
 
 from configzen import ConfigField, ConfigModel
 
+from .exceptions import ViewInternalError
+
 
 class AppConfig(ConfigModel):
     loader: Literal["manual", "simple", "filesystem"] = "manual"
@@ -92,7 +94,7 @@ app = {B_OPEN}
 server = {B_OC}
 log = {B_OC}"""
 
-    raise ValueError("bad file type")
+    raise ViewInternalError("bad file type")
 
 
 def load_config(
