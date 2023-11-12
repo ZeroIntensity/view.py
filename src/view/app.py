@@ -24,6 +24,7 @@ from urllib.parse import urlencode
 import ujson
 from rich import print
 from rich.traceback import install
+from typing_extensions import Unpack
 
 from _view import ViewApp
 
@@ -34,13 +35,15 @@ from ._logging import (Internal, Service, UvicornHijack, enter_server,
 from ._parsers import supply_parsers
 from ._util import attempt_import, make_hint
 from .config import Config, load_config
-from .exceptions import MissingLibraryError, ViewError
+from .exceptions import (BadEnvironmentError, ConfigurationError,
+                         MissingLibraryError, ViewError, ViewInternalError)
+from .logging import _LogArgs, log
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .typing import Callback, DocsType
-from .util import debug as enable_debug
+from .util import enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
 
@@ -127,7 +130,7 @@ class TestingContext:
             elif obj["type"] == "http.response.body":
                 await body_q.put(obj["body"].decode())
             else:
-                raise TypeError(f"bad type: {obj['type']}")
+                raise ViewInternalError(f"bad type: {obj['type']}")
 
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
@@ -346,6 +349,43 @@ class App(ViewApp):
         """Set a OPTIONS route."""
         return self._method_wrapper(path, doc, options)
 
+    def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
+        if key not in kwargs:
+            kwargs[key] = getattr(self.config.log.user, key)
+
+    def _splat_log_args(self, kwargs: _LogArgs) -> _LogArgs:
+        self._set_log_arg(kwargs, "log_file")
+        self._set_log_arg(kwargs, "show_time")
+        self._set_log_arg(kwargs, "show_caller")
+        self._set_log_arg(kwargs, "show_color")
+        self._set_log_arg(kwargs, "show_urgency")
+        self._set_log_arg(kwargs, "file_write")
+        self._set_log_arg(kwargs, "strftime")
+
+        if "caller_frame" not in kwargs:
+            frame = inspect.currentframe()
+            assert frame, "failed to get frame"
+            back = frame.f_back
+            assert back, "frame has no f_back"
+            kwargs["caller_frame"] = back
+
+        return kwargs
+
+    def debug(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="debug", **self._splat_log_args(kwargs))
+
+    def info(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="info", **self._splat_log_args(kwargs))
+
+    def warning(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="warning", **self._splat_log_args(kwargs))
+
+    def error(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="error", **self._splat_log_args(kwargs))
+
+    def critical(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
+        log(*messages, urgency="critical", **self._splat_log_args(kwargs))
+
     def query(
         self,
         name: str,
@@ -455,7 +495,9 @@ class App(ViewApp):
 
         if self.config.log.fancy:
             if not self.config.log.hijack:
-                raise ValueError("hijack must be enabled for fancy mode")
+                raise ConfigurationError(
+                    "hijack must be enabled for fancy mode"
+                )
 
             enter_server()
 
@@ -701,7 +743,7 @@ def get_app(*, address: int | None = None) -> App:
     addr = address or env
 
     if (not addr) and (not env):
-        raise ValueError("no view app registered")
+        raise BadEnvironmentError("no view app registered")
 
     app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
     ctypes.pythonapi.Py_IncRef(app)

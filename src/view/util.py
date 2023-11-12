@@ -11,12 +11,12 @@ from typing import TYPE_CHECKING, Union, overload
 
 from ._logging import Internal, Service
 from ._util import shell_hint
-from .exceptions import AppNotFoundError, EnvironmentError, MistakeError
+from .exceptions import AppNotFoundError, BadEnvironmentError, MistakeError
 
 if TYPE_CHECKING:
     from .app import App
 
-__all__ = ("run", "env", "debug", "timestamp")
+__all__ = ("run", "env", "enable_debug", "timestamp")
 
 
 def run(app_or_path: str | App) -> None:
@@ -60,7 +60,7 @@ def run(app_or_path: str | App) -> None:
     target._run()
 
 
-def debug():
+def enable_debug():
     """Enable debug mode."""
     internal = Internal.log
     internal.disabled = False
@@ -109,7 +109,7 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
     value = os.environ.get(key)
 
     if not value:
-        raise EnvironmentError(
+        raise BadEnvironmentError(
             f'environment variable "{key}" not set',
             hint=shell_hint(
                 f"set {key}=..." if os.name == "nt" else f"export {key}=..."

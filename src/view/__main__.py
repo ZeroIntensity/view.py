@@ -80,7 +80,7 @@ def should_continue(msg: str):
 @click.pass_context
 def main(ctx: click.Context, debug: bool) -> None:
     if debug:
-        from .util import debug as enable_debug
+        from .util import enable_debug
 
         enable_debug()
     elif not ctx.invoked_subcommand:
@@ -315,7 +315,9 @@ app.run()
     index = routes / "index.py"
 
     if index.exists():
-        should_continue(f"`{index.relative_to('.')}` already exists, overwrite?")
+        should_continue(
+            f"`{index.relative_to('.')}` already exists, overwrite?"
+        )
     pathstr = "" if load == "filesystem" else "'/'"
     with open(index, "w") as f:
         f.write(
