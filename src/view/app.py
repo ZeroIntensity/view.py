@@ -54,7 +54,9 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = "routes argument should only be passed when load strat"
+_ROUTES_WARN_MSG = (
+    "routes argument should only be passed when load strategy is manual"
+)
 
 B = TypeVar("B", bound=BaseException)
 
