@@ -60,3 +60,49 @@ View comes with something called "fancy mode", which is a fancy UI that shows wh
 - Pass `fancy=False` to `run()`.
 
 You should disable it in the configuration if you completely despise fancy mode and don't want to use it at all, but if you only want to temporarily turn it off (for example, if you're a view.py developer and need to see proper output) then pass `fancy=False`.
+
+## Getting the App
+
+### Circular Imports
+
+If you've worked with big Python projects before, there's a good chance you've run into a circular import error. A circular import error occurs when two modules try to import each other. A view.py example of this problem would most likely be the main app file trying to import a route, but then that route tries to import the app.
+
+!!! note
+
+    The below example uses routing, which if you're reading this for the first time you don't know how to use yet. Focus on the use of the `app` variable and not the routing itself.
+
+```py
+# app.py
+from view import new_app
+from routes import my_route
+
+app = new_app()
+app.load([my_route])
+app.run()
+```
+
+```py
+# routes.py
+from view import get
+from app import app
+
+@app.get("/something")
+def something():
+    return "something"
+
+@get("/")
+def index():
+    return "Hello, view.py"
+```
+
+View gives you a solution to this problem: `get_app`. `get_app` uses some magic internally to get you your `App` instance right then and there, no import required. It works similar to how you would use `new_app`:
+
+```py
+from view import get_app
+
+app = get_app()
+
+@app.get("/")
+def index():
+    return "..."
+```
