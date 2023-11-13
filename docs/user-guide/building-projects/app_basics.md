@@ -106,3 +106,11 @@ app = get_app()
 def index():
     return "..."
 ```
+
+## Review
+
+Every view.py project should contain a call to `new_app`. `new_app` does important things like loading your configuration, set's up finalization code, and lets the `App` instance be used by `get_app`.
+
+Running an app can be done through two ways: programmatically via `App.run` or through `view serve` command. However, every view.py app should contain an `App.run` to give the choice for running programmatically. By default, view has a fancy UI when running your app, which may be disabled via editing the config or passing `fancy=False` to `run()`. 
+
+Finally, circular imports occur when two Python modules try to import each other, which can happen a lot in view when getting the app from the app file (especially in manual routing). To fix it, view provides a `get_app` function to get you your `App` instance without an import.
