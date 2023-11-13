@@ -50,7 +50,7 @@ app.run()
 
 Generally, you're going to want one of the configuration files talked about earlier, but if you're against configuration files that's OK, view.py will work just fine without it. If you choose to use something other than manual routing, you want a `routes` directory (unless you changed the `loader_path` setting).
 
-```
+```toml
 # view.toml
 dev = true
 
