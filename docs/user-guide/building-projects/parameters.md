@@ -243,3 +243,11 @@ Objects are simply formatted in JSON as well. If you had an object under the par
     }
 }
 ```
+
+## Review
+
+View treats queries and bodies more or less equivalent, as they are both key value pairs. Strings can be casted to every other type assuming that it is in the proper format, and that's what makes it work.
+
+Any body or query parameter to a route is called a route input. There are standard and direct inputs (`body` and `query`, `App.body` and `App.query`), but they are not same in the way standard and direct routers work (direct inputs only exist to prevent extra imports).
+
+A route input function takes two parameters, the name (which is always a `str`), and the (optional) type(s). All the supported types are JSON types with the exception of some object structures (which are translated to a `dict`/JSON internally). `__view_body__` and `__view_construct__` can be used to implement special types that will be parsed by view.
