@@ -1,4 +1,4 @@
-# Parameters
+# Taking Parameters
 
 ## Query Strings and Bodies
 
