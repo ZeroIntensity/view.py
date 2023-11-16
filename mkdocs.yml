@@ -12,6 +12,9 @@ nav:
           - Project Creation: creating_a_project.md
       - Building Projects:
           - App Basics: app_basics.md
+          - Routing: routing.md
+          - Returning Responses: responses.md
+          - Taking Parameters: parameters.md
 
 theme:
     name: null
