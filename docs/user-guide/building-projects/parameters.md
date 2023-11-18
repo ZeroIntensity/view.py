@@ -4,7 +4,7 @@
 
 If you're familiar with HTTP semantics, then you likely already know about query parameters and body parameters. If you have no idea what that is, that's okay.
 
-In HTTP, the query string is at the end of the URL and is prefixed with a `?`. For example, in a YouTube link (e.g. `youtube.com/watch?v=...`), the query string is `?v=...`. The query string contains key value pairs in the form of strings. In Python, it's similiar to a `dict` that only contains strings.
+In HTTP, the query string is at the end of the URL and is prefixed with a `?`. For example, in a YouTube link (e.g. `youtube.com/watch?v=...`), the query string is `?v=...`. The query string contains key-value pairs in the form of strings. In Python, it's similiar to a `dict` that only contains strings.
 
 Bodies are a little bit more complicated. An HTTP body can be a number of different formats, but in a nutshell they are again, key-value pairs, but they can be a number of types. For now, JSON will be the main focus, which can have `str` keys, and any of the following as a value (in terms of Python types):
 
@@ -45,7 +45,7 @@ async def index(hello: int):
     return "hello"
 ```
 
-The `query()` call can actually come before `get` due to the nature of the routing system. In fact, anything you decorate a route with does not have specific order needed. For example, the following is completely valid:
+The `query()` call can actually come before `get` due to the nature of the routing system. In fact, anything you decorate a route with does not have a specific order needed. For example, the following is completely valid:
 
 ```py
 @app.query("hello", int)  # query comes before get()
@@ -56,7 +56,7 @@ async def index(hello: int):
 
 ## Cast Semantics
 
-In query strings, only a string can be sent, but these strings can represent other data types. This idea is called **casting**, and it's not at all specific to Python. If you're still confused, think of it like calling `int()` on the string `"1"` to convert it into an integer `1`.
+In query strings, only a string can be sent, but these strings can represent other data types. This idea is called **casting**, and it's not at all specific to Python. If you're still confused, think of it as calling `int()` on the string `"1"` to convert it into an integer `1`.
 
 View has this exact same behavior when it comes to route inputs. If you tell your route to take an `int`, view.py will do all the necessary computing internally to make sure that you get an integer in your route. If a proper integer was not sent, then the server will automatically return an error `400` (Bad Request). There are a few things that should be noted for this behavior:
 
