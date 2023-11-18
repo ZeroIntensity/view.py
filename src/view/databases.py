@@ -19,6 +19,7 @@ from .routing import BodyParam
 from .typing import ViewBody
 
 __all__ = ("Model",)
+NoneType = type(None)
 
 
 class _Connection(ABC):
@@ -64,10 +65,10 @@ def _sql_translate(vbody: dict) -> str:
 
         flags = ["NOT NULL"]
         origin = get_origin(v)
-        print(v)
-        if is_union(type(origin)):
-            args = get_args(origin)
-            if (len(args) != 2) and (None not in args):
+
+        if is_union(type(v)):
+            args = get_args(v)
+            if (len(args) != 2) or (NoneType not in args):
                 raise InvalidDatabaseSchemaError(
                     "union types are not allowed in databases, other than None",
                 )
@@ -77,6 +78,12 @@ def _sql_translate(vbody: dict) -> str:
 
         if is_annotated(v):
             print(get_args(v))
+
+        tp = _SQL_TYPES.get(v)
+
+        if tp:
+            items.append(f"{k} {tp}{' '.join(flags)}")
+            continue
 
         raise InvalidDatabaseSchemaError(f"{v} is not a supported type")
 
@@ -154,6 +161,7 @@ class _SQLiteConnection(_Connection):
     async def migrate(self, table: str, vbody: dict):
         assert self.cursor is not None
         sql = _sql_translate(vbody)
+        print(sql)
         await self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({sql})")
 
 
