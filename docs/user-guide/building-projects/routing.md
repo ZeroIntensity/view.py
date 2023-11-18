@@ -2,7 +2,7 @@
 
 ## Loaders
 
-Routing is a big part of any web library, and there are many ways to do it. View does it's best to support as many methods as possible to give you a well rounded approach to routing. In view, your choice of routing is called the loader/loader strategy, and there are three of them:
+Routing is a big part of any web library, and there are many ways to do it. View does it's best to support as many methods as possible to give you a well-rounded approach to routing. In view, your choice of routing is called the loader/loader strategy, and there are three of them:
 
 - `manual`
 - `simple`
@@ -28,7 +28,7 @@ This type of function is called a **direct router**, and is what's recommended f
 
 ### Standard and Direct Routers
 
-Standard routers and direct routers have **the exact same** API (i.e. they are called the same way). The only difference is that direct routers automatically register a route onto the app, while standard does not. Direct routers tend to be used in small projects under manual loading, but standard routers are used in larger applications with one of the other loaders.
+Standard routers and direct routers have **the exact same** API (i.e. they are called the same way). The only difference is that direct routers automatically register a route onto the app, while standard routes do not. Direct routers tend to be used in small projects under manual loading, but standard routers are used in larger applications with one of the other loaders.
 
 Here are all the routers (standard on left, direct on right):
 
@@ -81,7 +81,7 @@ Filesystem routing comes with a few quirks.
 - There should only be one route per file.
 - The upper directory structure is ignored, so `/home/user/app/routes/foo.py`, the assigned route would be `/foo`.
 - If a file is named `index.py`, the route is not named `index`, but instead the parent (e.g. `foo/hello/index.py` would be assigned to `foo/hello`).
-- If a file is prefixed with `_` (e.g. `_hello.py`), then it will be skipped entirerly and not loaded. Files like this should be used for utilities and such.
+- If a file is prefixed with `_` (e.g. `_hello.py`), then it will be skipped entirely and not loaded. Files like this should be used for utilities and such.
 
 Here's an example of this in action:
 
@@ -108,5 +108,5 @@ def index():
 In view, a loader is defined as the method of routing used. There are three loaders in view.py: `manual`, `simple`, and `filesystem`.
 
 - `manual` is good for small projects that are similar to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com).
-- `simple` routing is the recommended loader for full scale view.py applications
-- `filesystem` routing is similiar to how JavaScript frameworks like [NextJS](https://nextjs.org) handle routing.
+- `simple` routing is the recommended loader for full-scale view.py applications
+- `filesystem` routing is similar to how JavaScript frameworks like [NextJS](https://nextjs.org) handle routing.
