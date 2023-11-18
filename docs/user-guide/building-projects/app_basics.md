@@ -27,7 +27,7 @@ Python libraries generally have two ways to run a web server:
 - Running via the command line.
 - Launching from Python itself (e.g. a `server.start(...)` function).
 
-Both have their benefits and downsides, so view.py supports both out of the box. `App` comes with it's `run()` method, and the view CLI has the `view serve` command.
+Both have their benefits and downsides, so view.py supports both out of the box. `App` comes with its `run()` method, and the view CLI has the `view serve` command.
 
 Generally, you're going to want to add an `app.run()` to every view.py project, like so:
 
@@ -38,11 +38,11 @@ app = new_app()
 app.run()
 ```
 
-This way, if you (or someone else) wants to run your code programmatically, they can run it via something like `python3 app.py`. It's also more semantically clear that an app is going to start when you run that file.
+This way, if you (or someone else) want to run your code programmatically, they can run it via something like `python3 app.py`. It's also more semantically clear that an app is going to start when you run that file.
 
 If you prefer the CLI method, you can just run `view serve` and view.py will extract the app from the file itself, ignoring the `run()` call.
 
-Note that this behavior is a double edged sword, so be careful. When calling with `run()`, the Python script will never get past that line because the server will run indefinitely, but when using `view serve` it proceeds past it just fine since all it's doing is extracting the `app`, skipping `run()`. For example, take a look at this code:
+Note that this behavior is a double-edged sword, so be careful. When calling with `run()`, the Python script will never get past that line because the server will run indefinitely, but when using `view serve` it proceeds past it just fine since all it's doing is extracting the `app`, skipping `run()`. For example, take a look at this code:
 
 ```py
 from view import new_app
@@ -109,8 +109,8 @@ def index():
 
 ## Review
 
-Every view.py project should contain a call to `new_app`. `new_app` does important things like loading your configuration, set's up finalization code, and lets the `App` instance be used by `get_app`.
+Every view.py project should contain a call to `new_app`. `new_app` does important things like loading your configuration, set's up finalization code, and letting the `App` instance be used by `get_app`.
 
-Running an app can be done through two ways: programmatically via `App.run` or through `view serve` command. However, every view.py app should contain an `App.run` to give the choice for running programmatically. By default, view has a fancy UI when running your app, which may be disabled via editing the config or passing `fancy=False` to `run()`. 
+Running an app can be done in two ways: programmatically via the `App.run` or through `view serve` command. However, every view.py app should contain an `App.run` to give the choice for running programmatically. By default, view.py has a fancy UI when running your app, which may be disabled via editing the config or passing `fancy=False` to `run()`. 
 
-Finally, circular imports occur when two Python modules try to import each other, which can happen a lot in view when getting the app from the app file (especially in manual routing). To fix it, view provides a `get_app` function to get you your `App` instance without an import.
+Finally, circular imports occur when two Python modules try to import each other, which can happen a lot in view when getting the app from the app file (especially in manual routing). To fix it, View provides a `get_app` function to get you your `App` instance without an import.
