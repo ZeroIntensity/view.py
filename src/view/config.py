@@ -13,7 +13,7 @@ from .logging import FileWriteMethod, Urgency
 
 
 class AppConfig(ConfigModel, env_prefix="view_app_"):
-    loader: Literal["manual", "simple", "filesystem"] = "manual"
+    loader: Literal["manual", "simple", "filesystem", "patterns"] = "manual"
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")

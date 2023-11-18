@@ -533,3 +533,13 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
                 routes.append(route)
 
     finalize(routes, app)
+
+def load_patterns(app: ViewApp, target_path: Path) -> None:
+    Internal.info("loading using patterns strategy")
+    mod = runpy.run_path(str(target_path))
+    patterns = mod.get("PATTERNS") or mod.get("URL_PATTERNS") or mod.get("URLPATTERNS") or mod.get("urlpatterns") or mod.get("patterns")
+
+    if not patterns:
+        raise RuntimeError
+
+    finalize(patterns, app)

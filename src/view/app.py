@@ -30,7 +30,7 @@ from typing_extensions import Unpack
 from _view import ViewApp
 
 from ._docs import markdown_docs
-from ._loader import finalize, load_fs, load_simple
+from ._loader import finalize, load_fs, load_patterns, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server, format_warnings)
 from ._parsers import supply_parsers
@@ -450,14 +450,15 @@ class App(ViewApp):
             Internal.warning("load called twice")
             return
 
+        if routes and (self.config.app.loader != "manual"):
+            warnings.warn(_ROUTES_WARN_MSG)
+
         if self.config.app.loader == "filesystem":
-            if routes:
-                warnings.warn(_ROUTES_WARN_MSG)
             load_fs(self, self.config.app.loader_path)
         elif self.config.app.loader == "simple":
-            if routes:
-                warnings.warn(_ROUTES_WARN_MSG)
             load_simple(self, self.config.app.loader_path)
+        elif self.config.app.loader == "patterns":
+            load_patterns(self, self.config.app.loader_path)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
