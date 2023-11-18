@@ -50,7 +50,7 @@ At the top level, there's one real setting: `dev`.
 
 ## Log Config
 
-- `level`: Log level. May be `debug`, `info`, `warning`, `error`, `critical`, or an `int`. This is based off of Python's built-in [logging module](https://docs.python.org/3/library/logging.html). `info` by default.
+- `level`: Log level. May be `debug`, `info`, `warning`, `error`, `critical`, or an `int`. This is based on Python's built-in [logging module](https://docs.python.org/3/library/logging.html). `info` by default.
 - `hijack`: This is a `bool` value defining whether or not to "hijack" the ASGI backend's logger and convert it to view.py's logging style. `True` by default.
-- `fancy`: Whether to use view's fancy output mode. `True` by default.
+- `fancy`: Whether to use View's fancy output mode. `True` by default.
 - `pretty_tracebacks`: Whether to use [Rich Exceptions](https://rich.readthedocs.io/en/stable/logging.html?highlight=exceptions#handle-exceptions). `True` by default.
