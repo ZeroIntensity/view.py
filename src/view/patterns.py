@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import runpy
 
+from ._util import run_path
 from .exceptions import DuplicateRouteError, InvalidRouteError
 from .routing import (Callable, Method, Route, RouteOrCallable, delete, get,
                       options, patch, post, put)
@@ -37,7 +38,7 @@ def path(
     *inputs: RouteInput,
 ) -> Route:
     if isinstance(path_or_function, str):
-        mod = runpy.run_path(path_or_function)
+        mod = run_path(path_or_function)
         route: Route | ViewRoute | None = None
 
         for v in mod.values():
@@ -65,10 +66,11 @@ def path(
     func = _FUNC_MAPPINGS[method_enum]
 
     if isinstance(route, Route):
-        if route.method == Method.GET:
-            route_obj = func(target)(route)
-        else:
-            route_obj = route
+        if route.method != method_enum:
+            method_enum = route.method
+
+        func = _FUNC_MAPPINGS[method_enum]
+        route_obj = func(target)(route)
     else:
         route_obj = func(target)(route)
 

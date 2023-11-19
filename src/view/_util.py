@@ -4,10 +4,13 @@ import getpass
 import inspect
 import os
 import pathlib
+import runpy
 import socket
+import sys
 import warnings
 import weakref
 from collections.abc import Iterable
+from pathlib import Path
 from types import FrameType as Frame
 from types import FunctionType as Function
 from typing import Any, Union
@@ -16,6 +19,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from typing_extensions import Annotated, TypeGuard
 
+from ._logging import Internal
 from .exceptions import NotLoadedWarning
 
 try:
@@ -32,6 +36,7 @@ __all__ = (
     "shell_hint",
     "make_hint",
     "is_annotated",
+    "run_path",
 )
 
 
@@ -132,3 +137,12 @@ def make_hint(
         line_range=(line - 10, line + 20),
         highlight_lines={(line + 1) if not line < 0 else len(txt) - line},
     )
+
+
+def run_path(path: str | Path) -> dict[str, Any]:
+    sys.path.append(str(Path(path).parent.absolute()))
+    path = str(Path(path).absolute())
+    Internal.info(f"running: {path}")
+    mod = runpy.run_path(path, run_name="__view__")
+    sys.path.pop()
+    return mod
