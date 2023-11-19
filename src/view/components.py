@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Dict, Literal
 
 from typing_extensions import NotRequired, TypedDict, Unpack
 
@@ -32,7 +32,7 @@ class GlobalAttributes(TypedDict):
     cls: NotRequired[str]
     contenteditable: NotRequired[bool]
     contextmenu: NotRequired[str]
-    # data
+    data: NotRequired[Dict[str, Any]]
     dir: NotRequired[DirType]
     draggable: NotRequired[bool]
     enterkeyhint: NotRequired[str]
@@ -58,6 +58,10 @@ def _node(
     for k, v in kwargs.items():
         if isinstance(v, bool):
             attributes[k] = "true" if v else "false"
+
+    for k, v in (kwargs.get("data") or {}).items():
+        attributes[f"data-{k}"] = v
+
     attr_str = ""
 
     for k, v in attributes.items():

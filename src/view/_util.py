@@ -1,30 +1,63 @@
 from __future__ import annotations
 
 import getpass
-import importlib
 import inspect
 import os
 import pathlib
+import runpy
 import socket
+import sys
 import warnings
 import weakref
 from collections.abc import Iterable
+from pathlib import Path
 from types import FrameType as Frame
 from types import FunctionType as Function
-from types import ModuleType as Module
+from typing import Any, Union
 
 from rich.panel import Panel
 from rich.syntax import Syntax
+from typing_extensions import Annotated, TypeGuard
 
 from ._logging import Internal
-from .exceptions import MissingLibraryError, NotLoadedWarning
+from .exceptions import NotLoadedWarning
+
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = None
+
+TypingUnionType = type(Union[str, int])
+
+__all__ = (
+    "is_union",
+    "LoadChecker",
+    "set_load",
+    "shell_hint",
+    "make_hint",
+    "is_annotated",
+    "run_path",
+)
+
+
+def is_union(tp: type[Any]) -> bool:
+    return tp in {UnionType, TypingUnionType}
+
+
+AnnotatedType = type(Annotated[str, ""])
+
+
+def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
+    return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
 
 
 class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
+        if (not self._view_loaded) and (
+            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
+        ):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -41,7 +74,9 @@ def shell_hint(command: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
+        shell_prefix = (
+            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
+        )
     return Panel.fit(f"{shell_prefix} {command}", title="Terminal")
 
 
@@ -104,12 +139,10 @@ def make_hint(
     )
 
 
-def attempt_import(name: str, *, repr_name: str | None = None) -> Module:
-    Internal.info(f"attempting import: {name}")
-    try:
-        return importlib.import_module(name)
-    except ImportError as e:
-        raise MissingLibraryError(
-            f"{repr_name or name} is not installed!",
-            hint=shell_hint(f"pip install [bold]{name}[/]"),
-        ) from e
+def run_path(path: str | Path) -> dict[str, Any]:
+    sys.path.append(str(Path(path).parent.absolute()))
+    path = str(Path(path).absolute())
+    Internal.info(f"running: {path}")
+    mod = runpy.run_path(path, run_name="__view__")
+    sys.path.pop()
+    return mod

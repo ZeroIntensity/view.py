@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import os
-import runpy
+import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-
-try:
-    from types import UnionType
-except ImportError:
-    UnionType = None
 from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
-                    Union, get_args, get_type_hints)
+                    get_args, get_type_hints)
+
+from ._util import run_path
 
 try:
     from pydantic.fields import ModelField
@@ -29,7 +26,7 @@ else:
 import inspect
 
 from ._logging import Internal
-from ._util import set_load
+from ._util import is_annotated, is_union, set_load
 from .exceptions import (DuplicateRouteError, InvalidBodyError,
                          InvalidRouteError, LoaderWarning)
 from .routing import BodyParam, Method, Route, RouteInput, _NoDefault
@@ -42,7 +39,7 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
-from typing_extensions import Annotated, TypeGuard, get_origin
+from typing_extensions import get_origin
 
 _NOT_REQUIRED_TYPES = []
 
@@ -61,7 +58,6 @@ else:
 
 __all__ = "load_fs", "load_simple", "finalize"
 
-TypingUnionType = type(Union[str, int])
 
 TYPECODE_ANY = 0
 TYPECODE_STR = 1
@@ -153,13 +149,6 @@ def _format_body(
         (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
         for k, v in vbody_final.items()
     ]
-
-
-AnnotatedType = type(Annotated[str, ""])
-
-
-def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
-    return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
 
 
 @dataclass
@@ -329,9 +318,7 @@ def _build_type_codes(
             continue
 
         origin = get_origin(tp)
-        if (type(tp) in {UnionType, TypingUnionType}) and (
-            origin not in {dict, list}
-        ):
+        if is_union(type(tp)) and (origin not in {dict, list}):
             new_codes = _build_type_codes(get_args(tp))
             codes.extend(new_codes)
             continue
@@ -388,7 +375,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
     targets = {
         Method.GET: app._get,
-        Method.PATCH: app._post,
+        Method.POST: app._post,
         Method.PUT: app._put,
         Method.PATCH: app._patch,
         Method.DELETE: app._delete,
@@ -400,7 +387,7 @@ def finalize(routes: list[Route], app: ViewApp):
         target = targets[route.method]
 
         if (not route.path) and (not route.parts):
-            raise InvalidRouteError("route did not specify a path")
+            raise InvalidRouteError(f"{route} did not specify a path")
         lst = virtual_routes.get(route.path or "")
 
         if lst:
@@ -461,14 +448,17 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
 
     routes: list[Route] = []
 
+    if not target_dir.exists():
+        raise FileNotFoundError(f"{target_dir.absolute()} does not exist")
+
+    sys.path.append(str(target_dir.absolute()))
     for root, _, files in os.walk(target_dir):
         for f in files:
             if f.startswith("_"):
                 continue
 
             path = os.path.join(root, f)
-            Internal.info(f"loading: {path}")
-            mod = runpy.run_path(path)
+            mod = run_path(path)
             current_routes: list[Route] = []
 
             for i in mod.values():
@@ -524,14 +514,18 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
     Internal.info("loading using simple strategy")
     routes: list[Route] = []
 
+    if not target_dir.exists():
+        raise FileNotFoundError(f"{target_dir.absolute()} does not exist")
+
+    sys.path.append(str(target_dir.absolute()))
+
     for root, _, files in os.walk(target_dir):
         for f in files:
             if f.startswith("_"):
                 continue
 
             path = os.path.join(root, f)
-            Internal.info(f"loading: {path}")
-            mod = runpy.run_path(path)
+            mod = run_path(path)
             mini_routes: list[Route] = []
 
             for i in mod.values():
@@ -548,3 +542,22 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
                 routes.append(route)
 
     finalize(routes, app)
+
+
+def load_patterns(app: ViewApp, target_path: Path) -> None:
+    Internal.info("loading using patterns strategy")
+    mod = run_path(str(target_path))
+    patterns = (
+        mod.get("PATTERNS")
+        or mod.get("URL_PATTERNS")
+        or mod.get("URLPATTERNS")
+        or mod.get("urlpatterns")
+        or mod.get("patterns")
+    )
+
+    if not patterns:
+        raise InvalidRouteError(
+            f"{target_path} did not define a PATTERNS, URL_PATTERNS, URLPATTERNS, urlpatterns, or patterns variable"
+        )
+
+    finalize(patterns, app)

@@ -3,10 +3,11 @@ import shutil
 import sysconfig
 from contextlib import suppress
 from glob import glob
+from pathlib import Path
+
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.plugin import hookimpl
 from setuptools._distutils.ccompiler import new_compiler
-from pathlib import Path
 
 
 class CustomBuildHook(BuildHookInterface):

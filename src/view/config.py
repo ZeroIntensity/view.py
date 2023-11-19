@@ -6,17 +6,34 @@ from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Dict, Literal, Union
 
-from configzen import ConfigField, ConfigModel
+from configzen import ConfigField, ConfigModel, field_validator
 
 from .exceptions import ViewInternalError
 from .logging import FileWriteMethod, Urgency
 
 
 class AppConfig(ConfigModel, env_prefix="view_app_"):
-    loader: Literal["manual", "simple", "filesystem"] = "manual"
+    loader: Literal["manual", "simple", "filesystem", "patterns"] = "manual"
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
+
+    @field_validator("loader")
+    @classmethod
+    def validate_loader(cls, loader: str):
+        return loader
+
+    @field_validator("loader_path")
+    @classmethod
+    def validate_loader_path(cls, loader_path: Path, values: dict):
+        loader = values["loader"]
+        if loader == "manual":
+            return loader_path
+
+        if (loader == "patterns") and (loader_path == Path("./routes")):
+            return Path("./urls.py").resolve()
+
+        return loader_path.resolve()
 
 
 class ServerConfig(ConfigModel, env_prefix="view_server_"):
@@ -45,6 +62,41 @@ class LogConfig(ConfigModel, env_prefix="view_log_"):
     fancy: bool = True
     pretty_tracebacks: bool = True
     user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
+
+
+class MongoConfig(ConfigModel):
+    host: IPv4Address
+    port: int
+    username: str
+    password: str
+    database: str
+
+
+class PostgresConfig(ConfigModel):
+    database: str
+    user: str
+    password: str
+    host: IPv4Address
+    port: int
+
+
+class SQLiteConfig(ConfigModel):
+    file: Path
+
+
+class MySQLConfig(ConfigModel):
+    host: IPv4Address
+    user: str
+    password: str
+    database: str
+
+
+class DatabaseConfig(ConfigModel):
+    type: Literal["sqlite", "mysql", "postgres", "mongo"] = "sqlite"
+    mongo: Union[MongoConfig, None] = None
+    postgres: Union[PostgresConfig, None] = None
+    sqlite: Union[SQLiteConfig, None] = SQLiteConfig(file="view.db")
+    mysql: Union[MySQLConfig, None] = None
 
 
 class Config(ConfigModel):

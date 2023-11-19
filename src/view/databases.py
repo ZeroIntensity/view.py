@@ -1,196 +1,330 @@
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
-from typing import (Any, Callable, ClassVar, Dict, Generic, TypeVar, cast,
-                    overload)
+from datetime import datetime
+from enum import Enum
+from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
+                    get_type_hints)
 
-from typing_extensions import ParamSpec, dataclass_transform
+import aiosqlite
+import mysql.connector
+import psycopg2
+import pymongo
+from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
-from ._util import attempt_import, get_body, make_hint
-from .exceptions import MistakeError
+from ._util import is_annotated, is_union
+from .exceptions import InvalidDatabaseSchemaError
+from .routing import BodyParam
+from .typing import ViewBody
 
-P = ParamSpec("P")
-A = TypeVar("A")
-
-
-class ViewModel:
-    _conn: ClassVar[_Connection | None]
-
-
-T = TypeVar("T", bound=ViewModel)
-
-Where = Dict[str, Any]
-Value = Dict[str, Any]
-
-
-class Model(Generic[P, T]):
-    def __init__(
-        self,
-        ob: Callable[P, T],
-        table: str,
-        *,
-        conn: _Connection | None = None,
-    ) -> None:
-        self.obj = ob
-        self._conn: _Connection | None = conn
-        self.table = table
-
-    def __init_subclass__(cls) -> None:
-        raise MistakeError(
-            "Model cannot be subclassed, did you mean ViewModel?",
-            hint=make_hint("This should be ViewModel, not Model"),
-        )
-
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
-        return self.obj(*args, **kwargs)  # type: ignore
-
-    async def find(
-        self,
-        limit: int = -1,
-        offset: int | None = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> list[T]:
-        ...
-
-
-class _Driver(ABC):
-    @classmethod
-    @abstractmethod
-    def ensure(cls) -> None:
-        ...
-
-    @abstractmethod
-    async def find(
-        self, where: Where, limit: int = -1, offset: int = 0
-    ) -> list[dict[str, Any]]:
-        ...
-
-    @abstractmethod
-    async def create(self, where: Where, values: Value) -> None:
-        ...
-
-    @abstractmethod
-    async def update(self, where: Where, values: Value) -> None:
-        ...
-
-    @abstractmethod
-    async def delete(self, where: Where) -> None:
-        ...
-
-
-class MongoDriver(_Driver):
-    pymongo: ClassVar[Any]
-
-    @classmethod
-    def ensure(cls):
-        cls.pymongo = attempt_import("pymongo")
-
-    async def create(self, where: Where, values: Value) -> None:
-        ...
+__all__ = ("Model",)
+NoneType = type(None)
 
 
 class _Connection(ABC):
     @abstractmethod
-    def connect(self) -> None:
+    async def connect(self) -> None:
         ...
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
+        ...
+
+    @abstractmethod
+    async def insert(self, table: str, json: dict) -> None:
+        ...
+
+    @abstractmethod
+    async def find(self, table: str, json: dict) -> None:
+        ...
+
+    @abstractmethod
+    async def migrate(self, table: str, vbody: dict) -> None:
         ...
 
 
-def _init(self: Any, *args: Any, **kwargs: Any):
-    ...
+_SQL_TYPES: dict[type, str] = {
+    str: "TEXT",
+    float: "FLOAT",
+    int: "INT",
+    bytes: "BLOB",
+    datetime: "DATETIME",
+}
 
 
-class _TableNameTransport(Generic[P, T]):
-    def __init__(self, name: str, ob: Model[P, T] | Callable[P, T]):
-        self.name = name
-        self.ob = ob
+def _sql_translate(vbody: dict) -> str:
+    items: list[str] = []
+
+    for k, v in vbody.items():
+        tp = _SQL_TYPES.get(v)
+
+        if tp:
+            items.append(f"{k} {tp} NOT NULL")
+            continue
+
+        flags = ["NOT NULL"]
+        origin = get_origin(v)
+
+        if is_union(type(v)):
+            args = get_args(v)
+            if (len(args) != 2) or (NoneType not in args):
+                raise InvalidDatabaseSchemaError(
+                    "union types are not allowed in databases, other than None",
+                )
+
+            flags.pop(0)
+            v = args[0] if args[0] is not None else args[1]
+
+        if is_annotated(v):
+            print(get_args(v))
+
+        tp = _SQL_TYPES.get(v)
+
+        if tp:
+            items.append(f"{k} {tp}{' '.join(flags)}")
+            continue
+
+        raise InvalidDatabaseSchemaError(f"{v} is not a supported type")
+
+    return ", ".join(items)
 
 
-def table(
-    name: str,
-):
-    @overload
-    def wrapper(ob: Model[P, T]) -> Model[P, T]:
+class _PostgresConnection(_Connection):
+    def __init__(
+        self,
+        database: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+        host: str | None = None,
+        port: int | None = None,
+    ) -> None:
+        self.database = database
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+        self.connection = None
+        self.cursor = None
+
+    def create_database_connection(self):
+        return psycopg2.connect(
+            database=self.database,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+        )
+
+    async def connect(self) -> None:
+        try:
+            self.connection = await asyncio.to_thread(
+                self.create_database_connection
+            )
+            self.cursor = await asyncio.to_thread(self.connection.cursor)  # type: ignore
+        except psycopg2.Error as e:
+            raise ValueError(
+                "Unable to connect to the database - invalid credentials"
+            ) from e
+
+    async def close(self) -> None:
+        if self.connection is not None:
+            await asyncio.to_thread(self.connection.close)
+            self.connection = None
+            self.cursor = None
+
+
+class _SQLiteConnection(_Connection):
+    def __init__(self, database_file: str) -> None:
+        self.database_file = database_file
+        self.connection: aiosqlite.Connection | None = None
+        self.cursor: aiosqlite.Cursor | None = None
+
+    async def connect(self) -> None:
+        self.connection = await aiosqlite.connect(self.database_file)
+        self.cursor = await self.connection.cursor()
+
+    async def close(self) -> None:
+        if self.connection is not None:
+            assert self.cursor is not None
+            await self.cursor.close()
+            await self.connection.close()
+            self.connection = None
+            self.cursor = None
+
+    async def insert(self, table: str, json: dict) -> None:
         ...
 
-    @overload
-    def wrapper(ob: Callable[P, T]) -> _TableNameTransport[P, T]:
+    async def find(self, table: str, json: dict) -> None:
         ...
 
-    def wrapper(
-        ob: Model[P, T] | Callable[P, T]
-    ) -> Model[P, T] | _TableNameTransport[P, T]:
-        if isinstance(ob, Model):
-            ob.table = name
-            return ob
-        return _TableNameTransport(name, ob)
+    async def migrate(self, table: str, vbody: dict):
+        assert self.cursor is not None
+        sql = _sql_translate(vbody)
+        print(sql)
+        await self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({sql})")
 
-    return wrapper
+
+class _MySQLConnection:
+    def __init__(
+        self,
+        host: str,
+        user: str,
+        password: str,
+        database: str,
+    ) -> None:
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+        self.connection = None
+        self.cursor = None
+
+    async def connect(self) -> None:
+        try:
+            self.connection = await asyncio.to_thread(
+                mysql.connector.connect,
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database,
+            )
+
+            self.cursor = await asyncio.to_thread(self.connection.cursor)
+        except mysql.connector.Error as e:
+            raise ValueError(
+                "Unable to connect to the database - invalid credentials"
+            ) from e
+
+    async def close(self):
+        if self.connection is not None:
+            assert self.cursor is not None
+            await asyncio.to_thread(self.cursor.close)
+            await asyncio.to_thread(self.connection.close)
+            self.connection = None
+            self.cursor = None
+
+
+class _MongoDBConnection:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        username: str,
+        password: str,
+        database: str,
+    ):
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.database = database
+        self.client = None
+        self.db = None
+
+    async def connect(self):
+        self.client = await asyncio.to_thread(
+            pymongo.MongoClient,
+            host=self.host,
+            port=self.port,
+            username=self.username,
+            password=self.password,
+            authSource=self.database,
+        )
+        self.db = self.client[self.database]
+
+    async def close(self):
+        if self.client is not None:
+            await asyncio.to_thread(self.client.close)
+            self.client = None
+            self.db = None
+
+
+class _Meta(Enum):
+    HASH = 0
+    ID = 1
+    EXCLUDE = 2
+
+
+class _ModelMeta:
+    def __init__(self, tp: _Meta):
+        self.tp = tp
+
+
+T = TypeVar("T")
+Hashed = Annotated[T, _ModelMeta(_Meta.HASH)]
+Id = Annotated[T, _ModelMeta(_Meta.ID)]
+Exclude = Annotated[T, _ModelMeta(_Meta.EXCLUDE)]
 
 
 @dataclass_transform()
-def _transform(cls: type[A]) -> type[A]:
-    cls.__init__ = _init
-    return cls
+class Model:
+    view_initialized: ClassVar[bool] = False
+    conn: ClassVar[Union[_Connection, None]] = None
+    exclude: ClassVar[Set[str]]
+    __view_body__: ClassVar[ViewBody] = {}
+    __view_table__: ClassVar[str]
 
+    def __init__(self, *args: Any, **kwargs: Any):
+        for index, k in enumerate(self.__view_body__):
+            if index >= len(args):
+                setattr(self, k, kwargs[k])
+            else:
+                setattr(self, k, args[index])
 
-@overload
-def model(
-    ob_or_none: Callable[P, T] | _TableNameTransport,
-    *,
-    conn: _Connection | None = None,
-    table_name: str = "view",
-) -> Model[P, T]:
-    ...
+    def __init_subclass__(cls, **kwargs: Any):
+        cls.__view_table__ = kwargs.get("table") or (
+            "vpy_" + cls.__name__.lower()
+        )
+        model_hints = get_type_hints(Model)
+        actual_hints = get_type_hints(cls)
+        params = {
+            k: actual_hints[k]
+            for k in (model_hints.keys() ^ actual_hints.keys())
+        }
 
+        for k, v in params.items():
+            df = cls.__dict__.get(k)
+            if df:
+                cls.__view_body__[k] = BodyParam(types=v, default=df)
+            else:
+                cls.__view_body__[k] = v
 
-@overload
-def model(
-    ob_or_none: None = ...,
-    *,
-    conn: _Connection | None = None,
-    table_name: str = "view",
-) -> Callable[[Callable[P, T]], Model[P, T]]:
-    ...
+    def __repr__(self) -> str:
+        body = [f"{k}={repr(getattr(self, k))}" for k in self.__view_body__]
+        return f"{type(self).__name__}({', '.join(body)})"
 
+    __str__ = __repr__
 
-def model(
-    ob_or_none: Callable[P, T] | None | _TableNameTransport = None,
-    *,
-    conn: _Connection | None = None,
-    table_name: str = "view",
-) -> Model[P, T] | Callable[[Callable[P, T]], Model[P, T]]:
-    def impl(raw_ob: Callable[P, T] | _TableNameTransport) -> Model[P, T]:
-        if isinstance(raw_ob, _TableNameTransport):
-            name = raw_ob.name
-            ob = raw_ob.ob
-        else:
-            name = table_name
-            ob = raw_ob
+    @classmethod
+    def find(cls) -> list[Self]:
+        ...
 
-        if not issubclass(cast(type, ob), ViewModel):
-            if isinstance(ob, type):
-                msg = f"{ob.__name__} does not inherit from ViewModel, did you forget?"  # noqa
+    @classmethod
+    def unique(cls) -> Self:
+        ...
 
-            msg = f"{ob!r} does not inherit from ViewModel, did you forget?"
+    def exists(self) -> bool:
+        ...
 
-            raise MistakeError(
-                msg, hint=make_hint("This should inherit from ViewModel")
-            )
+    def save(self) -> None:
+        conn = self._assert_conn()
 
-        body = get_body(ob)  # type: ignore
-        ob = _transform(ob)  # type: ignore
+        conn.insert(self.__view_table__, self._json())
 
-        for k, v in body.items():
-            ...
+    def _json(self) -> dict[str, Any]:
+        ...
 
-        return Model(ob, name, conn=conn)
+    def json(self) -> dict[str, Any]:
+        ...
 
-    if ob_or_none:
-        return impl(ob_or_none)
+    @classmethod
+    def from_json(cls, json: dict[str, Any]) -> Self:
+        ...
 
-    return impl
+    @classmethod
+    def _assert_conn(cls) -> _Connection:
+        if not cls.conn:
+            raise Exception
+
+        return cls.conn
