@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `get_app`
 - Added documentation generation
-- Added database support
+- Added database support (NOT FINISHED)
 - Removed `attempt_import` and `MissingLibraryError`
 - Added support for lists in type validation
 - Added support for implicit query parameters
