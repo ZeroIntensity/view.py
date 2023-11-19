@@ -54,6 +54,24 @@ async def index(hello: int):
     ...
 ```
 
+### Automatically
+
+If you've used a library like [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with the concept of automatic inputs. Automatic inputs in terms of view.py are when you define route inputs without using a `query` or `body` decorator, and instead, just get input definitions through the function signature. This is the most basic example:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+async def index(hello: str):  # no @query needed
+    return f"{hello}, world"
+
+app.run()
+```
+
+Note that automatic inputs create inputs for **query parameters only**.
+
 ## Cast Semantics
 
 In query strings, only a string can be sent, but these strings can represent other data types. This idea is called **casting**, and it's not at all specific to Python. If you're still confused, think of it as calling `int()` on the string `"1"` to convert it into an integer `1`.
