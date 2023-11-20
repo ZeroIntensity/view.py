@@ -6,15 +6,16 @@ repo_name: ZeroIntensity/view.py
 nav:
     - Home: index.md
     - User Guide:
+      - user-guide/index.md
       - Getting Started:
-          - Installation: installation.md
-          - Configuration: configuration.md
-          - Project Creation: creating_a_project.md
+          - Installation: user-guide/getting-started/installation.md
+          - Configuration: user-guide/getting-started/configuration.md
+          - Project Creation: user-guide/getting-started/creating_a_project.md
       - Building Projects:
-          - App Basics: app_basics.md
-          - Routing: routing.md
-          - Returning Responses: responses.md
-          - Taking Parameters: parameters.md
+          - App Basics: user-guide/building-projects/app_basics.md
+          - Routing: user-guide/building-projects/routing.md
+          - Returning Responses: user-guide/building-projects/responses.md
+          - Taking Parameters: user-guide/building-projects/parameters.md
 
 theme:
     name: null
