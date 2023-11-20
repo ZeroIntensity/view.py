@@ -78,6 +78,7 @@ def bar():
 If you're familiar with JavaScript frameworks like [NextJS](https://nextjs.org), you're likely already familiar with filesystem routing. If that's the case, this may be the proper loader for you. The filesystem loader works by recursively searching your `loader_path` (again, `routes/` by default) and assigning each found file to a route. You do not have to pass an argument for the path when using filesystem routing.
 
 Filesystem routing comes with a few quirks.
+
 - There should only be one route per file.
 - The upper directory structure is ignored, so `/home/user/app/routes/foo.py`, the assigned route would be `/foo`.
 - If a file is named `index.py`, the route is not named `index`, but instead the parent (e.g. `foo/hello/index.py` would be assigned to `foo/hello`).
