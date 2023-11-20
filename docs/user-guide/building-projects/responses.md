@@ -59,7 +59,7 @@ View comes with two built in response objects: `Response` and `HTML`.
 A common use case for `Response` is wrapping an object that has a `__view_response__` and changing one of the values. For example:
 
 ```py
-from view import new_app
+from view import new_app, Response
 
 app = new_app()
 
