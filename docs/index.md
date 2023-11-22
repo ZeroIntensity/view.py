@@ -2,7 +2,7 @@
 
 # Welcome to view.py's documentation!
 
-## Modern, lightning fast web framework
+## A new web framework for Python
 
 - [Discord](https://discord.gg/tZAfuWAbm2)
 - [Source](https://github.com/ZeroIntensity/view.py)
