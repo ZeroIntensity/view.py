@@ -1,6 +1,6 @@
 <div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=300 height=auto /></div>
 
-## Lightning fast, modern web framework
+## A new web framework
 
 - [Docs](https://view.zintensity.dev)
 - [Source](https://github.com/ZeroIntensity/view.py)
