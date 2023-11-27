@@ -2,29 +2,99 @@
 
 **Thanks for wanting to contribute to view.py!**
 
-If you're like me and that fun feeling of seeing your name on that big contributors bar, or just like having your code run by other people, then this is the place for you.
+view.py is very new and is under heavy development. Whether you're completely new to GitHub contribution or an experienced developer, view.py has something you could help out with. If you want to jump right in, the [issues tab](https://github.com/ZeroIntensity/view.py/labels/beginner) has plenty of good starts.
 
-Joining an open source project is hard, because well, code is messy, but I'm doing my best to try and make this as accessible to other developers as possible.
+If you're stuck, confused, or just don't know what to start with, our [Discord](https://discord.gg/tZAfuWAbm2) is a great resource for questions regarding the internal mechanisms or anything related to view.py development. If you are actively working on an issue, you may ask for the contributor role (assuming it wasn't given to you already).
 
-Be sure to read our contributor documentation for information on how to project works.
+## Getting Started
 
-## Tooling
+Assuming you have Git installed, simply clone the repo and install view.py locally:
 
-[Hatch](https://hatch.pypa.io) is used as a means of project management, [SemVer](https://semver.org) for versioning, [MkDocs](https://mkdocs.org) for documentation, and [Keep a Changelog](https://keepachangelog.com) for the changelog.
+```
+$ git clone https://github.com/ZeroIntensity/view.py
+$ cd view.py
+$ pip install .
+```
 
-## What to work on?
+Congratulations, you have just started your development with view.py!
 
+## Workflow
 
-Jumping right into a giant feature isn't a good idea, especially if you aren't familiar with the codebase. Now, if you have several hours of free time to spare and feel like trying to read the entire codebase, then go for it, but for my more lazy types, the [issues tab](https://github.com/ZeroIntensity/view.py/labels/beginner) has some good starts.
+First, you should create a new branch:
 
-## How to work on it?
+```
+$ git branch my_cool_feature
+$ git checkout my_cool_feature
+```
 
-I get it, creating or assigning an issue is taking on a lot of pressure, especially that internal fear of "What if I can't get it done!"
+All of your code should be contained on this branch.
 
-For now, I don't really care if you create an issue or not, if you would like to just try and do one of these without any notice, go for it. I won't deny a working PR if it didn't have an issue associated with it.
+Generally, a simple `test.py` file that starts a view app will be all you need. For example, if you made a change to the router, a way to test it would be:
 
-Take it easy, coding is a fun activity, don't stress yourself out.
+```py
+from view import new_app
 
-## I want to work on something bigger
+app = new_app()
 
-You can either look on the issues tab or directly message me, I can divide up the work. Any help is good help, really.
+@app.get("/", some_cool_feature_you_made='...')
+async def index():
+    return "Hello from view.py locally!"
+
+app.run()
+```
+
+Note that you do need to `pip install .` to get your changes under the `view` module. However, waiting for pip every time can be a headache. Unless you're modifying the [C API](https://github.com/ZeroIntensity/view.py/tree/master/src/_view), you don't actually need it. Instead, you can test your code via just importing from `src.view`. For example:
+
+```py
+from src.view import new_app
+
+app = new_app()
+
+@app.get("/")
+async def index():
+    return "Hello from view.py locally!"
+
+app.run()
+```
+
+For debugging purposes, you're also going to want to disable `fancy` and `hijack` in the configuration:
+
+```toml
+[log]
+fancy = false
+hijack = false
+```
+
+## Writing Tests
+
+**Note:** You do need to `pip install .` to update the tests, as they import from `view` and not `src.view`.
+
+View uses [ward](https://ward.readthedocs.io/en/latest/) for writing tests. If you have any questions regarding test semantics, it's likely on their docs. The only thing you need to understand for writing tests is how to use the `App.test` API.
+
+`App.test` is a method that lets you start a virtual server for testing responses. It works like so:
+
+```py
+@test("my cool feature")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return "test"
+
+    async with app.test() as test:
+        res = await test.get("/")
+        assert res.test == "test"
+```
+
+In the above code, a server **would not** be started, and instead just virtualized for testing purposes.
+
+## Updating the changelog
+
+View follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), so nothing fancy is needed for updating changelogs. Don't put your code under a version, and instead just keep it under the `Unreleased` section.
+
+## Merging your code
+
+Now that you're done writing your code and want to share it with the world of view.py, you can make a pull request on GitHub. After tests pass, your code will be merged.
+
+**Note:** Your code will not be immediatly available on PyPI, as view.py doesn't create a new release automatically. When the release is ready (which might take time), your code will be available under the [view.py package](https://pypi.org/project/view.py) on PyPI.
