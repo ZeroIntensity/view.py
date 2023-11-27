@@ -84,4 +84,6 @@ async def index():
     return res
 ```
 
-## Compontents
+`cookie` has several possible options:
+
+Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere. 
