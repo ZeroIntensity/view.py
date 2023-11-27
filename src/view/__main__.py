@@ -3,6 +3,8 @@ from __future__ import annotations
 import getpass
 import os
 import re
+import subprocess
+import venv as _venv
 from pathlib import Path
 
 import click
@@ -63,16 +65,6 @@ def warn(msg: str) -> None:
 def error(msg: str) -> None:
     click.secho(msg, fg="red", bold=True)
     exit(1)
-
-
-def should_continue(msg: str):
-    if not click.confirm(
-        click.style(
-            msg,
-            fg="yellow",
-        )
-    ):
-        exit(2)
 
 
 @click.group(invoke_without_command=True)
@@ -196,6 +188,37 @@ def deploy(target: str):
 
 @main.command()
 @click.option(
+    "--name",
+    "-n",
+    help="Project name.",
+    type=str,
+    default="my_app",
+    prompt="Project name",
+)
+@click.option(
+    "--load",
+    "-l",
+    help="Preset for route loading.",
+    default="simple",
+    type=click.Choice(("manual", "filesystem", "simple")),
+    prompt="Loader strategy",
+)
+@click.option(
+    "--repo",
+    "-r",
+    help="Whether a Git repository should be created.",
+    default=True,
+    is_flag=True,
+    prompt="Create repository?",
+)
+@click.option(
+    "--venv",
+    help="Whether a virtual environment should be created.",
+    default=True,
+    is_flag=True,
+    prompt="Create virtual environment?",
+)
+@click.option(
     "--path",
     "-p",
     type=click.Path(
@@ -205,8 +228,7 @@ def deploy(target: str):
         path_type=Path,
         writable=True,
     ),
-    default="./",
-    prompt="Path to initialize to",
+    default=None,
 )
 @click.option(
     "--type",
@@ -216,45 +238,52 @@ def deploy(target: str):
     type=click.Choice(("toml", "json", "ini", "yml", "py")),
 )
 @click.option(
-    "--load",
-    "-l",
-    help="Preset for route loading.",
-    default="filesystem",
-    type=click.Choice(("manual", "filesystem", "simple")),
-    prompt="Loader strategy",
-)
-@click.option(
     "--no-project",
     help="Disable creation of a pyproject.toml file.",
     is_flag=True,
 )
-@click.option(
-    "--name",
-    "-n",
-    help="Project name to be used in configuration.",
-    type=str,
-    default="my_app",
-)
-def init(path: Path, type: str, load: str, no_project: bool, name: str):
+def init(
+    name: str,
+    repo: bool,
+    venv: bool,
+    path: Path | None,
+    type: str,
+    load: str,
+    no_project: bool,
+):
     from .config import make_preset
+
+    path = path or Path(f"./{name}")
 
     fname = f"view.{type}"
     if not path.exists():
+        success(f"Created `{path.relative_to('.')}`")
         path.mkdir()
 
-    conf_path = path / fname
-    if conf_path.exists():
-        should_continue(f"`{conf_path}` already exists, overwrite?")
+    if repo:
+        res = subprocess.call(["git", "init", str(path)])
+        if res != 0:
+            warn("failed to initalize git repository")
 
+    if venv:
+        venv_path = path / ".venv"
+        _venv.create(venv_path, with_pip=True)
+        success(f"Created virtual environment in {venv_path}")
+        click.echo("Installing view.py...")
+        res = subprocess.call(
+            [(venv_path / "bin" / "pip").absolute(), "install", "view.py"]
+        )
+
+        if res != 0:
+            error("failed to install view.py")
+
+    conf_path = path / fname
     with open(conf_path, "w") as f:
         f.write(make_preset(type, load))
 
-    click.echo(f"Created `{fname}`")
+    success(f"Created `{fname}`")
 
     app_path = path / "app.py"
-
-    if app_path.exists():
-        should_continue(f"`{app_path}` already exists, overwrite?")
 
     from .__about__ import __version__
 
@@ -262,8 +291,8 @@ def init(path: Path, type: str, load: str, no_project: bool, name: str):
         if load in {"filesystem", "simple"}:
             f.write(
                 f"# view.py {__version__}"
-                """
-import view
+                """import view
+
 
 app = view.new_app()
 app.run()
@@ -273,63 +302,47 @@ app.run()
         if load == "manual":
             f.write(
                 f"# view.py {__version__}"
-                """
-import view
-from routes.index import index
+                """import view
 
 app = view.new_app()
 
-app.load([index])
+@app.get("/")
+async def index():
+    return "Hello, view.py!"
+
 app.run()
 """
             )
 
-    click.echo("Created `app.py`")
+    success("Created `app.py`")
 
     if not no_project:
         pyproject = path / "pyproject.toml"
 
-        if pyproject.exists():
-            should_continue("`pyproject.toml` already exists, overwrite?")
-        else:
-            with pyproject.open("w", encoding="utf-8") as f:
-                f.write(PYPROJECT_BASE(name))
+        with pyproject.open("w", encoding="utf-8") as f:
+            f.write(PYPROJECT_BASE(name))
 
-            click.echo("Created `pyproject.toml`")
+        success("Created `pyproject.toml`")
 
-    scripts = path / "scripts"
-
-    if scripts.exists():
-        should_continue("`scripts` already exists, overwrite?")
-    else:
-        scripts.mkdir()
-        click.echo("Created `scripts`")
-
-    routes = path / "routes"
-    if routes.exists():
-        should_continue("`routes` already exists, overwrite?")
-    else:
+    if load != "manual":
+        routes = path / "routes"
         routes.mkdir()
-        click.echo("Created `routes`")
+        success("Created `routes`")
 
-    index = routes / "index.py"
+        index = routes / "index.py"
 
-    if index.exists():
-        should_continue(
-            f"`{index.relative_to('.')}` already exists, overwrite?"
-        )
-    pathstr = "" if load == "filesystem" else "'/'"
-    with open(index, "w") as f:
-        f.write(
-            f"""from view.routing import get
+        pathstr = "" if load == "filesystem" else "'/'"
+        with open(index, "w") as f:
+            f.write(
+                f"""from view.routing import get
 
-@get({pathstr})
-async def index():
-    return 'Hello, view.py!'
-"""
-        )
+    @get({pathstr})
+    async def index():
+        return 'Hello, view.py!'
+    """
+            )
 
-        click.echo("Created `routes/index.py`")
+            success("Created `routes/index.py`")
 
     success(f"Successfully initalized app in `{path}`")
     return
