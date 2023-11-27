@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import getpass
 import os
+import random
 import re
 import subprocess
 import venv as _venv
@@ -9,6 +10,7 @@ from pathlib import Path
 
 import click
 
+from ._logging import VIEW_TEXT
 from .exceptions import AppNotFoundError
 
 B_OPEN = "{"
@@ -55,16 +57,32 @@ version = "1.0.0"
 
 
 def success(msg: str) -> None:
-    click.secho(msg, fg="green", bold=True)
+    click.secho(f" - {msg}", fg="green", bold=True)
 
 
 def warn(msg: str) -> None:
-    click.secho(msg, fg="yellow", bold=True)
+    click.secho(f" ! {msg}", fg="yellow", bold=True)
 
 
 def error(msg: str) -> None:
-    click.secho(msg, fg="red", bold=True)
+    click.secho(f" ! {msg}", fg="red", bold=True)
     exit(1)
+
+
+def info(msg: str) -> None:
+    click.secho(f" * {msg}", fg="bright_magenta", bold=True)
+
+
+def welcome() -> None:
+    click.secho(random.choice(VIEW_TEXT) + "\n", fg="blue", bold=True)
+    click.echo("Docs: ", nl=False)
+    click.secho("https://view.zintensity.dev", fg="blue", bold=True)
+    click.echo("GitHub: ", nl=False)
+    click.secho(
+        "https://github.com/ZeroIntensity/view.py",
+        fg="blue",
+        bold=True,
+    )
 
 
 @click.group(invoke_without_command=True)
@@ -76,15 +94,7 @@ def main(ctx: click.Context, debug: bool) -> None:
 
         enable_debug()
     elif not ctx.invoked_subcommand:
-        click.secho("Welcome to view.py!", fg="green", bold=True)
-        click.echo("Docs: ", nl=False)
-        click.secho("https://view.zintensity.dev", fg="blue", bold=True)
-        click.echo("GitHub: ", nl=False)
-        click.secho(
-            "https://github.com/ZeroIntensity/view.py",
-            fg="blue",
-            bold=True,
-        )
+        welcome()
 
 
 @main.group()
@@ -261,15 +271,17 @@ def init(
         path.mkdir()
 
     if repo:
+        info("Initializing repository...")
         res = subprocess.call(["git", "init", str(path)])
         if res != 0:
             warn("failed to initalize git repository")
 
     if venv:
+        info("Creating venv...")
         venv_path = path / ".venv"
         _venv.create(venv_path, with_pip=True)
         success(f"Created virtual environment in {venv_path}")
-        click.echo("Installing view.py...")
+        info("Installing view.py...")
         res = subprocess.call(
             [(venv_path / "bin" / "pip").absolute(), "install", "view.py"]
         )
@@ -292,7 +304,6 @@ def init(
             f.write(
                 f"# view.py {__version__}"
                 """import view
-
 
 app = view.new_app()
 app.run()
@@ -336,6 +347,7 @@ app.run()
             f.write(
                 f"""from view.routing import get
 
+
     @get({pathstr})
     async def index():
         return 'Hello, view.py!'
@@ -344,6 +356,7 @@ app.run()
 
             success("Created `routes/index.py`")
 
+    welcome()
     success(f"Successfully initalized app in `{path}`")
     return
 
