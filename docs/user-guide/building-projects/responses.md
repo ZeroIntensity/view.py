@@ -87,3 +87,13 @@ async def index():
 `cookie` has several possible options:
 
 Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere. 
+
+## Review
+
+Responses can be returned with a string, integer, and/or dictionary in any order.
+
+- The string represents the body of the response (e.g. the HTML or JSON)
+- The integer represents the status code (200 by default)
+- The dictionary represents the headers (e.g. `{"x-www-my-header": "some value"}`)
+
+`Response` objects can also be returned, which implement the `__view_response__` protocol. All response classes inherit from `Response`, which supports operations like setting cookies.
