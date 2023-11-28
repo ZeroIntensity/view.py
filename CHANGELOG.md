@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `EnvironmentError` to `BadEnvironmentError`
 - Added logging functions to `App`
 - Changed environment prefixes for configuration
+- Rewrote documentation
 
 ## [1.0.0-alpha5] - 2023-09-24
 
