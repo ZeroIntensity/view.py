@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added handling of relative paths in the configuration setting `loader_path`
 - Added exists validation to `loader_path`
 - Add path to `PATH` environment variable during loading
+- Upgraded `view init`
 
 ## [1.0.0-alpha5] - 2023-09-24
 
