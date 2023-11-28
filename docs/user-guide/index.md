@@ -2,6 +2,36 @@
 
 In this documentation, you'll learn how to use view.py and it's various features.
 
+## Quickstart
+
+Install view.py:
+
+```
+$ pip install -U view.py
+```
+
+Initialize your project:
+
+```
+$ view init
+```
+
+**Note:** If this yields unexpected results, you may need to use `py -m view init` instead.
+
+Write your first app:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.query("greeting", str, default="hello")
+@app.query("name", str, default="world")
+@app.get("/")
+async def index(greeting: str, name: str):
+    return f"{greeting}, {name}!"
+```
+
 ## Why View?
 
 As of now, view.py is still in alpha. Lot's of development progress is being made, but a production-ready stable release is still a bit far off. With that being said, anything mentioned in this documentation has been deemed already stable. In that case, why choose view.py over other frameworks?
