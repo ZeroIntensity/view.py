@@ -30,6 +30,8 @@ app = new_app()
 @app.get("/")
 async def index(greeting: str, name: str):
     return f"{greeting}, {name}!"
+
+app.run()
 ```
 
 ## Why View?
