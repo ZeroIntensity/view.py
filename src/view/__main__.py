@@ -16,7 +16,7 @@ from .exceptions import AppNotFoundError
 B_OPEN = "{"
 B_CLOSE = "}"
 
-_GIT_EMAIL = re.compile(r' *email = "(.+)"')
+_GIT_EMAIL = re.compile(r'.*email = "(.+)"')
 
 
 def _get_email():
@@ -303,7 +303,7 @@ def init(
         if load in {"filesystem", "simple"}:
             f.write(
                 f"# view.py {__version__}"
-                """import view
+                """\nimport view
 
 app = view.new_app()
 app.run()
@@ -313,7 +313,7 @@ app.run()
         if load == "manual":
             f.write(
                 f"# view.py {__version__}"
-                """import view
+                """\nimport view
 
 app = view.new_app()
 
@@ -348,9 +348,9 @@ app.run()
                 f"""from view.routing import get
 
 
-    @get({pathstr})
-    async def index():
-        return 'Hello, view.py!'
+@get({pathstr})
+async def index():
+    return 'Hello, view.py!'
     """
             )
 
