@@ -1,0 +1,113 @@
+# Routing
+
+## Loaders
+
+Routing is a big part of any web library, and there are many ways to do it. View does it's best to support as many methods as possible to give you a well-rounded approach to routing. In view, your choice of routing is called the loader/loader strategy, and there are three of them:
+
+- `manual`
+- `simple`
+- `filesystem`
+
+## Manually Routing
+
+If you're used to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with manual routing. Manual routing is considered to be letting the user do all of the loading themself, and not do any automatic import or load mechanics. There are two ways to do manual routing, directly calling on your `App` being the most robust. Here's an example:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+def index():
+    return "Hello, view.py!"
+
+app.run()
+```
+
+This type of function is called a **direct router**, and is what's recommended for small view.py projects. However, if you're more accustomed to JavaScript libraries, using the **standard routers** may be a good fit. When using manual routing, a standard router must be registered via a call to `App.load`.
+
+### Standard and Direct Routers
+
+Standard routers and direct routers have **the exact same** API (i.e. they are called the same way). The only difference is that direct routers automatically register a route onto the app, while standard routes do not. Direct routers tend to be used in small projects under manual loading, but standard routers are used in larger applications with one of the other loaders.
+
+Here are all the routers (standard on left, direct on right):
+
+- `view.get` and `App.get`
+- `view.post` and `App.post`
+- `view.put` and `App.put`
+- `view.patch` and `App.patch`
+- `view.delete` and `App.delete`
+- `view.options` and `App.options`
+
+```py
+from view import new_app, get
+
+app = new_app()
+
+@get("/")
+def index():
+    return "Hello, view.py!"
+
+app.load([get])
+app.run()
+```
+
+This method may be a bit more versatile if you plan on writing a larger project using manual routing, as you can import your routes from other files, but if that's the case it's recommended that you use one of the other loaders.
+
+## Simple Routing
+
+Simple routing is similar to manual routing, but you tend to not use direct routers and don't have any call to `load()`. In your routes directory (`routes/` by default, `loader_path` setting), your routes will be held in any number of files. Simple loading is recursive, so you may also use folders. View will automatically extract any route objects created in these files.
+
+```py
+# routes/foo.py
+from view import get
+
+@get("/foo")
+def index():
+    return "foo"
+
+@get("/bar")
+def bar():
+    return "bar"
+```
+
+`/foo` and `/bar` will be loaded properly, no extra call to `App.load` is required. In fact, you don't even have to import these in your app file. **This is the recommended loader for larger view.py projects.**
+
+## Filesystem Routing
+
+If you're familiar with JavaScript frameworks like [NextJS](https://nextjs.org), you're likely already familiar with filesystem routing. If that's the case, this may be the proper loader for you. The filesystem loader works by recursively searching your `loader_path` (again, `routes/` by default) and assigning each found file to a route. You do not have to pass an argument for the path when using filesystem routing.
+
+Filesystem routing comes with a few quirks.
+
+- There should only be one route per file.
+- The upper directory structure is ignored, so `/home/user/app/routes/foo.py`, the assigned route would be `/foo`.
+- If a file is named `index.py`, the route is not named `index`, but instead the parent (e.g. `foo/hello/index.py` would be assigned to `foo/hello`).
+- If a file is prefixed with `_` (e.g. `_hello.py`), then it will be skipped entirely and not loaded. Files like this should be used for utilities and such.
+
+Here's an example of this in action:
+
+```py
+# routes/_util.py
+
+def do_something():
+    ...
+```
+
+```py
+# routes/index.py
+from view import get
+from _util import do_something
+
+@get()
+def index():
+    do_something()
+    return "Hello, view.py!"
+```
+
+## Review
+
+In view, a loader is defined as the method of routing used. There are three loaders in view.py: `manual`, `simple`, and `filesystem`.
+
+- `manual` is good for small projects that are similar to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com).
+- `simple` routing is the recommended loader for full-scale view.py applications
+- `filesystem` routing is similar to how JavaScript frameworks like [NextJS](https://nextjs.org) handle routing.

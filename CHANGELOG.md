@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `EnvironmentError` to `BadEnvironmentError`
 - Added logging functions to `App`
 - Changed environment prefixes for configuration
+- Rewrote documentation
 - Added `patterns` loader
 - Added handling of relative paths in the configuration setting `loader_path`
 - Added exists validation to `loader_path`

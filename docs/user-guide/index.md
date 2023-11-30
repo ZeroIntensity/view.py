@@ -1,79 +1,53 @@
-# User Guide
+# Welcome to view'py documentation!
 
-This is view.py's documentation for new users. For questions, comments, or concerns you can ask in [our discord](https://discord.gg/tZAfuWAbm2) or [make an issue](https://github.com/ZeroIntensity/view.py/issues).
+In this documentation, you'll learn how to use view.py and it's various features.
 
-
-!!! note "Confused about anything?"
-    
-    view.py is always looking for changes to documentation. If you have any suggestions, be sure to make an issue.
-
+- [Source](https://github.com/ZeroIntensity/view.py)
+- [PyPI](https://pypi.org/project/view.py)
+- [Discord](https://discord.gg/tZAfuWAbm2)
 
 ## Quickstart
 
-If you're not looking for an in depth explanation of anything and can figure out how to use it from API examples, here are some examples:
+Install view.py:
 
-### Manual Routing
+```
+$ pip install -U view.py
+```
+
+Initialize your project:
+
+```
+$ view init
+```
+
+**Note:** If this yields unexpected results, you may need to use `py -m view init` instead.
+
+Write your first app:
 
 ```py
 from view import new_app
 
 app = new_app()
 
+@app.query("greeting", str, default="hello")
+@app.query("name", str, default="world")
 @app.get("/")
-async def index():
-    return "Hello, view.py!"
+async def index(greeting: str, name: str):
+    return f"{greeting}, {name}!"
 
 app.run()
 ```
-### Responses
 
-```py
-from view import new_app, Response
+## Why View?
 
-app = new_app()
+As of now, view.py is still in alpha. Lot's of development progress is being made, but a production-ready stable release is still a bit far off. With that being said, anything mentioned in this documentation has been deemed already stable. In that case, why choose view.py over other frameworks?
 
-@app.get("/")
-def index():
-    return "hello", 201
+If you've used a framework like [Django](https://djangoproject.com), you're likely already familiar with the "batteries included" idea, meaning that it comes with everything you could need right out of the box. View takes a different approach: batteries-detachable. It aims to provide you everything you need, but gives you a choice to use it or not, as well as actively supporting external libraries. This ideology is what makes View special. In batteries detachable, you can use whatever you like right out of the box, but if you don't like View's approach to something or like another library instead, you may easily use it.
 
+## Should I use it?
 
-@app.get("/object")
-def response_object():
-    return Response("hello", 201)
-```
+For a big project, **not yet**, as View is not currently ideal for working with a big codebase. However, **that doesn't mean you should forget about it**. view.py will soon be stable and production ready, and you should keep it in mind. To support view.py's development, you can either [sponsor me](https://github.com/sponsors/ZeroIntensity) or [star the project](https://github.com/zerointensity/view.py/stargazers).
 
-### Components
+## Developing View
 
-```py
-from view import new_app, h1, div
-
-app = new_app()
-
-@app.get("/")
-def components():
-    return div(h1("Hello, view.py"), cls="flex items-center justify-center")
-```
-
-### Queries and Bodies
-
-```py
-from view import new_app
-from dataclasses import dataclass
-
-app = new_app()
-
-
-@dataclass
-class Name:
-    first: str
-    last: str
-
-
-@app.query("hello", str)
-@app.query("name", Name, None)
-async def index(hello: str, name: Name | None):
-    real_name = (name.first + name.last) if name else "view.py"
-    return f"{hello}, {real_name}"
-```
-
-
+As stated earlier, view.py is very new and not yet at a stable 1.0.0 release. Whether you're completely new to GitHub contribution or an experienced developer, view.py has something you could help out with. If you're interested in contributing or helping out with anything, be sure to read [the contributors file](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md) and/or joining the [discord](https://discord.gg/tZAfuWAbm2).

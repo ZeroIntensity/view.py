@@ -52,7 +52,7 @@ Funding = "https://github.com/sponsors/ZeroIntensity"
 path = "src/view/__about__.py"
 
 [tool.hatch.envs.docs]
-dependencies = ["mkdocs", "mkdocstrings[python]"]
+dependencies = ["mkdocs", "mkdocstrings[python]", "mkdocs-material"]
 
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build"
