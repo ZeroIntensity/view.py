@@ -22,6 +22,7 @@ from typing import (Any, Callable, Coroutine, Generic, TextIO, TypeVar,
 from urllib.parse import urlencode
 
 import ujson
+import uvicorn
 from rich import print
 from rich.traceback import install
 from typing_extensions import Unpack
@@ -29,14 +30,14 @@ from typing_extensions import Unpack
 from _view import ViewApp
 
 from ._docs import markdown_docs
-from ._loader import finalize, load_fs, load_simple
+from ._loader import finalize, load_fs, load_patterns, load_simple
 from ._logging import (Internal, Service, UvicornHijack, enter_server,
                        exit_server, format_warnings)
 from ._parsers import supply_parsers
-from ._util import attempt_import, make_hint
+from ._util import make_hint
 from .config import Config, load_config
-from .exceptions import (BadEnvironmentError, ConfigurationError,
-                         MissingLibraryError, ViewError, ViewInternalError)
+from .exceptions import (BadEnvironmentError, ConfigurationError, ViewError,
+                         ViewInternalError)
 from .logging import _LogArgs, log
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
@@ -53,7 +54,9 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = "routes argument should only be passed when load strat"
+_ROUTES_WARN_MSG = (
+    "routes argument should only be passed when load strategy is manual"
+)
 
 B = TypeVar("B", bound=BaseException)
 
@@ -447,14 +450,15 @@ class App(ViewApp):
             Internal.warning("load called twice")
             return
 
+        if routes and (self.config.app.loader != "manual"):
+            warnings.warn(_ROUTES_WARN_MSG)
+
         if self.config.app.loader == "filesystem":
-            if routes:
-                warnings.warn(_ROUTES_WARN_MSG)
             load_fs(self, self.config.app.loader_path)
         elif self.config.app.loader == "simple":
-            if routes:
-                warnings.warn(_ROUTES_WARN_MSG)
             load_simple(self, self.config.app.loader_path)
+        elif self.config.app.loader == "patterns":
+            load_patterns(self, self.config.app.loader_path)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
@@ -518,20 +522,18 @@ class App(ViewApp):
         uvloop_enabled = False
 
         if self.config.app.uvloop is True:
-            uvloop = attempt_import("uvloop")
+            uvloop = importlib.import_module("uvloop")
             uvloop.install()
             uvloop_enabled = True
         elif self.config.app.uvloop == "decide":
-            with suppress(MissingLibraryError):
-                uvloop = attempt_import("uvloop")
+            with suppress(ModuleNotFoundError):
+                uvloop = importlib.import_module("uvloop")
                 uvloop.install()
                 uvloop_enabled = True
 
         start = start_target or asyncio.run
 
         if server == "uvicorn":
-            uvicorn = attempt_import("uvicorn")
-
             config = uvicorn.Config(
                 self._app,
                 port=self.config.server.port,
@@ -548,7 +550,7 @@ class App(ViewApp):
             return start(self._spawn(server.serve()))
 
         elif server == "hypercorn":
-            hypercorn = attempt_import("hypercorn")
+            raise NotImplementedError
             conf = hypercorn.Config()
             conf.loglevel = "debug" if self.config.dev else "info"
             conf.bind = [

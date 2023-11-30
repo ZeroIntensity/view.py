@@ -6,12 +6,13 @@ __all__ = (
     "ViewWarning",
     "NotLoadedWarning",
     "ViewError",
-    "MissingLibraryError",
     "BadEnvironmentError",
     "InvalidBodyError",
     "MistakeError",
     "LoaderWarning",
     "AppNotFoundError",
+    "DatabaseError",
+    "InvalidDatabaseSchemaError",
     "DuplicateRouteError",
     "InvalidRouteError",
     "ViewInternalError",
@@ -49,12 +50,6 @@ class ViewError(Exception):
         super().__init__(*args)
 
 
-class MissingLibraryError(ViewError):
-    """A library is not installed."""
-
-    ...
-
-
 class BadEnvironmentError(ViewError):
     """An environment variable is missing."""
 
@@ -79,6 +74,14 @@ class AppNotFoundError(ViewError, FileNotFoundError):
     ...
 
 
+class DatabaseError(ViewError):
+    ...
+
+
+class InvalidDatabaseSchemaError(DatabaseError):
+    ...
+
+
 class DuplicateRouteError(ViewError):
     """Duplicate routes in loader."""
 
@@ -99,5 +102,3 @@ class ViewInternalError(ViewError):
 
 class ConfigurationError(ViewError):
     """Something is wrong with the configuration."""
-
-    ...

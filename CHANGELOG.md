@@ -9,9 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `get_app`
 - Added documentation generation
-- Changed `scripts` to `utils` in `view init`
-- Patched not creating files if they exist in `view init`
-- Updated prompts in `view init`
+- Added database support (NOT FINISHED)
+- Removed `attempt_import` and `MissingLibraryError`
 - Added support for lists in type validation
 - Added support for implicit query parameters
 - Renamed `debug` to `enable_debug`
@@ -21,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added logging functions to `App`
 - Changed environment prefixes for configuration
 - Rewrote documentation
+- Added `patterns` loader
+- Added handling of relative paths in the configuration setting `loader_path`
+- Added exists validation to `loader_path`
+- Add path to `PATH` environment variable during loading
+- Upgraded `view init`
 
 ## [1.0.0-alpha5] - 2023-09-24
 
