@@ -16,6 +16,7 @@ nav:
           - Routing: user-guide/building-projects/routing.md
           - Returning Responses: user-guide/building-projects/responses.md
           - Taking Parameters: user-guide/building-projects/parameters.md
+          - Writing Documentation: user-guide/building-projects/documenting.md
 
 theme:
     name: null
