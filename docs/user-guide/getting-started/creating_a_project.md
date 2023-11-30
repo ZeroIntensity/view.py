@@ -6,15 +6,6 @@ The View CLI supports automatically creating a project via the `view init` comma
 
 ```
 $ view init
-Path to initialize to [./]:
-Loader strategy (manual, filesystem, simple) [filesystem]:
-Created `view.toml`
-Created `app.py`
-Created `pyproject.toml`
-Created `utils`
-Created `routes`
-Created `routes/index.py`
-Successfully initialized app in `/path/omitted`
 ```
 
 The loader strategy is related to routing, which you will learn more about later.
