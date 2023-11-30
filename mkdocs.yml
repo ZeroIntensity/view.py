@@ -17,6 +17,10 @@ nav:
           - Returning Responses: user-guide/building-projects/responses.md
           - Taking Parameters: user-guide/building-projects/parameters.md
           - Writing Documentation: user-guide/building-projects/documenting.md
+    - Reference:
+      - Objects:
+          - App: reference/objects/app.md
+          - Config: reference/objects/config.md
 
 theme:
     name: null
