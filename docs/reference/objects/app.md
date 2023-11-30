@@ -1,3 +1,3 @@
 # App
 
-::: view.app
+::: view.app.App
