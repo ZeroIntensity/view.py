@@ -28,11 +28,12 @@ dependencies = [
     "configzen",
     "psutil",
     "plotext",
-    "psycopg2-binary",
-    "mysql-connector-python",
-    "pymongo",
+    #"psycopg2-binary",
+    #"mysql-connector-python",
+    #"pymongo",
     "uvicorn",
-    "aiosqlite"
+    "aiosqlite",
+    "versions"
 ]
 dynamic = ["version", "license"]
 

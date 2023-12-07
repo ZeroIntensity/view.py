@@ -8,9 +8,6 @@ from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
                     get_type_hints)
 
 import aiosqlite
-import mysql.connector
-import psycopg2
-import pymongo
 from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
 from ._util import is_annotated, is_union

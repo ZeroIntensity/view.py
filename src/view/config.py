@@ -17,6 +17,7 @@ class AppConfig(ConfigModel, env_prefix="view_app_"):
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
+    templates: Path = Path("./templates")
 
     @field_validator("loader")
     @classmethod
@@ -100,6 +101,8 @@ class DatabaseConfig(ConfigModel):
 
 
 class Config(ConfigModel):
+    dependencies: list[str] = ConfigField(default_factory=list)
+    auto_install: bool = True
     dev: bool = True
     app: AppConfig = ConfigField(default_factory=AppConfig)
     server: ServerConfig = ConfigField(default_factory=ServerConfig)

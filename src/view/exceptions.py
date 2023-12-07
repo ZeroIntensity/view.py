@@ -17,6 +17,7 @@ __all__ = (
     "InvalidRouteError",
     "ViewInternalError",
     "ConfigurationError",
+    "InstallationError",
 )
 
 
@@ -102,3 +103,7 @@ class ViewInternalError(ViewError):
 
 class ConfigurationError(ViewError):
     """Something is wrong with the configuration."""
+
+
+class InstallationError(ViewError):
+    """Failed to install a package."""
