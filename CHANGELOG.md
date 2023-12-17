@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [1.0.0-alpha7] - 2023-12-7
+
+**Quick Patch Release**
+
+- Remerged new `view init` command.
+
+## [1.0.0-alpha6] - 2023-11-30
 
 - Added `get_app`
 - Added documentation generation
-- Added database support
+- Added database support (NOT FINISHED)
 - Removed `attempt_import` and `MissingLibraryError`
 - Added support for lists in type validation
 - Added support for implicit query parameters
@@ -19,10 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `EnvironmentError` to `BadEnvironmentError`
 - Added logging functions to `App`
 - Changed environment prefixes for configuration
+- Rewrote documentation
 - Added `patterns` loader
 - Added handling of relative paths in the configuration setting `loader_path`
 - Added exists validation to `loader_path`
 - Add path to `PATH` environment variable during loading
+- Upgraded `view init`
 
 ## [1.0.0-alpha5] - 2023-09-24
 
