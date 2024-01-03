@@ -100,13 +100,18 @@ class DatabaseConfig(ConfigModel):
     mysql: Union[MySQLConfig, None] = None
 
 
-class Config(ConfigModel):
+class ModuleConfig(ConfigModel):
     dependencies: list[str] = ConfigField(default_factory=list)
     auto_install: bool = True
+    early_install: bool = False
+
+
+class Config(ConfigModel):
     dev: bool = True
     app: AppConfig = ConfigField(default_factory=AppConfig)
     server: ServerConfig = ConfigField(default_factory=ServerConfig)
     log: LogConfig = ConfigField(default_factory=LogConfig)
+    modules: ModuleConfig = ConfigField(default_factory=ModuleConfig)
 
 
 B_OPEN = "{"

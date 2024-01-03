@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import asyncio
 import importlib.metadata
 import subprocess
@@ -18,6 +19,7 @@ __all__ = (
 
 
 async def install(name: str) -> None:
+    """The actual installation function. This reaches out to `pip` and installs the module."""
     print(f"[bold green] * Installing {name}...[/]")
     try:
         await asyncio.to_thread(
@@ -47,6 +49,7 @@ def _get_parts(name: str) -> tuple[str, str]:
 
 
 def check_dep(name: str) -> bool:
+    """This checks if a dependency exists and/or is within the version."""
     name = name.replace("@", "==")
     dep_name, version_str = _get_parts(name)
     if not version_str:
@@ -65,12 +68,18 @@ def check_dep(name: str) -> bool:
 
 
 async def needs(name: str) -> None:
+    """
+    This is to be called from inside of view.py only.
+    This is the same as `ensure_dep`, but it abides by
+    the `auto_install` setting in configuration.
+    """
     from .app import get_app
+
     name = name.replace("@", "==")
 
     if not check_dep(name):
         app = get_app()
-        if not app.config.auto_install:
+        if not app.config.modules.auto_install:
             raise ModuleNotFoundError(
                 f"view.py needs {name}, but auto_install is set to false",
             )
@@ -79,5 +88,6 @@ async def needs(name: str) -> None:
 
 
 async def ensure_dep(name: str) -> None:
+    """Checks if a dependency exists, and installs it if it doesn't."""
     if not check_dep(name):
         await install(name.replace("@", "=="))

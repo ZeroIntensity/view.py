@@ -284,9 +284,13 @@ class App(ViewApp):
 
         self.running = False
 
-    async def install_deps(self) -> None:
-        for dep in self.config.dependencies:
-            if self.config.auto_install:
+        if config.modules.early_install:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.install_deps())
+
+    async def install_deps(self, force_install: bool = False) -> None:
+        for dep in self.config.modules.dependencies:
+            if self.config.modules.auto_install or force_install:
                 await ensure_dep(dep)
             else:
                 if not check_dep(dep):
@@ -494,6 +498,7 @@ class App(ViewApp):
             )
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
+        await self.install_deps()
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")
         Internal.info(f"spawning {coro}")
 
