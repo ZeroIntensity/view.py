@@ -15,8 +15,8 @@ def _():
 
 @test("dependency installs")
 async def _():
-    await ensure_dep("pointers.py")
-    import pointers
+    await ensure_dep("snakedict")
+    import snakedict
 
 
 @test("needing installs")
