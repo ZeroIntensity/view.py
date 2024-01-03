@@ -34,7 +34,7 @@ async def _():
 @test("user dependencies")
 async def _():
     app = new_app()
-    app.config.dependencies.append("easyclasses")
+    app.config.modules.dependencies.append("easyclasses")
     await app.install_deps()
 
     import easyclasses
