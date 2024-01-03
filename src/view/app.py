@@ -7,7 +7,6 @@ import importlib
 import inspect
 import logging
 import os
-import random
 import sys
 import warnings
 import weakref
@@ -239,14 +238,6 @@ class App(ViewApp):
         """
         supply_parsers(self)
         self.config = config
-        for dep in config.dependencies:
-            if config.auto_install:
-                ensure_dep(dep)
-            else:
-                if not check_dep(dep):
-                    raise ModuleNotFoundError(
-                        f"this app requires {dep}, but auto_install is set to False",  # noqa
-                    )
 
         self._set_dev_state(config.dev)
         self._manual_routes: list[Route] = []
@@ -292,6 +283,16 @@ class App(ViewApp):
             enable_debug()
 
         self.running = False
+
+    async def install_deps(self) -> None:
+        for dep in self.config.dependencies:
+            if self.config.auto_install:
+                await ensure_dep(dep)
+            else:
+                if not check_dep(dep):
+                    raise ModuleNotFoundError(
+                        f"this app requires {dep}, but auto_install is set to False",  # noqa
+                    )
 
     def _finalize(self) -> None:
         if os.environ.get("_VIEW_CANCEL_FINALIZERS"):

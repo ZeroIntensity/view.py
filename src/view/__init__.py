@@ -15,7 +15,6 @@ except ImportError as e:
 from . import _codec
 from .__about__ import __license__, __version__
 from .app import *
-from .components import *
 from .exceptions import *
 from .logging import *
 from .patterns import *
