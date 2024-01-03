@@ -1,4 +1,4 @@
-<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=300 height=auto /></div>
+<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=250 height=auto /></div>
 
 ## The Batteries-Detachable Web Framework
 
