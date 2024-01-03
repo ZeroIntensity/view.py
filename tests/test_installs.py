@@ -22,8 +22,9 @@ async def _():
 @test("needing installs")
 async def _():
     app = new_app()
-    hoist = await needs("hoist-http")
+    await needs("hoist-http")
+    import hoist
     app.config.auto_install = False
 
     with raises(ModuleNotFoundError):
-        templates = await needs("templates.py")
+        await needs("templates.py")
