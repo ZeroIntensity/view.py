@@ -4,7 +4,7 @@ import importlib.util
 import sys
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Any, Dict, Literal, Union
+from typing import Any, Dict, Literal, Union, List
 
 from configzen import ConfigField, ConfigModel, field_validator
 
@@ -65,7 +65,7 @@ class LogConfig(ConfigModel, env_prefix="view_log_"):
     user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
 
 
-class MongoConfig(ConfigModel):
+class MongoConfig(ConfigModel, env_prefix="mongo_"):
     host: IPv4Address
     port: int
     username: str
@@ -73,7 +73,7 @@ class MongoConfig(ConfigModel):
     database: str
 
 
-class PostgresConfig(ConfigModel):
+class PostgresConfig(ConfigModel, env_prefix="postgres_"):
     database: str
     user: str
     password: str
@@ -81,18 +81,18 @@ class PostgresConfig(ConfigModel):
     port: int
 
 
-class SQLiteConfig(ConfigModel):
+class SQLiteConfig(ConfigModel, env_prefix="sqlite_"):
     file: Path
 
 
-class MySQLConfig(ConfigModel):
+class MySQLConfig(ConfigModel, env_prefix="mysql_"):
     host: IPv4Address
     user: str
     password: str
     database: str
 
 
-class DatabaseConfig(ConfigModel):
+class DatabaseConfig(ConfigModel, env_prefix="view_database_"):
     type: Literal["sqlite", "mysql", "postgres", "mongo"] = "sqlite"
     mongo: Union[MongoConfig, None] = None
     postgres: Union[PostgresConfig, None] = None
@@ -100,8 +100,8 @@ class DatabaseConfig(ConfigModel):
     mysql: Union[MySQLConfig, None] = None
 
 
-class ModuleConfig(ConfigModel):
-    dependencies: list[str] = ConfigField(default_factory=list)
+class ModuleConfig(ConfigModel, env_prefix="view_modules_"):
+    dependencies: List[str] = ConfigField(default_factory=list)
     auto_install: bool = True
     early_install: bool = False
 
