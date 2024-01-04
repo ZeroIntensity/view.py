@@ -25,7 +25,7 @@ async def _():
     await needs("hoist-http")
     import hoist
 
-    app.config.auto_install = False
+    app.config.modules.auto_install = False
 
     with raises(ModuleNotFoundError):
         await needs("templates.py")
