@@ -1,6 +1,6 @@
-# Welcome to view'py documentation!
+# Welcome to the view.py documentation!
 
-In this documentation, you'll learn how to use view.py and it's various features.
+Here, you can learn how to use view.py and its various features.
 
 - [Source](https://github.com/ZeroIntensity/view.py)
 - [PyPI](https://pypi.org/project/view.py)
