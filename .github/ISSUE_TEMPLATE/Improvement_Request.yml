@@ -27,7 +27,7 @@ body:
         **Example API:**
         view.bar.foo(...)
     validations:
-      required: true
+      required: false
   - type: textarea
     attributes:
       label: Anything else?
