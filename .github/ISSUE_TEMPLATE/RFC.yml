@@ -3,10 +3,6 @@ description: A request for comments. This is used for discussion about new featu
 title: "[Requests for Comments]: "
 labels: ["rfc"] 
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Put your content here. Markdown is supported.
   - type: checkboxes
     attributes:
       label: Have you searched for this discussion already?
@@ -14,3 +10,15 @@ body:
       options:
         - label: I have already searched for this topic!
           required: true
+  - type: textarea
+    attributes:
+      label: Content
+      description: Put your content here. Markdown is supported.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Info
+      description: Any additional info that could be useful (Contact information, references, etc.)?
+    validations:
+      required: false
