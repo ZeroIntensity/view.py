@@ -1,0 +1,9 @@
+name: RFC
+description: A request for comments. This is used for discussion about new features.
+title: "[Requests for Comments]: "
+labels: ["rfc"] 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Put your content here. Markdown is supported.
