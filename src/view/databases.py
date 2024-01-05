@@ -7,16 +7,32 @@ from enum import Enum
 from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
                     get_type_hints)
 
-import aiosqlite
-import mysql.connector
-import psycopg2
-import pymongo
 from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
-from ._util import is_annotated, is_union
+from ._util import is_annotated, is_union, needs_dep
 from .exceptions import InvalidDatabaseSchemaError
 from .routing import BodyParam
 from .typing import ViewBody
+
+try:
+    import aiosqlite
+except ModuleNotFoundError as e:
+    needs_dep("aiosqlite", e, "databases")
+
+try:
+    import mysql.connector
+except ModuleNotFoundError as e:
+    needs_dep("mysql-connector-python", e, "databases")
+
+try:
+    import psycopg2
+except ModuleNotFoundError as e:
+    needs_dep("psycopg2-binary", e, "databases")
+
+try:
+    import pymongo
+except ModuleNotFoundError as e:
+    needs_dep("pymongo", e, "databases")
 
 __all__ = ("Model",)
 NoneType = type(None)

@@ -28,11 +28,7 @@ dependencies = [
     "configzen",
     "psutil",
     "plotext",
-    "psycopg2-binary",
-    "mysql-connector-python",
-    "pymongo",
     "uvicorn",
-    "aiosqlite"
 ]
 dynamic = ["version", "license"]
 
@@ -40,6 +36,12 @@ dynamic = ["version", "license"]
 dev = [
   "ruff",
   "mypy"
+]
+databases = [
+    "psycopg2-binary",
+    "mysql-connector-python",
+    "pymongo",
+    "aiosqlite"
 ]
 
 [project.urls]
