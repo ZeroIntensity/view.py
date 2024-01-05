@@ -1,6 +1,6 @@
 name: RFC
 description: A request for comments. This is used for discussion about new features.
-title: "[Requests for Comments]: "
+title: "[Request for Comments]: "
 labels: ["rfc"] 
 body:
   - type: checkboxes
