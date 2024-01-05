@@ -13,15 +13,15 @@ from collections.abc import Iterable
 from pathlib import Path
 from types import FrameType as Frame
 from types import FunctionType as Function
-from typing import Any, Union
+from typing import Any, Union, NoReturn
 
 from rich.panel import Panel
 from rich.syntax import Syntax
 from typing_extensions import Annotated, TypeGuard
 
 from ._logging import Internal
-from .exceptions import NotLoadedWarning
-
+from .exceptions import NotLoadedWarning, NeedsDependencyError
+from rich.markup import escape
 try:
     from types import UnionType
 except ImportError:
@@ -37,6 +37,7 @@ __all__ = (
     "make_hint",
     "is_annotated",
     "run_path",
+    "needs_dep"
 )
 
 
@@ -70,14 +71,19 @@ def set_load(cl: LoadChecker):
     cl._view_loaded = True
 
 
-def shell_hint(command: str) -> Panel:
+def shell_hint(*commands: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
         shell_prefix = (
             f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
         )
-    return Panel.fit(f"{shell_prefix} {command}", title="Terminal")
+
+    formatted = [f"{shell_prefix} {command}" for command in commands]
+    return Panel.fit(
+        "\n[gray46]// OR[/]\n".join(formatted),
+        title="[bold green]Terminal[/]",
+    )
 
 
 def make_hint(
@@ -146,3 +152,14 @@ def run_path(path: str | Path) -> dict[str, Any]:
     mod = runpy.run_path(path, run_name="__view__")
     sys.path.pop()
     return mod
+
+
+def needs_dep(name: str, err: ModuleNotFoundError, section: str) -> NoReturn:
+    sect = f"[{section}]"
+    raise NeedsDependencyError(
+        f"view.py needs the module {name}, but you don't have it installed!",
+        hint=shell_hint(
+            f"pip install {name}",
+            f"pip install view.py{escape(sect)}",
+        ),
+    ) from err
