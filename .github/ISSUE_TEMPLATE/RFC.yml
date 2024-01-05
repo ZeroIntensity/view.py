@@ -7,3 +7,10 @@ body:
     attributes:
       value: |
         Put your content here. Markdown is supported.
+  - type: checkboxes
+    attributes:
+      label: Have you searched for this discussion already?
+      description: Please search existing issues or ask the question on our [Discord server](https://discord.gg/tZAfuWAbm2) before creating an RFC.
+      options:
+        - label: I have already searched for this topic!
+          required: true
