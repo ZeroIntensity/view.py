@@ -28,6 +28,12 @@ app.run()
 
 **Python 3.8+ is required.**
 
+#### Development 
+
+```
+$ pip install git+https://github.com/ZeroIntensity/view.py
+```
+
 #### Linux/macOS
 
 ```
