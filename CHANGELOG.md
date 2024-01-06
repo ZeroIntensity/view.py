@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - Added optional dependencies for `databases`
+- Added environment prefixes for database configuration
+- Added `templates` and `TemplatesConfig` to config
 
 ## [1.0.0-alpha7] - 2023-12-7
 

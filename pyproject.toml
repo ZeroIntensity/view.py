@@ -29,6 +29,7 @@ dependencies = [
     "psutil",
     "plotext",
     "uvicorn",
+    "aiofiles",
 ]
 dynamic = ["version", "license"]
 

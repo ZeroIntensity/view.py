@@ -117,4 +117,18 @@ BodyTranslateStrategy = Literal["str", "repr", "result"]
 DocsType = Dict[Tuple[str, str], "RouteDoc"]
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 FileWriteMethod = Literal["only", "never", "both"]
-StrMethod = Literal["get", "post", "put", "patch", "delete", "options", "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+StrMethod = Literal[
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "options",
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
+TemplateEngine = Literal["view", "django", "cheetah", "mako", "chameleon"]
