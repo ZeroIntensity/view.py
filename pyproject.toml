@@ -30,6 +30,7 @@ dependencies = [
     "plotext",
     "uvicorn",
     "aiofiles",
+    "aiohttp",
 ]
 dynamic = ["version", "license"]
 
@@ -44,6 +45,7 @@ databases = [
     "pymongo",
     "aiosqlite"
 ]
+templates = ["beautifulsoup4"]
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"
