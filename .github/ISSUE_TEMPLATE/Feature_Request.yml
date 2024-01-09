@@ -24,7 +24,6 @@ body:
       description: Provide an example of what you want to happen.
       placeholder: |
         For example, a request for adding foo to view.bar could look like:
-        **Example API:**
         view.bar.foo(...)
     validations:
       required: true
