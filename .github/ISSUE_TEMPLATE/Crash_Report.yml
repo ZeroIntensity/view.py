@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this Crash report! Please, fill this form to help us improve view.py
+        Thanks for taking the time to fill out this crash report!
   - type: checkboxes
     attributes:
       label: Is there an existing issue for this?
