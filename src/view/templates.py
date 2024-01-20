@@ -32,13 +32,13 @@ class _CurrentFrame:  # sentinel
 _CurrentFrameType = Type[_CurrentFrame]
 
 
-def _view_cond(view: Tag, parameters: dict[str, Any]):
+async def _view_cond(view: Tag, parameters: dict[str, Any]) -> None:
     from bs4 import Tag
 
     length = len(list(view.children))
     if not length:
         raise InvalidTemplateError(
-            "<view condition> must have 2 or more children",
+            "<view condition> must have at least one child",
         )
 
     for i in view.children:
@@ -47,15 +47,21 @@ def _view_cond(view: Tag, parameters: dict[str, Any]):
                 "children of a <view condition> must be view tags"
             )
 
-    for i in view.children:
-        if_attr = view.attrs.get("if")
-        else_attr = view.attrs.get("else")
+    children = dict(
+        enumerate(view.children)
+    )  # doing this to make .pop() available
+    if_cond: Tag = children.pop(0)  # type: ignore
+    await _view_tag(if_cond, parameters, condition=True)
 
 
 async def _view_tag(
     view: Tag,
     parameters: dict[str, Any],
+    *,
+    condition: bool = False,
 ) -> None:
+    from bs4 import Tag
+
     if not view.attrs:
         raise InvalidTemplateError("<view> tags must have attributes")
 
@@ -78,11 +84,23 @@ async def _view_tag(
                 ) as res:
                     result.append(await res.text())
         elif key == "condition":
-            _view_cond(i, parameters)
-        elif key in {"if", "else"}:
+            await _view_cond(view, parameters)
+        elif (key in {"if", "else"}) and (not condition):
             raise InvalidTemplateError(
                 f"you must be in a <view condition> to use {key}"
             )
+        elif key == "if":
+            if not eval(value, parameters):
+                return
+        else:
+            raise InvalidTemplateError(f"unknown key {key!r} in <view> tag")
+
+    for child in view.children:
+        if isinstance(child, Tag):
+            if child.name == "view":
+                await _view_tag(child, parameters)
+        else:
+            result.append(child)
 
     view.replace_with("\n".join(result))
 
