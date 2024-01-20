@@ -83,7 +83,7 @@ _BASIC_CODES = {
 }
 
 """
-Type info should contain three things:
+Type info should contain up to four things:
     - Type Code
     - Type Object (only set when using a __view_body__ object)
     - Children (i.e. the `int` part of dict[str, int])
