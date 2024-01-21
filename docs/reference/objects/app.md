@@ -1,3 +1,0 @@
-# App
-
-::: view.app.App

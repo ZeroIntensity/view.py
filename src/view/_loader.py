@@ -553,6 +553,7 @@ def load_patterns(app: ViewApp, target_path: Path) -> None:
         or mod.get("URLPATTERNS")
         or mod.get("urlpatterns")
         or mod.get("patterns")
+        or mod.get("url_patterns")
     )
 
     if not patterns:

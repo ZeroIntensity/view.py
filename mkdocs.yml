@@ -5,29 +5,21 @@ repo_name: ZeroIntensity/view.py
 
 nav:
     - Home: index.md
-    - User Guide:
-      - user-guide/index.md
-      - Getting Started:
-          - Installation: user-guide/getting-started/installation.md
-          - Configuration: user-guide/getting-started/configuration.md
-          - Project Creation: user-guide/getting-started/creating_a_project.md
-      - Building Projects:
-          - App Basics: user-guide/building-projects/app_basics.md
-          - Routing: user-guide/building-projects/routing.md
-          - Returning Responses: user-guide/building-projects/responses.md
-          - Taking Parameters: user-guide/building-projects/parameters.md
-          - Writing Documentation: user-guide/building-projects/documenting.md
-    - Reference:
-      - Objects:
-          - App: reference/objects/app.md
-          - Config: reference/objects/config.md
-      - Functions:
-          - new_app: reference/functions/new_app.md
-          - load_config: reference/functions/load_config.md
+    - Getting Started:
+        - Installation: getting-started/installation.md
+        - Configuration: getting-started/configuration.md
+        - Project Creation: getting-started/creating_a_project.md
+    - Building Projects:
+        - App Basics: building-projects/app_basics.md
+        - Routing: building-projects/routing.md
+        - Returning Responses: building-projects/responses.md
+        - Taking Parameters: building-projects/parameters.md
+        - HTML Templating: building-projects/templating.md
+        - Writing Documentation: building-projects/documenting.md
 
 theme: material
-    #name: null
-    #custom_dir: "html/"
+  #name: null
+  #custom_dir: "html/"
 
 markdown_extensions:
   - admonition

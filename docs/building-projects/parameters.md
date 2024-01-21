@@ -24,6 +24,9 @@ In view.py, a route input is anything that feeds a parameter (or "input") to the
 
 There is little to no difference between the standard and direct variations, **including loading**. The direct versions are only to be used when the app is already available to **prevent extra imports**.
 
+::: view.routing.query
+::: view.routing.body
+
 ## Defining Inputs
 
 For documentation purposes, only `query` variations will be used. However, **`body` works the exact same way**. A route input function (`query` in this case) takes one or more parameters:

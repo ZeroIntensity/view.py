@@ -56,6 +56,9 @@ View comes with two built in response objects: `Response` and `HTML`.
 - `Response` is simply a wrapper around other responses.
 - `HTML` is for returning HTML content.
 
+::: view.response.Response
+::: view.response.HTML
+
 A common use case for `Response` is wrapping an object that has a `__view_response__` and changing one of the values. For example:
 
 ```py
@@ -84,7 +87,8 @@ async def index():
     return res
 ```
 
-`cookie` has several possible options:
+
+::: view.response.Response.cookie
 
 Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere. 
 

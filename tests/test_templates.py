@@ -32,6 +32,7 @@ async def _():
 async def _():
     x = "world"
     assert (await render("hello {{ x }}", engine="jinja")) == "hello world"
+    assert (await render("hello {{ x }}", engine="django")) == "hello world"
     assert (await render("hello ${x}", engine="mako")) == "hello world"
     assert (await render("hello ${x}", engine="chameleon")) == "hello world"
 
