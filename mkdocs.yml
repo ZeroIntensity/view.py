@@ -55,7 +55,6 @@ plugins:
               python:
                 paths: [src]
                 options:
-                  show_root_heading: true
                   show_object_full_path: true
                   show_symbol_type_heading: true
                   show_symbol_type_toc: true
