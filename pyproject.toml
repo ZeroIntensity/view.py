@@ -45,7 +45,7 @@ databases = [
     "pymongo",
     "aiosqlite"
 ]
-templates = ["beautifulsoup4", "jinja2", "mako", "django"]
+templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon"]
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"
