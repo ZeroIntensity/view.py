@@ -5,8 +5,6 @@ from pathlib import Path
 from types import FrameType as Frame
 from typing import TYPE_CHECKING, Any, Iterator, Type
 import aiofiles
-import aiohttp
-from yarl import URL
 from ._util import needs_dep
 from .app import get_app, App
 from .config import TemplatesConfig
@@ -20,7 +18,7 @@ if TYPE_CHECKING:
 _ConfigSpecified = None
 _DEFAULT_CONF = TemplatesConfig()
 
-__all__ = ("template",)
+__all__ = ("template", "render")
 
 
 class _CurrentFrame:  # sentinel
@@ -78,17 +76,6 @@ class ViewRenderer:
                 result.append(str(eval(value, self.parameters)))
             elif key == "template":
                 result.append(await template(value))
-            elif key == "page":
-                app = get_app()
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        URL()
-                        .with_host(str(app.config.server.host))
-                        .with_scheme("http")
-                        .with_port(app.config.server.port)
-                        .with_path(value)
-                    ) as res:
-                        result.append(await res.text())
             elif key == "if":
                 self._last_if = bool(eval(value, self.parameters))
                 if not self._last_if:
@@ -103,12 +90,17 @@ class ViewRenderer:
                         view.replace_with("")
                     return None
             elif key == "elif":
-                if self._last_if is True:
+                if self._last_if is False:
                     self._last_if = bool(eval(value, self.parameters))
                     if not self._last_if:
                         if not defer:
                             view.replace_with("")
                         return None
+                else:
+                    if not defer:
+                        view.replace_with("")
+                    return None
+
             elif key == "iter":
                 item = view.attrs.get("item")
                 if not item:
@@ -220,12 +212,13 @@ async def template(
     frame: Frame | None | _CurrentFrameType = _CurrentFrame,
     **parameters: Any,
 ) -> HTML:
+    """Render a template with the specified engine. This returns a view.py HTML response."""
     try:
         conf = get_app().config.templates
     except BadEnvironmentError:
         conf = _DEFAULT_CONF
 
-    directory = directory or conf.directory
+    directory = Path(directory or conf.directory)
     engine = engine or conf.engine
 
     if isinstance(name, str):
@@ -236,7 +229,6 @@ async def template(
 
     path = directory / name
     params: dict[str, Any] = {}
-
     if frame:
         if frame is _CurrentFrame:
             frame = inspect.currentframe()
@@ -257,5 +249,5 @@ async def template(
 
     async with aiofiles.open(path) as f:
         source = await f.read()
-
+    
     return HTML(await render(source, engine, params))
