@@ -525,8 +525,8 @@ async def _():
     class Test:
         a: str
         b: int
-        c: list[str]
-        d: dict[str, int] = attrs.Factory(dict)
+        c: List[str]
+        d: Dict[str, int] = attrs.Factory(dict)
 
     @app.get("/")
     @app.query("test", Test)
