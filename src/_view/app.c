@@ -1242,51 +1242,25 @@ static int find_result_for(
         target,
         &PyDict_Type
                )) {
-        PyObject* iter = PyObject_GetIter(target);
-        if (!iter) return -1;
         PyObject* item;
-        while ((item = PyIter_Next(iter))) {
-            PyObject* v = PyDict_GetItem(
-                target,
-                item
-            );
+        PyObject* v;
+        Py_ssize_t pos = 0;
 
-            if (!v) {
-                Py_DECREF(iter);
-                return -1;
-            }
-
+        while (PyDict_Next(target, &pos, &item, &v)) {
             const char* v_str = PyUnicode_AsUTF8(v);
             if (!v_str) {
-                Py_DECREF(iter);
                 return -1;
             }
 
-            PyObject* item_str = PyObject_Str(item);
-            if (!item_str) {
-                Py_DECREF(iter);
-                return -1;
-            }
-
-            const char* item_cc = PyUnicode_AsUTF8(item_str);
-
-            if (!item_cc) {
-                Py_DECREF(iter);
-                return -1;
-            }
-
-            PyObject* item_bytes = PyBytes_FromString(item_cc);
-            Py_DECREF(item_str);
+            PyObject* item_bytes = PyUnicode_EncodeLocale(item, "strict");
 
             if (!item_bytes) {
-                Py_DECREF(iter);
                 return -1;
             }
 
             PyObject* header_list = PyTuple_New(2);
 
             if (!header_list) {
-                Py_DECREF(iter);
                 Py_DECREF(item_bytes);
                 return -1;
             }
@@ -1297,8 +1271,8 @@ static int find_result_for(
                 item_bytes
                 ) < 0) {
                 Py_DECREF(header_list);
-                Py_DECREF(iter);
                 Py_DECREF(item_bytes);
+                return -1;
             };
 
             Py_DECREF(item_bytes);
@@ -1307,7 +1281,6 @@ static int find_result_for(
 
             if (!v_bytes) {
                 Py_DECREF(header_list);
-                Py_DECREF(iter);
                 return -1;
             }
 
@@ -1317,7 +1290,7 @@ static int find_result_for(
                 v_bytes
                 ) < 0) {
                 Py_DECREF(header_list);
-                Py_DECREF(iter);
+                return -1;
             };
 
             Py_DECREF(v_bytes);
@@ -1327,13 +1300,11 @@ static int find_result_for(
                 header_list
                 ) < 0) {
                 Py_DECREF(header_list);
-                Py_DECREF(iter);
                 return -1;
             }
             Py_DECREF(header_list);
         }
 
-        Py_DECREF(iter);
         if (PyErr_Occurred()) return -1;
     } else if (Py_IS_TYPE(
         target,
@@ -1344,11 +1315,9 @@ static int find_result_for(
         target,
         &PyTuple_Type
                )) {
-        PyObject* t_iter = PyObject_GetIter(target);
-        if (!t_iter) return -1;
 
-        PyObject* t_value;
-        while ((t_value = PyIter_Next(t_iter))) {
+        for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(target); i++) {
+            PyObject* t_value = PyTuple_GET_ITEM(target, i);
             if (!PyTuple_Check(
                 t_value
                 )) {
@@ -1356,7 +1325,6 @@ static int find_result_for(
                     PyExc_TypeError,
                     "raw header tuple should contain tuples"
                 );
-                Py_DECREF(t_iter);
                 return -1;
             }
 
@@ -1365,8 +1333,6 @@ static int find_result_for(
                 t_value
             );
         }
-
-        Py_DECREF(t_iter);
 
         if (PyErr_Occurred()) {
             return -1;
