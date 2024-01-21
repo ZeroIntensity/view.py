@@ -28,4 +28,12 @@ plugins:
     - mkdocstrings:
           handlers:
               python:
-                  paths: [src]
+                paths: [src]
+                options:
+                  show_root_heading: true
+                  show_object_full_path: true
+                  show_symbol_type_heading: true
+                  show_symbol_type_toc: true
+                  seperate_signature: true
+                  show_signature_annotations: true
+                  signature_crossrefs: true
