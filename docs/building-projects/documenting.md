@@ -29,7 +29,6 @@ async def index():
 @app.get("/hello")
 async def hello():
     """A greeting to the user."""
-    ...
 
 app.docs("docs.md")  # more on this function later
 app.run()
@@ -96,6 +95,8 @@ app.docs(Path("docs.md"))
 with open("docs.md", "w") as f:
     app.docs(f)
 ```
+
+::: view.app.App.docs
 
 ## Review
 

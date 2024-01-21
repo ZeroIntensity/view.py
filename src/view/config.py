@@ -10,7 +10,7 @@ from configzen import ConfigField, ConfigModel, field_validator
 
 from .exceptions import ViewInternalError
 from .logging import FileWriteMethod, Urgency
-
+from .typing import TemplateEngine
 
 class AppConfig(ConfigModel, env_prefix="view_app_"):
     loader: Literal["manual", "simple", "filesystem", "patterns"] = "manual"
@@ -64,7 +64,7 @@ class LogConfig(ConfigModel, env_prefix="view_log_"):
     user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
 
 
-class MongoConfig(ConfigModel):
+class MongoConfig(ConfigModel, env_prefix="view_mongo_"):
     host: IPv4Address
     port: int
     username: str
@@ -72,7 +72,7 @@ class MongoConfig(ConfigModel):
     database: str
 
 
-class PostgresConfig(ConfigModel):
+class PostgresConfig(ConfigModel, env_prefix="view_postgres_"):
     database: str
     user: str
     password: str
@@ -80,18 +80,18 @@ class PostgresConfig(ConfigModel):
     port: int
 
 
-class SQLiteConfig(ConfigModel):
+class SQLiteConfig(ConfigModel, env_prefix="view_sqlite_"):
     file: Path
 
 
-class MySQLConfig(ConfigModel):
+class MySQLConfig(ConfigModel, env_prefix="view_mysql_"):
     host: IPv4Address
     user: str
     password: str
     database: str
 
 
-class DatabaseConfig(ConfigModel):
+class DatabaseConfig(ConfigModel, env_prefix="view_database_"):
     type: Literal["sqlite", "mysql", "postgres", "mongo"] = "sqlite"
     mongo: Union[MongoConfig, None] = None
     postgres: Union[PostgresConfig, None] = None
@@ -99,11 +99,19 @@ class DatabaseConfig(ConfigModel):
     mysql: Union[MySQLConfig, None] = None
 
 
+class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):
+    directory: Path = Path("./templates")
+    locals: bool = True
+    globals: bool = True
+    engine: TemplateEngine = "view"
+
+
 class Config(ConfigModel):
     dev: bool = True
     app: AppConfig = ConfigField(default_factory=AppConfig)
     server: ServerConfig = ConfigField(default_factory=ServerConfig)
     log: LogConfig = ConfigField(default_factory=LogConfig)
+    templates: TemplatesConfig = ConfigField(default_factory=TemplatesConfig)
 
 
 B_OPEN = "{"

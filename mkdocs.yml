@@ -5,29 +5,46 @@ repo_name: ZeroIntensity/view.py
 
 nav:
     - Home: index.md
-    - User Guide:
-      - user-guide/index.md
-      - Getting Started:
-          - Installation: user-guide/getting-started/installation.md
-          - Configuration: user-guide/getting-started/configuration.md
-          - Project Creation: user-guide/getting-started/creating_a_project.md
-      - Building Projects:
-          - App Basics: user-guide/building-projects/app_basics.md
-          - Routing: user-guide/building-projects/routing.md
-          - Returning Responses: user-guide/building-projects/responses.md
-          - Taking Parameters: user-guide/building-projects/parameters.md
-          - Writing Documentation: user-guide/building-projects/documenting.md
-    - Reference:
-      - Objects:
-          - App: reference/objects/app.md
-          - Config: reference/objects/config.md
-      - Functions:
-          - new_app: reference/functions/new_app.md
-          - load_config: reference/functions/load_config.md
+    - Getting Started:
+        - Installation: getting-started/installation.md
+        - Configuration: getting-started/configuration.md
+        - Project Creation: getting-started/creating_a_project.md
+    - Building Projects:
+        - App Basics: building-projects/app_basics.md
+        - Routing: building-projects/routing.md
+        - Returning Responses: building-projects/responses.md
+        - Taking Parameters: building-projects/parameters.md
+        - HTML Templating: building-projects/templating.md
+        - Writing Documentation: building-projects/documenting.md
 
-theme: material
-    #name: null
-    #custom_dir: "html/"
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: red
+      accent: pink
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: red
+      accent: pink
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: red
+      accent: pink
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
 
 markdown_extensions:
   - admonition
@@ -36,4 +53,11 @@ plugins:
     - mkdocstrings:
           handlers:
               python:
-                  paths: [src]
+                paths: [src]
+                options:
+                  show_object_full_path: true
+                  show_symbol_type_heading: true
+                  show_symbol_type_toc: true
+                  seperate_signature: true
+                  show_signature_annotations: true
+                  signature_crossrefs: true

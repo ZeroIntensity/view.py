@@ -1,6 +1,6 @@
 # flake8: noqa
 """
-view.py - A modern web framework
+view.py - The Batteries-Detachable Web Framework
 
 Docs: https://view.zintensity.dev
 GitHub: https://github.com/zerointensity/view.py
@@ -13,7 +13,7 @@ except ImportError as e:
     ) from e
 
 from . import _codec
-from .__about__ import __license__, __version__
+from .__about__ import *
 from .app import *
 from .components import *
 from .exceptions import *
@@ -22,3 +22,4 @@ from .patterns import *
 from .response import *
 from .routing import *
 from .util import *
+from .templates import *

@@ -244,6 +244,7 @@ class App(ViewApp):
         self.running = False
         self._docs: DocsType = {}
         self.loaded_routes: list[Route] = []
+        self.templaters: dict[str, Any] = {}
 
         Service.log.setLevel(
             config.log.level
@@ -750,3 +751,4 @@ def get_app(*, address: int | None = None) -> App:
     app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
     ctypes.pythonapi.Py_IncRef(app)
     return app
+

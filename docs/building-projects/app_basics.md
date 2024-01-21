@@ -20,6 +20,8 @@ While it's not required for every app, naming your app variable `app` is the pro
 
 For now, just try to stick with naming your app file `app.py` and your `view.App` instance `app`.
 
+::: view.app.App
+
 ## Launching Apps
 
 Python libraries generally have two ways to run a web server:
@@ -51,6 +53,8 @@ app = new_app()
 app.run()
 print("you called the app with view serve")  # this only runs when `view serve` is used
 ```
+
+::: view.app.App.run
 
 ### Fancy Mode
 
@@ -106,6 +110,8 @@ app = get_app()
 def index():
     return "..."
 ```
+
+::: view.app.get_app
 
 ## Review
 

@@ -39,7 +39,9 @@ void view_fatal(
         stderr
     );
     Py_FatalError("view.py core died");
-}
+};
+
+
 
 PyMODINIT_FUNC PyInit__view() {
     PyObject* m = PyModule_Create(&module);

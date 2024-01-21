@@ -17,7 +17,8 @@ __all__ = (
     "InvalidRouteError",
     "ViewInternalError",
     "ConfigurationError",
-    "NeedsDependencyError"
+    "NeedsDependencyError",
+    "InvalidTemplateError",
 )
 
 
@@ -87,10 +88,8 @@ class DuplicateRouteError(ViewError):
     """Duplicate routes in loader."""
 
 
-
 class InvalidRouteError(ViewError):
     """Something is wrong with a route."""
-
 
 
 class ViewInternalError(ViewError):
@@ -101,6 +100,9 @@ class ConfigurationError(ViewError):
     """Something is wrong with the configuration."""
 
 
-
 class NeedsDependencyError(ViewError):
     """View needs a dependency that wasn't installed."""
+
+
+class InvalidTemplateError(ViewError):
+    """Something is wrong with a template."""
