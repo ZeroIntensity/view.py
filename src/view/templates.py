@@ -154,11 +154,11 @@ class ViewRenderer:
 
 
 async def render(
-    content: str,
+    source: str,
     engine: TemplateEngine = "view",
     parameters: dict[str, Any] | None | _CurrentFrameType = _CurrentFrame,
     *,
-    app: App | None = None
+    app: App | None = None,
 ) -> str:
     """Render a template from the source instead of a filename. Generally should be used internally."""
     if parameters is _CurrentFrame:
@@ -174,20 +174,26 @@ async def render(
         parameters.update(frame.f_globals)
         parameters.update(frame.f_locals)
 
-    templaters = (app or get_app()).templaters
+    try:
+        templaters = (app or get_app()).templaters
+    except BadEnvironmentError:
+        templaters = {}
 
     if engine == "view":
         view = ViewRenderer(parameters or {})  # type: ignore
-        return await view.render(content)
+        return await view.render(source)
     elif engine == "jinja":
         try:
             from jinja2 import Environment
         except ModuleNotFoundError as e:
             needs_dep("jinja2", e, "templates")
 
-        env: Environment = templaters.get("jinja")
+        env: Environment | None = templaters.get("jinja")
         if not env:
             templaters["jinja"] = Environment()
+            env = templaters["jinja"]
+
+        return env.from_string(source).render(parameters)
     else:
         raise InvalidTemplateError(f'{engine!r} is not a supported template engine')
 
@@ -235,6 +241,6 @@ async def template(
     params.update(parameters)
 
     async with aiofiles.open(path) as f:
-        text = await f.read()
+        source = await f.read()
 
-    return HTML(await render(text, engine, params))
+    return HTML(await render(source, engine, params))
