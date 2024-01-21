@@ -3,14 +3,12 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 from types import FrameType as Frame
-from typing import TYPE_CHECKING, Any, Type
-
+from typing import TYPE_CHECKING, Any, Iterator, Type
 import aiofiles
 import aiohttp
 from yarl import URL
-
 from ._util import needs_dep
-from .app import get_app
+from .app import get_app, App
 from .config import TemplatesConfig
 from .exceptions import BadEnvironmentError, InvalidTemplateError
 from .response import HTML
@@ -32,99 +30,137 @@ class _CurrentFrame:  # sentinel
 _CurrentFrameType = Type[_CurrentFrame]
 
 
-async def _view_cond(view: Tag, parameters: dict[str, Any]) -> None:
-    from bs4 import Tag
+class ViewRenderer:
+    def __init__(self, parameters: dict[str, Any]):
+        self.parameters = parameters
+        self._last_if: bool | None = None
 
-    length = len(list(view.children))
-    if not length:
-        raise InvalidTemplateError(
-            "<view condition> must have at least one child",
-        )
+    async def _render_children(self, view: Tag, result: list[Any], *, defer: bool = False) -> None:
+        from bs4 import Tag
 
-    for i in view.children:
-        if not isinstance(i, Tag) or (i.name != "view"):
-            raise InvalidTemplateError(
-                "children of a <view condition> must be view tags"
-            )
+        for child in view.children:
+            if isinstance(child, Tag):
+                if child.name == "view":
+                    ele = await self._tag(child, defer=defer)
+                    if ele:
+                        result.append(ele)
+            else:
+                result.append(child)
 
-    children = dict(
-        enumerate(view.children)
-    )  # doing this to make .pop() available
-    if_cond: Tag = children.pop(0)  # type: ignore
-    await _view_tag(if_cond, parameters, condition=True)
+    async def _tag(
+        self,
+        view: Tag,
+        *,
+        defer: bool = False
+    ) -> Tag | str | None:
+        if not view.attrs:
+            raise InvalidTemplateError("<view> tags must have at least one attribute")
+        
+        iterator_obj: Iterator[Any] | None = None
+        iterator_name: str | None = None
 
+        def _iter_render(itera: str, item: str) -> None:
+            if not itera:
+                raise InvalidTemplateError('"iter" attribute cannot be empty')
+            
+            if not item:
+                raise InvalidTemplateError('"item" attribute cannot be empty')
 
-async def _view_tag(
-    view: Tag,
-    parameters: dict[str, Any],
-    *,
-    condition: bool = False,
-) -> None:
-    from bs4 import Tag
+            nonlocal iterator_obj
+            iterator_obj = iter(eval(itera, self.parameters))
+            nonlocal iterator_name
+            iterator_name = item
 
-    if not view.attrs:
-        raise InvalidTemplateError("<view> tags must have attributes")
+        result = []
 
-    result = []
+        for key, value in view.attrs.items():
+            if key == "ref":
+                result.append(str(eval(value, self.parameters)))
+            elif key == "template":
+                result.append(await template(value))
+            elif key == "page":
+                app = get_app()
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        URL()
+                        .with_host(str(app.config.server.host))
+                        .with_scheme("http")
+                        .with_port(app.config.server.port)
+                        .with_path(value)
+                    ) as res:
+                        result.append(await res.text())
+            elif key == "if":
+                self._last_if = bool(eval(value, self.parameters))
+                if not self._last_if:
+                    if not defer:
+                        view.replace_with("")
+                    return None
+            elif (key in {"else", "elif"}) and (self._last_if is None):
+                raise InvalidTemplateError(f'{key} can only be used if an "if" attribute was used prior')  # noqa
+            elif key == "else":
+                if self._last_if is True:
+                    if not defer:
+                        view.replace_with("")
+                    return None
+            elif key == "elif":
+                if self._last_if is True:
+                    self._last_if = bool(eval(value, self.parameters))
+                    if not self._last_if:
+                        if not defer:
+                            view.replace_with("")
+                        return None
+            elif key == "iter":
+                item = view.attrs.get("item")
+                if not item:
+                    raise InvalidTemplateError(f'<view> tags with an "iter" attribute must have an "item" attribute')  # noqa
 
-    for key, value in view.attrs.items():
-        if key == "ref":
-            result.append(str(eval(value, parameters)))
-        elif key == "template":
-            result.append(await template(value))
-        elif key == "page":
-            app = get_app()
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    URL()
-                    .with_host(str(app.config.server.host))
-                    .with_scheme("http")
-                    .with_port(app.config.server.port)
-                    .with_path(value)
-                ) as res:
-                    result.append(await res.text())
-        elif key == "condition":
-            await _view_cond(view, parameters)
-        elif (key in {"if", "else"}) and (not condition):
-            raise InvalidTemplateError(
-                f"you must be in a <view condition> to use {key}"
-            )
-        elif key == "if":
-            if not eval(value, parameters):
-                return
+                _iter_render(value, item)
+            elif key == "item":
+                iter_name = view.attrs.get("iter")
+                if not iter_name:
+                    raise InvalidTemplateError(f'<view> tags with an "item" attribute must have an "iter" attribute')  # noqa
+
+                _iter_render(iter_name, value)
+            else:
+                raise InvalidTemplateError(f"unknown key {key!r} in <view> tag")
+
+        if iterator_obj:
+            assert iterator_name, "iterator_name is None (this is a bug!)"
+            
+            for i in iterator_obj:  # type: ignore
+                self.parameters[iterator_name] = i
+                await self._render_children(view, result, defer=True)
+
+            iterator_obj = None
         else:
-            raise InvalidTemplateError(f"unknown key {key!r} in <view> tag")
+            await self._render_children(view, result)
 
-    for child in view.children:
-        if isinstance(child, Tag):
-            if child.name == "view":
-                await _view_tag(child, parameters)
-        else:
-            result.append(child)
-
-    view.replace_with("\n".join(result))
+        return view.replace_with(*result) if not defer else "\n".join(result)
 
 
-async def _view_render(content: str, parameters: dict[str, Any]) -> str:
-    try:
-        from bs4 import BeautifulSoup, Tag
-    except ModuleNotFoundError as e:
-        needs_dep("beautifulsoup4", e, "templates")
+    async def render(self, content: str) -> str:
+        try:
+            from bs4 import BeautifulSoup, Tag
+        except ModuleNotFoundError as e:
+            needs_dep("beautifulsoup4", e, "templates")
 
-    soup = BeautifulSoup(content, features="html.parser")
+        soup = BeautifulSoup(content, features="html.parser")
 
-    for view in soup.find_all("view"):
-        assert isinstance(view, Tag), "found non-tag somehow (this is a bug!)"
-        await _view_tag(view, parameters)
+        for view in soup.find_all("view"):
+            assert isinstance(view, Tag), "found non-tag somehow (this is a bug!)"
+            await self._tag(view)
 
-    return str(soup)
+        return str(soup)
 
 
 async def render(
     content: str,
     engine: TemplateEngine = "view",
     parameters: dict[str, Any] | None | _CurrentFrameType = _CurrentFrame,
+    *,
+    app: App | None = None
 ) -> str:
+    """Render a template from the source instead of a filename. Generally should be used internally."""
     if parameters is _CurrentFrame:
         parameters = {}
         frame = inspect.currentframe()
@@ -138,7 +174,22 @@ async def render(
         parameters.update(frame.f_globals)
         parameters.update(frame.f_locals)
 
-    return await _view_render(content, parameters or {})  # type: ignore
+    templaters = (app or get_app()).templaters
+
+    if engine == "view":
+        view = ViewRenderer(parameters or {})  # type: ignore
+        return await view.render(content)
+    elif engine == "jinja":
+        try:
+            from jinja2 import Environment
+        except ModuleNotFoundError as e:
+            needs_dep("jinja2", e, "templates")
+
+        env: Environment = templaters.get("jinja")
+        if not env:
+            templaters["jinja"] = Environment()
+    else:
+        raise InvalidTemplateError(f'{engine!r} is not a supported template engine')
 
 
 async def template(
@@ -186,4 +237,4 @@ async def template(
     async with aiofiles.open(path) as f:
         text = await f.read()
 
-    return HTML("")
+    return HTML(await render(text, engine, params))

@@ -131,4 +131,4 @@ StrMethod = Literal[
     "DELETE",
     "OPTIONS",
 ]
-TemplateEngine = Literal["view", "django", "cheetah", "mako", "chameleon"]
+TemplateEngine = Literal["view", "jinja", "django", "cheetah", "mako", "chameleon"]
