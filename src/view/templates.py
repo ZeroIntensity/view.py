@@ -11,6 +11,9 @@ from .config import TemplatesConfig
 from .exceptions import BadEnvironmentError, InvalidTemplateError
 from .response import HTML
 from .typing import TemplateEngine
+from types import ModuleType
+import os
+import sys
 
 if TYPE_CHECKING:
     from bs4 import Tag
@@ -26,6 +29,11 @@ class _CurrentFrame:  # sentinel
 
 
 _CurrentFrameType = Type[_CurrentFrame]
+
+_DJANGO_HOOK = ModuleType("_view_django")
+sys.modules["_view_django"] = _DJANGO_HOOK
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "_view_django")
 
 
 class ViewRenderer:
@@ -201,6 +209,24 @@ async def render(
             needs_dep("chameleon", e, "templates")
 
         return PageTemplate(source)(**parameters)  # type: ignore
+    elif engine == "django":
+        try:
+            from django.template import Template, Context
+            from django.conf import settings
+            from django import setup
+        except ModuleNotFoundError as e:
+            needs_dep("django", e, "templates")
+
+        TEMPLATES = [{
+            "BACKEND": "django.template.backends.django.DjangoTemplates",
+            "DIRS": [],
+            "APP_DIRS": False,
+            "OPTIONS": {}
+        }]
+        settings.configure(TEMPLATES=TEMPLATES)
+        setup()
+
+        return Template(source).render(Context(parameters))
     else:
         raise InvalidTemplateError(f'{engine!r} is not a supported template engine')
 
