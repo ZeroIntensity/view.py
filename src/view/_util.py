@@ -133,6 +133,7 @@ def make_hint(
 
     split = txt.split("\n")
 
+    assert line is not None
     if comment:
         split[line] += f"{prepend}  # {comment}"
 
@@ -154,12 +155,17 @@ def run_path(path: str | Path) -> dict[str, Any]:
     return mod
 
 
-def needs_dep(name: str, err: ModuleNotFoundError, section: str) -> NoReturn:
+def needs_dep(name: str, err: ModuleNotFoundError, section: str | None = None) -> NoReturn:
     sect = f"[{section}]"
+    if section:
+        hint = shell_hint(
+                f"pip install {name}",
+                f"pip install view.py{escape(sect)}",
+        )
+    else:
+        hint = shell_hint(f"pip install {name}")
+
     raise NeedsDependencyError(
         f"view.py needs the module {name}, but you don't have it installed!",
-        hint=shell_hint(
-            f"pip install {name}",
-            f"pip install view.py{escape(sect)}",
-        ),
+        hint=hint,
     ) from err

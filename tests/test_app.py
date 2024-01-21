@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, NamedTuple, TypedDict, Union
-
+import attrs
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 from ward import test
@@ -516,3 +516,27 @@ async def _():
         res3 = await test.get("/data", query={"data": {"a": "hi", "b": 201}})
         assert res3.message == "hi"
         assert res3.status == 201
+
+@test("attrs validation")
+async def _():
+    app = new_app()
+    
+    @attrs.define
+    class Test:
+        a: str
+        b: int
+        c: list[str]
+        d: dict[str, int] = attrs.Factory(dict)
+
+    @app.get("/")
+    @app.query("test", Test)
+    async def index(test: Test):
+        return test.a
+
+    async with app.test() as test:
+        assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": []}})).message == "b"
+        assert (await test.get("/", query={"test": {"a": "b", "b": "hi", "c": []}})).status == 400
+        assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": ["a"]}})).message == "b"
+        assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [1]}})).status == 400
+        assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": "b"}}})).status == 400
+        assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": 0}}})).message == "b"

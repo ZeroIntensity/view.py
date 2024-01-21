@@ -8,12 +8,7 @@ from pathlib import Path
 from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
                     get_args, get_type_hints)
 
-from ._util import run_path
-
-try:
-    from pydantic.fields import ModelField
-except ImportError:
-    from pydantic.fields import FieldInfo as ModelField
+from ._util import run_path, needs_dep
 
 if not TYPE_CHECKING:
     from typing import _eval_type
@@ -34,7 +29,7 @@ from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired = None
 try:
-    from typing import NotRequired
+    from typing import NotRequired  # type: ignore
 except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
@@ -51,6 +46,8 @@ if NotRequired:
 
 if TYPE_CHECKING:
     from .app import App as ViewApp
+    from attrs import Attribute
+    from pydantic.fields import ModelField
 
     _TypedDictMeta = None
 else:
@@ -291,11 +288,35 @@ def _build_type_codes(
 
             for k, v in pydantic_fields.items():
                 if (not v.default) and (not v.default_factory):
-                    tps[k] = v.outer_type_
+                    tps[k] = v.outer_type_  # type: ignore
                 else:
                     tps[k] = BodyParam(
-                        v.outer_type_,
+                        v.outer_type_,  # type: ignore
                         v.default or v.default_factory,
+                    )
+
+            doc = {}
+            codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
+            setattr(tp, "_view_doc", doc)
+            continue
+        
+        attrs_fields: tuple[Attribute, ...] | None = getattr(tp, "__attrs_attrs__", None)
+        if attrs_fields:
+            try:
+                from attrs import Factory
+            except ModuleNotFoundError as e:
+                needs_dep("attrs", e)
+
+            tps = {}
+
+            for i in attrs_fields:
+                default = i.default
+                if not default:
+                    tps[i.name] = i.type
+                else:
+                    tps[i.name] = BodyParam(
+                        i.type,  # type: ignore
+                        default.factory if isinstance(default, Factory) else default,  # type: ignore
                     )
 
             doc = {}
