@@ -125,6 +125,7 @@ The types supported are (all of which can be mixed and matched to your needs):
 - `None`
 - `dataclasses.dataclass`
 - `pydantic.BaseModel`
+- Classes decorated with `attrs.define`
 - `typing.NamedTuple`
 - `typing.TypedDict`
 - Any object supporting the `__view_body__` protocol.
