@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added optional dependencies for `databases`
 - Added environment prefixes for database configuration
 - Added `templates` and `TemplatesConfig` to config
+- Added the `templates` function
 
 ## [1.0.0-alpha7] - 2023-12-7
 
