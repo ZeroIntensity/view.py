@@ -192,8 +192,23 @@ async def render(
         if not env:
             templaters["jinja"] = Environment()
             env = templaters["jinja"]
+            env.is_async = True
 
-        return env.from_string(source).render(parameters)
+        return await env.from_string(source).render_async(**parameters)  # type: ignore
+    elif engine == "mako":
+        try:
+            from mako.template import Template
+        except ModuleNotFoundError as e:
+            needs_dep("mako", e, "templates")
+
+        return Template(source).render_unicode(**parameters)  # type: ignore
+    elif engine == "chameleon":
+        try:
+            from chameleon.zpt.template import PageTemplate
+        except ModuleNotFoundError as e:
+            needs_dep("chameleon", e, "templates")
+
+        return PageTemplate(source)(**parameters)  # type: ignore
     else:
         raise InvalidTemplateError(f'{engine!r} is not a supported template engine')
 
