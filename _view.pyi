@@ -108,5 +108,6 @@ class Context:
     client: __IPv4Address | __IPv6Address | None
     server: __IPv4Address | __IPv6Address | None
     method: __Method
-    scheme: __Literal["http", "https"]
     path: str
+    scheme: __Literal["http", "https"]
+    http_version: __Literal["1.0", "1.1", "2.0"]

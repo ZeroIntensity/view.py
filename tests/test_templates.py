@@ -69,3 +69,14 @@ async def _():
     
     async with app.test() as test:
         assert (await test.get("/")).message.replace("\n", "") == "1"
+
+@test("view renderer subtemplates")
+async def _():
+    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "subtemplates.toml")
+
+    @app.get("/")
+    async def index():
+        return await template("sub")
+    
+    async with app.test() as test:
+        assert (await test.get("/")).message.replace("\n", "") == "helloworld"

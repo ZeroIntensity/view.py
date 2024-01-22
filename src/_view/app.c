@@ -127,7 +127,6 @@ struct Route {
     PyObject* client_errors[28];
     PyObject* server_errors[11];
     PyObject* exceptions;
-    bool pass_context;
     bool has_body;
     map* routes;
     route* r;
@@ -147,7 +146,7 @@ typedef enum {
     NULL_ALLOWED = 2 << 0
 } typecode_flag;
 
-static int PyErr_BadASGI(void) {
+int PyErr_BadASGI(void) {
     PyErr_SetString(
         PyExc_RuntimeError,
         "error with asgi implementation"
@@ -201,7 +200,6 @@ route* route_new(
     r->cache_status = 0;
     r->inputs = NULL;
     r->inputs_size = inputs_size;
-    r->pass_context = false;
     r->has_body = has_body;
 
     // transports
@@ -345,7 +343,6 @@ route* route_transport_new(route* r) {
     rt->cache_status = 0;
     rt->inputs = NULL;
     rt->inputs_size = 0;
-    rt->pass_context = false;
     rt->has_body = false;
 
     for (int i = 0; i < 28; i++)
@@ -392,11 +389,6 @@ static PyObject* cast_from_typecodes(
     PyObject* item,
     PyObject* json_parser
 );
-
-static PyObject* handle_route_data(int data) {
-    PyObject* context = Context_new(&ContextType, NULL, NULL);
-    return context;
-}
 
 static int verify_dict_typecodes(
     type_info** codes,
@@ -780,7 +772,8 @@ static PyObject** generate_params(
     const char* data,
     PyObject* query,
     route_input** inputs,
-    Py_ssize_t inputs_size
+    Py_ssize_t inputs_size,
+    PyObject* scope
 ) {
     PyObject* py_str = PyUnicode_FromString(data);
     if (!py_str)
@@ -810,7 +803,7 @@ static PyObject** generate_params(
     for (int i = 0; i < inputs_size; i++) {
         route_input* inp = inputs[i];
         if (inp->route_data) {
-            ob[i] = handle_route_data(inp->route_data);
+            ob[i] = handle_route_data(inp->route_data, scope);
             continue;
         }
 
@@ -1912,11 +1905,12 @@ static int handle_route_impl(
     ViewApp* self;
     Py_ssize_t* size;
     PyObject** path_params;
+    PyObject* scope;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
-        NULL,
+        &scope,
         NULL,
         NULL
         ) < 0) {
@@ -1953,8 +1947,10 @@ static int handle_route_impl(
         body,
         query_obj,
         r->inputs,
-        r->inputs_size
+        r->inputs_size,
+        scope
     );
+
     Py_DECREF(query_obj);
 
     if (!params) {
@@ -2161,11 +2157,12 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     route* r;
     PyObject** path_params;
     Py_ssize_t* size;
+    PyObject* scope;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
-        NULL,
+        &scope,
         NULL,
         NULL
         ) < 0) {
@@ -2214,7 +2211,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     for (int i = 0; i < r->inputs_size; i++) {
         if (r->inputs[i]->route_data) {
-            params[i] = handle_route_data(r->inputs[i]->route_data);
+            params[i] = handle_route_data(r->inputs[i]->route_data, scope);
             ++final_size;
             continue;
         }

@@ -6,5 +6,6 @@
 
 extern PyTypeObject ContextType;
 PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwargs);
+PyObject* handle_route_data(int data, PyObject* scope);
 
 #endif

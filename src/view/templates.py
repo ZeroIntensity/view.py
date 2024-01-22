@@ -83,7 +83,7 @@ class ViewRenderer:
             if key == "ref":
                 result.append(str(eval(value, self.parameters)))
             elif key == "template":
-                result.append(await template(value))
+                result.append((await template(value)).body)
             elif key == "if":
                 self._last_if = bool(eval(value, self.parameters))
                 if not self._last_if:

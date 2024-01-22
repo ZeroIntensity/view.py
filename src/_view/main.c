@@ -18,7 +18,7 @@ static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
                                     methods};
-
+PyObject* ip_address = NULL;
 
 void view_fatal(
     const char* message,
@@ -61,7 +61,6 @@ PyMODINIT_FUNC PyInit__view() {
         "Awaitable",
         (PyObject*) &PyAwaitable_Type
         ) < 0) {
-        Py_DECREF(&PyAwaitable_Type);
         Py_DECREF(m);
         return NULL;
     }
@@ -73,8 +72,6 @@ PyMODINIT_FUNC PyInit__view() {
         "ViewApp",
         (PyObject*) &ViewAppType
         ) < 0) {
-        Py_DECREF(&ViewAppType);
-        Py_DECREF(&PyAwaitable_Type);
         Py_DECREF(m);
         return NULL;
     }
@@ -85,22 +82,29 @@ PyMODINIT_FUNC PyInit__view() {
         "_GenWrapper",
         (PyObject*) &_PyAwaitable_GenWrapper_Type
         ) < 0) {
-        Py_DECREF(&ViewAppType);
-        Py_DECREF(&PyAwaitable_Type);
-        Py_DECREF(&_PyAwaitable_GenWrapper_Type);
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&ContextType);
     if (PyModule_AddObject(m, "Context", (PyObject*) &ContextType) < 0) {
-        Py_DECREF(&ViewAppType);
-        Py_DECREF(&PyAwaitable_Type);
-        Py_DECREF(&_PyAwaitable_GenWrapper_Type);
-        Py_DECREF(&ContextType);
         Py_DECREF(m);
         return NULL;
     }
+
+    PyObject* ipaddress_mod = PyImport_ImportModule("ipaddress");
+    if (!ipaddress_mod) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    ip_address = PyObject_GetAttrString(ipaddress_mod, "ip_address");
+    if (!ip_address) {
+        Py_DECREF(m);
+        Py_DECREF(ipaddress_mod);
+        return NULL;
+    }
+    Py_DECREF(ipaddress_mod);
 
     return m;
 }
