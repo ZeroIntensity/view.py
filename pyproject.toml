@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "view.py"
-description = 'Lightning fast, modern web framework.'
+description = 'The Batteries-Detachable Web Framework.'
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = []
