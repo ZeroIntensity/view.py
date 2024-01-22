@@ -72,9 +72,9 @@ def _():
 #### Query Parameters
 | Name | Description | Type | Default |
 | - | - | - | - |
-| contacts | Your phone contacts. | `object<string, integer>` | **Required** |
-| favorite_color | Your favorite color. | `string` | **Required** |
 | person | Your info. | `Person` | **Required** |
+| favorite_color | Your favorite color. | `string` | **Required** |
+| contacts | Your phone contacts. | `object<string, integer>` | **Required** |
 #### Body Parameters
 | Name | Description | Type | Default |
 | - | - | - | - |

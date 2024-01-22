@@ -541,7 +541,6 @@ async def _():
         assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": "b"}}})).status == 400
         assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": 0}}})).message == "b"
 
-
 @test("caching")
 async def _():
     app = new_app()
@@ -586,3 +585,29 @@ async def _():
         
         results = [(await test.get("/param_std")).message for _ in range(10)]
         assert all(i == results[0] for i in results)
+
+@test("synchronous route inputs")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    @app.query("test", str)
+    def index(test: str):
+        return test
+
+    @app.get("/body")
+    @app.body("test", str)
+    def bd(test: str):
+        return test
+
+    @app.get("/both")
+    @app.body("a", str)
+    @app.query("b", str)
+    def both(a: str, b: str):
+        return a + b
+
+    async with app.test() as test:
+        assert (await test.get("/", query={"test": "a"})).message == "a"
+        assert (await test.get("/body", body={"test": "b"})).message == "b"
+        assert (await test.get("/both", body={"a": "a"}, query={"b": "b"})).message == "ab"
+
