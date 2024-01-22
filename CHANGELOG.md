@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added environment prefixes for database configuration
 - Added `templates` and `TemplatesConfig` to config
 - Added the `templates` function
-- Added support for `attrs` in type validation.
+- Added support for `attrs` in type validation
+- Removed `psutil` and `plotext` as a global dependency
+- Added `fancy` optional dependencies
+- Fixed route inputs with synchronous routes
+- **Breaking Change:** Route inputs are now applied in the order of the decorator call as it appears in code
 
 ## [1.0.0-alpha7] - 2023-12-7
 

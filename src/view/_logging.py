@@ -12,8 +12,7 @@ from abc import ABC
 from threading import Event, Thread
 from typing import IO, Callable, Iterable, NamedTuple, TextIO
 
-import plotext as plt
-import psutil
+from ._util import shell_hint
 from rich import box
 from rich.align import Align
 from rich.console import Console, ConsoleOptions, RenderResult
@@ -712,9 +711,11 @@ class Dataset:
     """Dataset in a graph."""
 
     def __init__(self, name: str, point_limit: int | None = None) -> None:
-        """Args:
-        name: Name of the dataset.
-        point_limit: Amount of points allowed in the dataset at a time."""
+        """
+        Args:
+            name: Name of the dataset.
+            point_limit: Amount of points allowed in the dataset at a time.
+        """
         self.name = name
         self.points: dict[float, float] = {}
         self.point_limit = point_limit
@@ -725,7 +726,8 @@ class Dataset:
 
         Args:
             x: X value.
-            y: Y value."""
+            y: Y value.
+        """
         Internal.info(f"{self.point_limit} {len(self.point_order)}")
         if self.point_limit and (len(self.point_order) >= self.point_limit):
             to_del = self.point_order.pop(0)
@@ -740,61 +742,6 @@ class Dataset:
             self.add_point(*i)
 
 
-class Plot:
-    """Plot renderable for rich."""
-
-    def __init__(self, name: str, x: str, y: str) -> None:
-        """Args:
-        name: Title of the graph.
-        x: X label of the graph.
-        y: Y label of the graph."""
-        plt.xscale("linear")
-        plt.yscale("linear")
-
-        self.title = name
-        self.x_label = x
-        self.y_label = y
-        self.datasets: dict[str, Dataset] = {}
-
-    def dataset(self, name: str, *, point_limit: int | None = None) -> Dataset:
-        """Generate or create a new dataset.
-
-        Args:
-            name: Name of the dataset.
-            point_limit: Limit on the number of points to be allowed on the graph at a time. If not set, terminal size divided by 3 is used.
-        """
-        found = self.datasets.get(name)
-        if found:
-            return found
-
-        size = os.get_terminal_size().lines // 3
-
-        ds = Dataset(name, point_limit=point_limit or size)
-        self.datasets[name] = ds
-        return ds
-
-    def _render(self, width: int, height: int) -> None:
-        plt.clf()
-        plt.plotsize(width, height)
-
-        for ds in self.datasets.values():
-            if ds.points:
-                plt.plot(
-                    [x for x in ds.points.keys()],
-                    [y for y in ds.points.values()],
-                    label=ds.name,
-                )
-
-        plt.title(self.title)
-        plt.xlabel(self.x_label)
-        plt.ylabel(self.y_label)
-        plt.theme("pro")
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        self._render(options.max_width, options.max_height)
-        yield Text.from_ansi(plt.build())
 
 
 def _heat_color(amount: float) -> str:
@@ -872,22 +819,112 @@ def _server_logger():
         feed,
         Layout(name="corner"),
     )
-    os = HeatedProgress(
+    system = HeatedProgress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(finished_style="dim red"),
         TaskProgressColumn(),
     )
-    cpu = os.add_task("CPU")
-    mem = os.add_task("Memory (Virtual)")
-    smem = os.add_task("Memory (Swap)")
-    disk = os.add_task("Disk Usage")
+    cpu = system.add_task("CPU")
+    mem = system.add_task("Memory (Virtual)")
+    smem = system.add_task("Memory (Swap)")
+    disk = system.add_task("Disk Usage")
+    
+    try:
+        import plotext as plt
+    except ModuleNotFoundError as e:
+        plt = None
+    
+    class Plot:
+        """Plot renderable for rich."""
+
+        def __init__(self, name: str, x: str, y: str) -> None:
+            """Args:
+            name: Title of the graph.
+            x: X label of the graph.
+            y: Y label of the graph."""
+            if plt:
+                plt.xscale("linear")
+                plt.yscale("linear")
+
+            self.title = name
+            self.x_label = x
+            self.y_label = y
+            self.datasets: dict[str, Dataset] = {}
+
+        def dataset(self, name: str, *, point_limit: int | None = None) -> Dataset:
+            """Generate or create a new dataset.
+
+            Args:
+                name: Name of the dataset.
+                point_limit: Limit on the number of points to be allowed on the graph at a time. If not set, terminal size divided by 3 is used.
+            """
+            found = self.datasets.get(name)
+            if found:
+                return found
+
+            size = os.get_terminal_size().lines // 3
+
+            ds = Dataset(name, point_limit=point_limit or size)
+            self.datasets[name] = ds
+            return ds
+
+        def _render(self, width: int, height: int) -> None:
+            if not plt:
+                return
+
+            plt.clf()
+            plt.plotsize(width, height)
+
+            for ds in self.datasets.values():
+                if ds.points:
+                    plt.plot(
+                        [x for x in ds.points.keys()],
+                        [y for y in ds.points.values()],
+                        label=ds.name,
+                    )
+
+            plt.title(self.title)
+            plt.xlabel(self.x_label)
+            plt.ylabel(self.y_label)
+            plt.theme("pro")
+
+        def __rich_console__(
+            self, console: Console, options: ConsoleOptions
+        ) -> RenderResult:
+            if not plt:
+                return Panel(
+                    shell_hint(
+                        "pip install plotext",
+                        "pip install view.py[fancy]"
+                    ),
+                    title="This widget needs an external library!"
+                )
+            self._render(options.max_width, options.max_height)
+            yield Text.from_ansi(plt.build())
 
     layout["corner"].split_row(
         Layout(name="left_corner"),
         Layout(name="very_corner"),
     )
     network = Plot("Network", "Seconds", "Usage (KbPS)")
-    layout["very_corner"].split_column(Panel(os, title="System"), network)
+    
+    try:
+        import psutil
+    except ModuleNotFoundError:
+        psutil = None
+    
+    if psutil:
+        layout["very_corner"].split_column(Panel(system, title="System"), network)
+    else:
+        layout["very_corner"].split_column(Panel(
+            shell_hint(
+                "pip install plotext",
+                "pip install view.py[fancy]"
+            ),
+            title="This widget needs an external library!"),
+            network
+        )
+
 
     io = Plot("IO", "Seconds", "Usage (Per Second)")
     layout["left_corner"].split_column(table, io)
@@ -900,16 +937,22 @@ def _server_logger():
     sys.stderr = _StandardErrProxy(console, sys.stderr, _QUEUE)
 
     def inner():
+        if not psutil:
+            return
+
         while not _CLOSE.wait(0.3):
-            os.update(cpu, completed=psutil.cpu_percent())
-            os.update(mem, completed=psutil.virtual_memory().percent)
-            os.update(smem, completed=psutil.swap_memory().percent)
-            os.update(disk, completed=psutil.disk_usage("/").percent)
+            system.update(cpu, completed=psutil.cpu_percent())
+            system.update(mem, completed=psutil.virtual_memory().percent)
+            system.update(smem, completed=psutil.swap_memory().percent)
+            system.update(disk, completed=psutil.disk_usage("/").percent)
 
     network.dataset("Upload").add_point(0, 0)
     network.dataset("Download").add_point(0, 0)
 
     def net():
+        if not psutil:
+            return
+
         base = time.time()
         net_io = psutil.net_io_counters()
 
@@ -926,6 +969,9 @@ def _server_logger():
             net_io = net_io2
 
     def io_count():
+        if not psutil:
+            return
+
         base = time.time()
         p = psutil.Process()
         pio_base = p.io_counters()

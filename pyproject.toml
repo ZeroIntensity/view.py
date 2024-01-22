@@ -26,11 +26,8 @@ dependencies = [
     "typing_extensions",
     "ujson",
     "configzen",
-    "psutil",
-    "plotext",
     "uvicorn",
     "aiofiles",
-    "aiohttp",
 ]
 dynamic = ["version", "license"]
 
@@ -46,6 +43,7 @@ databases = [
     "aiosqlite"
 ]
 templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon"]
+fancy = ["psutil", "plotext"]
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"

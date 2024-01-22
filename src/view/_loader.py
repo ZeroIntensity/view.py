@@ -141,7 +141,7 @@ def _format_body(
             default=default,
         )
         vbody_defaults[k] = default
-
+    
     return [
         (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
         for k, v in vbody_final.items()
@@ -443,6 +443,7 @@ def finalize(routes: list[Route], app: ViewApp):
                     )
                 )
         app.loaded_routes.append(route)
+        route.inputs = [i for i in reversed(route.inputs)]
         target(
             route.path,  # type: ignore
             route.func,
