@@ -19,7 +19,6 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from typing_extensions import Annotated, TypeGuard
 
-from ._logging import Internal
 from .exceptions import NotLoadedWarning, NeedsDependencyError
 from rich.markup import escape
 try:
@@ -147,6 +146,7 @@ def make_hint(
 
 
 def run_path(path: str | Path) -> dict[str, Any]:
+    from ._logging import Internal
     sys.path.append(str(Path(path).parent.absolute()))
     path = str(Path(path).absolute())
     Internal.info(f"running: {path}")

@@ -141,7 +141,7 @@ def _format_body(
             default=default,
         )
         vbody_defaults[k] = default
-
+    
     return [
         (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
         for k, v in vbody_final.items()
@@ -421,6 +421,7 @@ def finalize(routes: list[Route], app: ViewApp):
             virtual_routes[route.path or ""] = [route]
 
         sig = inspect.signature(route.func)
+        route.inputs = [i for i in reversed(route.inputs)]
         if len(sig.parameters) != len(route.inputs):
             names = [i.name for i in route.inputs]
             for k, v in sig.parameters.items():

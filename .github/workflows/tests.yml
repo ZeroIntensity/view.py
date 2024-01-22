@@ -39,7 +39,7 @@ jobs:
               run: pip install --upgrade --pre ward
 
             - name: Install project
-              run: pip install .[templates]
+              run: pip install .[full]
 
             - name: Run tests
               run: ward

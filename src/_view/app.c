@@ -1899,6 +1899,7 @@ static int handle_route_impl(
     ViewApp* self;
     Py_ssize_t* size;
     PyObject** path_params;
+
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
@@ -1933,6 +1934,7 @@ static int handle_route_impl(
             NULL
         );
     }
+
     PyObject** params = json_parser(
         &self->parsers,
         body,
@@ -1940,7 +1942,6 @@ static int handle_route_impl(
         r->inputs,
         r->inputs_size
     );
-
     Py_DECREF(query_obj);
 
     if (!params) {
@@ -1977,7 +1978,6 @@ static int handle_route_impl(
             NULL
         );
 
-
         for (int i = 0; i < r->inputs_size + *size; i++)
             Py_DECREF(merged[i]);
 
@@ -1992,22 +1992,33 @@ static int handle_route_impl(
             NULL
         );
 
-        for (int i = 0; i < r->inputs_size; i++) {
+        for (int i = 0; i < r->inputs_size; i++)
             Py_DECREF(params[i]);
+    }
+
+    if (!coro)
+        return -1;
+
+    if (!Py_IS_TYPE(coro, &PyCoro_Type)) {
+        if (handle_route_callback(awaitable, coro) < 0) {
+            if (fire_error(
+                self,
+                awaitable,
+                500,
+                r,
+                NULL
+                ) < 0)
+                return -1;
         }
-    }
-
-    if (!coro) {
-        return -1;
-    }
-
-    if (PyAwaitable_AddAwait(
-        awaitable,
-        coro,
-        handle_route_callback,
-        route_error
-        ) < 0) {
-        return -1;
+    } else {
+        if (PyAwaitable_AddAwait(
+            awaitable,
+            coro,
+            handle_route_callback,
+            route_error
+            ) < 0) {
+            return -1;
+        }
     }
 
     return 0;
@@ -2044,7 +2055,6 @@ static int body_inc_buf(PyObject* awaitable, PyObject* result) {
         Py_DECREF(more_body);
         return -1;
     }
-
 
     char* buf;
     Py_ssize_t* size;
@@ -2226,9 +2236,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
             );
             if (!parsed_item) {
                 PyErr_Clear();
-                for (int i = 0; i < r->inputs_size; i++) {
+                for (int i = 0; i < r->inputs_size; i++)
                     Py_XDECREF(params[i]);
-                }
 
                 free(params);
                 Py_DECREF(query_obj);
@@ -2274,18 +2283,30 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     free(params);
     Py_DECREF(query_obj);
 
-
     if (!coro)
         return -1;
 
-    if (PyAwaitable_AddAwait(
-        awaitable,
-        coro,
-        handle_route_callback,
-        route_error
-        ) < 0) {
-        Py_DECREF(coro);
-        return -1;
+    if (!Py_IS_TYPE(coro, &PyCoro_Type)) {
+        if (handle_route_callback(awaitable, coro) < 0) {
+            if (fire_error(
+                self,
+                awaitable,
+                500,
+                r,
+                NULL
+                ) < 0)
+                return -1;
+        }
+    } else {
+        if (PyAwaitable_AddAwait(
+            awaitable,
+            coro,
+            handle_route_callback,
+            route_error
+            ) < 0) {
+            Py_DECREF(coro);
+            return -1;
+        }
     }
 
     Py_DECREF(coro);
@@ -2880,6 +2901,7 @@ static PyObject* app(
         } else {
             res_coro = PyObject_CallNoArgs(r->callable);
         }
+
         if (!res_coro) {
             Py_DECREF(awaitable);
             free(path);
@@ -2898,9 +2920,9 @@ static PyObject* app(
             return awaitable;
         }
 
-        if (!PyObject_IsInstance(
+        if (!Py_IS_TYPE(
             res_coro,
-            (PyObject*) &PyCoro_Type
+            &PyCoro_Type
             )) {
             if (handle_route_callback(
                 awaitable,
