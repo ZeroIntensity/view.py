@@ -421,6 +421,7 @@ def finalize(routes: list[Route], app: ViewApp):
             virtual_routes[route.path or ""] = [route]
 
         sig = inspect.signature(route.func)
+        route.inputs = [i for i in reversed(route.inputs)]
         if len(sig.parameters) != len(route.inputs):
             names = [i.name for i in route.inputs]
             for k, v in sig.parameters.items():
@@ -443,7 +444,6 @@ def finalize(routes: list[Route], app: ViewApp):
                     )
                 )
         app.loaded_routes.append(route)
-        route.inputs = [i for i in reversed(route.inputs)]
         target(
             route.path,  # type: ignore
             route.func,
