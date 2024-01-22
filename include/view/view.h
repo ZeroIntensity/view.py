@@ -5,7 +5,7 @@
 #include <view/app.h>
 #include <view/awaitable.h>
 #include <view/map.h>
-
+#include <view/context.h>
 
 void view_fatal(
     const char* message,

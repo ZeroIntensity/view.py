@@ -289,6 +289,30 @@ def query(
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
+    """
+    Add a route input for a query parameter.
+    
+    Args:
+        name: The name of the parameter to read when the query string is received.
+        tps: All the possible types that are allowed to be used. If none are specified, the type is `Any`.
+        doc: Description of this parameter.
+        default: The default value to use if the key was not received.
+
+    Example:
+        ```py
+        from view import new_app, query
+
+        app = new_app()
+
+        @app.get("/")
+        @query("greeting", str, doc="The greeting to use.", default="hello")
+        def index(greeting: str):
+            return f"{greeting}, world!"
+
+        app.run()
+        ```
+    """
+
     frame = inspect.currentframe()
     assert frame, "currentframe() returned None"
 
@@ -315,10 +339,34 @@ def body(
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
+    """
+    Add a route input for a body parameter.
+    
+    Args:
+        name: The name of the parameter to read when the body is received.
+        tps: All the possible types that are allowed to be used. If none are specified, the type is `Any`.
+        doc: Description of this parameter.
+        default: The default value to use if the key was not received.
+
+    Example:
+        ```py
+        from view import new_app, body
+
+        app = new_app()
+
+        @app.get("/")
+        @body("greeting", str, doc="The greeting to use.", default="hello")
+        def index(greeting: str):
+            return f"{greeting}, world!"
+
+        app.run()
+        ```
+    """
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, True, tps, default, doc, []))
         return route
 
     return inner
+
 

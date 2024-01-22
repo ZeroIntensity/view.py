@@ -3,7 +3,11 @@
 # prefixed with __ to tell the developer that its not an actual symbol defined by
 # the extension module
 
+from ipaddress import IPv6Address as __IPv6Address
+from ipaddress import IPv4Address as __IPv4Address
+
 from typing import Any as __Any
+from typing import Literal as __Literal
 from typing import Awaitable as __Awaitable
 from typing import Coroutine as __Coroutine
 from typing import NoReturn as __NoReturn
@@ -16,6 +20,7 @@ from view.typing import Parser as __Parser
 from view.typing import Part as __Part
 from view.typing import RouteInputDict as __RouteInput
 from view.typing import ViewRoute as __ViewRoute
+from view.routing import Method as __Method
 
 __T = __TypeVar("__T")
 
@@ -93,3 +98,14 @@ class ViewApp:
     def _supply_parsers(self, query: __Parser, json: __Parser, /) -> None: ...
 
 def test_awaitable(coro: __Coroutine[__Any, __Any, __T], /) -> __Awaitable[__T]: ...
+
+class Context:
+    def __init__(self) -> __NoReturn: ...
+
+    cookies: dict[str, str]
+    headers: dict[str, str]
+    client: __IPv4Address | __IPv6Address | None
+    server: __IPv4Address | __IPv6Address | None
+    method: __Method
+    scheme: __Literal["http", "https"]
+    path: str
