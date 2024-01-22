@@ -8,8 +8,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Generic, Type, TypeVar, Union
 
-from typing_extensions import ParamSpec
-
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
 from .typing import Validator, ValueType, ViewResponse, ViewRoute
@@ -24,7 +22,6 @@ __all__ = (
     "query",
     "body",
     "route_types",
-    "cache",
     "BodyParam",
 )
 
@@ -59,10 +56,6 @@ class RouteInput(Generic[V]):
     validators: list[Validator[V]]
 
 
-P = ParamSpec("P")
-T = TypeVar("T", bound="ViewResponse")
-
-
 @dataclass
 class Part(Generic[V]):
     name: str
@@ -70,10 +63,10 @@ class Part(Generic[V]):
 
 
 @dataclass
-class Route(Generic[P, T], LoadChecker):
+class Route(LoadChecker):
     """Standard Route Wrapper"""
 
-    func: Callable[P, T]
+    func: Callable[..., ViewResponse]
     path: str | None
     method: Method
     inputs: list[RouteInput]
@@ -98,14 +91,14 @@ class Route(Generic[P, T], LoadChecker):
 
     __str__ = __repr__
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.func(*args, **kwargs)
 
 
-RouteOrCallable = Union[Route[P, T], ViewRoute[P, T]]
+RouteOrCallable = Union[Route, ViewRoute]
 
 
-def _ensure_route(r: RouteOrCallable[..., Any]) -> Route[..., Any]:
+def _ensure_route(r: RouteOrCallable) -> Route:
     if isinstance(r, Route):
         return r
 
@@ -113,9 +106,9 @@ def _ensure_route(r: RouteOrCallable[..., Any]) -> Route[..., Any]:
 
 
 def route_types(
-    r: RouteOrCallable[P, T],
+    r: RouteOrCallable,
     data: type[Any] | tuple[type[Any]] | dict[str, Any],
-) -> Route[P, T]:
+) -> Route:
     route = _ensure_route(r)
     if isinstance(data, tuple):
         for i in data:
@@ -134,13 +127,15 @@ def route_types(
 
 
 def _method(
-    r: RouteOrCallable[P, T],
+    r: RouteOrCallable,
     raw_path: str | None,
     doc: str | None,
     method: Method,
-) -> Route[P, T]:
+    cache_rate: int
+) -> Route:
     route = _ensure_route(r)
     route.method = method
+    route.cache_rate = cache_rate
     util_path = raw_path or "/"
 
     if not util_path.startswith("/"):
@@ -203,19 +198,20 @@ def _method(
     return route
 
 
-Path = Callable[[RouteOrCallable[P, T]], Route[P, T]]
+Path = Callable[[RouteOrCallable], Route]
 
 
 def _method_wrapper(
-    path_or_route: str | None | RouteOrCallable[P, T],
+    path_or_route: str | None | RouteOrCallable,
     doc: str | None,
     method: Method,
-) -> Path[P, T]:
-    def inner(r: RouteOrCallable[P, T]) -> Route[P, T]:
+    cache_rate: int
+) -> Path:
+    def inner(r: RouteOrCallable) -> Route:
         if (not isinstance(path_or_route, str)) and path_or_route:
             raise TypeError(f"{path_or_route!r} is not a string")
 
-        return _method(r, path_or_route, doc, method)
+        return _method(r, path_or_route, doc, method, cache_rate)
 
     if not path_or_route:
         return inner
@@ -227,45 +223,57 @@ def _method_wrapper(
 
 
 def get(
-    path_or_route: str | None | RouteOrCallable[P, T] = None,
+    path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
-) -> Path[P, T]:
-    return _method_wrapper(path_or_route, doc, Method.GET)
+    *,
+    cache_rate: int = -1,
+) -> Path:
+    return _method_wrapper(path_or_route, doc, Method.GET, cache_rate)
 
 
 def post(
     path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
+    *,
+    cache_rate: int = -1,
 ):
-    return _method_wrapper(path_or_route, doc, Method.POST)
+    return _method_wrapper(path_or_route, doc, Method.POST, cache_rate)
 
 
 def patch(
     path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
+    *,
+    cache_rate: int = -1,
 ):
-    return _method_wrapper(path_or_route, doc, Method.PATCH)
+    return _method_wrapper(path_or_route, doc, Method.PATCH, cache_rate)
 
 
 def put(
     path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
+    *,
+    cache_rate: int = -1,
 ):
-    return _method_wrapper(path_or_route, doc, Method.PUT)
+    return _method_wrapper(path_or_route, doc, Method.PUT, cache_rate)
 
 
 def delete(
     path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
+    *,
+    cache_rate: int = -1,
 ):
-    return _method_wrapper(path_or_route, doc, Method.DELETE)
+    return _method_wrapper(path_or_route, doc, Method.DELETE, cache_rate)
 
 
 def options(
     path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
+    *,
+    cache_rate: int = -1,
 ):
-    return _method_wrapper(path_or_route, doc, Method.OPTIONS)
+    return _method_wrapper(path_or_route, doc, Method.OPTIONS, cache_rate)
 
 
 class _NoDefault:
@@ -314,11 +322,3 @@ def body(
 
     return inner
 
-
-def cache(amount: int):
-    def inner(r: RouteOrCallable) -> Route:
-        route = _ensure_route(r)
-        route.cache_rate = amount
-        return route
-
-    return inner

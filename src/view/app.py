@@ -319,39 +319,40 @@ class App(ViewApp):
         self,
         path: str,
         doc: str | None,
+        cache_rate: int,
         target: Callable[..., Any],
         # i dont really feel like typing this properly
     ) -> Callable[[RouteOrCallable], Route]:
         def inner(route: RouteOrCallable) -> Route:
-            new_route = target(path, doc)(route)
+            new_route = target(path, doc, cache_rate=cache_rate)(route)
             self._push_route(new_route)
             return new_route
 
         return inner
 
-    def get(self, path: str, *, doc: str | None = None):
+    def get(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Set a GET route."""
-        return self._method_wrapper(path, doc, get)
+        return self._method_wrapper(path, doc, cache_rate, get)
 
-    def post(self, path: str, *, doc: str | None = None):
+    def post(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Set a POST route."""
-        return self._method_wrapper(path, doc, post)
+        return self._method_wrapper(path, doc, cache_rate, post)
 
-    def delete(self, path: str, *, doc: str | None = None):
+    def delete(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Set a DELETE route."""
-        return self._method_wrapper(path, doc, delete)
+        return self._method_wrapper(path, doc, cache_rate, delete)
 
-    def patch(self, path: str, *, doc: str | None = None):
+    def patch(self, path: str, doc: str | None = None, *, cache_rate: int = -1,):
         """Set a PATCH route."""
-        return self._method_wrapper(path, doc, patch)
+        return self._method_wrapper(path, doc, cache_rate, patch)
 
-    def put(self, path: str, *, doc: str | None = None):
+    def put(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Set a PUT route."""
-        return self._method_wrapper(path, doc, put)
+        return self._method_wrapper(path, doc, cache_rate, put)
 
-    def options(self, path: str, *, doc: str | None = None):
+    def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Set a OPTIONS route."""
-        return self._method_wrapper(path, doc, options)
+        return self._method_wrapper(path, doc, cache_rate, options)
 
     def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
         if key not in kwargs:

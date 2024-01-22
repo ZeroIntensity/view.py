@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 from ward import test
 
-from view import BodyParam, Response, body, new_app, query
+from view import BodyParam, Response, body, new_app, query, get
 
 
 @test("responses")
@@ -541,6 +541,31 @@ async def _():
         assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": "b"}}})).status == 400
         assert (await test.get("/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": 0}}})).message == "b"
 
+@test("caching")
+async def _():
+    app = new_app()
+    count = 0
+
+    @app.get("/param", cache_rate=10)
+    async def param():
+        nonlocal count
+        count += 1
+        return str(count)
+    
+    @get("/param_std", cache_rate=10)
+    async def param_std():
+        nonlocal count
+        count += 1
+        return str(count)
+    
+    
+    async with app.test() as test:
+        results = [(await test.get("/param")).message for _ in range(10)]
+        assert all(i == results[0] for i in results)
+        
+        results = [(await test.get("/param_std")).message for _ in range(10)]
+        assert all(i == results[0] for i in results)
+
 @test("synchronous route inputs")
 async def _():
     app = new_app()
@@ -565,3 +590,4 @@ async def _():
         assert (await test.get("/", query={"test": "a"})).message == "a"
         assert (await test.get("/body", body={"test": "b"})).message == "b"
         assert (await test.get("/both", body={"a": "a"}, query={"b": "b"})).message == "ab"
+
