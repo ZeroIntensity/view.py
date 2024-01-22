@@ -24,7 +24,7 @@ from ._logging import Internal
 from ._util import is_annotated, is_union, set_load
 from .exceptions import (DuplicateRouteError, InvalidBodyError,
                          InvalidRouteError, LoaderWarning)
-from .routing import BodyParam, Method, Route, RouteInput, _NoDefault
+from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired = None
@@ -363,12 +363,15 @@ def _build_type_codes(
     return codes
 
 
-def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
+def _format_inputs(inputs: list[RouteInput | RouteData]) -> list[RouteInputDict | RouteData]:
     """Convert a list of route inputs to a proper dictionary that the C loader can handle.
     This function also will generate the typecodes for the input."""
-    result: list[RouteInputDict] = []
+    result: list[RouteInputDict | RouteData] = []
 
     for i in inputs:
+        if not isinstance(i, RouteInput):
+            result.append(i)
+            continue
         type_codes = _build_type_codes(i.tp)
         Internal.info("built type codes:", type_codes)
         result.append(
@@ -423,7 +426,7 @@ def finalize(routes: list[Route], app: ViewApp):
         sig = inspect.signature(route.func)
         route.inputs = [i for i in reversed(route.inputs)]
         if len(sig.parameters) != len(route.inputs):
-            names = [i.name for i in route.inputs]
+            names = [i.name for i in route.inputs if isinstance(i, RouteInput)]
             for k, v in sig.parameters.items():
                 if k in names:
                     continue

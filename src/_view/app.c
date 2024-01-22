@@ -1,7 +1,4 @@
 #include <Python.h>
-#include <view/app.h>
-#include <view/awaitable.h>
-#include <view/map.h>
 #include <view/view.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -106,6 +103,7 @@ struct _type_info {
 };
 
 typedef struct _route_input {
+    int route_data; // if this is above 0, assume all other items are undefined
     type_info** types;
     Py_ssize_t types_size;
     PyObject* df;
@@ -222,6 +220,9 @@ route* route_new(
 
 void route_free(route* r) {
     for (int i = 0; i < r->inputs_size; i++) {
+        if (r->inputs[i]->route_data) {
+            continue;
+        }
         Py_XDECREF(r->inputs[i]->df);
         free_type_codes(
             r->inputs[i]->types,
@@ -391,6 +392,11 @@ static PyObject* cast_from_typecodes(
     PyObject* item,
     PyObject* json_parser
 );
+
+static PyObject* handle_route_data(int data) {
+    PyObject* context = Context_new(&ContextType, NULL, NULL);
+    return context;
+}
 
 static int verify_dict_typecodes(
     type_info** codes,
@@ -769,7 +775,7 @@ static PyObject* cast_from_typecodes(
     return NULL;
 }
 
-static PyObject** json_parser(
+static PyObject** generate_params(
     app_parsers* parsers,
     const char* data,
     PyObject* query,
@@ -803,6 +809,11 @@ static PyObject** json_parser(
 
     for (int i = 0; i < inputs_size; i++) {
         route_input* inp = inputs[i];
+        if (inp->route_data) {
+            ob[i] = handle_route_data(inp->route_data);
+            continue;
+        }
+
         PyObject* raw_item = PyDict_GetItemString(
             inp->is_body ? obj : query,
             inp->name
@@ -1224,6 +1235,7 @@ static const char* get_err_str(int status) {
     VIEW_FATAL("got bad status code");
     return NULL;
 }
+
 
 static int find_result_for(
     PyObject* target,
@@ -1725,6 +1737,7 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
     return result;
 }
 
+
 static int route_error(
     PyObject* awaitable,
     PyObject* tp,
@@ -1935,7 +1948,7 @@ static int handle_route_impl(
         );
     }
 
-    PyObject** params = json_parser(
+    PyObject** params = generate_params(
         &self->parsers,
         body,
         query_obj,
@@ -2184,6 +2197,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         Py_DECREF(query_obj);
         return -1;
     }
+
     Py_ssize_t fake_size = 0;
 
     if (size == NULL)
@@ -2199,6 +2213,12 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     Py_ssize_t final_size = 0;
 
     for (int i = 0; i < r->inputs_size; i++) {
+        if (r->inputs[i]->route_data) {
+            params[i] = handle_route_data(r->inputs[i]->route_data);
+            ++final_size;
+            continue;
+        }
+
         PyObject* item = PyDict_GetItemString(
             query_obj,
             r->inputs[i]->name
@@ -2210,9 +2230,9 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 ++final_size;
                 continue;
             }
-            for (int i = 0; i < r->inputs_size; i++) {
+
+            for (int i = 0; i < r->inputs_size; i++)
                 Py_XDECREF(params[i]);
-            }
 
             free(params);
             Py_DECREF(query_obj);
@@ -3153,6 +3173,20 @@ static int load(
         if (!inp) {
             Py_DECREF(iter);
             return -1;
+        }
+
+        if (Py_IS_TYPE(item, &PyLong_Type)) {
+            int data = PyLong_AsLong(item);
+
+            if (PyErr_Occurred()) {
+                Py_DECREF(iter);
+                return -1;
+            }
+
+            inp->route_data = data;
+            continue;
+        } else {
+            inp->route_data = 0;
         }
 
         PyObject* is_body = Py_XNewRef(

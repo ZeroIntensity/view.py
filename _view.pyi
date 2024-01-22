@@ -21,6 +21,7 @@ from view.typing import Part as __Part
 from view.typing import RouteInputDict as __RouteInput
 from view.typing import ViewRoute as __ViewRoute
 from view.routing import Method as __Method
+from view.routing import RouteData as __RouteData
 
 __T = __TypeVar("__T")
 
@@ -38,7 +39,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        inputs: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
         /,
@@ -48,7 +49,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        inputs: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
         /,
@@ -58,7 +59,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        inputs: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
         /,
@@ -68,7 +69,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        inputs: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
         /,
@@ -78,7 +79,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        inputs: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
         /,
@@ -88,7 +89,7 @@ class ViewApp:
         path: str,
         callable: __ViewRoute,
         cache_rate: int,
-        inputs: list[__RouteInput[__Any]],
+        inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
         /,

@@ -6,7 +6,7 @@ import re
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, Type, TypeVar, Union
+from typing import Any, Callable, Generic, Type, TypeVar, Union, Literal
 
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
@@ -61,6 +61,12 @@ class Part(Generic[V]):
     name: str
     type: type[V] | None
 
+RouteData = Literal[1]
+
+"""
+Route Data Information
+1 - Context
+"""
 
 @dataclass
 class Route(LoadChecker):
@@ -69,7 +75,7 @@ class Route(LoadChecker):
     func: Callable[..., ViewResponse]
     path: str | None
     method: Method
-    inputs: list[RouteInput]
+    inputs: list[RouteInput | RouteData]
     doc: str | None = None
     cache_rate: int = -1
     errors: dict[int, ViewRoute] | None = None
@@ -369,4 +375,14 @@ def body(
 
     return inner
 
+def context(r_or_none: RouteOrCallable | None = None):
+    def inner(r: RouteOrCallable) -> Route:
+        route = _ensure_route(r)
+        route.inputs.append(1)
+        return route
+    
+    if r_or_none:
+        return inner(r_or_none)
+
+    return inner
 

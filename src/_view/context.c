@@ -13,9 +13,9 @@ static PyMemberDef members[] = {
     {NULL}  /* Sentinel */
 };
 
-static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
+PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
     Context* self = (Context*) type->tp_alloc(type, 0);
-    if (self == NULL)
+    if (!self)
         return NULL;
 
     self->scheme = NULL;
@@ -23,7 +23,7 @@ static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
 }
 
 static void dealloc(Context* self) {
-
+    Py_XDECREF(self->scheme);
 }
 
 PyTypeObject ContextType = {
@@ -32,7 +32,7 @@ PyTypeObject ContextType = {
     .tp_basicsize = sizeof(Context),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_new = new,
+    .tp_new = Context_new,
     .tp_dealloc = (destructor) dealloc,
     .tp_members = members,
 };

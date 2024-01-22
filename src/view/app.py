@@ -466,6 +466,8 @@ class App(ViewApp):
 
         self.loaded = True
 
+        from .routing import RouteInput
+
         for r in self.loaded_routes:
             if not r.path:
                 continue
@@ -474,6 +476,9 @@ class App(ViewApp):
             query = {}
 
             for i in r.inputs:
+                if not isinstance(i, RouteInput):
+                    continue
+
                 target = body if i.is_body else query
                 target[i.name] = InputDoc(
                     i.doc or "No description provided.", i.tp, i.default

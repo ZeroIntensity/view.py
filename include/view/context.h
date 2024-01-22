@@ -5,5 +5,6 @@
 #include <view/backport.h>
 
 extern PyTypeObject ContextType;
+PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwargs);
 
 #endif
