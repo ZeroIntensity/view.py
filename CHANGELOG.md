@@ -11,7 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added environment prefixes for database configuration
 - Added `templates` and `TemplatesConfig` to config
 - Added the `templates` function
-- Added support for `attrs` in type validation.
+- Added support for `attrs` in type validation
+- Added documentation for caching
+- Added `App.cache`
+- Added the `cache_rate` parameter to routers
 
 ## [1.0.0-alpha7] - 2023-12-7
 

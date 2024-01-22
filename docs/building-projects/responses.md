@@ -13,6 +13,56 @@ app = new_app()
 async def index():
     return "Hello, view.py", 201, {"x-my-header": "my_header"}
 ```
+
+## Caching
+
+Sometimes, computing the response for a route can be expensive or unnecessary. For this, view.py, along with many other web frameworks, provide the ability to cache responses.
+
+View lets you do this in one of two ways:
+
+- Using the `cache` decorator (standard or direct).
+- Using the `cache_rate` parameter on a router.
+
+For example, with the `cache` decorator
+
+```py
+from view import new_app, cache
+
+app = new_app()
+
+@app.get("/")
+@cache(10)  # reload this route every 10 requests
+async def index():
+    return "..."
+
+app.run()
+```
+
+Once again, a direct variation of `cache` is available to prevent an import:
+
+```py
+@app.get("/")
+@app.cache(10)  # equivalent to the above
+async def index():
+    return "..."
+```
+
+Finally, you may use the `cache_rate` parameter on any router:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/", cache_rate=10)  # reload this route every 10 requests
+async def index():
+    return "..."
+
+app.run()
+```
+
+There is no difference between these two, and is simply up to personal preference. Note that the `cache` decorator will override the `cache_rate` parameter.
+
 ## Response Protocol
 
 If you have some sort of object that you want to wrap a response around, view.py gives you the `__view_response__` protocol. The only requirements are:
