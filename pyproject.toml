@@ -44,6 +44,20 @@ databases = [
 ]
 templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon"]
 fancy = ["psutil", "plotext"]
+full = [
+    "psutil",
+    "plotext",
+    "beautifulsoup4",
+    "jinja2",
+    "mako",
+    "django",
+    "chameleon",
+    "attrs",
+    "psycopg2-binary",
+    "mysql-connector-python",
+    "pymongo",
+    "aiosqlite"
+]
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"
