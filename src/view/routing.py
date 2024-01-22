@@ -22,7 +22,6 @@ __all__ = (
     "query",
     "body",
     "route_types",
-    "cache",
     "BodyParam",
 )
 
@@ -323,12 +322,3 @@ def body(
 
     return inner
 
-
-def cache(amount: int):
-    """Set the cache rate for a route. For example, if this is 10, the route will only be called every 10 requests."""
-    def inner(r: RouteOrCallable) -> Route:
-        route = _ensure_route(r)
-        route.cache_rate = amount
-        return route
-
-    return inner

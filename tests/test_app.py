@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 from ward import test
 
-from view import BodyParam, Response, body, new_app, query, cache, get
+from view import BodyParam, Response, body, new_app, query, get
 
 
 @test("responses")
@@ -546,20 +546,6 @@ async def _():
     app = new_app()
     count = 0
 
-    @app.get("/")
-    @cache(10)
-    async def index():
-        nonlocal count
-        count += 1
-        return str(count)
-    
-    @app.get("/direct")
-    @app.cache(10)
-    async def direct():
-        nonlocal count
-        count += 1
-        return str(count)
-    
     @app.get("/param", cache_rate=10)
     async def param():
         nonlocal count
@@ -574,12 +560,6 @@ async def _():
     
     
     async with app.test() as test:
-        results = [(await test.get("/")).message for _ in range(10)]
-        assert all(i == results[0] for i in results)
-        
-        results = [(await test.get("/direct")).message for _ in range(10)]
-        assert all(i == results[0] for i in results)
-        
         results = [(await test.get("/param")).message for _ in range(10)]
         assert all(i == results[0] for i in results)
         

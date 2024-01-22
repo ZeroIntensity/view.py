@@ -43,7 +43,6 @@ from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
-from .routing import cache as cache_impl
 from .typing import Callback, DocsType
 from .util import enable_debug
 
@@ -354,10 +353,6 @@ class App(ViewApp):
     def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Set a OPTIONS route."""
         return self._method_wrapper(path, doc, cache_rate, options)
-    
-    def cache(self, amount: int):
-        """Set the cache rate for a route. For example, if this is 10, the route will only be called every 10 requests."""
-        return cache_impl(amount)
 
     def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
         if key not in kwargs:
