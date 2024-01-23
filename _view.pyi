@@ -20,7 +20,7 @@ from view.typing import Parser as __Parser
 from view.typing import Part as __Part
 from view.typing import RouteInputDict as __RouteInput
 from view.typing import ViewRoute as __ViewRoute
-from view.routing import Method as __Method
+from view.typing import StrMethodASGI as __StrMethodASGI
 from view.routing import RouteData as __RouteData
 
 __T = __TypeVar("__T")
@@ -107,7 +107,7 @@ class Context:
     headers: dict[str, str]
     client: __IPv4Address | __IPv6Address | None
     server: __IPv4Address | __IPv6Address | None
-    method: __Method
+    method: __StrMethodASGI
     path: str
     scheme: __Literal["http", "https"]
     http_version: __Literal["1.0", "1.1", "2.0"]

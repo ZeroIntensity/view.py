@@ -149,7 +149,7 @@ typedef enum {
 int PyErr_BadASGI(void) {
     PyErr_SetString(
         PyExc_RuntimeError,
-        "error with asgi implementation"
+        "problem with view.py's ASGI server (this is a bug!)"
     );
     return -1;
 }
@@ -803,7 +803,14 @@ static PyObject** generate_params(
     for (int i = 0; i < inputs_size; i++) {
         route_input* inp = inputs[i];
         if (inp->route_data) {
-            ob[i] = handle_route_data(inp->route_data, scope);
+            PyObject* data = handle_route_data(inp->route_data, scope);
+            if (!data) {
+                Py_DECREF(obj);
+                free(ob);
+                return NULL;
+            }
+
+            ob[i] = data;
             continue;
         }
 
@@ -2211,7 +2218,17 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     for (int i = 0; i < r->inputs_size; i++) {
         if (r->inputs[i]->route_data) {
-            params[i] = handle_route_data(r->inputs[i]->route_data, scope);
+            PyObject* data = handle_route_data(r->inputs[i]->route_data, scope);
+            if (!data) {
+                for (int i = 0; i < r->inputs_size; i++)
+                    Py_XDECREF(params[i]);
+
+                free(params);
+                Py_DECREF(query_obj);
+                return -1;
+            }
+
+            params[i] = data;
             ++final_size;
             continue;
         }
@@ -2240,9 +2257,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 r,
                 NULL
             );
-        } else {
-            ++final_size;
-        }
+        } else ++final_size;
 
         if (item) {
             PyObject* parsed_item = cast_from_typecodes(
