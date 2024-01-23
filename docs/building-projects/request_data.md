@@ -13,7 +13,7 @@ The `Context` instance contains information about the incoming request, includin
 - The URL path.
 - The client and server address.
 
-!!! note
+!!! info
 
     `Context` is an [extension type](https://docs.python.org/3/extending/newtypes_tutorial.html), and is defined in the `_view` module. It's Python signatures are defined in the `_view` type stub.
 
@@ -74,7 +74,7 @@ app.run()
 
 `Context` can also be used to detect whether the route is being used via `App.test`, through the `http_version` attribute.
 
-!!! note
+!!! info
 
     `App.test` is a more internal detail, but is available to use publically. It looks like this:
 
@@ -146,9 +146,34 @@ app.run()
 
 ## Server and Client Address
 
+The `Context` also provides information about the servers binding address, as well as the address of the client. This information is provided in the form of an `ipaddress.IPv4Address` or `ipaddress.IPv6Address` (see the [ipaddress module](https://docs.python.org/3/library/ipaddress.html)), and then the port is in a seperate attribute.
+
+Both `Context.client` and `Context.client_port` may be `None`, but note that **if either of them is not `None`, the other one will be non `None`**. For example:
+
+```py
+from view import new_app, Context
+
+app = new_app()
+
+@app.get('/')
+@app.context
+async def index(ctx: Context):
+    if ctx.client:
+        port = ctx.client_port  # this will always be an int in this case
+    ...
+
+app.run()
+```
+
+!!! danger
+
+    The above is **not** type safe. The type checker will still believe the `port` is `int | None`.
+
 ## Review
 
-`Context` is similiar to `Request` in other web frameworks, and is considered to be a route input in View. `Context` contains eight attributes:
+`Context` is similiar to `Request` in other web frameworks, and is considered to be a route input in View, meaning you can add it to a route via the `context` decorator (or `App.context`, to prevent an extra import), or by the automatic route input system (i.e. adding a parameter annotated with type `Context`).
+
+`Context` contains eight attributes:
 
 - `headers`, of type `dict[str, str]`.
 - `cookies`, of type `dict[str, str]`.

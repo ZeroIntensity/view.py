@@ -57,6 +57,10 @@ app.run()
 
 This method may be a bit more versatile if you plan on writing a larger project using manual routing, as you can import your routes from other files, but if that's the case it's recommended that you use one of the other loaders.
 
+!!! tip
+
+    Use the direct variation if the `App` is already available, and use the standard version otherwise.
+
 ::: view.routing.get
 ::: view.routing.post
 ::: view.routing.put
@@ -116,6 +120,11 @@ In the above example, we defined two routes via exporting a `tuple` of `Route` o
 - `URL_PATTERNS`
 - `urlpatterns`
 - `url_patterns`
+
+!!! tip
+
+    Traditionally, Python constants are denoted via using the `SCREAMING_SNAKE_CASE` naming convention.
+    To follow Python convention, use `PATTERNS` or `URL_PATTERNS` when using the `patterns` loader.
 
 ## Filesystem Routing
 
