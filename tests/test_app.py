@@ -589,7 +589,37 @@ async def _():
     @app.get("/")
     @context()
     async def index(ctx: Context):
-        return ctx.headers["hi"]
+        return ctx.headers["hello"]
+
+    @app.get("/scheme")
+    @app.context
+    async def scheme(ctx: Context):
+        return ctx.scheme
+    
+    @app.get("/method")
+    @app.context()
+    async def method(ctx: Context):
+        return ctx.method
+    
+    @app.post("/method")
+    @context
+    async def method_post(ctx: Context):
+        return ctx.method
+    
+    @app.get("/version")
+    @context
+    async def http_version(ctx: Context):
+        return ctx.http_version
+    
+    @app.get("/cookies")
+    @context
+    async def cookies(ctx: Context):
+        return ctx.cookies["hello"]
 
     async with app.test() as test:
-        (await test.get("/"))
+        assert (await test.get("/", headers={"hello": "world"})).message == "world"
+        assert (await test.get("/scheme")).message == "http"
+        assert (await test.get("/method")).message == "GET"
+        assert (await test.post("/method")).message == "POST"
+        assert (await test.get("/version")).message == "view_test"
+        assert (await test.get("/cookies", headers={"cookie": "hello=world"})).message == "world"
