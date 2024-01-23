@@ -2607,7 +2607,6 @@ static PyObject* app(
     );
     PyObject** params = NULL;
     Py_ssize_t* size = NULL;
-
     if (!r || r->r) {
         if (!self->has_path_params) {
             if (fire_error(
@@ -2722,8 +2721,8 @@ static PyObject* app(
 
             target = rt->routes;
         }
-        bool failed = false;
 
+        bool failed = false;
         r = rt->r;
         if (r && !r->callable) {
             r = r->r;         // edge case
@@ -2750,7 +2749,8 @@ static PyObject* app(
         }
     }
 
-    if ((r->cache_index++ < r->cache_rate) && r->cache) {
+    if ((r->cache_rate != -1) && (r->cache_index++ < r->cache_rate) &&
+        r->cache) {
         PyObject* dct = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
@@ -3370,6 +3370,8 @@ static bool figure_has_body(PyObject* inputs) {
     }
 
     while ((item = PyIter_Next(iter))) {
+        if (Py_IS_TYPE(item, &PyLong_Type))
+            continue;
         PyObject* is_body = PyDict_GetItemString(
             item,
             "is_body"
