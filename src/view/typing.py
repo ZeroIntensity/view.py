@@ -132,3 +132,11 @@ StrMethod = Literal[
     "OPTIONS",
 ]
 TemplateEngine = Literal["view", "jinja", "django", "mako", "chameleon"]
+StrMethodASGI = Literal[
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]

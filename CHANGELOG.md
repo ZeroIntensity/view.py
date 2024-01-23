@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- Fixed `template` attribute with the `view` template renderer
+- Added the `context` decorator and the `Context` type
+- Added the `headers` parameter to functions on `TestingContext`
+- Modified some behavior of automatic route inputs
+
 ## [1.0.0-alpha8] - 2024-1-21
 
 - Added optional dependencies for `databases` and `templates`

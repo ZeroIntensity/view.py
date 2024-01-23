@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import inspect
+import os
+import sys
 from pathlib import Path
 from types import FrameType as Frame
+from types import ModuleType
 from typing import TYPE_CHECKING, Any, Iterator, Type
+
 import aiofiles
+
 from ._util import needs_dep
-from .app import get_app, App
+from .app import App, get_app
 from .config import TemplatesConfig
 from .exceptions import BadEnvironmentError, InvalidTemplateError
 from .response import HTML
 from .typing import TemplateEngine
-from types import ModuleType
-import os
-import sys
 
 if TYPE_CHECKING:
     from bs4 import Tag
@@ -41,7 +43,9 @@ class ViewRenderer:
         self.parameters = parameters
         self._last_if: bool | None = None
 
-    async def _render_children(self, view: Tag, result: list[Any], *, defer: bool = False) -> None:
+    async def _render_children(
+        self, view: Tag, result: list[Any], *, defer: bool = False
+    ) -> None:
         from bs4 import Tag
 
         for child in view.children:
@@ -53,22 +57,17 @@ class ViewRenderer:
             else:
                 result.append(child)
 
-    async def _tag(
-        self,
-        view: Tag,
-        *,
-        defer: bool = False
-    ) -> Tag | str | None:
+    async def _tag(self, view: Tag, *, defer: bool = False) -> Tag | str | None:
         if not view.attrs:
             raise InvalidTemplateError("<view> tags must have at least one attribute")
-        
+
         iterator_obj: Iterator[Any] | None = None
         iterator_name: str | None = None
 
         def _iter_render(itera: str, item: str) -> None:
             if not itera:
                 raise InvalidTemplateError('"iter" attribute cannot be empty')
-            
+
             if not item:
                 raise InvalidTemplateError('"item" attribute cannot be empty')
 
@@ -83,7 +82,7 @@ class ViewRenderer:
             if key == "ref":
                 result.append(str(eval(value, self.parameters)))
             elif key == "template":
-                result.append(await template(value))
+                result.append((await template(value)).body)
             elif key == "if":
                 self._last_if = bool(eval(value, self.parameters))
                 if not self._last_if:
@@ -91,7 +90,9 @@ class ViewRenderer:
                         view.replace_with("")
                     return None
             elif (key in {"else", "elif"}) and (self._last_if is None):
-                raise InvalidTemplateError(f'{key} can only be used if an "if" attribute was used prior')  # noqa
+                raise InvalidTemplateError(
+                    f'{key} can only be used if an "if" attribute was used prior'
+                )  # noqa
             elif key == "else":
                 if self._last_if is True:
                     if not defer:
@@ -112,13 +113,17 @@ class ViewRenderer:
             elif key == "iter":
                 item = view.attrs.get("item")
                 if not item:
-                    raise InvalidTemplateError(f'<view> tags with an "iter" attribute must have an "item" attribute')  # noqa
+                    raise InvalidTemplateError(
+                        f'<view> tags with an "iter" attribute must have an "item" attribute'
+                    )  # noqa
 
                 _iter_render(value, item)
             elif key == "item":
                 iter_name = view.attrs.get("iter")
                 if not iter_name:
-                    raise InvalidTemplateError(f'<view> tags with an "item" attribute must have an "iter" attribute')  # noqa
+                    raise InvalidTemplateError(
+                        f'<view> tags with an "item" attribute must have an "iter" attribute'
+                    )  # noqa
 
                 _iter_render(iter_name, value)
             else:
@@ -126,7 +131,7 @@ class ViewRenderer:
 
         if iterator_obj:
             assert iterator_name, "iterator_name is None (this is a bug!)"
-            
+
             for i in iterator_obj:  # type: ignore
                 self.parameters[iterator_name] = i
                 await self._render_children(view, result, defer=True)
@@ -136,7 +141,6 @@ class ViewRenderer:
             await self._render_children(view, result)
 
         return view.replace_with(*result) if not defer else "\n".join(result)
-
 
     async def render(self, content: str) -> str:
         try:
@@ -211,24 +215,26 @@ async def render(
         return PageTemplate(source)(**parameters)  # type: ignore
     elif engine == "django":
         try:
-            from django.template import Template, Context
-            from django.conf import settings
             from django import setup
+            from django.conf import settings
+            from django.template import Context, Template
         except ModuleNotFoundError as e:
             needs_dep("django", e, "templates")
 
-        TEMPLATES = [{
-            "BACKEND": "django.template.backends.django.DjangoTemplates",
-            "DIRS": [],
-            "APP_DIRS": False,
-            "OPTIONS": {}
-        }]
+        TEMPLATES = [
+            {
+                "BACKEND": "django.template.backends.django.DjangoTemplates",
+                "DIRS": [],
+                "APP_DIRS": False,
+                "OPTIONS": {},
+            }
+        ]
         settings.configure(TEMPLATES=TEMPLATES)
         setup()
 
         return Template(source).render(Context(parameters))
     else:
-        raise InvalidTemplateError(f'{engine!r} is not a supported template engine')
+        raise InvalidTemplateError(f"{engine!r} is not a supported template engine")
 
 
 async def template(
@@ -275,5 +281,5 @@ async def template(
 
     async with aiofiles.open(path) as f:
         source = await f.read()
-    
+
     return HTML(await render(source, engine, params))

@@ -41,6 +41,7 @@ from .exceptions import (BadEnvironmentError, ConfigurationError, ViewError,
 from .logging import _LogArgs, log
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
+from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .typing import Callback, DocsType
@@ -54,9 +55,7 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = (
-    "routes argument should only be passed when load strategy is manual"
-)
+_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
 
 B = TypeVar("B", bound=BaseException)
 
@@ -111,6 +110,7 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
         body_q = asyncio.Queue()
         start = asyncio.Queue()
@@ -137,26 +137,31 @@ class TestingContext:
 
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
+        headers_list = [
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
+        ]
 
         await self.app(
             {
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode()
-                if query
-                else b"",  # noqa
-                "headers": [],
+                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
+                "headers": headers_list,
                 "method": method,
+                "http_version": "view_test",
+                "scheme": "http",
+                "client": None,
+                "server": None,
             },
             receive,
             send,
         )
 
-        headers, status = await start.get()
+        res_headers, status = await start.get()
         body_s = await body_q.get()
 
-        return TestingResponse(body_s, headers, status)
+        return TestingResponse(body_s, res_headers, status)
 
     async def get(
         self,
@@ -164,8 +169,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("GET", route, body=body, query=query)
+        return await self._request(
+            "GET",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def post(
         self,
@@ -173,8 +185,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("POST", route, body=body, query=query)
+        return await self._request(
+            "POST",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def put(
         self,
@@ -182,8 +201,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("PUT", route, body=body, query=query)
+        return await self._request(
+            "PUT",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def patch(
         self,
@@ -191,8 +217,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("PATCH", route, body=body, query=query)
+        return await self._request(
+            "PATCH",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def delete(
         self,
@@ -200,8 +233,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("DELETE", route, body=body, query=query)
+        return await self._request(
+            "DELETE",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def options(
         self,
@@ -209,8 +249,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("OPTIONS", route, body=body, query=query)
+        return await self._request(
+            "OPTIONS",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
 
 @dataclass
@@ -290,9 +337,7 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -342,7 +387,13 @@ class App(ViewApp):
         """Set a DELETE route."""
         return self._method_wrapper(path, doc, cache_rate, delete)
 
-    def patch(self, path: str, doc: str | None = None, *, cache_rate: int = -1,):
+    def patch(
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ):
         """Set a PATCH route."""
         return self._method_wrapper(path, doc, cache_rate, patch)
 
@@ -437,6 +488,9 @@ class App(ViewApp):
 
         return inner
 
+    def context(self, r_or_none: RouteOrCallable | None = None):
+        return context_impl(r_or_none)
+
     async def _app(self, scope, receive, send) -> None:
         return await self.asgi_app_entry(scope, receive, send)
 
@@ -466,6 +520,8 @@ class App(ViewApp):
 
         self.loaded = True
 
+        from .routing import RouteInput
+
         for r in self.loaded_routes:
             if not r.path:
                 continue
@@ -474,6 +530,9 @@ class App(ViewApp):
             query = {}
 
             for i in r.inputs:
+                if not isinstance(i, RouteInput):
+                    continue
+
                 target = body if i.is_body else query
                 target[i.name] = InputDoc(
                     i.doc or "No description provided.", i.tp, i.default
@@ -501,9 +560,7 @@ class App(ViewApp):
 
         if self.config.log.fancy:
             if not self.config.log.hijack:
-                raise ConfigurationError(
-                    "hijack must be enabled for fancy mode"
-                )
+                raise ConfigurationError("hijack must be enabled for fancy mode")
 
             enter_server()
 
@@ -563,9 +620,7 @@ class App(ViewApp):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(
-                    self._app, conf
-                )
+                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -752,4 +807,3 @@ def get_app(*, address: int | None = None) -> App:
     app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
     ctypes.pythonapi.Py_IncRef(app)
     return app
-

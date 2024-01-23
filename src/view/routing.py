@@ -6,7 +6,7 @@ import re
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, Type, TypeVar, Union
+from typing import Any, Callable, Generic, Literal, Type, TypeVar, Union
 
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
@@ -23,6 +23,7 @@ __all__ = (
     "body",
     "route_types",
     "BodyParam",
+    "context",
 )
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
@@ -62,6 +63,14 @@ class Part(Generic[V]):
     type: type[V] | None
 
 
+RouteData = Literal[1]
+
+"""
+Route Data Information
+1 - Context
+"""
+
+
 @dataclass
 class Route(LoadChecker):
     """Standard Route Wrapper"""
@@ -69,7 +78,7 @@ class Route(LoadChecker):
     func: Callable[..., ViewResponse]
     path: str | None
     method: Method
-    inputs: list[RouteInput]
+    inputs: list[RouteInput | RouteData]
     doc: str | None = None
     cache_rate: int = -1
     errors: dict[int, ViewRoute] | None = None
@@ -119,8 +128,7 @@ def route_types(
         route.extra_types[data.__name__] = data
     else:
         raise InvalidRouteError(
-            "expected type, tuple of tuples,"
-            f" or a dict, got {type(data).__name__}"
+            "expected type, tuple of tuples," f" or a dict, got {type(data).__name__}"
         )
 
     return route
@@ -131,7 +139,7 @@ def _method(
     raw_path: str | None,
     doc: str | None,
     method: Method,
-    cache_rate: int
+    cache_rate: int,
 ) -> Route:
     route = _ensure_route(r)
     route.method = method
@@ -141,17 +149,13 @@ def _method(
     if not util_path.startswith("/"):
         raise MistakeError(
             "paths must started with a slash",
-            hint=make_hint(
-                f'This should be "/{util_path}" instead', back_lines=2
-            ),
+            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2),
         )
 
     if util_path.endswith("/") and (len(util_path) != 1):
         raise MistakeError(
             "paths must not end with a slash",
-            hint=make_hint(
-                f'This should be "{util_path[:-1]}" instead', back_lines=2
-            ),
+            hint=make_hint(f'This should be "{util_path[:-1]}" instead', back_lines=2),
         )
 
     if "{" in util_path:
@@ -205,7 +209,7 @@ def _method_wrapper(
     path_or_route: str | None | RouteOrCallable,
     doc: str | None,
     method: Method,
-    cache_rate: int
+    cache_rate: int,
 ) -> Path:
     def inner(r: RouteOrCallable) -> Route:
         if (not isinstance(path_or_route, str)) and path_or_route:
@@ -289,6 +293,30 @@ def query(
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
+    """
+    Add a route input for a query parameter.
+
+    Args:
+        name: The name of the parameter to read when the query string is received.
+        tps: All the possible types that are allowed to be used. If none are specified, the type is `Any`.
+        doc: Description of this parameter.
+        default: The default value to use if the key was not received.
+
+    Example:
+        ```py
+        from view import new_app, query
+
+        app = new_app()
+
+        @app.get("/")
+        @query("greeting", str, doc="The greeting to use.", default="hello")
+        def index(greeting: str):
+            return f"{greeting}, world!"
+
+        app.run()
+        ```
+    """
+
     frame = inspect.currentframe()
     assert frame, "currentframe() returned None"
 
@@ -315,6 +343,30 @@ def body(
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
 ):
+    """
+    Add a route input for a body parameter.
+
+    Args:
+        name: The name of the parameter to read when the body is received.
+        tps: All the possible types that are allowed to be used. If none are specified, the type is `Any`.
+        doc: Description of this parameter.
+        default: The default value to use if the key was not received.
+
+    Example:
+        ```py
+        from view import new_app, body
+
+        app = new_app()
+
+        @app.get("/")
+        @body("greeting", str, doc="The greeting to use.", default="hello")
+        def index(greeting: str):
+            return f"{greeting}, world!"
+
+        app.run()
+        ```
+    """
+
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, True, tps, default, doc, []))
@@ -322,3 +374,14 @@ def body(
 
     return inner
 
+
+def context(r_or_none: RouteOrCallable | None = None):
+    def inner(r: RouteOrCallable) -> Route:
+        route = _ensure_route(r)
+        route.inputs.append(1)
+        return route
+
+    if r_or_none:
+        return inner(r_or_none)
+
+    return inner

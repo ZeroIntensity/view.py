@@ -36,9 +36,7 @@ def _tp_name(tp: Any, types: list[Any]) -> str:
                     tp_name = _PRIMITIVES.get(origin) or getattr(
                         origin, "__name__", str(origin)
                     )
-                    parsed_args = [
-                        (_PRIMITIVES.get(i) or i.__name__) for i in args
-                    ]
+                    parsed_args = [(_PRIMITIVES.get(i) or i.__name__) for i in args]
                     return f"`{tp_name}<{', '.join(parsed_args)}>`"
 
                 return f"`{doc}`"

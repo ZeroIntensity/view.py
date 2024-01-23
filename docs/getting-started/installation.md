@@ -4,7 +4,7 @@
 
 view.py requires [CPython](https://python.org/downloads/) 3.8 or above.
 
-!!! note "What is CPython?"
+!!! question "What is CPython?"
 
     CPython is the reference/official implementation of Python. If you downloaded Python through [python.org](https://python.org) or some sort of system package manager (e.g. `apt`, `pacman`, `brew`), it's probably CPython.
 
@@ -26,7 +26,7 @@ $ source .venv/bin/activate
 $ pip install view.py
 ```
 
-!!! note "Why a virtual environment?"
+!!! question "Why a virtual environment?"
 
     view.py is a large package with lots of dependencies, as well as a big [extension module](https://docs.python.org/3/extending/extending.html). If you have no idea what a virtual environment is or why they're useful, take a look at [Python's documentation](https://docs.python.org/3/library/venv.html).
 

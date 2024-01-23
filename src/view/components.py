@@ -19,9 +19,7 @@ class DOMNode:
     __view_result__ = __str__
 
 
-AutoCapitalizeType = Literal[
-    "off", "none", "on", "sentences", "words", "characters"
-]
+AutoCapitalizeType = Literal["off", "none", "on", "sentences", "words", "characters"]
 DirType = Literal["ltr", "rtl", "auto"]
 
 

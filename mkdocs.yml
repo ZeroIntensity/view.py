@@ -12,6 +12,7 @@ nav:
     - Routing: building-projects/routing.md
     - Returning Responses: building-projects/responses.md
     - Taking Parameters: building-projects/parameters.md
+    - Request Data: building-projects/request_data.md
     - HTML Templating: building-projects/templating.md
     - Writing Documentation: building-projects/documenting.md
 
@@ -45,6 +46,8 @@ theme:
         name: Switch to system preference
 
 markdown_extensions:
+    - toc:
+          permalink: true
     - pymdownx.highlight:
           anchor_linenums: true
     - pymdownx.inlinehilite

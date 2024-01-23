@@ -1,7 +1,4 @@
 #include <Python.h>
-#include <view/app.h>
-#include <view/awaitable.h>
-#include <view/map.h>
 #include <view/view.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -106,6 +103,7 @@ struct _type_info {
 };
 
 typedef struct _route_input {
+    int route_data; // if this is above 0, assume all other items are undefined
     type_info** types;
     Py_ssize_t types_size;
     PyObject* df;
@@ -129,7 +127,6 @@ struct Route {
     PyObject* client_errors[28];
     PyObject* server_errors[11];
     PyObject* exceptions;
-    bool pass_context;
     bool has_body;
     map* routes;
     route* r;
@@ -149,10 +146,10 @@ typedef enum {
     NULL_ALLOWED = 2 << 0
 } typecode_flag;
 
-static int PyErr_BadASGI(void) {
+int PyErr_BadASGI(void) {
     PyErr_SetString(
         PyExc_RuntimeError,
-        "error with asgi implementation"
+        "problem with view.py's ASGI server (this is a bug!)"
     );
     return -1;
 }
@@ -203,7 +200,6 @@ route* route_new(
     r->cache_status = 0;
     r->inputs = NULL;
     r->inputs_size = inputs_size;
-    r->pass_context = false;
     r->has_body = has_body;
 
     // transports
@@ -222,6 +218,9 @@ route* route_new(
 
 void route_free(route* r) {
     for (int i = 0; i < r->inputs_size; i++) {
+        if (r->inputs[i]->route_data) {
+            continue;
+        }
         Py_XDECREF(r->inputs[i]->df);
         free_type_codes(
             r->inputs[i]->types,
@@ -344,7 +343,6 @@ route* route_transport_new(route* r) {
     rt->cache_status = 0;
     rt->inputs = NULL;
     rt->inputs_size = 0;
-    rt->pass_context = false;
     rt->has_body = false;
 
     for (int i = 0; i < 28; i++)
@@ -769,12 +767,13 @@ static PyObject* cast_from_typecodes(
     return NULL;
 }
 
-static PyObject** json_parser(
+static PyObject** generate_params(
     app_parsers* parsers,
     const char* data,
     PyObject* query,
     route_input** inputs,
-    Py_ssize_t inputs_size
+    Py_ssize_t inputs_size,
+    PyObject* scope
 ) {
     PyObject* py_str = PyUnicode_FromString(data);
     if (!py_str)
@@ -803,6 +802,18 @@ static PyObject** json_parser(
 
     for (int i = 0; i < inputs_size; i++) {
         route_input* inp = inputs[i];
+        if (inp->route_data) {
+            PyObject* data = handle_route_data(inp->route_data, scope);
+            if (!data) {
+                Py_DECREF(obj);
+                free(ob);
+                return NULL;
+            }
+
+            ob[i] = data;
+            continue;
+        }
+
         PyObject* raw_item = PyDict_GetItemString(
             inp->is_body ? obj : query,
             inp->name
@@ -1224,6 +1235,7 @@ static const char* get_err_str(int status) {
     VIEW_FATAL("got bad status code");
     return NULL;
 }
+
 
 static int find_result_for(
     PyObject* target,
@@ -1725,6 +1737,7 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
     return result;
 }
 
+
 static int route_error(
     PyObject* awaitable,
     PyObject* tp,
@@ -1899,11 +1912,12 @@ static int handle_route_impl(
     ViewApp* self;
     Py_ssize_t* size;
     PyObject** path_params;
+    PyObject* scope;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
-        NULL,
+        &scope,
         NULL,
         NULL
         ) < 0) {
@@ -1935,13 +1949,15 @@ static int handle_route_impl(
         );
     }
 
-    PyObject** params = json_parser(
+    PyObject** params = generate_params(
         &self->parsers,
         body,
         query_obj,
         r->inputs,
-        r->inputs_size
+        r->inputs_size,
+        scope
     );
+
     Py_DECREF(query_obj);
 
     if (!params) {
@@ -2148,11 +2164,12 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     route* r;
     PyObject** path_params;
     Py_ssize_t* size;
+    PyObject* scope;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
-        NULL,
+        &scope,
         NULL,
         NULL
         ) < 0) {
@@ -2184,6 +2201,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         Py_DECREF(query_obj);
         return -1;
     }
+
     Py_ssize_t fake_size = 0;
 
     if (size == NULL)
@@ -2199,6 +2217,22 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     Py_ssize_t final_size = 0;
 
     for (int i = 0; i < r->inputs_size; i++) {
+        if (r->inputs[i]->route_data) {
+            PyObject* data = handle_route_data(r->inputs[i]->route_data, scope);
+            if (!data) {
+                for (int i = 0; i < r->inputs_size; i++)
+                    Py_XDECREF(params[i]);
+
+                free(params);
+                Py_DECREF(query_obj);
+                return -1;
+            }
+
+            params[i] = data;
+            ++final_size;
+            continue;
+        }
+
         PyObject* item = PyDict_GetItemString(
             query_obj,
             r->inputs[i]->name
@@ -2210,9 +2244,9 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 ++final_size;
                 continue;
             }
-            for (int i = 0; i < r->inputs_size; i++) {
+
+            for (int i = 0; i < r->inputs_size; i++)
                 Py_XDECREF(params[i]);
-            }
 
             free(params);
             Py_DECREF(query_obj);
@@ -2223,9 +2257,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 r,
                 NULL
             );
-        } else {
-            ++final_size;
-        }
+        } else ++final_size;
 
         if (item) {
             PyObject* parsed_item = cast_from_typecodes(
@@ -2575,7 +2607,6 @@ static PyObject* app(
     );
     PyObject** params = NULL;
     Py_ssize_t* size = NULL;
-
     if (!r || r->r) {
         if (!self->has_path_params) {
             if (fire_error(
@@ -2690,8 +2721,8 @@ static PyObject* app(
 
             target = rt->routes;
         }
-        bool failed = false;
 
+        bool failed = false;
         r = rt->r;
         if (r && !r->callable) {
             r = r->r;         // edge case
@@ -2718,7 +2749,8 @@ static PyObject* app(
         }
     }
 
-    if ((r->cache_index++ < r->cache_rate) && r->cache) {
+    if ((r->cache_rate != -1) && (r->cache_index++ < r->cache_rate) &&
+        r->cache) {
         PyObject* dct = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
@@ -3155,6 +3187,20 @@ static int load(
             return -1;
         }
 
+        if (Py_IS_TYPE(item, &PyLong_Type)) {
+            int data = PyLong_AsLong(item);
+
+            if (PyErr_Occurred()) {
+                Py_DECREF(iter);
+                return -1;
+            }
+
+            inp->route_data = data;
+            continue;
+        } else {
+            inp->route_data = 0;
+        }
+
         PyObject* is_body = Py_XNewRef(
             PyDict_GetItemString(
                 item,
@@ -3324,6 +3370,8 @@ static bool figure_has_body(PyObject* inputs) {
     }
 
     while ((item = PyIter_Next(iter))) {
+        if (Py_IS_TYPE(item, &PyLong_Type))
+            continue;
         PyObject* is_body = PyDict_GetItemString(
             item,
             "is_body"

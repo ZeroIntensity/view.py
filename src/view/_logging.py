@@ -12,7 +12,6 @@ from abc import ABC
 from threading import Event, Thread
 from typing import IO, Callable, Iterable, NamedTuple, TextIO
 
-from ._util import shell_hint
 from rich import box
 from rich.align import Align
 from rich.console import Console, ConsoleOptions, RenderResult
@@ -27,6 +26,7 @@ from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
 
+from ._util import shell_hint
 from .exceptions import ViewInternalError
 from .typing import LogLevel
 
@@ -742,8 +742,6 @@ class Dataset:
             self.add_point(*i)
 
 
-
-
 def _heat_color(amount: float) -> str:
     """Generate a color for a percentage."""
     if amount < 20:
@@ -828,12 +826,12 @@ def _server_logger():
     mem = system.add_task("Memory (Virtual)")
     smem = system.add_task("Memory (Swap)")
     disk = system.add_task("Disk Usage")
-    
+
     try:
         import plotext as plt
     except ModuleNotFoundError as e:
         plt = None
-    
+
     class Plot:
         """Plot renderable for rich."""
 
@@ -893,11 +891,8 @@ def _server_logger():
         ) -> RenderResult:
             if not plt:
                 return Panel(
-                    shell_hint(
-                        "pip install plotext",
-                        "pip install view.py[fancy]"
-                    ),
-                    title="This widget needs an external library!"
+                    shell_hint("pip install plotext", "pip install view.py[fancy]"),
+                    title="This widget needs an external library!",
                 )
             self._render(options.max_width, options.max_height)
             yield Text.from_ansi(plt.build())
@@ -907,24 +902,22 @@ def _server_logger():
         Layout(name="very_corner"),
     )
     network = Plot("Network", "Seconds", "Usage (KbPS)")
-    
+
     try:
         import psutil
     except ModuleNotFoundError:
         psutil = None
-    
+
     if psutil:
         layout["very_corner"].split_column(Panel(system, title="System"), network)
     else:
-        layout["very_corner"].split_column(Panel(
-            shell_hint(
-                "pip install plotext",
-                "pip install view.py[fancy]"
+        layout["very_corner"].split_column(
+            Panel(
+                shell_hint("pip install plotext", "pip install view.py[fancy]"),
+                title="This widget needs an external library!",
             ),
-            title="This widget needs an external library!"),
-            network
+            network,
         )
-
 
     io = Plot("IO", "Seconds", "Usage (Per Second)")
     layout["left_corner"].split_column(table, io)

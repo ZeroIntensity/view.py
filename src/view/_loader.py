@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
                     get_args, get_type_hints)
 
-from ._util import run_path, needs_dep
+from _view import Context
+
+from ._util import needs_dep, run_path
 
 if not TYPE_CHECKING:
     from typing import _eval_type
@@ -21,10 +23,11 @@ else:
 import inspect
 
 from ._logging import Internal
-from ._util import is_annotated, is_union, set_load
+from ._util import docs_hint, is_annotated, is_union, set_load
 from .exceptions import (DuplicateRouteError, InvalidBodyError,
                          InvalidRouteError, LoaderWarning)
-from .routing import BodyParam, Method, Route, RouteInput, _NoDefault
+from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
+                      _NoDefault)
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired = None
@@ -45,9 +48,10 @@ if NotRequired:
     _NOT_REQUIRED_TYPES.append(NotRequired)
 
 if TYPE_CHECKING:
-    from .app import App as ViewApp
     from attrs import Attribute
     from pydantic.fields import ModelField
+
+    from .app import App as ViewApp
 
     _TypedDictMeta = None
 else:
@@ -141,10 +145,9 @@ def _format_body(
             default=default,
         )
         vbody_defaults[k] = default
-    
+
     return [
-        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
-        for k, v in vbody_final.items()
+        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k]) for k, v in vbody_final.items()
     ]
 
 
@@ -299,8 +302,10 @@ def _build_type_codes(
             codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
-        
-        attrs_fields: tuple[Attribute, ...] | None = getattr(tp, "__attrs_attrs__", None)
+
+        attrs_fields: tuple[Attribute, ...] | None = getattr(
+            tp, "__attrs_attrs__", None
+        )
         if attrs_fields:
             try:
                 from attrs import Factory
@@ -332,9 +337,7 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append(
-                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
-            )
+            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -348,9 +351,7 @@ def _build_type_codes(
             key, value = get_args(tp)
 
             if key is not str:
-                raise InvalidBodyError(
-                    f"dictionary keys must be strings, not {key}"
-                )
+                raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
 
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
@@ -363,12 +364,17 @@ def _build_type_codes(
     return codes
 
 
-def _format_inputs(inputs: list[RouteInput]) -> list[RouteInputDict]:
+def _format_inputs(
+    inputs: list[RouteInput | RouteData],
+) -> list[RouteInputDict | RouteData]:
     """Convert a list of route inputs to a proper dictionary that the C loader can handle.
     This function also will generate the typecodes for the input."""
-    result: list[RouteInputDict] = []
+    result: list[RouteInputDict | RouteData] = []
 
     for i in inputs:
+        if not isinstance(i, RouteInput):
+            result.append(i)
+            continue
         type_codes = _build_type_codes(i.tp)
         Internal.info("built type codes:", type_codes)
         result.append(
@@ -422,18 +428,26 @@ def finalize(routes: list[Route], app: ViewApp):
 
         sig = inspect.signature(route.func)
         route.inputs = [i for i in reversed(route.inputs)]
+
         if len(sig.parameters) != len(route.inputs):
-            names = [i.name for i in route.inputs]
+            names = [i.name for i in route.inputs if isinstance(i, RouteInput)]
+            index = 0
+
             for k, v in sig.parameters.items():
                 if k in names:
+                    index += 1
                     continue
 
                 tp = v.annotation if v.annotation is not inspect._empty else Any
-                default = (
-                    v.default if v.default is not inspect._empty else _NoDefault
-                )
 
-                route.inputs.append(
+                if tp is Context:
+                    route.inputs.insert(index, 1)
+                    continue
+
+                default = v.default if v.default is not inspect._empty else _NoDefault
+
+                route.inputs.insert(
+                    index,
                     RouteInput(
                         k,
                         False,
@@ -443,6 +457,14 @@ def finalize(routes: list[Route], app: ViewApp):
                         [],
                     )
                 )
+                index += 1
+
+            if len(route.inputs) != len(sig.parameters):
+                raise InvalidRouteError(
+                    "mismatch in parameter names with automatic route inputs",
+                    hint=docs_hint("https://view.zintensity.dev/building-projects/parameters/#automatically")
+                )
+
         app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore
@@ -502,9 +524,7 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(
-                        path_obj.parts[len(target_dir.parts) :]
-                    )  # noqa
+                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -557,8 +577,7 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
             for route in mini_routes:
                 if not route.path:
                     raise InvalidRouteError(
-                        "omitting path is only supported"
-                        " on filesystem loading",
+                        "omitting path is only supported" " on filesystem loading",
                     )
 
                 routes.append(route)

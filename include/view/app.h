@@ -5,5 +5,6 @@
 #include <view/backport.h>
 
 extern PyTypeObject ViewAppType;
+int PyErr_BadASGI(void);
 
 #endif

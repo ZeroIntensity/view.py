@@ -1,0 +1,2 @@
+[templates]
+directory = "tests/subtemplates/"

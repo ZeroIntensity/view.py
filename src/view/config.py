@@ -12,6 +12,7 @@ from .exceptions import ViewInternalError
 from .logging import FileWriteMethod, Urgency
 from .typing import TemplateEngine
 
+
 class AppConfig(ConfigModel, env_prefix="view_app_"):
     loader: Literal["manual", "simple", "filesystem", "patterns"] = "manual"
     app_path: str = ConfigField("app.py:app")
@@ -55,9 +56,7 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
 
 
 class LogConfig(ConfigModel, env_prefix="view_log_"):
-    level: Union[
-        Literal["debug", "info", "warning", "error", "critical"], int
-    ] = "info"
+    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
     hijack: bool = True
     fancy: bool = True
     pretty_tracebacks: bool = True

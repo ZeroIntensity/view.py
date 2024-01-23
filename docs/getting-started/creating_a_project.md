@@ -51,7 +51,7 @@ dev = true
 loader_path = "./my_custom_loader_path"
 ```
 
-Finally, for mobility purposes, you may want to add a `pyproject.toml` that contains the dependencies for your project, in case you need to run your project on a different system.
+For mobility purposes, you may want to add a `pyproject.toml` that contains the dependencies for your project, in case you need to run your project on a different system.
 
 ```toml
 # pyproject.toml

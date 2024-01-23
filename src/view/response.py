@@ -33,9 +33,7 @@ class Response(Generic[T]):
         if body_translate:
             self.translate = body_translate
         else:
-            self.translate = (
-                "str" if not hasattr(body, "__view_result__") else "result"
-            )
+            self.translate = "str" if not hasattr(body, "__view_result__") else "result"
 
     def cookie(
         self,
