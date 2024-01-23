@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
                     get_args, get_type_hints)
 
+from _view import Context
+
 from ._util import needs_dep, run_path
 
 if not TYPE_CHECKING:
@@ -433,6 +435,9 @@ def finalize(routes: list[Route], app: ViewApp):
                     continue
 
                 tp = v.annotation if v.annotation is not inspect._empty else Any
+                if tp is Context:
+                    route.inputs.append(1)
+                    continue
                 default = v.default if v.default is not inspect._empty else _NoDefault
 
                 route.inputs.append(

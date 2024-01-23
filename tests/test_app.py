@@ -612,7 +612,6 @@ async def _():
         return ctx.http_version
     
     @app.get("/cookies")
-    @context
     async def cookies(ctx: Context):
         return ctx.cookies["hello"]
 
@@ -623,3 +622,17 @@ async def _():
         assert (await test.post("/method")).message == "POST"
         assert (await test.get("/version")).message == "view_test"
         assert (await test.get("/cookies", headers={"cookie": "hello=world"})).message == "world"
+
+@test("context alongside other inputs")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    @app.query("a", str)
+    @app.context
+    @app.body("c", str)
+    async def index(a: str, ctx: Context, c: str):
+        return a + ctx.headers["b"] + c
+
+    async with app.test() as test:
+        assert (await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})).message == "abc"
