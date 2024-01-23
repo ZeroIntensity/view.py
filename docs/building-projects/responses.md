@@ -132,6 +132,23 @@ async def index():
 
 Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere. 
 
+!!! note
+
+    A `Response` must be *returned* for things like `cookie` to take effect. For example:
+
+    ```py
+    from view import new_app, Response
+
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        res = Response(...)
+        return "..."  # res is not returned!
+
+    app.run()
+    ```
+
 ## Review
 
 Responses can be returned with a string, integer, and/or dictionary in any order.

@@ -82,6 +82,9 @@ def shell_hint(*commands: str) -> Panel:
     )
 
 
+def docs_hint(url: str) -> str:
+    return f"[bold green]for more information, see [/][bold blue]{url}[/]"
+
 def make_hint(
     comment: str | None = None,
     caller: Function | None | Iterable[Function] | str = None,

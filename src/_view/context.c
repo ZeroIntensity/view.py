@@ -31,6 +31,24 @@ static PyMemberDef members[] = {
     {NULL}  /* Sentinel */
 };
 
+static PyObject* repr(PyObject* self) {
+    Context* ctx = (Context*) self;
+    return PyUnicode_FromFormat(
+        "Context(scheme=%R, headers=%R, cookies=%R, http_version=%R, client=%R, client_port=%R, server=%R, server_port=%R, method=%R, path=%R)",
+        ctx->scheme,
+        ctx->headers,
+        ctx->cookies,
+        ctx->http_version,
+        ctx->client,
+        ctx->client_port,
+        ctx->server,
+        ctx->server_port,
+        ctx->method,
+        ctx->path
+    );
+}
+
+
 static void dealloc(Context* self) {
     Py_XDECREF(self->scheme);
     Py_XDECREF(self->headers);
@@ -212,7 +230,6 @@ PyObject* handle_route_data(int data, PyObject* scope) {
     return (PyObject*) context;
 }
 
-
 PyTypeObject ContextType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "_view.Context",
@@ -222,4 +239,5 @@ PyTypeObject ContextType = {
     .tp_new = Context_new,
     .tp_dealloc = (destructor) dealloc,
     .tp_members = members,
+    .tp_repr = repr
 };

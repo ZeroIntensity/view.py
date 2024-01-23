@@ -23,7 +23,7 @@ else:
 import inspect
 
 from ._logging import Internal
-from ._util import is_annotated, is_union, set_load
+from ._util import docs_hint, is_annotated, is_union, set_load
 from .exceptions import (DuplicateRouteError, InvalidBodyError,
                          InvalidRouteError, LoaderWarning)
 from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
@@ -428,19 +428,26 @@ def finalize(routes: list[Route], app: ViewApp):
 
         sig = inspect.signature(route.func)
         route.inputs = [i for i in reversed(route.inputs)]
+
         if len(sig.parameters) != len(route.inputs):
             names = [i.name for i in route.inputs if isinstance(i, RouteInput)]
+            index = 0
+
             for k, v in sig.parameters.items():
                 if k in names:
+                    index += 1
                     continue
 
                 tp = v.annotation if v.annotation is not inspect._empty else Any
+
                 if tp is Context:
-                    route.inputs.append(1)
+                    route.inputs.insert(index, 1)
                     continue
+
                 default = v.default if v.default is not inspect._empty else _NoDefault
 
-                route.inputs.append(
+                route.inputs.insert(
+                    index,
                     RouteInput(
                         k,
                         False,
@@ -450,6 +457,14 @@ def finalize(routes: list[Route], app: ViewApp):
                         [],
                     )
                 )
+                index += 1
+
+            if len(route.inputs) != len(sig.parameters):
+                raise InvalidRouteError(
+                    "mismatch in parameter names with automatic route inputs",
+                    hint=docs_hint("https://view.zintensity.dev/building-projects/parameters/#automatically")
+                )
+
         app.loaded_routes.append(route)
         target(
             route.path,  # type: ignore

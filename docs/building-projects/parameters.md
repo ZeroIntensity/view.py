@@ -57,6 +57,22 @@ async def index(hello: int):
     ...
 ```
 
+!!! note
+
+    Route inputs are based on their order, and not the name of the input. For example, the following is valid:
+
+    ```py
+    from view import new_app
+
+    app = new_app()
+    
+    @app.get("/")
+    @app.query("hello", str)
+    @app.query("world", str)
+    async def index(world: str, hello: str):  # the world parameter will get the "hello input", and vice versa
+        ...
+    ```
+
 ### Automatically
 
 If you've used a library like [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with the concept of automatic inputs. Automatic inputs in terms of view.py are when you define route inputs without using a `query` or `body` decorator, and instead, just get input definitions through the function signature. This is the most basic example:
@@ -74,6 +90,23 @@ app.run()
 ```
 
 Note that automatic inputs create inputs for **query parameters only**.
+
+!!! note
+    
+    When mixing automatic route inputs with decorators (e.g. `query` and `body`), view.py assumes that decorator inputs have the same name as the parameter. For example, the following will not work:
+
+    ```py
+    from view import new_app
+
+    app = new_app()
+
+    @app.get("/")
+    @app.query("hello", str)
+    async def index(hello_param: str, test: str):
+        ...
+
+    app.run()
+    ```
 
 ## Cast Semantics
 
@@ -184,7 +217,7 @@ async def index(me: Person):
     return f"Hello, {me.first} {me.last}"
 ```
 
-If you would prefer to not use an object, view supports using a `TypedDict` to enforce parameters. It's subject to the same rules as normal objects, but is allowed to use `typing.NotRequired` to omit keys. Note that `TypedDict` **cannot** have default values.
+If you would prefer to not use an object, View supports using a `TypedDict` to enforce parameters. It's subject to the same rules as normal objects, but is allowed to use `typing.NotRequired` to omit keys. Note that `TypedDict` **cannot** have default values.
 
 ```py
 from view import new_app
