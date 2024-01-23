@@ -57,25 +57,16 @@ def log(
     assert f is not None
     assert f.f_back is not None
     time = time or DateTime.now()
-    time_msg = (
-        f"[bold dim blue]{time.strftime(strftime)}[/] " if show_time else ""
-    )
+    time_msg = f"[bold dim blue]{time.strftime(strftime)}[/] " if show_time else ""
     caller_msg = (
         f"[bold magenta]{f.f_back.f_code.co_filename}:{f.f_back.f_lineno}[/] "
         if show_caller
         else ""
     )
     urgency_msg = (
-        f"[bold {_URGENCY_COLORS[urgency]}]{urgency}[/]: "
-        if show_urgency
-        else ""
+        f"[bold {_URGENCY_COLORS[urgency]}]{urgency}[/]: " if show_urgency else ""
     )
-    msg = (
-        time_msg
-        + caller_msg
-        + urgency_msg
-        + " ".join([str(i) for i in messages])
-    )
+    msg = time_msg + caller_msg + urgency_msg + " ".join([str(i) for i in messages])
 
     if file_write != "only":
         Console(file=file_out or sys.stdout).print(
@@ -83,9 +74,7 @@ def log(
             markup=show_color,
             highlight=show_color,
         )
-        _QUEUE.put_nowait(
-            QueueItem(True, False, urgency, msg + "\n", is_stdout=True)
-        )
+        _QUEUE.put_nowait(QueueItem(True, False, urgency, msg + "\n", is_stdout=True))
 
     if (file_write != "never") and log_file:
         if isinstance(log_file, (str, Path)):

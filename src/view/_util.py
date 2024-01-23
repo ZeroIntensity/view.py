@@ -13,14 +13,15 @@ from collections.abc import Iterable
 from pathlib import Path
 from types import FrameType as Frame
 from types import FunctionType as Function
-from typing import Any, Union, NoReturn
+from typing import Any, NoReturn, Union
 
+from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 from typing_extensions import Annotated, TypeGuard
 
-from .exceptions import NotLoadedWarning, NeedsDependencyError
-from rich.markup import escape
+from .exceptions import NeedsDependencyError, NotLoadedWarning
+
 try:
     from types import UnionType
 except ImportError:
@@ -36,7 +37,7 @@ __all__ = (
     "make_hint",
     "is_annotated",
     "run_path",
-    "needs_dep"
+    "needs_dep",
 )
 
 
@@ -55,9 +56,7 @@ class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (
-            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
-        ):
+        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -74,9 +73,7 @@ def shell_hint(*commands: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = (
-            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
-        )
+        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
 
     formatted = [f"{shell_prefix} {command}" for command in commands]
     return Panel.fit(
@@ -147,6 +144,7 @@ def make_hint(
 
 def run_path(path: str | Path) -> dict[str, Any]:
     from ._logging import Internal
+
     sys.path.append(str(Path(path).parent.absolute()))
     path = str(Path(path).absolute())
     Internal.info(f"running: {path}")
@@ -155,12 +153,14 @@ def run_path(path: str | Path) -> dict[str, Any]:
     return mod
 
 
-def needs_dep(name: str, err: ModuleNotFoundError, section: str | None = None) -> NoReturn:
+def needs_dep(
+    name: str, err: ModuleNotFoundError, section: str | None = None
+) -> NoReturn:
     sect = f"[{section}]"
     if section:
         hint = shell_hint(
-                f"pip install {name}",
-                f"pip install view.py{escape(sect)}",
+            f"pip install {name}",
+            f"pip install view.py{escape(sect)}",
         )
     else:
         hint = shell_hint(f"pip install {name}")
