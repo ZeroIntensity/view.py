@@ -25,7 +25,7 @@ import ujson
 import uvicorn
 from rich import print
 from rich.traceback import install
-from typing_extensions import Unpack
+from typing_extensions import ParamSpec, Unpack
 
 from _view import ViewApp
 
@@ -490,7 +490,7 @@ class App(ViewApp):
 
     def context(self, r_or_none: RouteOrCallable | None = None):
         return context_impl(r_or_none)
-
+    
     async def _app(self, scope, receive, send) -> None:
         return await self.asgi_app_entry(scope, receive, send)
 

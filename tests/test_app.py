@@ -636,3 +636,49 @@ async def _():
 
     async with app.test() as test:
         assert (await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})).message == "abc"
+
+@test("middleware")
+async def _():
+    app = new_app()
+    value: bool = False
+
+    @app.get("/")
+    async def index():
+        return str(value)
+
+    @index.middleware
+    async def index_middleware():
+        nonlocal value
+        value = True
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "True"
+
+@test("middleware with parameters")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    @app.query("a", str)
+    async def index(a: str):
+        return "hello"
+
+    @index.middleware
+    async def index_middleware(a: str):
+        assert a == "a"
+
+    @app.get("/both")
+    @app.query("a", str)
+    @app.context
+    @app.body("b", str)
+    async def both(a: str, ctx: Context, b: str):
+        return "hello"
+
+    @both.middleware
+    async def both_middleware(a: str, ctx: Context, b: str):
+        assert a + b == "ab"
+        assert ctx.http_version == "view_test"
+
+    async with app.test() as test:
+        await test.get("/", query={"a": "a"})
+        await test.get("/both", query={"a": "a"}, body={"b": "b"})

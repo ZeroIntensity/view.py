@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
                     List, Literal, Tuple, Type, TypeVar, Union)
 
-from typing_extensions import ParamSpec, Protocol, TypedDict
+from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
 
 if TYPE_CHECKING:
+    from _view import Context
+
     from .app import RouteDoc
 
 AsgiSerial = Union[
@@ -56,7 +58,6 @@ V = TypeVar("V", bound="ValueType")
 
 
 ViewResponse = Awaitable[ViewResult]
-Context = Any
 R = TypeVar("R", bound="ViewResponse")
 ViewRoute = Callable[P, R]
 
@@ -140,3 +141,4 @@ StrMethodASGI = Literal[
     "DELETE",
     "OPTIONS",
 ]
+Middleware = Callable[P, Union[Awaitable[None], None]]
