@@ -10,7 +10,7 @@ from typing import Any, Callable, Generic, Literal, Type, TypeVar, Union
 
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
-from .typing import Validator, ValueType, ViewResponse, ViewRoute
+from .typing import Middleware, Validator, ValueType, ViewResponse, ViewRoute
 
 __all__ = (
     "get",
@@ -84,6 +84,7 @@ class Route(LoadChecker):
     errors: dict[int, ViewRoute] | None = None
     extra_types: dict[str, Any] = field(default_factory=dict)
     parts: list[str | Part[Any]] = field(default_factory=list)
+    middleware_funcs: list[Middleware] = field(default_factory=list)
 
     def error(self, status_code: int):
         def wrapper(handler: ViewRoute):
@@ -94,6 +95,15 @@ class Route(LoadChecker):
             return handler
 
         return wrapper
+
+    def middleware(self, func_or_none: Middleware | None = None):
+        def inner(func: Middleware):
+            self.middleware_funcs.append(func)
+        
+        if func_or_none:
+            return inner(func_or_none)
+
+        return inner
 
     def __repr__(self):
         return f"Route({self.method.name}(\"{self.path or '/???'}\"))"  # noqa
@@ -240,7 +250,7 @@ def post(
     doc: str | None = None,
     *,
     cache_rate: int = -1,
-):
+) -> Path:
     return _method_wrapper(path_or_route, doc, Method.POST, cache_rate)
 
 
@@ -249,7 +259,7 @@ def patch(
     doc: str | None = None,
     *,
     cache_rate: int = -1,
-):
+) -> Path:
     return _method_wrapper(path_or_route, doc, Method.PATCH, cache_rate)
 
 
@@ -258,7 +268,7 @@ def put(
     doc: str | None = None,
     *,
     cache_rate: int = -1,
-):
+) -> Path:
     return _method_wrapper(path_or_route, doc, Method.PUT, cache_rate)
 
 
@@ -267,7 +277,7 @@ def delete(
     doc: str | None = None,
     *,
     cache_rate: int = -1,
-):
+) -> Path:
     return _method_wrapper(path_or_route, doc, Method.DELETE, cache_rate)
 
 
@@ -276,7 +286,7 @@ def options(
     doc: str | None = None,
     *,
     cache_rate: int = -1,
-):
+) -> Path:
     return _method_wrapper(path_or_route, doc, Method.OPTIONS, cache_rate)
 
 

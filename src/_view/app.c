@@ -10,15 +10,17 @@
     Py_ssize_t cache_rate; \
     PyObject* errors; \
     PyObject* parts = NULL; \
+    PyObject* middleware_list; \
     if (!PyArg_ParseTuple( \
         args, \
-        "zOnOOO", \
+        "zOnOOOO", \
         &path, \
         &callable, \
         &cache_rate, \
         &inputs, \
         &errors, \
-        &parts \
+        &parts, \
+        &middleware_list \
         )) return NULL; \
     route* r = route_new( \
         callable, \
@@ -30,9 +32,18 @@
     if (load( \
         r, \
         inputs \
-        ) < 0) return NULL; \
-    if (load_errors(r, errors) < 0) \
+        ) < 0) { \
+        route_free(r); \
         return NULL; \
+    } \
+    if (load_middleware(r, middleware_list) < 0) { \
+        route_free(r); \
+        return NULL; \
+    } \
+    if (load_errors(r, errors) < 0) { \
+        route_free(r); \
+        return NULL; \
+    } \
     if (!PySequence_Size(parts)) \
         map_set(self-> target, path, r); \
     else \
@@ -128,6 +139,10 @@ struct Route {
     PyObject* server_errors[11];
     PyObject* exceptions;
     bool has_body;
+    PyObject** middleware;
+    Py_ssize_t middleware_size;
+
+    // transport attributes
     map* routes;
     route* r;
 };
@@ -233,6 +248,11 @@ void route_free(route* r) {
     }
 
     PyMem_Free(r->inputs);
+
+    for (int i = 0; i < r->middleware_size; i++)
+        Py_DECREF(r->middleware[i]);
+
+    PyMem_Free(r->middleware);
     Py_XDECREF(r->cache_headers);
     Py_DECREF(r->callable);
 
@@ -1987,6 +2007,29 @@ static int handle_route_impl(
         for (int i = *size; i < r->inputs_size + *size; i++)
             merged[i] = params[i];
 
+        for (int i = 0; i < r->middleware_size; i++) {
+            PyObject* res = PyObject_Vectorcall(r->middleware[i], merged,
+                r->inputs_size + (*size), NULL);
+
+            if (!res) {
+                for (int x = 0; x < r->inputs_size + *size; x++)
+                    Py_DECREF(merged[x]);
+
+                free(path_params);
+                free(size);
+                free(merged);
+                if (fire_error(
+                    self,
+                    awaitable,
+                    500,
+                    r,
+                    NULL
+                    ) < 0)
+                    return -1;
+                return 0;
+            }
+        }
+
         coro = PyObject_Vectorcall(
             r->callable,
             merged,
@@ -2000,13 +2043,57 @@ static int handle_route_impl(
         free(path_params);
         free(size);
         free(merged);
+        if (fire_error(
+            self,
+            awaitable,
+            500,
+            r,
+            NULL
+            ) < 0)
+            return -1;
     } else {
+        for (int i = 0; i < r->middleware_size; i++) {
+            PyObject* res = PyObject_Vectorcall(r->middleware[i], params,
+                r->inputs_size, NULL);
+
+            if (!res) {
+                for (int x = 0; x < r->inputs_size; x++)
+                    Py_DECREF(params[x]);
+
+                if (fire_error(
+                    self,
+                    awaitable,
+                    500,
+                    r,
+                    NULL
+                    ) < 0)
+                    return -1;
+                return 0;
+            }
+
+            if (PyCoro_CheckExact(res)) {
+                if (PyAwaitable_AddAwait(awaitable, res, NULL, route_error) <
+                    0) {
+                    if (fire_error(
+                        self,
+                        awaitable,
+                        500,
+                        r,
+                        NULL
+                        ) < 0)
+                        return -1;
+                    return 0;
+                }
+            }
+        }
+
         coro = PyObject_Vectorcall(
             r->callable,
             params,
             r->inputs_size,
             NULL
         );
+
 
         for (int i = 0; i < r->inputs_size; i++)
             Py_DECREF(params[i]);
@@ -2300,6 +2387,38 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     for (int i = 0; i < final_size; i++)
         merged[*size + i] = params[i];
+
+    for (int i = 0; i < r->middleware_size; i++) {
+        PyObject* res = PyObject_Vectorcall(r->middleware[i], merged, *size +
+            final_size, NULL);
+        if (!res) {
+            if (fire_error(self, awaitable, 500, r, NULL) < 0) {
+                for (int x = 0; x < final_size + *size; x++)
+                    Py_XDECREF(merged[x]);
+
+                PyMem_Free(merged);
+                free(params);
+                Py_DECREF(query_obj);
+                return -1;
+            }
+            return 0;
+        }
+
+        if (PyCoro_CheckExact(res)) {
+            if (PyAwaitable_AddAwait(awaitable, res, NULL, route_error) < 0) {
+                if (fire_error(self, awaitable, 500, r, NULL) < 0) {
+                    for (int x = 0; x < final_size + *size; x++)
+                        Py_XDECREF(merged[x]);
+
+                    PyMem_Free(merged);
+                    free(params);
+                    Py_DECREF(query_obj);
+                    return -1;
+                }
+                return 0;
+            }
+        }
+    }
 
     PyObject* coro = PyObject_VectorcallDict(
         r->callable,
@@ -2931,6 +3050,17 @@ static PyObject* app(
             free(params);
             free(size);
         } else {
+            for (int i = 0; i < r->middleware_size; i++) {
+                PyObject* res = PyObject_CallNoArgs(r->middleware[i]);
+                if (PyCoro_CheckExact(res)) {
+                    if (PyAwaitable_AddAwait(awaitable, res, NULL,
+                        route_error) < 0) {
+                        Py_DECREF(awaitable);
+                        Py_DECREF(res);
+                        return NULL;
+                    };
+                }
+            }
             res_coro = PyObject_CallNoArgs(r->callable);
         }
 
@@ -3477,6 +3607,25 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
     Py_DECREF(iter);
     if (PyErr_Occurred()) return -1;
 
+    return 0;
+}
+
+static int load_middleware(route* r, PyObject* list) {
+    Py_ssize_t size = PyList_GET_SIZE(list);
+    PyObject** middleware = PyMem_Calloc(size, sizeof(PyObject*));
+    r->middleware_size = size;
+
+    if (!middleware) {
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    for (int i = 0; i < size; i++) {
+        PyObject* func = PyList_GET_ITEM(list, i);
+        middleware[i] = Py_NewRef(func);
+    }
+
+    r->middleware = middleware;
     return 0;
 }
 

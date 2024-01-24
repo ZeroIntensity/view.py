@@ -140,3 +140,4 @@ StrMethodASGI = Literal[
     "DELETE",
     "OPTIONS",
 ]
+Middleware = Callable[P, Awaitable[None] | None]

@@ -302,20 +302,20 @@ def init(
     with open(app_path, "w") as f:
         if load in {"filesystem", "simple"}:
             f.write(
-                f"# view.py {__version__}"
-                """import view
+                f"# view.py {__version__}\n"
+                """from view import new_app
 
-app = view.new_app()
+app = new_app()
 app.run()
 """
             )
 
         if load == "manual":
             f.write(
-                f"# view.py {__version__}"
-                """import view
+                f"# view.py {__version__}\n"
+                """from view import new_app
 
-app = view.new_app()
+app = new_app()
 
 @app.get("/")
 async def index():
@@ -345,13 +345,12 @@ app.run()
         pathstr = "" if load == "filesystem" else "'/'"
         with open(index, "w") as f:
             f.write(
-                f"""from view.routing import get
+                f"""from view import get
 
-
-    @get({pathstr})
-    async def index():
-        return 'Hello, view.py!'
-    """
+@get({pathstr})
+async def index():
+    return 'Hello, view.py!'
+"""
             )
 
             success("Created `routes/index.py`")

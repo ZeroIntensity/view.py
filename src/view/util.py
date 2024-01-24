@@ -21,6 +21,7 @@ __all__ = ("run", "env", "enable_debug", "timestamp")
 
 def run(app_or_path: str | App) -> None:
     """Run a view app. Should not be used over `App.run()`
+        middleware: list[__Middleware],
 
     Args:
         app_or_path: App object or path to run."""

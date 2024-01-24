@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the `context` decorator and the `Context` type
 - Added the `headers` parameter to functions on `TestingContext`
 - Modified some behavior of automatic route inputs
+- Fixed syntax errors in `view init`
 
 ## [1.0.0-alpha8] - 2024-1-21
 

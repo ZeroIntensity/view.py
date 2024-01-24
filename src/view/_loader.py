@@ -473,6 +473,7 @@ def finalize(routes: list[Route], app: ViewApp):
             _format_inputs(route.inputs),
             route.errors or {},
             route.parts,  # type: ignore
+            [i for i in reversed(route.middleware_funcs)]
         )
 
 

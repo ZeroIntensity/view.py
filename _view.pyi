@@ -16,6 +16,7 @@ from view.routing import RouteData as __RouteData
 from view.typing import AsgiDict as __AsgiDict
 from view.typing import AsgiReceive as __AsgiReceive
 from view.typing import AsgiSend as __AsgiSend
+from view.typing import Middleware as __Middleware
 from view.typing import Parser as __Parser
 from view.typing import Part as __Part
 from view.typing import RouteInputDict as __RouteInput
@@ -41,6 +42,7 @@ class ViewApp:
         inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
+        middleware: list[__Middleware],
         /,
     ) -> None: ...
     def _post(
@@ -51,6 +53,7 @@ class ViewApp:
         inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
+        middleware: list[__Middleware],
         /,
     ) -> None: ...
     def _put(
@@ -61,6 +64,7 @@ class ViewApp:
         inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
+        middleware: list[__Middleware],
         /,
     ) -> None: ...
     def _patch(
@@ -71,6 +75,7 @@ class ViewApp:
         inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
+        middleware: list[__Middleware],
         /,
     ) -> None: ...
     def _delete(
@@ -81,6 +86,7 @@ class ViewApp:
         inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
+        middleware: list[__Middleware],
         /,
     ) -> None: ...
     def _options(
@@ -91,6 +97,7 @@ class ViewApp:
         inputs: list[__RouteInput[__Any] | __RouteData],
         errors: dict[int, __ViewRoute],
         parts: list[__Part | str],
+        middleware: list[__Middleware],
         /,
     ) -> None: ...
     def _set_dev_state(self, value: bool, /) -> None: ...

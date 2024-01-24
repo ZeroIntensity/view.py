@@ -25,7 +25,7 @@ import ujson
 import uvicorn
 from rich import print
 from rich.traceback import install
-from typing_extensions import Unpack
+from typing_extensions import ParamSpec, Unpack
 
 from _view import ViewApp
 
