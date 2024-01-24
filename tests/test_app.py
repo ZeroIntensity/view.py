@@ -636,3 +636,20 @@ async def _():
 
     async with app.test() as test:
         assert (await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})).message == "abc"
+
+@test("middleware")
+async def _():
+    app = new_app()
+    value: bool = False
+
+    @app.get("/")
+    async def index():
+        return str(value)
+
+    @index.middleware
+    async def index_middleware():
+        nonlocal value
+        value = True
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "True"

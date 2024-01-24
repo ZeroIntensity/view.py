@@ -13,6 +13,7 @@ nav:
     - Returning Responses: building-projects/responses.md
     - Taking Parameters: building-projects/parameters.md
     - Request Data: building-projects/request_data.md
+    - Middleware: building-projects/middleware.md
     - HTML Templating: building-projects/templating.md
     - Writing Documentation: building-projects/documenting.md
 
