@@ -149,6 +149,40 @@ Note that **all response classes inherit from `Response`**, meaning you can use 
     app.run()
     ```
 
+## Middleware
+
+### What is middleware?
+
+In view.py, middleware is called right before the route is executed, but **not necessarily in the middle.** However, for tradition, View calls it middleware.
+
+The main difference between middleware in view.py and other frameworks is that in view.py, there is no `call_next` function in middleware, and instead just the arguments that would go to the route.
+
+!!! question "Why no `call_next`?"
+
+    view.py doesn't use the `call_next` function because of the nature of it's routing system. 
+
+### The Middleware API
+
+`Route.middleware` is used to define a middleware function for a route.
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+async def index():
+    ...
+
+@index.middleware
+async def index_middleware():
+    print("this is called before index()!")
+
+app.run()
+```
+
+::: view.routing.Route.middleware
+
 ## Review
 
 Responses can be returned with a string, integer, and/or dictionary in any order.
@@ -158,3 +192,5 @@ Responses can be returned with a string, integer, and/or dictionary in any order
 - The dictionary represents the headers (e.g. `{"x-www-my-header": "some value"}`)
 
 `Response` objects can also be returned, which implement the `__view_response__` protocol. All response classes inherit from `Response`, which supports operations like setting cookies.
+
+Finally, the `middleware` method on a `Route` can be used to implement middleware.

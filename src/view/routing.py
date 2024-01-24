@@ -97,6 +97,7 @@ class Route(LoadChecker):
         return wrapper
 
     def middleware(self, func_or_none: Middleware | None = None):
+        """Define a middleware function for the route."""
         def inner(func: Middleware):
             self.middleware_funcs.append(func)
         
