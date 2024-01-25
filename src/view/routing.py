@@ -26,6 +26,7 @@ __all__ = (
     "route_types",
     "BodyParam",
     "context",
+    "route"
 )
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
@@ -251,6 +252,22 @@ def get(
     *,
     cache_rate: int = -1,
 ) -> Path:
+    """Add a GET route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+    Example:
+        ```py
+        from view import get
+
+        @get("/")
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(path_or_route, doc, Method.GET, cache_rate)
 
 
@@ -260,6 +277,22 @@ def post(
     *,
     cache_rate: int = -1,
 ) -> Path:
+    """Add a POST route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+    Example:
+        ```py
+        from view import post
+
+        @post("/")
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(path_or_route, doc, Method.POST, cache_rate)
 
 
@@ -269,6 +302,22 @@ def patch(
     *,
     cache_rate: int = -1,
 ) -> Path:
+    """Add a PATCH route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+    Example:
+        ```py
+        from view import patch
+
+        @patch("/")
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(path_or_route, doc, Method.PATCH, cache_rate)
 
 
@@ -278,6 +327,22 @@ def put(
     *,
     cache_rate: int = -1,
 ) -> Path:
+    """Add a PUT route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+    Example:
+        ```py
+        from view import put
+
+        @put("/")
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(path_or_route, doc, Method.PUT, cache_rate)
 
 
@@ -287,6 +352,22 @@ def delete(
     *,
     cache_rate: int = -1,
 ) -> Path:
+    """Add a DELETE route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+    Example:
+        ```py
+        from view import delete
+
+        @delete("/")
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(path_or_route, doc, Method.DELETE, cache_rate)
 
 
@@ -296,6 +377,22 @@ def options(
     *,
     cache_rate: int = -1,
 ) -> Path:
+    """Add an OPTIONS route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+    Example:
+        ```py
+        from view import options
+
+        @options("/")
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(path_or_route, doc, Method.OPTIONS, cache_rate)
 
 
@@ -315,6 +412,23 @@ def route(
     cache_rate: int = -1,
     methods: Iterable[StrMethod] | None = None
 ) -> Path:
+    """Add a route that can be called with any method (or only specific methods).
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+        methods: Methods that can be used to access this route. If this is `None`, then all methods are allowed.
+
+    Example:
+        ```py
+        from view import route
+
+        @route("/", methods=("GET", "POST"))
+        async def index():
+            return "Hello, view.py!"
+        ```
+    """
     return _method_wrapper(
         path_or_route,
         doc,
@@ -421,6 +535,7 @@ def body(
 
 
 def context(r_or_none: RouteOrCallable | None = None):
+    """Add a context input to the route."""
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
         route.inputs.append(1)

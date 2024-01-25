@@ -8,6 +8,7 @@ from ward import test
 
 from view import (BodyParam, Context, Response, body, context, get, new_app,
                   query)
+from view import route as route_impl
 
 
 @test("responses")
@@ -696,7 +697,7 @@ async def _():
     def methodless_ctx(context: Context):
         return context.method
 
-    @app.route("/methods", methods=("GET", "POST"))
+    @route_impl("/methods", methods=("GET", "POST"))
     @app.context
     async def m(context: Context):
         return context.method

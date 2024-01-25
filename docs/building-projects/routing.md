@@ -68,6 +68,41 @@ This method may be a bit more versatile if you plan on writing a larger project 
 ::: view.routing.delete
 ::: view.routing.options
 
+### Methodless Routing
+
+So far, only routers that allow a single method are allowed. If you're familiar with the [Flask](https://flask.palletsprojects.com) framework, you've likely tried the `route` method that lets any a route be accessed with any method. View supports the same thing, via the `route` router function, and the `App.route` direct variation.
+
+For example:
+
+```py
+from view import new_app, route
+
+app = new_app()
+
+@route("/")
+async def index():
+    return "this can be accessed with any method!"
+
+app.load([index])
+app.run()
+```
+
+You can specify certain methods via the `methods` parameter:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.route("/", methods=("GET", "POST"))  # using the direct variation
+async def index():
+    return "this can be accessed with only GET and POST"
+
+app.run()
+```
+
+::: view.routing.route
+
 ## Simple Routing
 
 Simple routing is similar to manual routing, but you tend to not use direct routers and don't have any call to `load()`. In your routes directory (`routes/` by default, `loader_path` setting), your routes will be held in any number of files. Simple loading is recursive, so you may also use folders. View will automatically extract any route objects created in these files.
