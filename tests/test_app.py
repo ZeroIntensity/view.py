@@ -682,3 +682,49 @@ async def _():
     async with app.test() as test:
         await test.get("/", query={"a": "a"})
         await test.get("/both", query={"a": "a"}, body={"b": "b"})
+
+@test("methodless routes")
+async def _():
+    app = new_app()
+
+    @app.route("/")
+    def methodless():
+        return "a"
+
+    @app.route("/ctx")
+    @app.context
+    def methodless_ctx(context: Context):
+        return context.method
+
+    @app.route("/methods", methods=("GET", "POST"))
+    @app.context
+    async def m(context: Context):
+        return context.method
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "a"
+        assert (await test.post("/")).message == "a"
+        assert (await test.put("/")).message == "a"
+        assert (await test.patch("/")).message == "a"
+        assert (await test.delete("/")).message == "a"
+        assert (await test.options("/")).message == "a"
+        assert (await test.options("/ctx")).message == "OPTIONS"
+        assert (await test.post("/ctx")).message == "POST"
+        assert (await test.post("/ctx")).message == "POST"
+        assert (await test.get("/methods")).message == "GET"
+        assert (await test.post("/methods")).message == "POST"
+        assert (await test.put("/methods")).status == 405
+
+@test("method not allowed errors")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return "a"
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "a"
+        res = await test.post("/")
+        assert res.status == 405
+        assert res.message == "Method Not Allowed"
