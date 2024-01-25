@@ -4,7 +4,7 @@ from typing import Dict
 from typing_extensions import Annotated
 from ward import raises, test
 
-from view import App, TypeValidationFailed, compile_type, get_app, new_app
+from view import App, TypeValidationError, compile_type, get_app, new_app
 
 
 @test("app creation")
@@ -102,5 +102,5 @@ async def _():
 
     assert not x
 
-    with raises(TypeValidationFailed):
+    with raises(TypeValidationError):
         tp.cast("{}")
