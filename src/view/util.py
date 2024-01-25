@@ -3,21 +3,47 @@ from __future__ import annotations
 import json
 import logging
 import os
-import runpy
-import sys
 from datetime import datetime as DateTime
 from email.utils import formatdate
 from typing import TYPE_CHECKING, Union, overload
 
 from ._logging import Internal, Service
-from ._util import shell_hint
+from ._util import run_path, shell_hint
 from .exceptions import AppNotFoundError, BadEnvironmentError, MistakeError
 
 if TYPE_CHECKING:
     from .app import App
 
-__all__ = ("run", "env", "enable_debug", "timestamp")
+__all__ = ("run", "env", "enable_debug", "timestamp", "extract_path")
 
+def extract_path(path: str) -> App:
+    """Extract an `App` instance from a path."""
+    from .app import App
+    split = path.split(":", maxsplit=1)
+
+    if len(split) != 2:
+        raise ValueError(
+            "module string should be in the format of `/path/to/app.py:app_name`",
+        )
+
+    file_path = os.path.abspath(split[0])
+
+    try:
+        mod = run_path(file_path)
+    except FileNotFoundError:
+        raise AppNotFoundError(
+            f'"{split[0]}" in {path} does not exist'
+        ) from None
+
+    try:
+        target = mod[split[1]]
+    except KeyError:
+        raise AttributeError(f'"{split[1]}" in {path} does not exist') from None
+
+    if not isinstance(target, App):
+        raise MistakeError(f"{target!r} is not an instance of view.App")
+
+    return target
 
 def run(app_or_path: str | App) -> None:
     """Run a view app. Should not be used over `App.run()`
@@ -30,32 +56,8 @@ def run(app_or_path: str | App) -> None:
     if isinstance(app_or_path, App):
         app_or_path.run()
         return
-
-    split = app_or_path.split(":", maxsplit=1)
-
-    if len(split) != 2:
-        raise ValueError(
-            "module string should be in the format of `/path/to/app.py:app`",
-        )
-
-    path = os.path.abspath(split[0])
-    sys.path.append(os.path.dirname(path))
-
-    try:
-        mod = runpy.run_path(path)
-    except FileNotFoundError:
-        raise AppNotFoundError(
-            f'"{split[0]}" in {app_or_path} does not exist'
-        ) from None
-
-    try:
-        target = mod[split[1]]
-    except KeyError:
-        raise AttributeError(f'"{split[1]}" in {app_or_path} does not exist') from None
-
-    if not isinstance(target, App):
-        raise MistakeError(f"{target!r} is not an instance of view.App")
-
+    
+    target = extract_path(app_or_path)
     target._run()
 
 
