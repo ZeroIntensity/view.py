@@ -10,6 +10,7 @@ from pathlib import Path
 
 import click
 
+from .__about__ import __version__
 from ._logging import VIEW_TEXT
 from .exceptions import AppNotFoundError
 
@@ -73,8 +74,12 @@ def info(msg: str) -> None:
     click.secho(f" * {msg}", fg="bright_magenta", bold=True)
 
 
+def ver() -> None:
+    click.echo(f"view.py {__version__}")
+
 def welcome() -> None:
     click.secho(random.choice(VIEW_TEXT) + "\n", fg="blue", bold=True)
+    ver()
     click.echo("Docs: ", nl=False)
     click.secho("https://view.zintensity.dev", fg="blue", bold=True)
     click.echo("GitHub: ", nl=False)
@@ -87,12 +92,15 @@ def welcome() -> None:
 
 @click.group(invoke_without_command=True)
 @click.option("--debug", "-d", is_flag=True)
+@click.option("--version", "-v", is_flag=True)
 @click.pass_context
-def main(ctx: click.Context, debug: bool) -> None:
+def main(ctx: click.Context, debug: bool, version: bool) -> None:
     if debug:
         from .util import enable_debug
 
         enable_debug()
+    if version:
+        ver()
     elif not ctx.invoked_subcommand:
         welcome()
 
