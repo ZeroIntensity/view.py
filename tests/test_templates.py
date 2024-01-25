@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ward import test
 
-from view import new_app, render, template
+from view import markdown, new_app, render, template
 
 
 @test("view rendering")
@@ -59,7 +59,7 @@ async def _():
     @app.get("/")
     async def index():
         hi = "hello"
-        return await template(
+        return await app.template(
             "index.html", directory=Path.cwd() / "tests" / "templates"
         )
 
@@ -72,9 +72,14 @@ async def _():
             engine="mako",
         )
 
+    @app.get("/markdown")
+    async def md():
+        return await markdown("test.md", directory=Path.cwd() / "tests" / "templates")
+
     async with app.test() as test:
         assert (await test.get("/")).message.replace("\n", "") == "hello"
         assert (await test.get("/other")).message.replace("\n", "") == "1"
+        assert (await test.get("/markdown")).message.replace("\n", "") == "<!DOCTYPE html><html><h1>A</h1><h2>B</h2><h3>C</h3></html>"
 
 
 @test("template configuration settings")
