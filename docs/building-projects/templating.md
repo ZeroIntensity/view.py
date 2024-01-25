@@ -48,6 +48,20 @@ async def index():
 app.run()
 ```
 
+There's also a direct variation of `template` on `App`.
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+async def index():
+    return await app.template("index")
+
+app.run()
+```
+
 The following template engines are supported:
 
 - View's built-in engine
@@ -128,7 +142,7 @@ app.run()
 
 ## Review
 
-Template engines are used to mix your Python code and HTML. You can use View's `template` function to render a template with one of the supported engines, which are:
+Template engines are used to mix your Python code and HTML. You can use View's `template` or (`App.template`, if the `App` is available already) function to render a template with one of the supported engines, which are:
 
 - view.py's built-in engine
 - [Jinja](https://jinja.palletsprojects.com/en/3.1.x/)

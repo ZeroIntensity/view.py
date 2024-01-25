@@ -242,11 +242,12 @@ async def template(
     directory: str | Path | None = _ConfigSpecified,
     engine: TemplateEngine | None = _ConfigSpecified,
     frame: Frame | None | _CurrentFrameType = _CurrentFrame,
+    app: App | None = None,
     **parameters: Any,
 ) -> HTML:
     """Render a template with the specified engine. This returns a view.py HTML response."""
     try:
-        conf = get_app().config.templates
+        conf = app.config.templates if app else get_app().config.templates
     except BadEnvironmentError:
         conf = _DEFAULT_CONF
 
@@ -282,4 +283,4 @@ async def template(
     async with aiofiles.open(path) as f:
         source = await f.read()
 
-    return HTML(await render(source, engine, params))
+    return HTML(await render(source, engine, params, app=app))
