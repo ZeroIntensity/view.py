@@ -19,7 +19,7 @@ __all__ = (
     "ConfigurationError",
     "NeedsDependencyError",
     "InvalidTemplateError",
-    "TypeValidationFailed",
+    "TypeValidationError",
 )
 
 
@@ -108,5 +108,5 @@ class NeedsDependencyError(ViewError):
 class InvalidTemplateError(ViewError):
     """Something is wrong with a template."""
 
-class TypeValidationFailed(TypeError, ViewError):
+class TypeValidationError(TypeError, ViewError):
     """Could not assign the object to the target type."""

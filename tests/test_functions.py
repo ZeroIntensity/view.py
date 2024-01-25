@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from typing import Dict
 
 from typing_extensions import Annotated
-from ward import test
+from ward import raises, test
 
-from view import App, get_app, new_app
+from view import App, TypeValidationFailed, compile_type, get_app, new_app
 
 
 @test("app creation")
@@ -80,3 +80,27 @@ def _():
 | - | - | - | - |
 | friend | Your friend's info. | `Person` | **Required** |"""
     )
+
+@test("public typecode interface")
+async def _():
+    @dataclass
+    class Test:
+        a: str
+        b: str
+
+    tp = compile_type(Test)
+    assert isinstance(tp.cast('{"a": "a", "b": "b"}'), Test)
+
+    x = True
+
+    if tp.check_type('{"a": "a", "b": "b"}'):
+        x = False
+
+    assert x
+    if tp.is_compatible('{"a": "a", "b": "b"}'):
+        x = False
+
+    assert not x
+
+    with raises(TypeValidationFailed):
+        tp.cast("{}")

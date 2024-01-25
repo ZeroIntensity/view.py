@@ -8,7 +8,7 @@ from typing_extensions import TypeGuard
 from _view import TCPublic
 
 from ._loader import _build_type_codes
-from .exceptions import TypeValidationFailed
+from .exceptions import TypeValidationError
 from .typing import TypeInfo
 
 __all__ = "TCValidator", "compile_type"
@@ -45,7 +45,7 @@ class TCValidator(TCPublic, Generic[T]):
         try:
             return self._cast(obj, True)
         except RuntimeError:
-            raise TypeValidationFailed(f"{obj} is not assignable to {self.tp}") from None
+            raise TypeValidationError(f"{obj} is not assignable to {self.tp}") from None
 
 def compile_type(tp: type[T]) -> TCValidator[T]:
     """Compile a type to a type validation object."""
