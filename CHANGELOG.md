@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modified some behavior of automatic route inputs
 - Fixed syntax errors in `view init`
 - Added `Route.middleware`
+- Routes with equivalent paths but different methods now return `405 Method Not Allowed` when accessed
 
 ## [1.0.0-alpha8] - 2024-1-21
 

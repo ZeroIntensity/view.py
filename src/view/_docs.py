@@ -99,7 +99,8 @@ def markdown_docs(docs: DocsType) -> str:
         final.append("\n*This app is empty...*")
 
     for k, v in docs.items():
-        final.append(f"### {k[0]} `{k[1]}`")
+        name = k[0] if isinstance(k[0], str) else ", ".join(k[0])
+        final.append(f"### {name} `{k[1]}`")
         final.append(f"*{v.desc}*")
 
         _make_table(final, "Query Parameters", v.query, types)

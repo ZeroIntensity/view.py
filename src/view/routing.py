@@ -6,11 +6,13 @@ import re
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, Literal, Type, TypeVar, Union
+from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
+                    Union)
 
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
-from .typing import Middleware, Validator, ValueType, ViewResponse, ViewRoute
+from .typing import (Middleware, StrMethod, Validator, ValueType, ViewResponse,
+                     ViewRoute)
 
 __all__ = (
     "get",
@@ -77,7 +79,7 @@ class Route(LoadChecker):
 
     func: Callable[..., ViewResponse]
     path: str | None
-    method: Method
+    method: Method | None
     inputs: list[RouteInput | RouteData]
     doc: str | None = None
     cache_rate: int = -1
@@ -85,6 +87,7 @@ class Route(LoadChecker):
     extra_types: dict[str, Any] = field(default_factory=dict)
     parts: list[str | Part[Any]] = field(default_factory=list)
     middleware_funcs: list[Middleware] = field(default_factory=list)
+    method_list: list[Method] | None = None
 
     def error(self, status_code: int):
         def wrapper(handler: ViewRoute):
@@ -107,7 +110,7 @@ class Route(LoadChecker):
         return inner
 
     def __repr__(self):
-        return f"Route({self.method.name}(\"{self.path or '/???'}\"))"  # noqa
+        return f"Route({self.method.name if self.method else 'ANY_METHOD'}(\"{self.path or '/???'}\"))"  # noqa
 
     __str__ = __repr__
 
@@ -149,12 +152,15 @@ def _method(
     r: RouteOrCallable,
     raw_path: str | None,
     doc: str | None,
-    method: Method,
+    method: Method | None,
     cache_rate: int,
+    *,
+    method_list: list[Method] | None = None
 ) -> Route:
     route = _ensure_route(r)
     route.method = method
     route.cache_rate = cache_rate
+    route.method_list = method_list
     util_path = raw_path or "/"
 
     if not util_path.startswith("/"):
@@ -219,14 +225,16 @@ Path = Callable[[RouteOrCallable], Route]
 def _method_wrapper(
     path_or_route: str | None | RouteOrCallable,
     doc: str | None,
-    method: Method,
+    method: Method | None,
     cache_rate: int,
+    *,
+    method_list: list[Method] | None = None
 ) -> Path:
     def inner(r: RouteOrCallable) -> Route:
         if (not isinstance(path_or_route, str)) and path_or_route:
             raise TypeError(f"{path_or_route!r} is not a string")
 
-        return _method(r, path_or_route, doc, method, cache_rate)
+        return _method(r, path_or_route, doc, method, cache_rate, method_list=method_list)
 
     if not path_or_route:
         return inner
@@ -289,6 +297,32 @@ def options(
     cache_rate: int = -1,
 ) -> Path:
     return _method_wrapper(path_or_route, doc, Method.OPTIONS, cache_rate)
+
+
+_STR_METHOD_MAPPING: dict[StrMethod, Method] = {
+    "GET": Method.GET,
+    "POST": Method.POST,
+    "PUT": Method.PUT,
+    "PATCH": Method.PATCH,
+    "DELETE": Method.DELETE,
+    "OPTIONS": Method.OPTIONS,
+}
+
+def route(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+    *,
+    cache_rate: int = -1,
+    methods: Iterable[StrMethod] | None = None
+) -> Path:
+    return _method_wrapper(
+        path_or_route,
+        doc,
+        None,
+        cache_rate,
+        method_list=[_STR_METHOD_MAPPING[i] for i in methods] if methods else None
+    )
+
 
 
 class _NoDefault:

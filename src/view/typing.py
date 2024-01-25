@@ -115,7 +115,7 @@ Callback = Callable[[], Any]
 SameSite = Literal["strict", "lax", "none"]
 BodyTranslateStrategy = Literal["str", "repr", "result"]
 
-DocsType = Dict[Tuple[str, str], "RouteDoc"]
+DocsType = Dict[Tuple[str | Tuple[str, ...], str], "RouteDoc"]
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 FileWriteMethod = Literal["only", "never", "both"]
 StrMethod = Literal[

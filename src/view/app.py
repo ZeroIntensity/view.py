@@ -17,15 +17,15 @@ from io import UnsupportedOperation
 from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import (Any, Callable, Coroutine, Generic, TextIO, TypeVar,
-                    get_type_hints, overload)
+from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
+                    TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
 import uvicorn
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, Unpack
+from typing_extensions import Unpack
 
 from _view import ViewApp
 
@@ -44,7 +44,8 @@ from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
-from .typing import Callback, DocsType
+from .routing import route as route_impl
+from .typing import Callback, DocsType, StrMethod
 from .util import enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -360,6 +361,21 @@ class App(ViewApp):
 
         self._manual_routes.append(route)
 
+    def route(
+        self,
+        path_or_route: str | None | RouteOrCallable = None,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+        methods: Iterable[StrMethod] | None = None
+    ) -> Callable[[RouteOrCallable], Route]:
+        def inner(r: RouteOrCallable) -> Route:
+            new_r = route_impl(path_or_route, doc, cache_rate=cache_rate, methods=methods)(r)
+            self._push_route(new_r)
+            return new_r
+
+        return inner
+
     def _method_wrapper(
         self,
         path: str,
@@ -538,9 +554,22 @@ class App(ViewApp):
                     i.doc or "No description provided.", i.tp, i.default
                 )
 
-            self._docs[(r.method.name, r.path)] = RouteDoc(
-                r.doc or "No description provided.", body, query
-            )
+            if r.method:
+                self._docs[(r.method.name, r.path)] = RouteDoc(
+                    r.doc or "No description provided.", body, query
+                )
+            else:
+                self._docs[
+                    (tuple([i.name for i in r.method_list]) if r.method_list else (
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS",
+                    ), r.path)] = RouteDoc(
+                    r.doc or "No description provided.", body, query
+                )
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")

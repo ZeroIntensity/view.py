@@ -411,7 +411,12 @@ def finalize(routes: list[Route], app: ViewApp):
 
     for route in routes:
         set_load(route)
-        target = targets[route.method]
+
+        if route.method:
+            target = targets[route.method]
+        else:
+            target = None
+    
 
         if (not route.path) and (not route.parts):
             raise InvalidRouteError(f"{route} did not specify a path")
@@ -419,6 +424,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if lst:
             if route.method in [i.method for i in lst]:
+                assert route.method
                 raise DuplicateRouteError(
                     f"duplicate route: {route.method.name} for {route.path}",
                 )
@@ -466,15 +472,29 @@ def finalize(routes: list[Route], app: ViewApp):
                 )
 
         app.loaded_routes.append(route)
-        target(
-            route.path,  # type: ignore
-            route.func,
-            route.cache_rate,
-            _format_inputs(route.inputs),
-            route.errors or {},
-            route.parts,  # type: ignore
-            [i for i in reversed(route.middleware_funcs)]
-        )
+        if target:
+            target(
+                route.path,  # type: ignore
+                route.func,
+                route.cache_rate,
+                _format_inputs(route.inputs),
+                route.errors or {},
+                route.parts,  # type: ignore
+                [i for i in reversed(route.middleware_funcs)]
+            )
+        else:
+            for i in (route.method_list) or targets.keys():
+                target = targets[i]
+                target(
+                    route.path,  # type: ignore
+                    route.func,
+                    route.cache_rate,
+                    _format_inputs(route.inputs),
+                    route.errors or {},
+                    route.parts,  # type: ignore
+                    [i for i in reversed(route.middleware_funcs)]
+                )
+
 
 
 def load_fs(app: ViewApp, target_dir: Path) -> None:
