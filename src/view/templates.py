@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, Iterator, Type
 import aiofiles
 
 from ._util import needs_dep
-from .app import App, get_app
 from .config import TemplatesConfig
 from .exceptions import BadEnvironmentError, InvalidTemplateError
 from .response import HTML
@@ -19,6 +18,8 @@ from .typing import TemplateEngine
 
 if TYPE_CHECKING:
     from bs4 import Tag
+
+    from .app import App
 
 _ConfigSpecified = None
 _DEFAULT_CONF = TemplatesConfig()
@@ -165,6 +166,8 @@ async def render(
     app: App | None = None,
 ) -> str:
     """Render a template from the source instead of a filename. Generally should be used internally."""
+    from .app import get_app
+
     if parameters is _CurrentFrame:
         parameters = {}
         frame = inspect.currentframe()
@@ -242,11 +245,14 @@ async def template(
     directory: str | Path | None = _ConfigSpecified,
     engine: TemplateEngine | None = _ConfigSpecified,
     frame: Frame | None | _CurrentFrameType = _CurrentFrame,
+    app: App | None = None,
     **parameters: Any,
 ) -> HTML:
     """Render a template with the specified engine. This returns a view.py HTML response."""
+    from .app import get_app
+
     try:
-        conf = get_app().config.templates
+        conf = app.config.templates if app else get_app().config.templates
     except BadEnvironmentError:
         conf = _DEFAULT_CONF
 
@@ -282,4 +288,4 @@ async def template(
     async with aiofiles.open(path) as f:
         source = await f.read()
 
-    return HTML(await render(source, engine, params))
+    return HTML(await render(source, engine, params, app=app))

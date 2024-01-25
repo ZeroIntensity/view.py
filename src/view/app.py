@@ -16,6 +16,7 @@ from functools import lru_cache
 from io import UnsupportedOperation
 from pathlib import Path
 from threading import Thread
+from types import FrameType as Frame
 from types import TracebackType as Traceback
 from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
                     TypeVar, get_type_hints, overload)
@@ -39,13 +40,15 @@ from .config import Config, load_config
 from .exceptions import (BadEnvironmentError, ConfigurationError, ViewError,
                          ViewInternalError)
 from .logging import _LogArgs, log
+from .response import HTML
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .routing import route as route_impl
-from .typing import Callback, DocsType, StrMethod
+from .templates import _CurrentFrame, _CurrentFrameType, template
+from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -57,6 +60,8 @@ A = TypeVar("A")
 T = TypeVar("T")
 
 _ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
+_ConfigSpecified = None
+_CurrentFrame = None
 
 B = TypeVar("B", bound=BaseException)
 
@@ -634,6 +639,17 @@ class App(ViewApp):
             return route
 
         return inner
+
+    async def template(
+        self,
+        name: str | Path,
+        directory: str | Path | None = _ConfigSpecified,
+        engine: TemplateEngine | None = _ConfigSpecified,
+        frame: Frame | None | _CurrentFrameType = _CurrentFrame,
+        **parameters: Any,
+    ) -> HTML:
+        """Render a template with the specified engine. This returns a view.py HTML response."""
+        return await template(name, directory, engine, frame, app=self, **parameters)
 
     def context(self, r_or_none: RouteOrCallable | None = None):
         return context_impl(r_or_none)

@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import getpass
 import os
 import random
 import re
 import subprocess
 import venv as _venv
+from inspect import iscoroutine
 from pathlib import Path
+from typing import TYPE_CHECKING, NoReturn
+
+if TYPE_CHECKING:
+    from .routing import Route
 
 import click
 
@@ -65,7 +71,7 @@ def warn(msg: str) -> None:
     click.secho(f" ! {msg}", fg="yellow", bold=True)
 
 
-def error(msg: str) -> None:
+def error(msg: str) -> NoReturn:
     click.secho(f" ! {msg}", fg="red", bold=True)
     exit(1)
 
@@ -202,6 +208,85 @@ def prod():
 )
 def deploy(target: str):
     raise NotImplementedError
+
+@main.command()
+@click.option(
+    "--path",
+    "-p",
+    type=click.Path(
+        exists=False,
+        file_okay=False,
+        resolve_path=True,
+        path_type=Path,
+        writable=True,
+    ),
+    default=Path.cwd() / "build",
+)
+def build(path: Path):
+    from .config import load_config
+    from .routing import Method
+    from .util import extract_path
+    
+    conf = load_config()
+    app = extract_path(conf.app.app_path)
+    app.load()
+    results: dict[str, str] = {}
+
+    info("Getting routes")
+    for i in app.loaded_routes:
+        if (not i.method) or (i.method != Method.GET):
+            warn(f"{i} is not a GET route, skipping it")
+            continue
+        
+        if not i.path:
+            warn(f"{i} needs path parameters, skipping it")
+            continue
+
+        info(f"Getting {i.path or '/???'}")
+
+        if i.inputs:
+            warn(f"{i.path} needs a route input, skipping it")
+            continue
+
+        res = i.func()
+
+        if iscoroutine(res):
+            loop = asyncio.get_event_loop()
+            res = loop.run_until_complete(res)
+        
+        text: str
+
+        if hasattr(res, "__view_response__"):
+            res = res.__view_response__()  # type: ignore
+
+        if isinstance(res, tuple):
+            for x in res:
+                if isinstance(x, str):
+                    text = x
+                    break
+            error(f"{i.path} didn't return a response")
+        else:
+            text = res  # type: ignore
+
+        assert i.path
+        results[i.path[1:]] = text
+        success(f"Got response for {i.path}")
+
+    if path.exists():
+        error(f"{path} already exists")
+
+    path.mkdir()
+    success(f"Created directory {path}")
+    
+    for file_path, content in results.items():
+        directory = path / file_path
+        file = directory / "index.html"
+        directory.mkdir(exist_ok=True)
+        success(f"Created {directory}")
+        file.write_text(content, encoding="utf-8")
+        success(f"Created {file}")
+
+    success("Successfully built app")
 
 
 @main.command()
