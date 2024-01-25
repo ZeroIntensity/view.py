@@ -1,4 +1,4 @@
-from _routes import d, g, o, p, pa, pu
+from _routes import d, g, o, p, pa, pu, r
 
 from view import path
 
@@ -9,4 +9,5 @@ PATTERNS = (
     path("/patch", pa),
     path("/delete", d),
     path("/options", o),
+    path("/any", r)
 )

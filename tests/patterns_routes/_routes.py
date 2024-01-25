@@ -1,4 +1,4 @@
-from view import delete, get, options, patch, post, put
+from view import delete, get, options, patch, post, route
 
 
 @get("/bad")
@@ -28,3 +28,7 @@ async def d():
 @options()
 async def o():
     return "options"
+
+@route()
+async def r():
+    return "any"

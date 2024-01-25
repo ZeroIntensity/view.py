@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime as DateTime
 from pathlib import Path
-from typing import Any, Generic, TextIO, TypeVar, Union
+from typing import Any, Dict, Generic, TextIO, TypeVar, Union
 
 import ujson
 
@@ -163,7 +163,7 @@ class HTML(Response[HTMLContent]):
 
         return parsed_body
 
-class JSON(Response[dict[str, Any]]):
+class JSON(Response[Dict[str, Any]]):
     """JSON response wrapper."""
 
     def __init__(
