@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 _ConfigSpecified = None
 _DEFAULT_CONF = TemplatesConfig()
 
-__all__ = ("template", "render")
+__all__ = ("template", "render", "markdown")
 
 
 class _CurrentFrame:  # sentinel
@@ -289,3 +289,35 @@ async def template(
         source = await f.read()
 
     return HTML(await render(source, engine, params, app=app))
+
+async def markdown(
+    name: str | Path,
+    *,
+    directory: str | Path | None = _ConfigSpecified,
+    app: App | None = None,
+) -> HTML:
+    """Convert a markdown file into HTML. This returns a view.py HTML response."""
+    from .app import get_app
+    try:
+        from markdown import markdown as md_to_html
+    except ModuleNotFoundError as e:
+        needs_dep("markdown", e, "templates")
+
+    try:
+        conf = app.config.templates if app else get_app().config.templates
+    except BadEnvironmentError:
+        conf = _DEFAULT_CONF
+
+    directory = Path(directory or conf.directory)
+
+    if isinstance(name, str):
+        if not name.endswith(".md"):
+            name += ".md"
+
+        name = Path(name)
+
+    path = directory / name
+    async with aiofiles.open(path) as f:
+        source = await f.read()
+
+    return HTML(f"<!DOCTYPE html><html>{md_to_html(source)}</html>")

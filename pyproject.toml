@@ -42,7 +42,7 @@ databases = [
     "pymongo",
     "aiosqlite"
 ]
-templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon"]
+templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon", "markdown"]
 fancy = ["psutil", "plotext"]
 full = [
     "psutil",
@@ -56,7 +56,8 @@ full = [
     "psycopg2-binary",
     "mysql-connector-python",
     "pymongo",
-    "aiosqlite"
+    "aiosqlite",
+    "markdown"
 ]
 
 [project.urls]

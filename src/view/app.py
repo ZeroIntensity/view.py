@@ -47,7 +47,7 @@ from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .routing import route as route_impl
-from .templates import _CurrentFrame, _CurrentFrameType, template
+from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
 from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
 
@@ -649,7 +649,24 @@ class App(ViewApp):
         **parameters: Any,
     ) -> HTML:
         """Render a template with the specified engine. This returns a view.py HTML response."""
-        return await template(name, directory, engine, frame, app=self, **parameters)
+        if frame is _CurrentFrame:
+            f = inspect.currentframe()
+            assert f
+            f = f.f_back
+            assert f
+        else:
+            f= frame
+
+        return await template(name, directory, engine, f, app=self, **parameters)
+
+    async def markdown(
+        self,
+        name: str | Path,
+        *,
+        directory: str | Path | None = _ConfigSpecified,
+    ) -> HTML:
+        """Convert a markdown file into HTML. This returns a view.py HTML response."""
+        return await markdown(name, directory=directory, app=self)
 
     def context(self, r_or_none: RouteOrCallable | None = None):
         return context_impl(r_or_none)
