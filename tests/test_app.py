@@ -702,6 +702,8 @@ async def _():
     async def m(context: Context):
         return context.method
 
+    app.load([m])
+
     async with app.test() as test:
         assert (await test.get("/")).message == "a"
         assert (await test.post("/")).message == "a"
