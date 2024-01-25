@@ -95,9 +95,11 @@ View comes with two built in response objects: `Response` and `HTML`.
 
 - `Response` is simply a wrapper around other responses.
 - `HTML` is for returning HTML content.
+- `JSON` is for returning JSON content.
 
 ::: view.response.Response
 ::: view.response.HTML
+::: view.response.JSON
 
 A common use case for `Response` is wrapping an object that has a `__view_response__` and changing one of the values. For example:
 
@@ -148,6 +150,57 @@ Note that **all response classes inherit from `Response`**, meaning you can use 
 
     app.run()
     ```
+
+### Body Translate Strategy
+
+The body translate strategy in the `__view_response__` protocol refers to how the `Response` class will translate the body into a `str`. There are four available strategies:
+
+- `str`, which uses the object's `__str__` method.
+- `repr`, which uses the object's `__repr__` method.
+- `result`, which calls the `__view_response__` protocol implemented on the object (assuming it exists).
+- `custom`, uses the `Response` instance's `_custom` attribute (this only works on subclasses of `Response` that implement it).
+
+For example, the route below would return the string `"'hi'"`:
+
+```py
+from view import new_app, Response
+
+app = new_app()
+
+@app.get("/")
+async def index():
+    res = Response('hi', body_translate="repr")
+    return res
+
+app.run()
+```
+
+### Implementing Responses
+
+`Response` is a [generic type](https://mypy.readthedocs.io/en/stable/generics.html), meaning you should supply it a type argument when writing a class that inherits from it.
+
+For example, if you wanted to write a type that takes a `str`:
+
+```py
+class MyResponse(Response[str]):
+    def __init__(self, body: str) -> None:
+        super().__init__(body)
+```
+
+Generally, you'll want to use the `custom` translation strategy when writing custom `Response` objects.
+
+You must implement the `_custom` method (which takes in the `T` passed to `Response`, and returns a `str`) to use the `custom` strategy. For example, the code below would be for a `Response` type that formats a list:
+
+```py
+from view import Response
+
+class ListResponse(Response[list]):
+    def __init__(self, body: list) -> None:
+        super().__init__(body)
+
+    def _custom(self, body: list) -> str:
+        return " ".join(body)
+```
 
 ## Middleware
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime as DateTime
 from pathlib import Path
-from typing import Generic, TextIO, TypeVar
+from typing import Any, Generic, TextIO, TypeVar, Union
+
+import ujson
 
 from .components import DOMNode
 from .typing import BodyTranslateStrategy, SameSite
@@ -10,9 +12,10 @@ from .util import timestamp
 
 T = TypeVar("T")
 
-__all__ = "Response", "HTML"
+__all__ = "Response", "HTML", "JSON"
 
 _Find = None
+HTMLContent = Union[TextIO, str, Path, DOMNode]
 
 
 class Response(Generic[T]):
@@ -20,7 +23,7 @@ class Response(Generic[T]):
 
     def __init__(
         self,
-        body: T | None = None,
+        body: T,
         status: int = 200,
         headers: dict[str, str] | None = None,
         *,
@@ -30,10 +33,14 @@ class Response(Generic[T]):
         self.status = status
         self.headers = headers or {}
         self._raw_headers: list[tuple[bytes, bytes]] = []
+        
         if body_translate:
             self.translate = body_translate
         else:
             self.translate = "str" if not hasattr(body, "__view_result__") else "result"
+
+    def _custom(self, body: T) -> str:
+        raise NotImplementedError('the "custom" translate strategy can only be used in subclasses that implement it')  # noqa
 
     def cookie(
         self,
@@ -106,6 +113,8 @@ class Response(Generic[T]):
             body = str(self.body)
         elif self.translate == "repr":
             body = repr(self.body)
+        elif self.translate == "custom":
+            body = self._custom(self.body)
         else:
             view_result = getattr(self.body, "__view_result__", None)
 
@@ -122,16 +131,20 @@ class Response(Generic[T]):
 
         return body, self.status, self._build_headers()
 
-
-class HTML(Response[str]):
+class HTML(Response[HTMLContent]):
     """HTML response wrapper."""
 
     def __init__(
         self,
-        body: TextIO | str | Path | DOMNode,
+        body: HTMLContent,
         status: int = 200,
         headers: dict[str, str] | None = None,
     ) -> None:
+
+        super().__init__(body, status, headers, body_translate="custom")
+        self._raw_headers.append((b"content-type", b"text/html"))
+
+    def _custom(self, body: HTMLContent) -> str:
         parsed_body = ""
 
         if isinstance(body, Path):
@@ -148,5 +161,19 @@ class HTML(Response[str]):
                     f"expected TextIO, str, Path, or DOMNode, not {type(body)}",  # noqa
                 ) from None
 
-        super().__init__(parsed_body, status, headers)
-        self._raw_headers.append((b"content-type", b"text/html"))
+        return parsed_body
+
+class JSON(Response[dict[str, Any]]):
+    """JSON response wrapper."""
+
+    def __init__(
+        self,
+        body: dict[str, Any],
+        status: int = 200,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(body, status, headers, body_translate="custom")
+        self._raw_headers.append((b"content-type", b"application/json"))
+
+    def _custom(self, body: dict[str, Any]) -> str:
+        return ujson.dumps(body)
