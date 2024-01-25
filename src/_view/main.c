@@ -49,7 +49,7 @@ PyMODINIT_FUNC PyInit__view() {
     if ((PyType_Ready(&PyAwaitable_Type) < 0) ||
         (PyType_Ready(&ViewAppType) < 0) ||
         (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) || (PyType_Ready(
-            &ContextType) < 0)) {
+            &ContextType) < 0) || (PyType_Ready(&TCPublicType) < 0)) {
         Py_DECREF(m);
         return NULL;
     }
@@ -88,6 +88,12 @@ PyMODINIT_FUNC PyInit__view() {
 
     Py_INCREF(&ContextType);
     if (PyModule_AddObject(m, "Context", (PyObject*) &ContextType) < 0) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    Py_INCREF(&TCPublicType);
+    if (PyModule_AddObject(m, "TCPublic", (PyObject*) &TCPublicType) < 0) {
         Py_DECREF(m);
         return NULL;
     }
