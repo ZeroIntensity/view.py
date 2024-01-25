@@ -32,3 +32,7 @@ async def o():
 @route()
 async def r():
     return "any"
+
+@post()
+async def inputs(a: str):
+    return a

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added docstrings to router functions
 - Added the `JSON` response class
 - Added the `custom` body translate strategy
+- Made `method` a keyword-only parameter in `path`
 - **Breaking Change:** The `body` parameter in `Response` is now required
 
 ## [1.0.0-alpha8] - 2024-1-21

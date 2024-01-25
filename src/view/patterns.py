@@ -8,6 +8,7 @@ from .routing import route as route_impl
 from .typing import StrMethod, ViewRoute
 
 __all__ = "RouteInput", "path"
+_Get = None
 
 _FUNC_MAPPINGS = {
     Method.GET: get,
@@ -29,12 +30,23 @@ _STR_MAPPINGS = {
 
 RouteInput = Callable[[RouteOrCallable], Route]
 
+def _get_method_enum(method: StrMethod | None | Method) -> Method:
+    if isinstance(method, str):
+        method = method.lower()  # type: ignore
+
+    if method in _STR_MAPPINGS:
+        method_enum: Method = _STR_MAPPINGS[method]
+    else:
+        method_enum: Method = method or Method.GET  # type: ignore
+
+    return method_enum
+
 
 def path(
     target: str,
     path_or_function: str | ViewRoute | Route,
-    method: Method | StrMethod = "GET",
     *inputs: RouteInput,
+    method: Method | StrMethod | None = _Get,
 ) -> Route:
     if isinstance(path_or_function, str):
         mod = run_path(path_or_function)
@@ -53,28 +65,19 @@ def path(
             raise InvalidRouteError(f"no route in {path_or_function}")
     else:
         route = path_or_function
-
-    if isinstance(method, str):
-        method = method.lower()  # type: ignore
-
-    if method in _STR_MAPPINGS:
-        method_enum: Method = _STR_MAPPINGS[method]
-    else:
-        method_enum: Method = method  # type: ignore
-
-    func = _FUNC_MAPPINGS[method_enum]
-
-    if isinstance(route, Route):
-        if not route.method:
-            route_obj = route_impl(target)(route)
-            route_obj.method_list = route.method_list
-        elif route.method != method_enum:
-            method_enum = route.method
-
+    
+    if not isinstance(route, Route):
+        method_enum = _get_method_enum(method)
         func = _FUNC_MAPPINGS[method_enum]
         route_obj = func(target)(route)
     else:
-        route_obj = func(target)(route)
+        if not route.method:
+            route_obj = route_impl(target)(route)
+            route_obj.method_list = route.method_list
+        else:
+            method_enum = _get_method_enum(method or route.method)
+            func = _FUNC_MAPPINGS[method_enum]
+            route_obj = func(target)(route)
 
     for i in inputs:
         i(route_obj)
