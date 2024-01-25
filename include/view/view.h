@@ -6,6 +6,7 @@
 #include <view/awaitable.h>
 #include <view/map.h>
 #include <view/context.h>
+#include <view/tcpublic.h>
 
 void view_fatal(
     const char* message,

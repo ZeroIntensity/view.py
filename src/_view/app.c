@@ -114,8 +114,6 @@ typedef struct _ViewApp {
     bool has_path_params;
 } ViewApp;
 
-typedef struct _type_info type_info;
-
 struct _type_info {
     uint8_t typecode;
     PyObject* ob;
@@ -204,7 +202,7 @@ static void free_type_info(type_info* ti) {
     }
 }
 
-static void free_type_codes(type_info** codes, Py_ssize_t len) {
+void free_type_codes(type_info** codes, Py_ssize_t len) {
     for (Py_ssize_t i = 0; i < len; i++)
         free_type_info(codes[i]);
 }
@@ -387,7 +385,6 @@ route* route_transport_new(route* r) {
     return rt;
 }
 
-
 static PyObject* query_parser(
     app_parsers* parsers,
     const char* data
@@ -414,12 +411,6 @@ static PyObject* query_parser(
                     verified = true; \
                 } break;
 
-static PyObject* cast_from_typecodes(
-    type_info** codes,
-    Py_ssize_t len,
-    PyObject* item,
-    PyObject* json_parser
-);
 
 static int verify_dict_typecodes(
     type_info** codes,
@@ -444,7 +435,8 @@ static int verify_dict_typecodes(
             codes,
             len,
             value,
-            json_parser
+            json_parser,
+            true
         );
         if (!value) return -1;
         if (PyDict_SetItem(
@@ -486,7 +478,8 @@ static int verify_list_typecodes(
             codes,
             len,
             item,
-            json_parser
+            json_parser,
+            true
         );
 
         if (!item) return 1;
@@ -500,15 +493,15 @@ static int verify_list_typecodes(
     return 0;
 }
 
-static PyObject* cast_from_typecodes(
+PyObject* cast_from_typecodes(
     type_info** codes,
     Py_ssize_t len,
     PyObject* item,
-    PyObject* json_parser
+    PyObject* json_parser,
+    bool allow_casting
 ) {
     if (!codes) {
         // type is Any
-
         if (!item) Py_RETURN_NONE;
         return item;
     };
@@ -523,10 +516,22 @@ static PyObject* cast_from_typecodes(
             return item;
         }
         case TYPECODE_STR: {
+            if (!allow_casting) {
+                if (PyUnicode_CheckExact(item)) {
+                    return Py_NewRef(item);
+                }
+                return NULL;
+            }
             typecode_flags |= STRING_ALLOWED;
             break;
         }
         case TYPECODE_NONE: {
+            if (!allow_casting) {
+                if (item == Py_None) {
+                    return Py_NewRef(item);
+                }
+                return NULL;
+            }
             typecode_flags |= NULL_ALLOWED;
             break;
         }
@@ -535,7 +540,8 @@ static PyObject* cast_from_typecodes(
                 item
                 )) {
                 return Py_NewRef(item);
-            }
+            } else if (!allow_casting) return NULL;
+
             PyObject* py_int = PyLong_FromUnicodeObject(
                 item,
                 10
@@ -550,6 +556,7 @@ static PyObject* cast_from_typecodes(
             if (PyBool_Check(
                 item
                 )) return Py_NewRef(item);
+            else if (!allow_casting) return NULL;
             const char* str = PyUnicode_AsUTF8(item);
             PyObject* py_bool = NULL;
             if (!str) return NULL;
@@ -572,6 +579,7 @@ static PyObject* cast_from_typecodes(
             if (PyFloat_CheckExact(
                 item
                 )) return Py_NewRef(item);
+            else if (!allow_casting) return NULL;
             PyObject* flt = PyFloat_FromString(item);
             if (!flt) {
                 PyErr_Clear();
@@ -585,6 +593,8 @@ static PyObject* cast_from_typecodes(
                 item
                 )) {
                 obj = Py_NewRef(item);
+            } else if (!allow_casting) {
+                return NULL;
             } else {
                 obj = PyObject_Vectorcall(
                     json_parser,
@@ -616,12 +626,19 @@ static PyObject* cast_from_typecodes(
             return obj;
         }
         case TYPECODE_CLASS: {
+            if (!allow_casting) {
+                if (!Py_IS_TYPE(item, Py_TYPE(ti->ob))) {
+                    return NULL;
+                }
+
+                return Py_NewRef(item);
+            }
             PyObject* kwargs = PyDict_New();
             if (!kwargs) return NULL;
             PyObject* obj;
-            if (PyDict_CheckExact(item) || PyObject_IsInstance(
+            if (PyDict_CheckExact(item) || Py_IS_TYPE(
                 item,
-                (PyObject*) Py_TYPE(ti->ob)
+                Py_TYPE(ti->ob)
                 )) {
                 obj = Py_NewRef(item);
             } else {
@@ -676,7 +693,8 @@ static PyObject* cast_from_typecodes(
                     info->children,
                     info->children_size,
                     got_item,
-                    json_parser
+                    json_parser,
+                    allow_casting
                 );
 
                 if (!parsed_item) {
@@ -853,7 +871,8 @@ static PyObject** generate_params(
             inp->types,
             inp->types_size,
             raw_item,
-            parsers->json
+            parsers->json,
+            true
         );
 
         if (!item) {
@@ -1527,7 +1546,8 @@ static int run_err_cb(
     PyObject* handler,
     PyObject* send,
     int status,
-    bool* called
+    bool* called,
+    const char* message
 ) {
     if (!handler) {
         if (called) *called = false;
@@ -1535,7 +1555,7 @@ static int run_err_cb(
             awaitable,
             send,
             status,
-            get_err_str(status),
+            message ? message : get_err_str(status),
             NULL
             ) < 0
         ) {
@@ -1596,7 +1616,8 @@ static int fire_error(
     PyObject* awaitable,
     int status,
     route* r,
-    bool* called
+    bool* called,
+    const char* message
 ) {
     PyObject* send;
     if (PyAwaitable_UnpackValues(
@@ -1610,7 +1631,6 @@ static int fire_error(
 
     uint16_t index = 0;
     PyObject* handler = NULL;
-
 
     if (status >= 500) {
         index = status - 500;
@@ -1631,7 +1651,8 @@ static int fire_error(
         handler,
         send,
         status,
-        called
+        called,
+        message
         ) < 0) {
         if (send_raw_text(
             awaitable,
@@ -1770,6 +1791,55 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
     return result;
 }
 
+static int server_err_exc(
+    ViewApp* self,
+    PyObject* awaitable,
+    uint16_t status,
+    route* r,
+    bool* handler_was_called,
+    PyObject* msg
+) {
+    const char* message = NULL;
+    PyObject* msg_str = NULL;
+
+    if (self->dev) {
+        msg_str = PyObject_Str(msg);
+        if (!msg_str)
+            return -1;
+
+        message = PyUnicode_AsUTF8(msg_str);
+        if (!message) {
+            Py_DECREF(msg_str);
+            return -1;
+        }
+    }
+
+    if (fire_error(
+        self,
+        awaitable,
+        status,
+        r,
+        handler_was_called,
+        message
+        ) < 0) {
+        Py_XDECREF(msg_str);
+        return -1;
+    }
+
+    //Py_XDECREF(msg_str);
+    return 0;
+}
+
+static int server_err(
+    ViewApp* self,
+    PyObject* awaitable,
+    uint16_t status,
+    route* r,
+    bool* handler_was_called
+) {
+    return server_err_exc(self, awaitable, status, r, handler_was_called,
+        PyErr_Occurred());
+}
 
 static int route_error(
     PyObject* awaitable,
@@ -1796,28 +1866,24 @@ static int route_error(
         NULL
         ) < 0) return -1;
 
-
-    if (fire_error(
+    if (server_err_exc(
         self,
         awaitable,
         500,
         r,
-        &handler_was_called
+        &handler_was_called,
+        value
         ) < 0) {
         return -1;
     }
 
     if (!handler_was_called) {
-        PyErr_NormalizeException(
-            &tp,
-            &value,
-            &tb
-        );
-        PyErr_Display(
+        PyErr_Restore(
             tp,
             value,
             tb
         );
+        PyErr_Print();
     }
 
     return 0;
@@ -1973,7 +2039,7 @@ static int handle_route_impl(
 
     if (!query_obj) {
         PyErr_Clear();
-        return fire_error(
+        return server_err(
             self,
             awaitable,
             400,
@@ -1997,7 +2063,7 @@ static int handle_route_impl(
         // parsing failed
         PyErr_Clear();
 
-        return fire_error(
+        return server_err(
             self,
             awaitable,
             400,
@@ -2031,7 +2097,7 @@ static int handle_route_impl(
                 free(path_params);
                 free(size);
                 free(merged);
-                if (fire_error(
+                if (server_err(
                     self,
                     awaitable,
                     500,
@@ -2056,7 +2122,7 @@ static int handle_route_impl(
         free(path_params);
         free(size);
         free(merged);
-        if (fire_error(
+        if (server_err(
             self,
             awaitable,
             500,
@@ -2073,7 +2139,7 @@ static int handle_route_impl(
                 for (int x = 0; x < r->inputs_size; x++)
                     Py_DECREF(params[x]);
 
-                if (fire_error(
+                if (server_err(
                     self,
                     awaitable,
                     500,
@@ -2087,7 +2153,7 @@ static int handle_route_impl(
             if (PyCoro_CheckExact(res)) {
                 if (PyAwaitable_AddAwait(awaitable, res, NULL, route_error) <
                     0) {
-                    if (fire_error(
+                    if (server_err(
                         self,
                         awaitable,
                         500,
@@ -2117,7 +2183,7 @@ static int handle_route_impl(
 
     if (!Py_IS_TYPE(coro, &PyCoro_Type)) {
         if (handle_route_callback(awaitable, coro) < 0) {
-            if (fire_error(
+            if (server_err(
                 self,
                 awaitable,
                 500,
@@ -2283,7 +2349,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     if (!query_obj) {
         PyErr_Clear();
-        return fire_error(
+        return server_err(
             self,
             awaitable,
             400,
@@ -2355,6 +2421,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 awaitable,
                 400,
                 r,
+                NULL,
                 NULL
             );
         } else ++final_size;
@@ -2364,7 +2431,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 r->inputs[i]->types,
                 r->inputs[i]->types_size,
                 item,
-                self->parsers.json
+                self->parsers.json,
+                true
             );
             if (!parsed_item) {
                 PyErr_Clear();
@@ -2378,6 +2446,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                     awaitable,
                     400,
                     r,
+                    NULL,
                     NULL
                 );
             }
@@ -2405,7 +2474,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         PyObject* res = PyObject_Vectorcall(r->middleware[i], merged, *size +
             final_size, NULL);
         if (!res) {
-            if (fire_error(self, awaitable, 500, r, NULL) < 0) {
+            if (server_err(self, awaitable, 500, r, NULL) < 0) {
                 for (int x = 0; x < final_size + *size; x++)
                     Py_XDECREF(merged[x]);
 
@@ -2419,7 +2488,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
         if (PyCoro_CheckExact(res)) {
             if (PyAwaitable_AddAwait(awaitable, res, NULL, route_error) < 0) {
-                if (fire_error(self, awaitable, 500, r, NULL) < 0) {
+                if (server_err(self, awaitable, 500, r, NULL) < 0) {
                     for (int x = 0; x < final_size + *size; x++)
                         Py_XDECREF(merged[x]);
 
@@ -2452,7 +2521,7 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     if (!Py_IS_TYPE(coro, &PyCoro_Type)) {
         if (handle_route_callback(awaitable, coro) < 0) {
-            if (fire_error(
+            if (server_err(
                 self,
                 awaitable,
                 500,
@@ -2748,6 +2817,7 @@ static PyObject* app(
                     awaitable,
                     405,
                     NULL,
+                    NULL,
                     NULL
                     ) < 0) {
                     Py_DECREF(awaitable);
@@ -2761,6 +2831,7 @@ static PyObject* app(
                 self,
                 awaitable,
                 404,
+                NULL,
                 NULL,
                 NULL
                 ) < 0) {
@@ -2857,6 +2928,7 @@ static PyObject* app(
                     awaitable,
                     404,
                     NULL,
+                    NULL,
                     NULL
                     ) < 0) {
                     Py_DECREF(awaitable);
@@ -2888,6 +2960,7 @@ static PyObject* app(
                 self,
                 awaitable,
                 404,
+                NULL,
                 NULL,
                 NULL
                 ) < 0) {
@@ -3100,7 +3173,7 @@ static PyObject* app(
         }
 
         if (!res_coro) {
-            if (fire_error(
+            if (server_err(
                 self,
                 awaitable,
                 500,
@@ -3119,7 +3192,7 @@ static PyObject* app(
                 awaitable,
                 res_coro
                 ) < 0) {
-                if (fire_error(
+                if (server_err(
                     self,
                     awaitable,
                     500,
@@ -3212,7 +3285,7 @@ static inline int bad_input(const char* name) {
 }
 
 
-static type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
+type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
     type_info** tps = calloc(
         sizeof(type_info),
         len

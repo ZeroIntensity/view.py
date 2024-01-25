@@ -236,6 +236,59 @@ async def index(me: Person):
     return f"Hello, {me['first']} {me['last']}"
 ```
 
+## Type Validation API
+
+You can use view.py's type validator on your own to do whatever you want. To create a validator for a type, use `compile_type`:
+
+```py
+from view import compile_type
+
+validator = compile_type(str | int)
+```
+
+!!! danger
+
+    The above code uses the `|` syntax, which is only available to Python 3.9+
+
+::: view.typecodes.compile_type
+
+With a validator, you can do three things:
+
+- Cast an object to the type.
+- Check if an object is compatible with the type.
+- Check if an object is compatible, without the use of casting.
+
+`cast` will raise a `TypeValidationError` if the type is not compatible:
+
+```py
+from view import compile_type
+
+tp = compile_type(dict)
+tp.cast("{}")
+tp.cast("123")  # TypeValidationError
+```
+
+The difference between `check_type` and `is_compatible`, is that `check_type` is a [type guard](https://mypy.readthedocs.io/en/latest/type_narrowing.html), which `is_compatible` is not.
+
+This means that `check_type` will ensure that the object is *an instance* of the type, while `is_compatible` checks whether it can be casted. For example:
+
+```py
+from view import compile_type
+
+tp = compile_type(dict)
+
+x: Any = {}
+y: Any = {}  # you could also use the string "{}" here
+
+if tp.check_type(x):
+    reveal_type(x)  # dict
+    # to a type checker, x is now a dict
+
+if tp.is_compatible(y):
+    reveal_type(y)  # Any
+    # a type checker doesn't know that y is a dict
+```
+
 ## Body Protocol
 
 If any of the above types do not support your needs, you may design your own type with the `__view_body__` protocol. On a type, `__view_body__` can be held in one of two things:

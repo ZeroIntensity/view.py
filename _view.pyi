@@ -7,7 +7,9 @@ from ipaddress import IPv4Address as __IPv4Address
 from ipaddress import IPv6Address as __IPv6Address
 from typing import Any as __Any
 from typing import Awaitable as __Awaitable
+from typing import Callable as __Callable
 from typing import Coroutine as __Coroutine
+from typing import Iterable as __Iterable
 from typing import Literal as __Literal
 from typing import NoReturn as __NoReturn
 from typing import TypeVar as __TypeVar
@@ -21,6 +23,7 @@ from view.typing import Parser as __Parser
 from view.typing import Part as __Part
 from view.typing import RouteInputDict as __RouteInput
 from view.typing import StrMethodASGI as __StrMethodASGI
+from view.typing import TypeInfo as __TypeInfo
 from view.typing import ViewRoute as __ViewRoute
 
 __T = __TypeVar("__T")
@@ -117,3 +120,7 @@ class Context:
     path: str
     scheme: __Literal["http", "https"]
     http_version: __Literal["1.0", "1.1", "2.0", "view_test"]
+
+class TCPublic:
+    def _compile(self, iterable: __Iterable[__TypeInfo], json_parser: __Callable[[str], dict], /) -> None: ...
+    def _cast(self, obj: object, allow_cast: bool, /) -> __Any: ...

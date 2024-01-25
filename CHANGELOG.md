@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the `extract_path` utility
 - Added the `view build` command
 - Added `App.template`
+- Route errors now display the error message when `dev` is `True`
+- Changed exception rendering in route errors
+- Added `compile_type` and `TCValidator`
 - **Breaking Change:** The `body` parameter in `Response` is now required
 
 ## [1.0.0-alpha8] - 2024-1-21
