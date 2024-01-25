@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
-                    List, Literal, Tuple, Type, TypeVar, Union)
+                    List, Literal, TextIO, Tuple, Type, TypeVar, Union)
 
-from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
+from typing_extensions import ParamSpec, Protocol, TypedDict
 
 if TYPE_CHECKING:
-    from _view import Context
-
     from .app import RouteDoc
 
 AsgiSerial = Union[
@@ -113,7 +111,7 @@ class Part(Protocol[V]):
 
 Callback = Callable[[], Any]
 SameSite = Literal["strict", "lax", "none"]
-BodyTranslateStrategy = Literal["str", "repr", "result"]
+BodyTranslateStrategy = Literal["str", "repr", "result", "custom"]
 
 DocsType = Dict[Tuple[Union[str, Tuple[str, ...]], str], "RouteDoc"]
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]

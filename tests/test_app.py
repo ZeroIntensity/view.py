@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 from ward import test
 
-from view import (BodyParam, Context, Response, body, context, get, new_app,
-                  query)
+from view import (JSON, BodyParam, Context, Response, body, context, get,
+                  new_app, query)
 from view import route as route_impl
 
 
@@ -731,3 +731,42 @@ async def _():
         res = await test.post("/")
         assert res.status == 405
         assert res.message == "Method Not Allowed"
+
+@test("json response class")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return JSON({"hello": "world"})
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == '{"hello":"world"}'
+
+@test("body translate strategies")
+async def _():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return Response('a', body_translate="repr")
+
+    @app.get("/result")
+    async def result():
+        return Response(JSON({}), body_translate="result")
+
+    class CustomResponse(Response[list]):
+        def __init__(self, body: list) -> None:
+            super().__init__(body, body_translate="custom")
+
+        def _custom(self, body: list) -> str:
+            return " ".join(body)
+
+    @app.get("/custom")
+    async def custom():
+        return CustomResponse(["1", "2", "3"])
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == repr('a')
+        assert (await test.get("/result")).message == "{}"
+        assert (await test.get("/custom")).message == "1 2 3"
