@@ -44,6 +44,16 @@
         route_free(r); \
         return NULL; \
     } \
+    if (!map_get(self->all_routes, path)) { \
+        int* num = malloc(sizeof(int)); \
+        if (!num) { \
+            PyErr_NoMemory(); \
+            route_free(r); \
+            return NULL; \
+        } \
+        *num = 1; \
+        map_set(self->all_routes, path, num);\
+    } \
     if (!PySequence_Size(parts)) \
         map_set(self-> target, path, r); \
     else \
@@ -95,6 +105,7 @@ typedef struct _ViewApp {
     map* patch;
     map* delete;
     map* options;
+    map* all_routes;
     PyObject* client_errors[28];
     PyObject* server_errors[11];
     bool dev;
@@ -905,8 +916,10 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
         4,
         (map_free_func) route_free
     );
+    self->all_routes = map_new(4, free);
 
-    if (!self->options || !self->patch || !self->delete || !self->post ||
+    if (!self->options || !self->patch || !self->delete ||
+        !self->post ||
         !self->put || !self->put || !self->get) {
         return NULL;
     };
@@ -2726,8 +2739,24 @@ static PyObject* app(
     );
     PyObject** params = NULL;
     Py_ssize_t* size = NULL;
+
     if (!r || r->r) {
         if (!self->has_path_params) {
+            if (map_get(self->all_routes, path)) {
+                if (fire_error(
+                    self,
+                    awaitable,
+                    405,
+                    NULL,
+                    NULL
+                    ) < 0) {
+                    Py_DECREF(awaitable);
+                    free(path);
+                    return NULL;
+                }
+                free(path);
+                return awaitable;
+            }
             if (fire_error(
                 self,
                 awaitable,

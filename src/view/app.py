@@ -17,15 +17,15 @@ from io import UnsupportedOperation
 from pathlib import Path
 from threading import Thread
 from types import TracebackType as Traceback
-from typing import (Any, Callable, Coroutine, Generic, TextIO, TypeVar,
-                    get_type_hints, overload)
+from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
+                    TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
 import uvicorn
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, Unpack
+from typing_extensions import Unpack
 
 from _view import ViewApp
 
@@ -44,7 +44,8 @@ from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
-from .typing import Callback, DocsType
+from .routing import route as route_impl
+from .typing import Callback, DocsType, StrMethod
 from .util import enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
@@ -360,6 +361,38 @@ class App(ViewApp):
 
         self._manual_routes.append(route)
 
+    def route(
+        self,
+        path_or_route: str | None | RouteOrCallable = None,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+        methods: Iterable[StrMethod] | None = None
+    ) -> Callable[[RouteOrCallable], Route]:
+        """Add a route that can be called with any method (or only specific methods).
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+            methods: Methods that can be used to access this route. If this is `None`, then all methods are allowed.
+
+        Example:
+            ```py
+            from view import route
+
+            @route("/", methods=("GET", "POST"))
+            async def index():
+                return "Hello, view.py!"
+            ```
+        """
+        def inner(r: RouteOrCallable) -> Route:
+            new_r = route_impl(path_or_route, doc, cache_rate=cache_rate, methods=methods)(r)
+            self._push_route(new_r)
+            return new_r
+
+        return inner
+
     def _method_wrapper(
         self,
         path: str,
@@ -376,15 +409,72 @@ class App(ViewApp):
         return inner
 
     def get(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
-        """Set a GET route."""
+        """Add a GET route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.get("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
         return self._method_wrapper(path, doc, cache_rate, get)
 
     def post(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
-        """Set a POST route."""
+        """Add a POST route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.post("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
         return self._method_wrapper(path, doc, cache_rate, post)
 
     def delete(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
-        """Set a DELETE route."""
+        """Add a DELETE route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.delete("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
         return self._method_wrapper(path, doc, cache_rate, delete)
 
     def patch(
@@ -394,15 +484,72 @@ class App(ViewApp):
         *,
         cache_rate: int = -1,
     ):
-        """Set a PATCH route."""
+        """Add a PATCH route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.patch("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
         return self._method_wrapper(path, doc, cache_rate, patch)
 
     def put(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
-        """Set a PUT route."""
+        """Add a PUT route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.put("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
         return self._method_wrapper(path, doc, cache_rate, put)
 
     def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
-        """Set a OPTIONS route."""
+        """Add an OPTIONS route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.options("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
         return self._method_wrapper(path, doc, cache_rate, options)
 
     def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
@@ -538,9 +685,22 @@ class App(ViewApp):
                     i.doc or "No description provided.", i.tp, i.default
                 )
 
-            self._docs[(r.method.name, r.path)] = RouteDoc(
-                r.doc or "No description provided.", body, query
-            )
+            if r.method:
+                self._docs[(r.method.name, r.path)] = RouteDoc(
+                    r.doc or "No description provided.", body, query
+                )
+            else:
+                self._docs[
+                    (tuple([i.name for i in r.method_list]) if r.method_list else (
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS",
+                    ), r.path)] = RouteDoc(
+                    r.doc or "No description provided.", body, query
+                )
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")
