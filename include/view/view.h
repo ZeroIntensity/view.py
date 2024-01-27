@@ -7,6 +7,7 @@
 #include <view/map.h>
 #include <view/context.h>
 #include <view/tcpublic.h>
+#include <view/error.h>
 
 void view_fatal(
     const char* message,
