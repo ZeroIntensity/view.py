@@ -1,6 +1,11 @@
-<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=300 height=auto /></div>
+<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=250 height=auto /></div>
 
-## A new web framework for Python
+## The Batteries-Detachable Web Framework
+
+> [!Warning]
+> view.py is in very early stages and not yet considered to be ready for production.
+> If you would like to follow development progress, join [the discord](https://discord.gg/tZAfuWAbm2).
+> For contributing to view.py, please see our [CONTRIBUTING.md](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
 
 - [Docs](https://view.zintensity.dev)
 - [Source](https://github.com/ZeroIntensity/view.py)
@@ -19,18 +24,20 @@ async def index():
 app.run()
 ```
 
-### Development Help Wanted
-
-view.py is currently in a very high alpha stage of development, and always looking for new contributors. If you're interested, you can take a look at [the contributors file](https://github.com/Zerointensity/view.py/blob/master/CONTRIBUTING.md).
-
 ### Installation
 
-**CPython 3.8+ is required.**
+**Python 3.8+ is required.**
+
+#### Development 
+
+```
+$ pip install git+https://github.com/ZeroIntensity/view.py
+```
 
 #### Linux/macOS
 
 ```
-python3 -m pip install -U view.py
+$ python3 -m pip install -U view.py
 ```
 
 #### Windows

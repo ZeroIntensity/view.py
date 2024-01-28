@@ -5,7 +5,8 @@
 #include <view/app.h>
 #include <view/awaitable.h>
 #include <view/map.h>
-
+#include <view/context.h>
+#include <view/tcpublic.h>
 
 void view_fatal(
     const char* message,
@@ -13,6 +14,9 @@ void view_fatal(
     const char* func,
     int lineno
 );
+
+extern PyObject* ip_address;
+extern PyObject* invalid_status_error;
 
 #if defined(__LINE__) && defined(__FILE__)
 #define VIEW_FATAL(msg) view_fatal(msg, __FILE__, __func__, __LINE__)

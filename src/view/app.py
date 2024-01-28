@@ -16,9 +16,10 @@ from functools import lru_cache
 from io import UnsupportedOperation
 from pathlib import Path
 from threading import Thread
+from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, Callable, Coroutine, Generic, TextIO, TypeVar,
-                    get_type_hints, overload)
+from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
+                    TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -27,7 +28,7 @@ from rich import print
 from rich.traceback import install
 from typing_extensions import Unpack
 
-from _view import ViewApp
+from _view import InvalidStatusError, ViewApp
 
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
@@ -39,16 +40,20 @@ from .config import Config, load_config
 from .exceptions import (BadEnvironmentError, ConfigurationError, ViewError,
                          ViewInternalError)
 from .logging import _LogArgs, log
+from .response import HTML
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
+from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
-from .typing import Callback, DocsType
+from .routing import route as route_impl
+from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
+from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
 
 get_type_hints = lru_cache(get_type_hints)
 
-__all__ = "App", "new_app", "get_app"
+__all__ = "App", "new_app", "get_app", "Error", "ERROR_CODES"
 
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
@@ -57,8 +62,53 @@ T = TypeVar("T")
 _ROUTES_WARN_MSG = (
     "routes argument should only be passed when load strategy is manual"
 )
+_ConfigSpecified = None
+_CurrentFrame = None
 
 B = TypeVar("B", bound=BaseException)
+
+ERROR_CODES: tuple[int, ...] = (
+    400,
+    401,
+    402,
+    403,
+    404,
+    405,
+    406,
+    407,
+    408,
+    409,
+    410,
+    411,
+    412,
+    413,
+    414,
+    415,
+    416,
+    417,
+    418,
+    421,
+    422,
+    423,
+    424,
+    425,
+    426,
+    428,
+    429,
+    431,
+    451,
+    500,
+    501,
+    502,
+    503,
+    504,
+    505,
+    506,
+    507,
+    508,
+    510,
+    511,
+)
 
 
 @dataclass()
@@ -111,6 +161,7 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
         body_q = asyncio.Queue()
         start = asyncio.Queue()
@@ -137,6 +188,10 @@ class TestingContext:
 
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
+        headers_list = [
+            (key.encode(), value.encode())
+            for key, value in (headers or {}).items()
+        ]
 
         await self.app(
             {
@@ -146,17 +201,21 @@ class TestingContext:
                 "query_string": urlencode(query_str).encode()
                 if query
                 else b"",  # noqa
-                "headers": [],
+                "headers": headers_list,
                 "method": method,
+                "http_version": "view_test",
+                "scheme": "http",
+                "client": None,
+                "server": None,
             },
             receive,
             send,
         )
 
-        headers, status = await start.get()
+        res_headers, status = await start.get()
         body_s = await body_q.get()
 
-        return TestingResponse(body_s, headers, status)
+        return TestingResponse(body_s, res_headers, status)
 
     async def get(
         self,
@@ -164,8 +223,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("GET", route, body=body, query=query)
+        return await self._request(
+            "GET",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def post(
         self,
@@ -173,8 +239,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("POST", route, body=body, query=query)
+        return await self._request(
+            "POST",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def put(
         self,
@@ -182,8 +255,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("PUT", route, body=body, query=query)
+        return await self._request(
+            "PUT",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def patch(
         self,
@@ -191,8 +271,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("PATCH", route, body=body, query=query)
+        return await self._request(
+            "PATCH",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def delete(
         self,
@@ -200,8 +287,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("DELETE", route, body=body, query=query)
+        return await self._request(
+            "DELETE",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
     async def options(
         self,
@@ -209,8 +303,15 @@ class TestingContext:
         *,
         body: dict[str, Any] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        return await self._request("OPTIONS", route, body=body, query=query)
+        return await self._request(
+            "OPTIONS",
+            route,
+            body=body,
+            query=query,
+            headers=headers,
+        )
 
 
 @dataclass
@@ -227,10 +328,33 @@ class RouteDoc:
     query: dict[str, InputDoc]
 
 
+class Error(BaseException):
+    """Base class to act as a transport for raising HTTP exceptions."""
+
+    def __init__(self, status: int = 400, message: str | None = None) -> None:
+        """
+        Args:
+            status: The status code for the resulting response.
+            message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
+        """
+        if status not in ERROR_CODES:
+            raise InvalidStatusError(
+                "status code can only be a client or server error"
+            )
+
+        self.status = status
+        self.message = message
+
+
 class App(ViewApp):
     """Public view.py app object."""
 
-    def __init__(self, config: Config) -> None:
+    def __init__(
+        self,
+        config: Config,
+        *,
+        error_class: type[Error] = Error,
+    ) -> None:
         """
         Args:
             config: Configuration object to be used. Automatically generated by `new_app`.
@@ -244,6 +368,8 @@ class App(ViewApp):
         self.running = False
         self._docs: DocsType = {}
         self.loaded_routes: list[Route] = []
+        self.templaters: dict[str, Any] = {}
+        self._register_error(error_class)
 
         Service.log.setLevel(
             config.log.level
@@ -314,43 +440,203 @@ class App(ViewApp):
 
         self._manual_routes.append(route)
 
+    def route(
+        self,
+        path_or_route: str | None | RouteOrCallable = None,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+        methods: Iterable[StrMethod] | None = None,
+    ) -> Callable[[RouteOrCallable], Route]:
+        """Add a route that can be called with any method (or only specific methods).
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+            methods: Methods that can be used to access this route. If this is `None`, then all methods are allowed.
+
+        Example:
+            ```py
+            from view import route
+
+            @route("/", methods=("GET", "POST"))
+            async def index():
+                return "Hello, view.py!"
+            ```
+        """
+
+        def inner(r: RouteOrCallable) -> Route:
+            new_r = route_impl(
+                path_or_route, doc, cache_rate=cache_rate, methods=methods
+            )(r)
+            self._push_route(new_r)
+            return new_r
+
+        return inner
+
     def _method_wrapper(
         self,
         path: str,
         doc: str | None,
+        cache_rate: int,
         target: Callable[..., Any],
         # i dont really feel like typing this properly
     ) -> Callable[[RouteOrCallable], Route]:
         def inner(route: RouteOrCallable) -> Route:
-            new_route = target(path, doc)(route)
+            new_route = target(path, doc, cache_rate=cache_rate)(route)
             self._push_route(new_route)
             return new_route
 
         return inner
 
-    def get(self, path: str, *, doc: str | None = None):
-        """Set a GET route."""
-        return self._method_wrapper(path, doc, get)
+    def get(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+        """Add a GET route.
 
-    def post(self, path: str, *, doc: str | None = None):
-        """Set a POST route."""
-        return self._method_wrapper(path, doc, post)
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
-    def delete(self, path: str, *, doc: str | None = None):
-        """Set a DELETE route."""
-        return self._method_wrapper(path, doc, delete)
+        Example:
+            ```py
+            from view import new_app
 
-    def patch(self, path: str, *, doc: str | None = None):
-        """Set a PATCH route."""
-        return self._method_wrapper(path, doc, patch)
+            app = new_app()
 
-    def put(self, path: str, *, doc: str | None = None):
-        """Set a PUT route."""
-        return self._method_wrapper(path, doc, put)
+            @app.get("/")
+            async def index():
+                return "Hello, view.py!"
 
-    def options(self, path: str, *, doc: str | None = None):
-        """Set a OPTIONS route."""
-        return self._method_wrapper(path, doc, options)
+            app.run()
+            ```
+        """
+        return self._method_wrapper(path, doc, cache_rate, get)
+
+    def post(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+        """Add a POST route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.post("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
+        return self._method_wrapper(path, doc, cache_rate, post)
+
+    def delete(
+        self, path: str, doc: str | None = None, *, cache_rate: int = -1
+    ):
+        """Add a DELETE route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.delete("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
+        return self._method_wrapper(path, doc, cache_rate, delete)
+
+    def patch(
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ):
+        """Add a PATCH route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.patch("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
+        return self._method_wrapper(path, doc, cache_rate, patch)
+
+    def put(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+        """Add a PUT route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.put("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
+        return self._method_wrapper(path, doc, cache_rate, put)
+
+    def options(
+        self, path: str, doc: str | None = None, *, cache_rate: int = -1
+    ):
+        """Add an OPTIONS route.
+
+        Args:
+            path_or_route: The path to this route, or the route itself.
+            doc: The description of the route to be used in documentation.
+            cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
+
+        Example:
+            ```py
+            from view import new_app
+
+            app = new_app()
+
+            @app.options("/")
+            async def index():
+                return "Hello, view.py!"
+
+            app.run()
+            ```
+        """
+        return self._method_wrapper(path, doc, cache_rate, options)
 
     def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
         if key not in kwargs:
@@ -435,6 +721,39 @@ class App(ViewApp):
 
         return inner
 
+    async def template(
+        self,
+        name: str | Path,
+        directory: str | Path | None = _ConfigSpecified,
+        engine: TemplateEngine | None = _ConfigSpecified,
+        frame: Frame | None | _CurrentFrameType = _CurrentFrame,
+        **parameters: Any,
+    ) -> HTML:
+        """Render a template with the specified engine. This returns a view.py HTML response."""
+        if frame is _CurrentFrame:
+            f = inspect.currentframe()
+            assert f
+            f = f.f_back
+            assert f
+        else:
+            f = frame
+
+        return await template(
+            name, directory, engine, f, app=self, **parameters
+        )
+
+    async def markdown(
+        self,
+        name: str | Path,
+        *,
+        directory: str | Path | None = _ConfigSpecified,
+    ) -> HTML:
+        """Convert a markdown file into HTML. This returns a view.py HTML response."""
+        return await markdown(name, directory=directory, app=self)
+
+    def context(self, r_or_none: RouteOrCallable | None = None):
+        return context_impl(r_or_none)
+
     async def _app(self, scope, receive, send) -> None:
         return await self.asgi_app_entry(scope, receive, send)
 
@@ -464,6 +783,8 @@ class App(ViewApp):
 
         self.loaded = True
 
+        from .routing import RouteInput
+
         for r in self.loaded_routes:
             if not r.path:
                 continue
@@ -472,14 +793,34 @@ class App(ViewApp):
             query = {}
 
             for i in r.inputs:
+                if not isinstance(i, RouteInput):
+                    continue
+
                 target = body if i.is_body else query
                 target[i.name] = InputDoc(
                     i.doc or "No description provided.", i.tp, i.default
                 )
 
-            self._docs[(r.method.name, r.path)] = RouteDoc(
-                r.doc or "No description provided.", body, query
-            )
+            if r.method:
+                self._docs[(r.method.name, r.path)] = RouteDoc(
+                    r.doc or "No description provided.", body, query
+                )
+            else:
+                self._docs[
+                    (
+                        tuple([i.name for i in r.method_list])
+                        if r.method_list
+                        else (
+                            "GET",
+                            "POST",
+                            "PUT",
+                            "PATCH",
+                            "DELETE",
+                            "OPTIONS",
+                        ),
+                        r.path,
+                    )
+                ] = RouteDoc(r.doc or "No description provided.", body, query)
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         Internal.info(f"using event loop: {asyncio.get_event_loop()}")
@@ -694,6 +1035,8 @@ def new_app(
     post_init: Callback | None = None,
     app_dealloc: Callback | None = None,
     store_address: bool = True,
+    config: Config | None = None,
+    error_class: type[Error] = Error,
 ) -> App:
     """Create a new view app.
 
@@ -704,13 +1047,15 @@ def new_app(
         post_init: Callback to run after the App instance has been created
         app_dealloc: Callback to run when the App instance is freed from memory
         store_address: Whether to store the address of the instance to allow use from get_app
+        config: Raw `Config` object to use instead of loading the config.
+        error_class: Class to be recognized as the view.py HTTP error object.
     """
-    config = load_config(
+    config = config or load_config(
         path=Path(config_path) if config_path else None,
         directory=Path(config_directory) if config_directory else None,
     )
 
-    app = App(config)
+    app = App(config, error_class=error_class)
 
     if post_init:
         post_init()

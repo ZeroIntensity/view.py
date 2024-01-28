@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
-                    List, Literal, Tuple, Type, TypeVar, Union)
+                    List, Literal, TextIO, Tuple, Type, TypeVar, Union)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
@@ -56,7 +56,6 @@ V = TypeVar("V", bound="ValueType")
 
 
 ViewResponse = Awaitable[ViewResult]
-Context = Any
 R = TypeVar("R", bound="ViewResponse")
 ViewRoute = Callable[P, R]
 
@@ -112,9 +111,32 @@ class Part(Protocol[V]):
 
 Callback = Callable[[], Any]
 SameSite = Literal["strict", "lax", "none"]
-BodyTranslateStrategy = Literal["str", "repr", "result"]
+BodyTranslateStrategy = Literal["str", "repr", "result", "custom"]
 
-DocsType = Dict[Tuple[str, str], "RouteDoc"]
+DocsType = Dict[Tuple[Union[str, Tuple[str, ...]], str], "RouteDoc"]
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 FileWriteMethod = Literal["only", "never", "both"]
-StrMethod = Literal["get", "post", "put", "patch", "delete", "options", "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+StrMethod = Literal[
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "options",
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
+TemplateEngine = Literal["view", "jinja", "django", "mako", "chameleon"]
+StrMethodASGI = Literal[
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
+Middleware = Callable[P, Union[Awaitable[None], None]]

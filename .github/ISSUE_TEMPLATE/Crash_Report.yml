@@ -1,16 +1,16 @@
 name: Crash Report
-description: File a Crash report.
+description: File a crash report.
 title: "[Crash]: "
 labels: ["crash"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this Crash report! Please, fill this form to help us improve the project.
+        Thanks for taking the time to fill out this crash report!
   - type: checkboxes
     attributes:
       label: Is there an existing issue for this?
-      description: Please search to see if an issue already exists for the Crash you encountered.
+      description: Please search to see if an issue already exists for the crash you encountered.
       options:
         - label: I have searched the existing issues
           required: true
@@ -18,12 +18,6 @@ body:
     attributes:
       label: Current Behavior
       description: A concise description of what you're experiencing.
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: Expected Behavior
-      description: A concise description of what you expected to happen.
     validations:
       required: true
   - type: textarea

@@ -1,3 +1,0 @@
-# Config
-
-::: view.config.Config

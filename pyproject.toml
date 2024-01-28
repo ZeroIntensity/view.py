@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "view.py"
-description = 'Lightning fast, modern web framework.'
+description = 'The Batteries-Detachable Web Framework.'
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = []
@@ -26,13 +26,8 @@ dependencies = [
     "typing_extensions",
     "ujson",
     "configzen",
-    "psutil",
-    "plotext",
-    "psycopg2-binary",
-    "mysql-connector-python",
-    "pymongo",
     "uvicorn",
-    "aiosqlite"
+    "aiofiles",
 ]
 dynamic = ["version", "license"]
 
@@ -40,6 +35,29 @@ dynamic = ["version", "license"]
 dev = [
   "ruff",
   "mypy"
+]
+databases = [
+    "psycopg2-binary",
+    "mysql-connector-python",
+    "pymongo",
+    "aiosqlite"
+]
+templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon", "markdown"]
+fancy = ["psutil", "plotext"]
+full = [
+    "psutil",
+    "plotext",
+    "beautifulsoup4",
+    "jinja2",
+    "mako",
+    "django",
+    "chameleon",
+    "attrs",
+    "psycopg2-binary",
+    "mysql-connector-python",
+    "pymongo",
+    "aiosqlite",
+    "markdown"
 ]
 
 [project.urls]

@@ -13,14 +13,14 @@ from collections.abc import Iterable
 from pathlib import Path
 from types import FrameType as Frame
 from types import FunctionType as Function
-from typing import Any, Union
+from typing import Any, NoReturn, Union
 
+from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 from typing_extensions import Annotated, TypeGuard
 
-from ._logging import Internal
-from .exceptions import NotLoadedWarning
+from .exceptions import NeedsDependencyError, NotLoadedWarning
 
 try:
     from types import UnionType
@@ -37,6 +37,7 @@ __all__ = (
     "make_hint",
     "is_annotated",
     "run_path",
+    "needs_dep",
 )
 
 
@@ -55,9 +56,7 @@ class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (
-            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
-        ):
+        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -70,15 +69,21 @@ def set_load(cl: LoadChecker):
     cl._view_loaded = True
 
 
-def shell_hint(command: str) -> Panel:
+def shell_hint(*commands: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = (
-            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
-        )
-    return Panel.fit(f"{shell_prefix} {command}", title="Terminal")
+        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
 
+    formatted = [f"{shell_prefix} {command}" for command in commands]
+    return Panel.fit(
+        "\n[gray46]// OR[/]\n".join(formatted),
+        title="[bold green]Terminal[/]",
+    )
+
+
+def docs_hint(url: str) -> str:
+    return f"[bold green]for more information, see [/][bold blue]{url}[/]"
 
 def make_hint(
     comment: str | None = None,
@@ -127,6 +132,7 @@ def make_hint(
 
     split = txt.split("\n")
 
+    assert line is not None
     if comment:
         split[line] += f"{prepend}  # {comment}"
 
@@ -140,9 +146,29 @@ def make_hint(
 
 
 def run_path(path: str | Path) -> dict[str, Any]:
+    from ._logging import Internal
+
     sys.path.append(str(Path(path).parent.absolute()))
     path = str(Path(path).absolute())
     Internal.info(f"running: {path}")
     mod = runpy.run_path(path, run_name="__view__")
     sys.path.pop()
     return mod
+
+
+def needs_dep(
+    name: str, err: ModuleNotFoundError, section: str | None = None
+) -> NoReturn:
+    sect = f"[{section}]"
+    if section:
+        hint = shell_hint(
+            f"pip install {name}",
+            f"pip install view.py{escape(sect)}",
+        )
+    else:
+        hint = shell_hint(f"pip install {name}")
+
+    raise NeedsDependencyError(
+        f"view.py needs the module {name}, but you don't have it installed!",
+        hint=hint,
+    ) from err

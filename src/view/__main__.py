@@ -1,12 +1,23 @@
 from __future__ import annotations
 
+import asyncio
 import getpass
 import os
+import random
 import re
+import subprocess
+import venv as _venv
+from inspect import iscoroutine
 from pathlib import Path
+from typing import TYPE_CHECKING, NoReturn
+
+if TYPE_CHECKING:
+    from .routing import Route
 
 import click
 
+from .__about__ import __version__
+from ._logging import VIEW_TEXT
 from .exceptions import AppNotFoundError
 
 B_OPEN = "{"
@@ -53,46 +64,51 @@ version = "1.0.0"
 
 
 def success(msg: str) -> None:
-    click.secho(msg, fg="green", bold=True)
+    click.secho(f" - {msg}", fg="green", bold=True)
 
 
 def warn(msg: str) -> None:
-    click.secho(msg, fg="yellow", bold=True)
+    click.secho(f" ! {msg}", fg="yellow", bold=True)
 
 
-def error(msg: str) -> None:
-    click.secho(msg, fg="red", bold=True)
+def error(msg: str) -> NoReturn:
+    click.secho(f" ! {msg}", fg="red", bold=True)
     exit(1)
 
 
-def should_continue(msg: str):
-    if not click.confirm(
-        click.style(
-            msg,
-            fg="yellow",
-        )
-    ):
-        exit(2)
+def info(msg: str) -> None:
+    click.secho(f" * {msg}", fg="bright_magenta", bold=True)
+
+
+def ver() -> None:
+    click.echo(f"view.py {__version__}")
+
+def welcome() -> None:
+    click.secho(random.choice(VIEW_TEXT) + "\n", fg="blue", bold=True)
+    ver()
+    click.echo("Docs: ", nl=False)
+    click.secho("https://view.zintensity.dev", fg="blue", bold=True)
+    click.echo("GitHub: ", nl=False)
+    click.secho(
+        "https://github.com/ZeroIntensity/view.py",
+        fg="blue",
+        bold=True,
+    )
 
 
 @click.group(invoke_without_command=True)
 @click.option("--debug", "-d", is_flag=True)
+@click.option("--version", "-v", is_flag=True)
 @click.pass_context
-def main(ctx: click.Context, debug: bool) -> None:
+def main(ctx: click.Context, debug: bool, version: bool) -> None:
     if debug:
         from .util import enable_debug
 
         enable_debug()
+    if version:
+        ver()
     elif not ctx.invoked_subcommand:
-        click.secho("Welcome to view.py!", fg="green", bold=True)
-        click.echo("Docs: ", nl=False)
-        click.secho("https://view.zintensity.dev", fg="blue", bold=True)
-        click.echo("GitHub: ", nl=False)
-        click.secho(
-            "https://github.com/ZeroIntensity/view.py",
-            fg="blue",
-            bold=True,
-        )
+        welcome()
 
 
 @main.group()
@@ -193,7 +209,6 @@ def prod():
 def deploy(target: str):
     raise NotImplementedError
 
-
 @main.command()
 @click.option(
     "--path",
@@ -205,146 +220,235 @@ def deploy(target: str):
         path_type=Path,
         writable=True,
     ),
-    default="./",
-    prompt="Target path",
+    default=Path.cwd() / "build",
+)
+def build(path: Path):
+    from .config import load_config
+    from .routing import Method
+    from .util import extract_path
+    
+    conf = load_config()
+    app = extract_path(conf.app.app_path)
+    app.load()
+    results: dict[str, str] = {}
+
+    info("Getting routes")
+    for i in app.loaded_routes:
+        if (not i.method) or (i.method != Method.GET):
+            warn(f"{i} is not a GET route, skipping it")
+            continue
+        
+        if not i.path:
+            warn(f"{i} needs path parameters, skipping it")
+            continue
+
+        info(f"Getting {i.path or '/???'}")
+
+        if i.inputs:
+            warn(f"{i.path} needs a route input, skipping it")
+            continue
+
+        res = i.func()
+
+        if iscoroutine(res):
+            loop = asyncio.get_event_loop()
+            res = loop.run_until_complete(res)
+        
+        text: str
+
+        if hasattr(res, "__view_response__"):
+            res = res.__view_response__()  # type: ignore
+
+        if isinstance(res, tuple):
+            for x in res:
+                if isinstance(x, str):
+                    text = x
+                    break
+            error(f"{i.path} didn't return a response")
+        else:
+            text = res  # type: ignore
+
+        assert i.path
+        results[i.path[1:]] = text
+        success(f"Got response for {i.path}")
+
+    if path.exists():
+        error(f"{path} already exists")
+
+    path.mkdir()
+    success(f"Created directory {path}")
+    
+    for file_path, content in results.items():
+        directory = path / file_path
+        file = directory / "index.html"
+        directory.mkdir(exist_ok=True)
+        success(f"Created {directory}")
+        file.write_text(content, encoding="utf-8")
+        success(f"Created {file}")
+
+    success("Successfully built app")
+
+
+@main.command()
+@click.option(
+    "--name",
+    "-n",
+    help="Project name.",
+    type=str,
+    default="my_app",
+    prompt="Project name",
+)
+@click.option(
+    "--load",
+    "-l",
+    help="Preset for route loading.",
+    default="simple",
+    type=click.Choice(("manual", "filesystem", "simple")),
+    prompt="Loader strategy",
+)
+@click.option(
+    "--repo",
+    "-r",
+    help="Whether a Git repository should be created.",
+    default=True,
+    is_flag=True,
+    prompt="Create repository?",
+)
+@click.option(
+    "--venv",
+    help="Whether a virtual environment should be created.",
+    default=True,
+    is_flag=True,
+    prompt="Create virtual environment?",
+)
+@click.option(
+    "--path",
+    "-p",
+    type=click.Path(
+        exists=False,
+        file_okay=False,
+        resolve_path=True,
+        path_type=Path,
+        writable=True,
+    ),
+    default=None,
 )
 @click.option(
     "--type",
     "-t",
     help="Configuration type to initalize.",
     default="toml",
-    type=click.Choice(("toml", "json", "ini", "py")),
-)
-@click.option(
-    "--load",
-    "-l",
-    help="Preset for route loading.",
-    default="filesystem",
-    type=click.Choice(("manual", "filesystem", "simple")),
-    prompt="Loader strategy",
+    type=click.Choice(("toml", "json", "ini", "yml", "py")),
 )
 @click.option(
     "--no-project",
     help="Disable creation of a pyproject.toml file.",
     is_flag=True,
 )
-@click.option(
-    "--name",
-    "-n",
-    help="Project name to be used in configuration.",
-    type=str,
-    default="my_app",
-    prompt="Project name",
-)
-def init(path: Path, type: str, load: str, no_project: bool, name: str):
+def init(
+    name: str,
+    repo: bool,
+    venv: bool,
+    path: Path | None,
+    type: str,
+    load: str,
+    no_project: bool,
+):
     from .config import make_preset
+
+    path = path or Path(f"./{name}")
 
     fname = f"view.{type}"
     if not path.exists():
+        success(f"Created `{path.relative_to('.')}`")
         path.mkdir()
 
-    conf_path = path / fname
-    if conf_path.exists():
-        should_continue(f"`{conf_path}` already exists, overwrite?")
+    if repo:
+        info("Initializing repository...")
+        res = subprocess.call(["git", "init", str(path)])
+        if res != 0:
+            warn("failed to initalize git repository")
 
+    if venv:
+        info("Creating venv...")
+        venv_path = path / ".venv"
+        _venv.create(venv_path, with_pip=True)
+        success(f"Created virtual environment in {venv_path}")
+        info("Installing view.py...")
+        res = subprocess.call(
+            [(venv_path / "bin" / "pip").absolute(), "install", "view.py"]
+        )
+
+        if res != 0:
+            error("failed to install view.py")
+
+    conf_path = path / fname
     with open(conf_path, "w") as f:
         f.write(make_preset(type, load))
 
-    click.echo(f"Created `{fname}`")
+    success(f"Created `{fname}`")
 
     app_path = path / "app.py"
-
-    if app_path.exists():
-        should_continue(f"`{app_path}` already exists, overwrite?")
 
     from .__about__ import __version__
 
     with open(app_path, "w") as f:
         if load in {"filesystem", "simple"}:
             f.write(
-                f"# view.py {__version__}"
-                """
-import view
+                f"# view.py {__version__}\n"
+                """from view import new_app
 
-app = view.new_app()
+app = new_app()
 app.run()
 """
             )
 
         if load == "manual":
             f.write(
-                f"# view.py {__version__}"
-                """
-import view
-from routes.index import index
+                f"# view.py {__version__}\n"
+                """from view import new_app
 
-app = view.new_app()
+app = new_app()
 
-app.load([index])
+@app.get("/")
+async def index():
+    return "Hello, view.py!"
+
 app.run()
 """
             )
 
-    click.echo("Created `app.py`")
+    success("Created `app.py`")
 
     if not no_project:
         pyproject = path / "pyproject.toml"
 
-        if pyproject.exists():
-            should_continue("`pyproject.toml` already exists, overwrite?")
-
         with pyproject.open("w", encoding="utf-8") as f:
             f.write(PYPROJECT_BASE(name))
 
-        click.echo("Created `pyproject.toml`")
+        success("Created `pyproject.toml`")
 
-    scripts = path / "utils"
+    if load != "manual":
+        routes = path / "routes"
+        routes.mkdir()
+        success("Created `routes`")
 
-    if scripts.exists():
-        should_continue("`utils` already exists, overwrite?")
+        index = routes / "index.py"
 
-    scripts.mkdir()
-    click.echo("Created `utils`")
-
-    routes = path / "routes"
-    if routes.exists():
-        should_continue("`routes` already exists, overwrite?")
-
-    routes.mkdir()
-    click.echo("Created `routes`")
-
-    setup = path / "setup.py"
-
-    if setup.exists():
-        should_continue("`setup.py` already exists, overwrite?")
-
-    with open(setup, "w") as f:
-        f.write(
-            f"""from setuptools import setup
-
-if __name__ == '__main__':
-    setup()"""
-        )
-
-    index = routes / "index.py"
-
-    if index.exists():
-        should_continue(
-            f"`{index.relative_to('.')}` already exists, overwrite?"
-        )
-    pathstr = "" if load == "filesystem" else "'/'"
-    with open(index, "w") as f:
-        f.write(
-            f"""from view import get
+        pathstr = "" if load == "filesystem" else "'/'"
+        with open(index, "w") as f:
+            f.write(
+                f"""from view import get
 
 @get({pathstr})
 async def index():
     return 'Hello, view.py!'
 """
-        )
+            )
 
-        click.echo("Created `routes/index.py`")
+            success("Created `routes/index.py`")
 
+    welcome()
     success(f"Successfully initalized app in `{path}`")
     return
 

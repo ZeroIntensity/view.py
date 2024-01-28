@@ -24,6 +24,9 @@ In view.py, a route input is anything that feeds a parameter (or "input") to the
 
 There is little to no difference between the standard and direct variations, **including loading**. The direct versions are only to be used when the app is already available to **prevent extra imports**.
 
+::: view.routing.query
+::: view.routing.body
+
 ## Defining Inputs
 
 For documentation purposes, only `query` variations will be used. However, **`body` works the exact same way**. A route input function (`query` in this case) takes one or more parameters:
@@ -54,6 +57,22 @@ async def index(hello: int):
     ...
 ```
 
+!!! note
+
+    Route inputs are based on their order, and not the name of the input. For example, the following is valid:
+
+    ```py
+    from view import new_app
+
+    app = new_app()
+    
+    @app.get("/")
+    @app.query("hello", str)
+    @app.query("world", str)
+    async def index(world: str, hello: str):  # the world parameter will get the "hello input", and vice versa
+        ...
+    ```
+
 ### Automatically
 
 If you've used a library like [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with the concept of automatic inputs. Automatic inputs in terms of view.py are when you define route inputs without using a `query` or `body` decorator, and instead, just get input definitions through the function signature. This is the most basic example:
@@ -71,6 +90,23 @@ app.run()
 ```
 
 Note that automatic inputs create inputs for **query parameters only**.
+
+!!! note
+    
+    When mixing automatic route inputs with decorators (e.g. `query` and `body`), view.py assumes that decorator inputs have the same name as the parameter. For example, the following will not work:
+
+    ```py
+    from view import new_app
+
+    app = new_app()
+
+    @app.get("/")
+    @app.query("hello", str)
+    async def index(hello_param: str, test: str):
+        ...
+
+    app.run()
+    ```
 
 ## Cast Semantics
 
@@ -122,6 +158,7 @@ The types supported are (all of which can be mixed and matched to your needs):
 - `None`
 - `dataclasses.dataclass`
 - `pydantic.BaseModel`
+- Classes decorated with `attrs.define`
 - `typing.NamedTuple`
 - `typing.TypedDict`
 - Any object supporting the `__view_body__` protocol.
@@ -180,7 +217,7 @@ async def index(me: Person):
     return f"Hello, {me.first} {me.last}"
 ```
 
-If you would prefer to not use an object, view supports using a `TypedDict` to enforce parameters. It's subject to the same rules as normal objects, but is allowed to use `typing.NotRequired` to omit keys. Note that `TypedDict` **cannot** have default values.
+If you would prefer to not use an object, View supports using a `TypedDict` to enforce parameters. It's subject to the same rules as normal objects, but is allowed to use `typing.NotRequired` to omit keys. Note that `TypedDict` **cannot** have default values.
 
 ```py
 from view import new_app
@@ -197,6 +234,59 @@ class Person(TypedDict):
 @app.query("me", Person)
 async def index(me: Person):
     return f"Hello, {me['first']} {me['last']}"
+```
+
+## Type Validation API
+
+You can use view.py's type validator on your own to do whatever you want. To create a validator for a type, use `compile_type`:
+
+```py
+from view import compile_type
+
+validator = compile_type(str | int)
+```
+
+!!! danger
+
+    The above code uses the `|` syntax, which is only available to Python 3.9+
+
+::: view.typecodes.compile_type
+
+With a validator, you can do three things:
+
+- Cast an object to the type.
+- Check if an object is compatible with the type.
+- Check if an object is compatible, without the use of casting.
+
+`cast` will raise a `TypeValidationError` if the type is not compatible:
+
+```py
+from view import compile_type
+
+tp = compile_type(dict)
+tp.cast("{}")
+tp.cast("123")  # TypeValidationError
+```
+
+The difference between `check_type` and `is_compatible`, is that `check_type` is a [type guard](https://mypy.readthedocs.io/en/latest/type_narrowing.html), which `is_compatible` is not.
+
+This means that `check_type` will ensure that the object is *an instance* of the type, while `is_compatible` checks whether it can be casted. For example:
+
+```py
+from view import compile_type
+
+tp = compile_type(dict)
+
+x: Any = {}
+y: Any = {}  # you could also use the string "{}" here
+
+if tp.check_type(x):
+    reveal_type(x)  # dict
+    # to a type checker, x is now a dict
+
+if tp.is_compatible(y):
+    reveal_type(y)  # Any
+    # a type checker doesn't know that y is a dict
 ```
 
 ## Body Protocol

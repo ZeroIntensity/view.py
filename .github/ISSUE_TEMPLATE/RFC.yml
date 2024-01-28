@@ -1,0 +1,24 @@
+name: RFC
+description: A request for comments. This is used for discussion about new features.
+title: "[Request for Comments]: "
+labels: ["rfc"] 
+body:
+  - type: checkboxes
+    attributes:
+      label: Have you searched for this discussion already?
+      description: Please search existing issues or ask the question on our [Discord server](https://discord.gg/tZAfuWAbm2) before creating an RFC.
+      options:
+        - label: I have already searched for this topic!
+          required: true
+  - type: textarea
+    attributes:
+      label: Content
+      description: Put your content here. Markdown is supported.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Info
+      description: Any additional info that could be useful (Contact information, references, etc.)?
+    validations:
+      required: false

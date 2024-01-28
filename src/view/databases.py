@@ -7,16 +7,32 @@ from enum import Enum
 from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
                     get_type_hints)
 
-import aiosqlite
-import mysql.connector
-import psycopg2
-import pymongo
 from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
-from ._util import is_annotated, is_union
+from ._util import is_annotated, is_union, needs_dep
 from .exceptions import InvalidDatabaseSchemaError
 from .routing import BodyParam
 from .typing import ViewBody
+
+try:
+    import aiosqlite
+except ModuleNotFoundError as e:
+    needs_dep("aiosqlite", e, "databases")
+
+try:
+    import mysql.connector
+except ModuleNotFoundError as e:
+    needs_dep("mysql-connector-python", e, "databases")
+
+try:
+    import psycopg2
+except ModuleNotFoundError as e:
+    needs_dep("psycopg2-binary", e, "databases")
+
+try:
+    import pymongo
+except ModuleNotFoundError as e:
+    needs_dep("pymongo", e, "databases")
 
 __all__ = ("Model",)
 NoneType = type(None)
@@ -118,9 +134,7 @@ class _PostgresConnection(_Connection):
 
     async def connect(self) -> None:
         try:
-            self.connection = await asyncio.to_thread(
-                self.create_database_connection
-            )
+            self.connection = await asyncio.to_thread(self.create_database_connection)
             self.cursor = await asyncio.to_thread(self.connection.cursor)  # type: ignore
         except psycopg2.Error as e:
             raise ValueError(
@@ -273,14 +287,11 @@ class Model:
                 setattr(self, k, args[index])
 
     def __init_subclass__(cls, **kwargs: Any):
-        cls.__view_table__ = kwargs.get("table") or (
-            "vpy_" + cls.__name__.lower()
-        )
+        cls.__view_table__ = kwargs.get("table") or ("vpy_" + cls.__name__.lower())
         model_hints = get_type_hints(Model)
         actual_hints = get_type_hints(cls)
         params = {
-            k: actual_hints[k]
-            for k in (model_hints.keys() ^ actual_hints.keys())
+            k: actual_hints[k] for k in (model_hints.keys() ^ actual_hints.keys())
         }
 
         for k, v in params.items():

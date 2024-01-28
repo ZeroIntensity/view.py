@@ -39,6 +39,8 @@ app = new_app()
 app.run()
 ```
 
+::: view.app.new_app
+
 Generally, you're going to want one of the configuration files talked about earlier, but if you're against configuration files that's OK, view.py will work just fine without it. If you choose to use something other than manual routing, you want a `routes` directory (unless you changed the `loader_path` setting).
 
 ```toml
@@ -49,7 +51,7 @@ dev = true
 loader_path = "./my_custom_loader_path"
 ```
 
-Finally, for mobility purposes, you may want to add a `pyproject.toml` that contains the dependencies for your project, in case you need to run your project on a different system.
+For mobility purposes, you may want to add a `pyproject.toml` that contains the dependencies for your project, in case you need to run your project on a different system.
 
 ```toml
 # pyproject.toml

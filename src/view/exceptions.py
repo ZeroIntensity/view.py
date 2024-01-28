@@ -17,6 +17,9 @@ __all__ = (
     "InvalidRouteError",
     "ViewInternalError",
     "ConfigurationError",
+    "NeedsDependencyError",
+    "InvalidTemplateError",
+    "TypeValidationError",
 )
 
 
@@ -85,20 +88,25 @@ class InvalidDatabaseSchemaError(DatabaseError):
 class DuplicateRouteError(ViewError):
     """Duplicate routes in loader."""
 
-    ...
-
 
 class InvalidRouteError(ViewError):
     """Something is wrong with a route."""
-
-    ...
 
 
 class ViewInternalError(ViewError):
     """Something was wrong internally."""
 
-    ...
-
 
 class ConfigurationError(ViewError):
     """Something is wrong with the configuration."""
+
+
+class NeedsDependencyError(ViewError):
+    """View needs a dependency that wasn't installed."""
+
+
+class InvalidTemplateError(ViewError):
+    """Something is wrong with a template."""
+
+class TypeValidationError(TypeError, ViewError):
+    """Could not assign the object to the target type."""

@@ -82,3 +82,5 @@ async def _():
         assert (await test.patch("/patch")).message == "patch"
         assert (await test.delete("/delete")).message == "delete"
         assert (await test.options("/options")).message == "options"
+        assert (await test.options("/any")).message == "any"
+        assert (await test.post("/inputs", query={"a": "a"})).message == "a"

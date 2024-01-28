@@ -36,9 +36,7 @@ def _tp_name(tp: Any, types: list[Any]) -> str:
                     tp_name = _PRIMITIVES.get(origin) or getattr(
                         origin, "__name__", str(origin)
                     )
-                    parsed_args = [
-                        (_PRIMITIVES.get(i) or i.__name__) for i in args
-                    ]
+                    parsed_args = [(_PRIMITIVES.get(i) or i.__name__) for i in args]
                     return f"`{tp_name}<{', '.join(parsed_args)}>`"
 
                 return f"`{doc}`"
@@ -101,7 +99,8 @@ def markdown_docs(docs: DocsType) -> str:
         final.append("\n*This app is empty...*")
 
     for k, v in docs.items():
-        final.append(f"### {k[0]} `{k[1]}`")
+        name = k[0] if isinstance(k[0], str) else ", ".join(k[0])
+        final.append(f"### {name} `{k[1]}`")
         final.append(f"*{v.desc}*")
 
         _make_table(final, "Query Parameters", v.query, types)
