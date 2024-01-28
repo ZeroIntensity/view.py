@@ -4,17 +4,20 @@ repo_url: https://github.com/ZeroIntensity/view.py
 repo_name: ZeroIntensity/view.py
 
 nav:
-    - Home: index.md
+    - index.md
+    - Welcome: welcome.md
     - Getting Started:
-          - Installation: user-guide/getting-started/installation.md
-          - Configuration: user-guide/getting-started/configuration.md
-          - Project Creation: user-guide/getting-started/creating_a_project.md
+          - Installation: getting-started/installation.md
+          - Configuration: getting-started/configuration.md
+          - Project Creation: getting-started/creating_a_project.md
     - Building Projects:
-          - App Basics: user-guide/building-projects/app_basics.md
-          - Routing: user-guide/building-projects/routing.md
-          - Returning Responses: user-guide/building-projects/responses.md
-          - Taking Parameters: user-guide/building-projects/parameters.md
-          - Writing Documentation: user-guide/building-projects/documenting.md
+          - App Basics: building-projects/app_basics.md
+          - Routing: building-projects/routing.md
+          - Returning Responses: building-projects/responses.md
+          - Taking Parameters: building-projects/parameters.md
+          - Getting Request Data: building-projects/request_data.md
+          - HTML Templating: building-projects/templating.md
+          - Writing Documentation: building-projects/documenting.md
 
 theme:
     name: null

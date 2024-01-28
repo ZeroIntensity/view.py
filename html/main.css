@@ -7,6 +7,15 @@
 @media (prefers-color-scheme: dark) {
 }
 
+@font-face {
+    font-family: "Modern Deco";
+    src: url("/modern_deco.ttf");
+}
+
 body {
     font-family: "Inter", sans-serif;
+}
+
+.modern-deco {
+    font-family: "Modern Deco", "Inter", sans-serif;
 }

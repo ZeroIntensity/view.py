@@ -1,20 +1,80 @@
 {% extends "base.html" %} {% block content %}
-
-<nav className="bg-zinc-50 dark:bg-zinc-950">
-    <div
-        className="flex justify-between p-4 items-center flex-col md:flex-row space-y-2 md:space-y-0"
+<section class="flex items-center justify-center pt-12 flex-col space-y-3">
+    <div class="flex items-center justify-center space-x-2">
+        <p class="bg-orange-100 text-orange-500 rounded-lg p-1 font-bold">
+            Warning
+        </p>
+        <p class="text-zinc-700">View is still in alpha.</p>
+    </div>
+    <h1
+        class="text-7xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
     >
-        <p>Logo</p>
-        <div>
-            <p>Docs</p>
-            <p>GitHub</p>
-            <p>Discord</p>
-        </div>
-    </div>
-    <div className="py-4">
-        <hr className="border-t border-zinc-100 dark:border-zinc-900" />
-    </div>
-</nav>
-<main className=""></main>
+        The Batteries-Detachable Web Framework
+    </h1>
+</section>
+<section class="flex items-center justify-center p-4">
+    <div
+        class="grid grid-cols-1 md:grid-cols-2 auto-rows-fr gap-3 font-semibold text-xl md:text-2xl xl:text-3xl w-1/3"
+    >
+        <a
+            class="rounded-lg text-white bg-gradient-to-r dark:from-rose-600 dark:to-rose-800 from-rose-500 to-rose-700 p-3 drop-shadow-lg hover:opacity-70 transition-opacity duration-200 font-bold flex items-center justify-center space-x-3"
+            href="/welcome"
+            role="button"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-8 h-8"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+                />
+            </svg>
 
+            <span>Read the Docs</span>
+        </a>
+        <a
+            href="/getting-started/quickstart.md"
+            class="border-zinc-200 border rounded-lg p-4 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 text-zinc-700 hover:bg-zinc-100 transition-all drop-shadow-sm flex items-center justify-center space-x-2"
+            role="button"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-8 h-8"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"
+                />
+            </svg>
+
+            <span>Quickstart</span>
+        </a>
+    </div>
+</section>
+<section class="flex items-center justify-center">
+    <div class="w-1/3">
+        <pre><code class="rounded-lg">from view import new_app
+
+app = new_app()
+
+@app.get("/")
+@app.query("greeting", str, default="Hello")
+def index():
+    return f"{greeting}, view.py!"
+
+app.run()</code></pre>
+    </div>
+</section>
+<section></section>
 {% endblock %}
