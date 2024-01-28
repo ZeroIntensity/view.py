@@ -37,7 +37,7 @@ $ pip install git+https://github.com/ZeroIntensity/view.py
 #### Linux/macOS
 
 ```
-python3 -m pip install -U view.py
+$ python3 -m pip install -U view.py
 ```
 
 #### Windows
