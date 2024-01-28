@@ -19,6 +19,7 @@ static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};
 static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
                                     methods};
 PyObject* ip_address = NULL;
+PyObject* invalid_status_error = NULL;
 
 void view_fatal(
     const char* message,
@@ -28,14 +29,14 @@ void view_fatal(
 ) {
     fprintf(
         stderr,
-        "_view FATAL ERROR at [%s:%d] in %s: %s",
+        "_view FATAL ERROR at [%s:%d] in %s: %s\n",
         where,
         lineno,
         func,
         message
     );
     fputs(
-        "Please report this at https://github.com/ZeroIntensity/view.py/issues",
+        "Please report this at https://github.com/ZeroIntensity/view.py/issues\n",
         stderr
     );
     Py_FatalError("view.py core died");
@@ -48,8 +49,9 @@ PyMODINIT_FUNC PyInit__view() {
 
     if ((PyType_Ready(&PyAwaitable_Type) < 0) ||
         (PyType_Ready(&ViewAppType) < 0) ||
-        (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) || (PyType_Ready(
-            &ContextType) < 0) || (PyType_Ready(&TCPublicType) < 0)) {
+        (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) ||
+        (PyType_Ready(&ContextType) < 0) ||
+        (PyType_Ready(&TCPublicType) < 0)) {
         Py_DECREF(m);
         return NULL;
     }
@@ -87,13 +89,21 @@ PyMODINIT_FUNC PyInit__view() {
     }
 
     Py_INCREF(&ContextType);
-    if (PyModule_AddObject(m, "Context", (PyObject*) &ContextType) < 0) {
+    if (PyModule_AddObject(
+        m,
+        "Context",
+        (PyObject*) &ContextType
+        ) < 0) {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&TCPublicType);
-    if (PyModule_AddObject(m, "TCPublic", (PyObject*) &TCPublicType) < 0) {
+    if (PyModule_AddObject(
+        m,
+        "TCPublic",
+        (PyObject*) &TCPublicType
+        ) < 0) {
         Py_DECREF(m);
         return NULL;
     }
@@ -104,13 +114,37 @@ PyMODINIT_FUNC PyInit__view() {
         return NULL;
     }
 
-    ip_address = PyObject_GetAttrString(ipaddress_mod, "ip_address");
+    ip_address = PyObject_GetAttrString(
+        ipaddress_mod,
+        "ip_address"
+    );
     if (!ip_address) {
         Py_DECREF(m);
         Py_DECREF(ipaddress_mod);
         return NULL;
     }
     Py_DECREF(ipaddress_mod);
+
+    invalid_status_error = PyErr_NewException(
+        "_view.InvalidStatusError",
+        PyExc_RuntimeError,
+        NULL
+    );
+    if (!invalid_status_error) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        return NULL;
+    }
+
+    if (PyModule_AddObject(
+        m,
+        "InvalidStatusError",
+        invalid_status_error
+        ) < 0) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        return NULL;
+    }
 
     return m;
 }

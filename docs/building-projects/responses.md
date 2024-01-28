@@ -14,6 +14,51 @@ async def index():
     return "Hello, view.py", 201, {"x-my-header": "my_header"}
 ```
 
+## HTTP Errors
+
+Generally when returning a [client error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#client_error_responses) or [server error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#server_error_responses), you want to skip future execution. For example:
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+async def index(number: int):
+    if number == 1:
+        return "number cannot be one", 400
+
+    return f"your number is {number}"
+
+app.run()
+```
+
+However, manually returning can be messy. For this, view.py provides you the `Error` class, which behaves like an `Exception`. It takes two parameters:
+
+- The status code, which is `400` by default.
+- The message to send back to the user. If this is `None`, it uses the default error message (e.g. `Bad Request` for error `400`).
+
+Since `Error` works like a Python exception, you can `raise` it just fine:
+
+```py
+from view import new_app, Error
+
+app = new_app()
+
+@app.get("/")
+async def index(number: int):
+    if number == 1:
+        raise Error(400)
+
+    return f"your number is {number}"
+
+app.run()
+```
+
+!!! warning
+
+    `Error` can only be used to send back *error* responses. It can **not** be used to return status codes such as `200`.
+
 ## Caching
 
 Sometimes, computing the response for a route can be expensive or unnecessary. For this, view.py, along with many other web frameworks, provide the ability to cache responses.
