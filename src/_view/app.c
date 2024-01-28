@@ -112,6 +112,7 @@ typedef struct _ViewApp {
     PyObject* exceptions;
     app_parsers parsers;
     bool has_path_params;
+    PyObject* error_type;
 } ViewApp;
 
 struct _type_info {
@@ -627,7 +628,10 @@ PyObject* cast_from_typecodes(
         }
         case TYPECODE_CLASS: {
             if (!allow_casting) {
-                if (!Py_IS_TYPE(item, Py_TYPE(ti->ob))) {
+                if (!Py_IS_TYPE(
+                    item,
+                    Py_TYPE(ti->ob)
+                    )) {
                     return NULL;
                 }
 
@@ -852,7 +856,10 @@ static PyObject** generate_params(
     for (int i = 0; i < inputs_size; i++) {
         route_input* inp = inputs[i];
         if (inp->route_data) {
-            PyObject* data = handle_route_data(inp->route_data, scope);
+            PyObject* data = handle_route_data(
+                inp->route_data,
+                scope
+            );
             if (!data) {
                 Py_DECREF(obj);
                 free(ob);
@@ -935,7 +942,10 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
         4,
         (map_free_func) route_free
     );
-    self->all_routes = map_new(4, free);
+    self->all_routes = map_new(
+        4,
+        free
+    );
 
     if (!self->options || !self->patch || !self->delete ||
         !self->post ||
@@ -1014,7 +1024,6 @@ static int send_raw_text(
         );
     }
     Py_DECREF(send_dict);
-
     if (!coro)
         return -1;
 
@@ -1117,7 +1126,25 @@ static uint16_t hash_client_error(int status) {
         return 28;
     }
 
+    PyErr_Format(
+        invalid_status_error,
+        "%d is not a valid status code",
+        status
+    );
     return 600;
+}
+
+static inline uint16_t hash_server_error(int status) {
+    uint16_t index = status - (status < 509 ? 500 : 501);
+    if ((index < 0) || (index > 10)) {
+        PyErr_Format(
+            invalid_status_error,
+            "%d is not a valid status code",
+            status
+        );
+        return 600;
+    }
+    return index;
 }
 
 static const char* get_err_str(int status) {
@@ -1284,7 +1311,11 @@ static const char* get_err_str(int status) {
     );
     }
 
-    VIEW_FATAL("got bad status code");
+    PyErr_Format(
+        invalid_status_error,
+        "invalid status code: %d",
+        status
+    );
     return NULL;
 }
 
@@ -1310,13 +1341,21 @@ static int find_result_for(
         PyObject* v;
         Py_ssize_t pos = 0;
 
-        while (PyDict_Next(target, &pos, &item, &v)) {
+        while (PyDict_Next(
+            target,
+            &pos,
+            &item,
+            &v
+               )) {
             const char* v_str = PyUnicode_AsUTF8(v);
             if (!v_str) {
                 return -1;
             }
 
-            PyObject* item_bytes = PyUnicode_EncodeLocale(item, "strict");
+            PyObject* item_bytes = PyUnicode_EncodeLocale(
+                item,
+                "strict"
+            );
 
             if (!item_bytes) {
                 return -1;
@@ -1381,7 +1420,10 @@ static int find_result_for(
                )) {
 
         for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(target); i++) {
-            PyObject* t_value = PyTuple_GET_ITEM(target, i);
+            PyObject* t_value = PyTuple_GET_ITEM(
+                target,
+                i
+            );
             if (!PyTuple_Check(
                 t_value
                 )) {
@@ -1551,11 +1593,18 @@ static int run_err_cb(
 ) {
     if (!handler) {
         if (called) *called = false;
+        const char* msg;
+        if (!message) {
+            msg = get_err_str(status);
+            if (!msg)
+                return -1;
+        } else msg = message;
+
         if (send_raw_text(
             awaitable,
             send,
             status,
-            message ? message : get_err_str(status),
+            msg,
             NULL
             ) < 0
         ) {
@@ -1633,15 +1682,15 @@ static int fire_error(
     PyObject* handler = NULL;
 
     if (status >= 500) {
-        index = status - 500;
+        index = hash_server_error(status);
+        if (index == 600)
+            return -1;
         if (r) handler = r->server_errors[index];
         if (!handler) handler = self->server_errors[index];
     } else {
         index = hash_client_error(status);
-        if (index == 600) {
-            PyErr_BadInternalCall();
+        if (index == 600)
             return -1;
-        };
         if (r) handler = r->client_errors[index];
         if (!handler) handler = self->client_errors[index];
     }
@@ -1772,6 +1821,7 @@ static void dealloc(ViewApp* self) {
     for (int i = 0; i < 28; i++)
         Py_XDECREF(self->client_errors[i]);
 
+    Py_XDECREF(self->error_type);
     Py_TYPE(self)->tp_free(self);
 }
 
@@ -1837,8 +1887,16 @@ static int server_err(
     route* r,
     bool* handler_was_called
 ) {
-    return server_err_exc(self, awaitable, status, r, handler_was_called,
-        PyErr_Occurred());
+    int res = server_err_exc(
+        self,
+        awaitable,
+        status,
+        r,
+        handler_was_called,
+        PyErr_Occurred()
+    );
+    PyErr_Clear();
+    return res;
 }
 
 static int route_error(
@@ -1865,6 +1923,60 @@ static int route_error(
         NULL,
         NULL
         ) < 0) return -1;
+
+    if (tp == self->error_type) {
+        PyObject* status_obj = PyObject_GetAttrString(
+            value,
+            "status"
+        );
+        if (!status_obj)
+            return -2;
+
+        PyObject* msg_obj = PyObject_GetAttrString(
+            value,
+            "message"
+        );
+
+        if (!msg_obj) {
+            Py_DECREF(status_obj);
+            return -2;
+        }
+
+        int status = PyLong_AsLong(status_obj);
+        if ((status == -1) && PyErr_Occurred()) {
+            Py_DECREF(status_obj);
+            Py_DECREF(msg_obj);
+            return -2;
+        }
+
+        const char* message = NULL;
+
+        if (msg_obj != Py_None) {
+            message = PyUnicode_AsUTF8(msg_obj);
+            if (!message) {
+                Py_DECREF(status_obj);
+                Py_DECREF(msg_obj);
+                return -2;
+            }
+        }
+
+        if (fire_error(
+            self,
+            awaitable,
+            status,
+            r,
+            NULL,
+            message
+            ) < 0) {
+            Py_DECREF(status_obj);
+            Py_DECREF(msg_obj);
+            return -2;
+        }
+
+        Py_DECREF(status_obj);
+        Py_DECREF(msg_obj);
+        return 0;
+    }
 
     if (server_err_exc(
         self,
@@ -2087,8 +2199,12 @@ static int handle_route_impl(
             merged[i] = params[i];
 
         for (int i = 0; i < r->middleware_size; i++) {
-            PyObject* res = PyObject_Vectorcall(r->middleware[i], merged,
-                r->inputs_size + (*size), NULL);
+            PyObject* res = PyObject_Vectorcall(
+                r->middleware[i],
+                merged,
+                r->inputs_size + (*size),
+                NULL
+            );
 
             if (!res) {
                 for (int x = 0; x < r->inputs_size + *size; x++)
@@ -2132,8 +2248,12 @@ static int handle_route_impl(
             return -1;
     } else {
         for (int i = 0; i < r->middleware_size; i++) {
-            PyObject* res = PyObject_Vectorcall(r->middleware[i], params,
-                r->inputs_size, NULL);
+            PyObject* res = PyObject_Vectorcall(
+                r->middleware[i],
+                params,
+                r->inputs_size,
+                NULL
+            );
 
             if (!res) {
                 for (int x = 0; x < r->inputs_size; x++)
@@ -2151,7 +2271,12 @@ static int handle_route_impl(
             }
 
             if (PyCoro_CheckExact(res)) {
-                if (PyAwaitable_AddAwait(awaitable, res, NULL, route_error) <
+                if (PyAwaitable_AddAwait(
+                    awaitable,
+                    res,
+                    NULL,
+                    route_error
+                    ) <
                     0) {
                     if (server_err(
                         self,
@@ -2181,8 +2306,14 @@ static int handle_route_impl(
     if (!coro)
         return -1;
 
-    if (!Py_IS_TYPE(coro, &PyCoro_Type)) {
-        if (handle_route_callback(awaitable, coro) < 0) {
+    if (!Py_IS_TYPE(
+        coro,
+        &PyCoro_Type
+        )) {
+        if (handle_route_callback(
+            awaitable,
+            coro
+            ) < 0) {
             if (server_err(
                 self,
                 awaitable,
@@ -2384,7 +2515,10 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     for (int i = 0; i < r->inputs_size; i++) {
         if (r->inputs[i]->route_data) {
-            PyObject* data = handle_route_data(r->inputs[i]->route_data, scope);
+            PyObject* data = handle_route_data(
+                r->inputs[i]->route_data,
+                scope
+            );
             if (!data) {
                 for (int i = 0; i < r->inputs_size; i++)
                     Py_XDECREF(params[i]);
@@ -2471,10 +2605,21 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         merged[*size + i] = params[i];
 
     for (int i = 0; i < r->middleware_size; i++) {
-        PyObject* res = PyObject_Vectorcall(r->middleware[i], merged, *size +
-            final_size, NULL);
+        PyObject* res = PyObject_Vectorcall(
+            r->middleware[i],
+            merged,
+            *size +
+            final_size,
+            NULL
+        );
         if (!res) {
-            if (server_err(self, awaitable, 500, r, NULL) < 0) {
+            if (server_err(
+                self,
+                awaitable,
+                500,
+                r,
+                NULL
+                ) < 0) {
                 for (int x = 0; x < final_size + *size; x++)
                     Py_XDECREF(merged[x]);
 
@@ -2487,8 +2632,19 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         }
 
         if (PyCoro_CheckExact(res)) {
-            if (PyAwaitable_AddAwait(awaitable, res, NULL, route_error) < 0) {
-                if (server_err(self, awaitable, 500, r, NULL) < 0) {
+            if (PyAwaitable_AddAwait(
+                awaitable,
+                res,
+                NULL,
+                route_error
+                ) < 0) {
+                if (server_err(
+                    self,
+                    awaitable,
+                    500,
+                    r,
+                    NULL
+                    ) < 0) {
                     for (int x = 0; x < final_size + *size; x++)
                         Py_XDECREF(merged[x]);
 
@@ -2519,8 +2675,14 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     if (!coro)
         return -1;
 
-    if (!Py_IS_TYPE(coro, &PyCoro_Type)) {
-        if (handle_route_callback(awaitable, coro) < 0) {
+    if (!Py_IS_TYPE(
+        coro,
+        &PyCoro_Type
+        )) {
+        if (handle_route_callback(
+            awaitable,
+            coro
+            ) < 0) {
             if (server_err(
                 self,
                 awaitable,
@@ -2811,7 +2973,10 @@ static PyObject* app(
 
     if (!r || r->r) {
         if (!self->has_path_params) {
-            if (map_get(self->all_routes, path)) {
+            if (map_get(
+                self->all_routes,
+                path
+                )) {
                 if (fire_error(
                     self,
                     awaitable,
@@ -3155,8 +3320,12 @@ static PyObject* app(
             for (int i = 0; i < r->middleware_size; i++) {
                 PyObject* res = PyObject_CallNoArgs(r->middleware[i]);
                 if (PyCoro_CheckExact(res)) {
-                    if (PyAwaitable_AddAwait(awaitable, res, NULL,
-                        route_error) < 0) {
+                    if (PyAwaitable_AddAwait(
+                        awaitable,
+                        res,
+                        NULL,
+                        route_error
+                        ) < 0) {
                         Py_DECREF(awaitable);
                         Py_DECREF(res);
                         return NULL;
@@ -3419,7 +3588,10 @@ static int load(
             return -1;
         }
 
-        if (Py_IS_TYPE(item, &PyLong_Type)) {
+        if (Py_IS_TYPE(
+            item,
+            &PyLong_Type
+            )) {
             int data = PyLong_AsLong(item);
 
             if (PyErr_Occurred()) {
@@ -3602,7 +3774,10 @@ static bool figure_has_body(PyObject* inputs) {
     }
 
     while ((item = PyIter_Next(iter))) {
-        if (Py_IS_TYPE(item, &PyLong_Type))
+        if (Py_IS_TYPE(
+            item,
+            &PyLong_Type
+            ))
             continue;
         PyObject* is_body = PyDict_GetItemString(
             item,
@@ -3714,7 +3889,10 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
 
 static int load_middleware(route* r, PyObject* list) {
     Py_ssize_t size = PyList_GET_SIZE(list);
-    PyObject** middleware = PyMem_Calloc(size, sizeof(PyObject*));
+    PyObject** middleware = PyMem_Calloc(
+        size,
+        sizeof(PyObject*)
+    );
     r->middleware_size = size;
 
     if (!middleware) {
@@ -3723,7 +3901,10 @@ static int load_middleware(route* r, PyObject* list) {
     }
 
     for (int i = 0; i < size; i++) {
-        PyObject* func = PyList_GET_ITEM(list, i);
+        PyObject* func = PyList_GET_ITEM(
+            list,
+            i
+        );
         middleware[i] = Py_NewRef(func);
     }
 
@@ -3825,6 +4006,28 @@ static PyObject* supply_parsers(ViewApp* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* register_error(ViewApp* self, PyObject* args) {
+    PyObject* type;
+
+    if (!PyArg_ParseTuple(
+        args,
+        "O",
+        &type
+        ))
+        return NULL;
+
+    if (Py_TYPE(type) != &PyType_Type) {
+        PyErr_SetString(
+            PyExc_RuntimeError,
+            "_register_error got an object that is not a type"
+        );
+        return NULL;
+    }
+
+    self->error_type = Py_NewRef(type);
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef methods[] = {
     {"asgi_app_entry", (PyCFunction) app, METH_FASTCALL, NULL},
     {"_get", (PyCFunction) get, METH_VARARGS, NULL},
@@ -3837,6 +4040,7 @@ static PyMethodDef methods[] = {
     {"_err", (PyCFunction) err_handler, METH_VARARGS, NULL},
     {"_supply_parsers", (PyCFunction) supply_parsers, METH_VARARGS,
      NULL},
+    {"_register_error", (PyCFunction) register_error, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

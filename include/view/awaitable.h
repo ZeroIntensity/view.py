@@ -8,8 +8,6 @@
 typedef struct _PyAwaitableObject PyAwaitableObject;
 typedef int (*awaitcallback)(PyObject *, PyObject *);
 typedef int (*awaitcallback_err)(PyObject *, PyObject *, PyObject *, PyObject *);
-typedef void * (*virtual_func)(PyObject *);
-typedef int (*virtualcallback)(PyObject *, void *);
 
 PyObject *PyAwaitable_New();
 
@@ -23,13 +21,6 @@ int PyAwaitable_UnpackArbValues(PyObject *awaitable, ...);
 int PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...);
 
 #define PyAwaitable_AWAIT(aw, coro) PyAwaitable_AddAwait(aw, coro, NULL, NULL)
-
-int
-PyAwaitable_VirtualAwait(
-    PyObject *aw,
-    virtual_func virt,
-    virtualcallback cb
-);
 
 void
 PyAwaitable_SetArbValue(PyObject *awaitable, Py_ssize_t index, void *ptr);

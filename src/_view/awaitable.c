@@ -18,8 +18,6 @@ typedef struct {
     awaitcallback callback;
     awaitcallback_err err_callback;
     bool done;
-    virtual_func virt;
-    virtualcallback v_cb;
 } awaitable_callback;
 
 struct _PyAwaitableObject {
@@ -42,11 +40,6 @@ typedef struct {
     PyAwaitableObject *gw_aw;
     PyObject *gw_current_await;
 } GenWrapperObject;
-
-typedef struct {
-    PyObject *awaitable;
-    awaitable_callback* cb;
-} virtual_data;
 
 PyDoc_STRVAR(awaitable_doc,
     "Awaitable transport utility for the C API.");
@@ -149,46 +142,28 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
     Py_INCREF(res_type);
     Py_XINCREF(res_value);
     Py_XINCREF(res_traceback);
+
     int e_res = cb->err_callback(self, res_type, res_value, res_traceback);
     cb->done = true;
+
     Py_DECREF(self);
     Py_DECREF(res_type);
     Py_XDECREF(res_value);
     Py_XDECREF(res_traceback);
 
     if (e_res < 0) {
-        PyErr_Restore(res_type, res_value, res_traceback);
+        if (PyErr_Occurred())
+            PyErr_Print();
+
+        if (e_res == -1)
+            PyErr_Restore(res_type, res_value, res_traceback);
+        // if the res is -1, the error is restored. otherwise, it is not
         Py_DECREF(cb->coro);
         Py_XDECREF(await);
         return -1;
     };
 
     return 0;
-}
-
-static void virtual_start(virtual_data *data) {
-    PyGILState_STATE state = PyGILState_Ensure();
-    void *result;
-
-    result = data->cb->virt(data->awaitable);
-
-    if (result == NULL) {
-        Py_DECREF(data->awaitable);
-        PyMem_Free(data);
-        PyGILState_Release(state);
-    }
-
-    if (data->cb->v_cb) {
-        if (data->cb->v_cb(data->awaitable, result) < 0) {
-            Py_DECREF(data->awaitable);
-            PyMem_Free(data);
-            PyGILState_Release(state);
-        };
-    }
-
-    Py_DECREF(data->awaitable);
-    PyMem_Free(data);
-    PyGILState_Release(state);
 }
 
 static PyObject *
@@ -498,7 +473,6 @@ PyAwaitable_AddAwait(
     aw_c->coro = coro; // steal our own reference
     aw_c->callback = cb;
     aw_c->err_callback = err;
-    aw_c->virt = NULL;
     a->aw_callbacks[a->aw_callback_size - 1] = aw_c;
     Py_DECREF(aw);
 
@@ -668,53 +642,6 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
     return 0;
 }
 
-int
-PyAwaitable_VirtualAwait(
-    PyObject *aw,
-    virtual_func virt,
-    virtualcallback cb
-)
-{
-    assert(aw != NULL);
-    assert(virt != NULL);
-    Py_INCREF(aw);
-    PyAwaitableObject *a = (PyAwaitableObject *) aw;
-
-    awaitable_callback *aw_c = PyMem_Malloc(sizeof(awaitable_callback));
-    if (aw_c == NULL) {
-        Py_DECREF(aw);
-        PyErr_NoMemory();
-        return -1;
-    }
-
-    ++a->aw_callback_size;
-    if (a->aw_callbacks == NULL) {
-        a->aw_callbacks = PyMem_Calloc(a->aw_callback_size,
-        sizeof(awaitable_callback *));
-    } else {
-        a->aw_callbacks = PyMem_Realloc(a->aw_callbacks,
-        sizeof(awaitable_callback *) * a->aw_callback_size
-    );
-    }
-
-    if (a->aw_callbacks == NULL) {
-        --a->aw_callback_size;
-        Py_DECREF(aw);
-        PyMem_Free(aw_c);
-        PyErr_NoMemory();
-        return -1;
-    }
-
-    aw_c->coro = NULL;
-    aw_c->callback = NULL;
-    aw_c->v_cb = cb;
-    aw_c->err_callback = NULL;
-    aw_c->virt = virt;
-    a->aw_callbacks[a->aw_callback_size - 1] = aw_c;
-    Py_DECREF(aw);
-
-    return 0;
-}
 PyObject *
 PyAwaitable_New()
 {
