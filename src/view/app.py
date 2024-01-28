@@ -28,7 +28,7 @@ from rich import print
 from rich.traceback import install
 from typing_extensions import Unpack
 
-from _view import ViewApp
+from _view import InvalidStatusError, ViewApp
 
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
@@ -294,6 +294,11 @@ class Error(BaseException):
             status: The status code for the resulting response.
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
+        if (status < 400) or (status > 511):
+            raise InvalidStatusError(
+                "status code can only be a client or server error"
+            )
+
         self.status = status
         self.message = message
 
