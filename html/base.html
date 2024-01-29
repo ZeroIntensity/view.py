@@ -10,9 +10,10 @@
         </title>
         <link
             rel="stylesheet"
-            href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark-dimmed.min.css"
+            href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css"
         />
         <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,11 +27,87 @@
                     view<span class="text-logo">.py</span>
                 </p>
                 <div class="flex justify-between space-x-6 items-center">
-                    <a
-                        href="/welcome"
-                        class="p-2 border border-zinc-100 rounded-lg"
-                        >Docs</a
-                    >
+                    <div class="flex space-x-3 items-center justify-center">
+                        <a
+                            href="/welcome"
+                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            ><svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+                                />
+                            </svg>
+                            <span>Docs</span></a
+                        >
+                        <a
+                            href="https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md"
+                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            ><svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"
+                                />
+                            </svg>
+
+                            <span>Contribution</span></a
+                        >
+                        <a
+                            href="https://github.com/sponsors/ZeroIntensity"
+                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            ><svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                                />
+                            </svg>
+
+                            <span>Support</span></a
+                        >
+                        <a
+                            href="https://pypi.org/project/view.py"
+                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            ><svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+                                />
+                            </svg>
+
+                            <span>Package</span></a
+                        >
+                    </div>
                     <div
                         class="border-zinc-100 rounded-lg p-2 border flex items-center justify-center space-x-2"
                     >
@@ -121,6 +198,45 @@
         <main>{% block content %} {% endblock %}</main>
         <script>
             hljs.highlightAll();
+            hljs.initLineNumbersOnLoad();
         </script>
+        <div className="pt-12">
+            <div class="custom-shape-divider-bottom-1706484168">
+                <svg
+                    data-name="Layer 1"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 1200 120"
+                    preserveAspectRatio="none"
+                >
+                    <path
+                        d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+                        opacity=".25"
+                        class="shape-fill"
+                    ></path>
+                    <path
+                        d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
+                        opacity=".5"
+                        class="shape-fill"
+                    ></path>
+                    <path
+                        d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
+                        class="shape-fill"
+                    ></path>
+                </svg>
+            </div>
+
+            <footer class="w-full bg-zinc-900 p-4 text-zinc-500 font-bold">
+                <div class="flex justify-center items-center">
+                    <div class="flex justify-between items-center w-3/4">
+                        <img
+                            src="/icons/view_logo.png"
+                            width="100"
+                            height="100"
+                        />
+                        <p>GitHub</p>
+                    </div>
+                </div>
+            </footer>
+        </div>
     </body>
 </html>

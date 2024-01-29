@@ -19,3 +19,38 @@ body {
 .modern-deco {
     font-family: "Modern Deco", "Inter", sans-serif;
 }
+
+.hljs {
+    @apply border-zinc-100 border rounded-lg;
+}
+
+.hljs-ln-numbers {
+    padding-right: 10px !important;
+    @apply text-zinc-500;
+}
+
+a {
+    @apply text-rose-500 hover:text-rose-400 transition-all;
+}
+
+.custom-shape-divider-bottom-1706484168 {
+    position: relative;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    transform: rotate(180deg);
+}
+
+.custom-shape-divider-bottom-1706484168 svg {
+    position: relative;
+    display: block;
+    width: calc(100% + 1.3px);
+    height: 297px;
+    transform: rotateY(180deg);
+}
+
+.custom-shape-divider-bottom-1706484168 .shape-fill {
+    fill: #18181b;
+}
