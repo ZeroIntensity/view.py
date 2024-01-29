@@ -8,11 +8,13 @@ If you're stuck, confused, or just don't know what to start with, our [Discord](
 
 ## Getting Started
 
-Assuming you have Git installed, simply clone the repo and install view.py locally:
+Assuming you have Git installed, simply clone the repo and install view.py locally (under a virtual environment):
 
 ```
 $ git clone https://github.com/ZeroIntensity/view.py
 $ cd view.py
+$ python3 -m venv .venv
+$ source .venv/bin/activate
 $ pip install .
 ```
 
@@ -43,9 +45,12 @@ async def index():
 app.run()
 ```
 
-Note that you do need to `pip install .` to get your changes under the `view` module. However, waiting for pip every time can be a headache. Unless you're modifying the [C API](https://github.com/ZeroIntensity/view.py/tree/master/src/_view), you don't actually need it. Instead, you can test your code via just importing from `src.view`. For example:
+Note that you do need to `pip install .` to get your changes under the `view` module. However, waiting for pip every time can be a headache. Unless you're modifying the [C API](https://github.com/ZeroIntensity/view.py/tree/master/src/_view), you don't actually need it. Instead, you can test your code via just importing from `src.view`. A `test.py` file **should not** be inside of the `src/view` folder, but instead outside it (i.e. in the same directory as `src`).
+
+For example, a simple `test.py` could look like:
 
 ```py
+# test.py
 from src.view import new_app
 
 app = new_app()
@@ -57,6 +62,8 @@ async def index():
 app.run()
 ```
 
+**Note:** Import from `view` internally *does not* work when using `src.view`. Instead, your imports inside of view.py should look like `from .foo import bar`. For example, if you wanted to import `view.routing.get` from `src/view/app.py`, your import would look like `from .routing import get`
+
 For debugging purposes, you're also going to want to disable `fancy` and `hijack` in the configuration:
 
 ```toml
@@ -64,6 +71,8 @@ For debugging purposes, you're also going to want to disable `fancy` and `hijack
 fancy = false
 hijack = false
 ```
+
+These settings will stop view.py's fancy output from showing, as well as stopping the hijack of the `uvicorn` logger, and you'll get the raw `uvicorn` output.
 
 ## Writing Tests
 
@@ -84,7 +93,7 @@ async def _():
 
     async with app.test() as test:
         res = await test.get("/")
-        assert res.test == "test"
+        assert res.message == "test"
 ```
 
 In the above code, a server **would not** be started, and instead just virtualized for testing purposes.
