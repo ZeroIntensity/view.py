@@ -195,7 +195,7 @@
                 <hr class="border-t border-zinc-100 dark:border-zinc-800" />
             </div>
         </nav>
-        <main>{% block content %} {% endblock %}</main>
+        {% block content %} {% endblock %}
         <script>
             hljs.highlightAll();
             hljs.initLineNumbersOnLoad();

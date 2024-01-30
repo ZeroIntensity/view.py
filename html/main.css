@@ -54,3 +54,19 @@ a {
 .custom-shape-divider-bottom-1706484168 .shape-fill {
     fill: #18181b;
 }
+
+h1 {
+    @apply pb-12 text-5xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50;
+}
+
+.headerlink {
+    @apply pl-2;
+}
+
+.admonition {
+    @apply border-zinc-100 border rounded-lg p-2;
+}
+
+h2 {
+    @apply text-3xl font-bold pt-4;
+}
