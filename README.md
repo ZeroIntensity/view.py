@@ -7,15 +7,15 @@
 > If you would like to follow development progress, join [the discord](https://discord.gg/tZAfuWAbm2).
 > For contributing to view.py, please see our [CONTRIBUTING.md](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
 
-- [Docs](https://view.zintensity.dev)
-- [Source](https://github.com/ZeroIntensity/view.py)
-- [PyPI](https://pypi.org/project/view.py)
-- [Discord](https://discord.gg/tZAfuWAbm2)
-
 <div align="center">
     <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=250 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
     <h3>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h3>
 </div>
+
+- [Docs](https://view.zintensity.dev)
+- [Source](https://github.com/ZeroIntensity/view.py)
+- [PyPI](https://pypi.org/project/view.py)
+- [Discord](https://discord.gg/tZAfuWAbm2)
 
 ## Example
 
