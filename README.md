@@ -6,8 +6,9 @@
 > view.py is in very early stages and not yet considered to be ready for production.
 > If you would like to follow development progress, join [the discord](https://discord.gg/tZAfuWAbm2).
 > For contributing to view.py, please see our [CONTRIBUTING.md](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
-
-<a href="https://clientarea.space-hosting.net/aff.php?aff=303" rel="some text">![Space Hosting](https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png)</a>
+<div align="center">
+<a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=250 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
+</div>
 
 - [Docs](https://view.zintensity.dev)
 - [Source](https://github.com/ZeroIntensity/view.py)
