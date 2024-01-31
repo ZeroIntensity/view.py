@@ -2,11 +2,6 @@
 
 <div align="center"><h2>The Batteries-Detachable Web Framework</h2></div>
 
-<div align="center">
-    <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=250 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
-    <h3>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h3>
-</div>
-
 > [!Warning]
 > view.py is in very early stages and not yet considered to be ready for production.
 > If you would like to follow development progress, join [the discord](https://discord.gg/tZAfuWAbm2).
@@ -16,6 +11,13 @@
 - [Source](https://github.com/ZeroIntensity/view.py)
 - [PyPI](https://pypi.org/project/view.py)
 - [Discord](https://discord.gg/tZAfuWAbm2)
+
+<div align="center">
+    <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=250 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
+    <h3>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h3>
+</div>
+
+## Example
 
 ```py
 from view import new_app, h1
@@ -29,23 +31,23 @@ async def index():
 app.run()
 ```
 
-### Installation
+## Installation
 
 **Python 3.8+ is required.**
 
-#### Development 
+### Development 
 
 ```
 $ pip install git+https://github.com/ZeroIntensity/view.py
 ```
 
-#### Linux/macOS
+### Linux/macOS
 
 ```
 $ python3 -m pip install -U view.py
 ```
 
-#### Windows
+### Windows
 
 ```
 > py -3 -m pip install -U view.py
