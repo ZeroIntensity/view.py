@@ -8,6 +8,7 @@
 > For contributing to view.py, please see our [CONTRIBUTING.md](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
 <div align="center">
 <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=250 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
+    <p>view.py is affiliated with Space Hosting</p>
 </div>
 
 - [Docs](https://view.zintensity.dev)
