@@ -73,7 +73,7 @@
             </div>
         </section>
 
-        <section class="flex items-center justify-center">
+        <section class="flex items-center justify-center flex-col space-y-3">
             <div
                 class="p-4 rounded-full border border-zinc-100 text-xl flex items-center justify-center space-x-3"
             >
@@ -121,9 +121,6 @@
                     </svg>
                 </button>
             </div>
-        </section>
-
-        <section class="flex items-center justify-center">
             <div class="w-1/3">
                 <pre><code>from view import new_app
 
@@ -137,7 +134,47 @@ def index():
 app.run()</code></pre>
             </div>
         </section>
+        <section class="flex items-center justify-center flex-col">
+            <div class="py-4 w-1/3">
+                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+            </div>
+            <div class="flex items-center justify-center space-x-3">
+                <p class="text-zinc-500 text-xl">Affiliated With</p>
+                <a
+                    href="https://clientarea.space-hosting.net/aff.php?aff=303"
+                    target="_blank"
+                    class="hover:opacity-50 hover:scale-105"
+                    ><img
+                        src="/icons/space_hosting.svg"
+                        alt="Space Hosting"
+                        height="auto"
+                        width="250"
+                /></a>
+            </div>
+            <div class="py-4 w-1/3">
+                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+            </div>
+        </section>
+
+        <section class="flex items-center justify-center">
+            <div class="w-1/3 border-zinc-100 border p-4 rounded-lg">
+                <h1
+                    class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+                >
+                    Lightning Fast
+                </h1>
+                <p>
+                    With the core built in <span class="gradient">pure C</span>,
+                    View is <span class="gradient">extremely fast</span>. It's
+                    <code class="p-1 bg-zinc-100 rounded-lg">PyAwaitable</code>
+                    API makes view.py
+                    <span class="gradient">the first framework</span> to
+                    implement ASGI in C, without the use of external
+                    transpilers.
+                </p>
+            </div>
+        </section>
         <section></section>
     </div>
-    {% endblock %}
 </main>
+{% endblock %}

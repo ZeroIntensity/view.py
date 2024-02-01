@@ -30,7 +30,7 @@ body {
 }
 
 a {
-    @apply text-rose-500 hover:text-rose-400 transition-all;
+    @apply text-rose-600 hover:text-rose-500 transition-all;
 }
 
 .custom-shape-divider-bottom-1706484168 {
@@ -69,4 +69,16 @@ h1 {
 
 h2 {
     @apply text-3xl font-bold pt-4;
+}
+
+h3 {
+    @apply text-xl font-bold pt-4;
+}
+
+.gradient {
+    @apply bg-gradient-to-r from-rose-400 to-rose-600 inline-block text-transparent bg-clip-text font-bold dark:from-rose-600 dark:to-rose-800;
+}
+
+code {
+    @apply bg-zinc-100 rounded-lg p-1 border border-zinc-200;
 }

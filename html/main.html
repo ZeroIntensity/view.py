@@ -1,11 +1,29 @@
 {% extends "base.html" %} {% block content %}
-<div class="flex justify-between">
-    <nav>
-        {% for item in nav %}
-        <p>{{ item }}</p>
-        {% endfor %}
+<div class="flex justify-between px-16">
+    <nav class="flex flex-col space-y-6 sticky top-0">
+        {% for item in nav %} {% if item.children %}
+        <div>
+            <p class="font-bold">{{ item.title }}</p>
+            <div class="flex flex-col space-y-1">
+                {% for sub in item.children %}
+                <a href="{{ sub.url|url }}" class="text-zinc-500"
+                    >{{ sub.title }}</a
+                >
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %} {% endfor %}
     </nav>
     <div class="flex flex-col space-y-1 p-4 w-2/3">{{ page.content }}</div>
-    <nav></nav>
+    <nav>
+        <p class="font-bold">On this page</p>
+        <div class="flex flex-col space-y-1">
+            {% for toc_item in page.toc %}
+            <a href="{{ toc_item.url }}">{{ toc_item.title }}</a>
+            {% for toc_item in toc_item.children %}
+            <a href="{{ toc_item.url }}">{{ toc_item.title }}</a>
+            {% endfor %} {% endfor %}
+        </div>
+    </nav>
 </div>
 {% endblock %}
