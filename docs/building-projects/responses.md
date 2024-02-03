@@ -35,8 +35,8 @@ app.run()
 
 However, manually returning can be messy. For this, view.py provides you the `Error` class, which behaves like an `Exception`. It takes two parameters:
 
-- The status code, which is `400` by default.
-- The message to send back to the user. If this is `None`, it uses the default error message (e.g. `Bad Request` for error `400`).
+-   The status code, which is `400` by default.
+-   The message to send back to the user. If this is `None`, it uses the default error message (e.g. `Bad Request` for error `400`).
 
 Since `Error` works like a Python exception, you can `raise` it just fine:
 
@@ -102,8 +102,8 @@ In the above example, `index` is only called every 10 requests, so after 20 call
 
 If you have some sort of object that you want to wrap a response around, view.py gives you the `__view_response__` protocol. The only requirements are:
 
-- `__view_response__` is available on the returned object (doesn't matter if it's static or instance)
-- `__view_response__` returns data that corresponds to the allowed return values.
+-   `__view_response__` is available on the returned object (doesn't matter if it's static or instance)
+-   `__view_response__` returns data that corresponds to the allowed return values.
 
 For example, a type `MyObject` defining `__view_response__` could look like:
 
@@ -138,9 +138,9 @@ async def index():
 
 View comes with two built in response objects: `Response` and `HTML`.
 
-- `Response` is simply a wrapper around other responses.
-- `HTML` is for returning HTML content.
-- `JSON` is for returning JSON content.
+-   `Response` is simply a wrapper around other responses.
+-   `HTML` is for returning HTML content.
+-   `JSON` is for returning JSON content.
 
 ::: view.response.Response
 ::: view.response.HTML
@@ -174,10 +174,9 @@ async def index():
     return res
 ```
 
-
 ::: view.response.Response.cookie
 
-Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere. 
+Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere.
 
 !!! note
 
@@ -200,10 +199,10 @@ Note that **all response classes inherit from `Response`**, meaning you can use 
 
 The body translate strategy in the `__view_response__` protocol refers to how the `Response` class will translate the body into a `str`. There are four available strategies:
 
-- `str`, which uses the object's `__str__` method.
-- `repr`, which uses the object's `__repr__` method.
-- `result`, which calls the `__view_response__` protocol implemented on the object (assuming it exists).
-- `custom`, uses the `Response` instance's `_custom` attribute (this only works on subclasses of `Response` that implement it).
+-   `str`, which uses the object's `__str__` method.
+-   `repr`, which uses the object's `__repr__` method.
+-   `result`, which calls the `__view_response__` protocol implemented on the object (assuming it exists).
+-   `custom`, uses the `Response` instance's `_custom` attribute (this only works on subclasses of `Response` that implement it).
 
 For example, the route below would return the string `"'hi'"`:
 
@@ -241,7 +240,7 @@ from view import Response
 
 class ListResponse(Response[list]):
     def __init__(self, body: list) -> None:
-        super().__init__(body)
+        super().__init__(body, body_translate="custom")
 
     def _custom(self, body: list) -> str:
         return " ".join(body)
@@ -257,7 +256,7 @@ The main difference between middleware in view.py and other frameworks is that i
 
 !!! question "Why no `call_next`?"
 
-    view.py doesn't use the `call_next` function because of the nature of it's routing system. 
+    view.py doesn't use the `call_next` function because of the nature of it's routing system.
 
 ### The Middleware API
 
@@ -285,9 +284,9 @@ app.run()
 
 Responses can be returned with a string, integer, and/or dictionary in any order.
 
-- The string represents the body of the response (e.g. the HTML or JSON)
-- The integer represents the status code (200 by default)
-- The dictionary represents the headers (e.g. `{"x-www-my-header": "some value"}`)
+-   The string represents the body of the response (e.g. the HTML or JSON)
+-   The integer represents the status code (200 by default)
+-   The dictionary represents the headers (e.g. `{"x-www-my-header": "some value"}`)
 
 `Response` objects can also be returned, which implement the `__view_response__` protocol. All response classes inherit from `Response`, which supports operations like setting cookies.
 

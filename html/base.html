@@ -21,13 +21,35 @@
     </head>
 
     <body class="dark dark:bg-zinc-950 dark:text-white">
-        <nav>
+        <nav class="sticky top-0 bg-white z-10">
             <div class="flex items-center justify-between p-4">
-                <p class="modern-deco text-6xl">
+                <a
+                    class="modern-deco text-6xl text-black hover:text-black hover:opacity-50"
+                    href="/"
+                >
                     view<span class="text-logo">.py</span>
-                </p>
+                </a>
                 <div class="flex justify-between space-x-6 items-center">
                     <div class="flex space-x-3 items-center justify-center">
+                        <a
+                            href="/"
+                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            ><svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                                />
+                            </svg>
+                            <span>Home</span></a
+                        >
                         <a
                             href="/welcome"
                             class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
@@ -191,7 +213,7 @@
                     </div>
                 </div>
             </div>
-            <div class="py-4">
+            <div class="pt-4">
                 <hr class="border-t border-zinc-100 dark:border-zinc-800" />
             </div>
         </nav>

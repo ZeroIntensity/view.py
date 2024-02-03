@@ -26,7 +26,7 @@ body {
 
 .hljs-ln-numbers {
     padding-right: 10px !important;
-    @apply text-zinc-500;
+    @apply text-zinc-500 text-sm;
 }
 
 a {
@@ -56,7 +56,7 @@ a {
 }
 
 h1 {
-    @apply pb-12 text-5xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50;
+    @apply pb-12 text-5xl font-extrabold text-center bg-gradient-to-t from-zinc-400 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50;
 }
 
 .headerlink {
@@ -79,6 +79,30 @@ h3 {
     @apply bg-gradient-to-r from-rose-400 to-rose-600 inline-block text-transparent bg-clip-text font-bold dark:from-rose-600 dark:to-rose-800;
 }
 
+pre {
+    @apply py-2;
+}
+
+p {
+    @apply py-2;
+}
+
 code {
     @apply bg-zinc-100 rounded-lg p-1 border border-zinc-200;
+}
+
+ul {
+    @apply list-disc pl-6 flex flex-col space-y-2 py-2;
+}
+
+.headerlink {
+    @apply text-zinc-600;
+}
+
+table {
+    @apply table-auto;
+}
+
+.on-this-page {
+    @apply text-zinc-500;
 }
