@@ -253,3 +253,23 @@ td {
 .doc-contents {
     @apply overflow-x-auto;
 }
+
+.doc-symbol-function {
+    @apply bg-red-100 text-red-500 rounded-lg p-1 font-bold border-0;
+    content: "function";
+}
+
+.doc-symbol-class {
+    @apply bg-amber-100 text-amber-500 rounded-lg p-1 font-bold border-0;
+    content: "class";
+}
+
+.doc-symbol-attribute {
+    @apply bg-cyan-100 text-cyan-500 rounded-lg p-1 font-bold border-0;
+    content: "attr";
+}
+
+.doc-symbol-method {
+    @apply bg-blue-100 text-blue-500 rounded-lg p-1 font-bold border-0;
+    content: "method";
+}
