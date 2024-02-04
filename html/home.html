@@ -1,0 +1,823 @@
+{% extends "base.html" %} {% block content %}
+<script src="https://unpkg.com/typewriter-effect@latest/dist/core.js"></script>
+<script>
+    var voices = [];
+</script>
+<main>
+    <div class="flex flex-col space-y-3">
+        <section
+            class="flex items-center justify-center pt-12 flex-col space-y-3"
+        >
+            <div
+                class="flex flex-col sm:flex-row items-center justify-center space-x-2"
+            >
+                <p
+                    class="bg-orange-100 text-orange-500 rounded-lg p-1 py-0 font-bold select-none"
+                >
+                    Warning
+                </p>
+                <p class="text-zinc-700">
+                    View is still in alpha. To follow development progress, join
+                    <a href="https://discord.gg/tZAfuWAbm2">the discord</a>.
+                </p>
+            </div>
+            <h1
+                id="title"
+                class="text-4xl md:text-7xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+            ></h1>
+        </section>
+
+        <section class="flex items-center justify-center p-4">
+            <div
+                class="grid grid-cols-1 xl:grid-cols-2 auto-rows-fr gap-3 font-semibold text-xl lg:text-2xl xl:text-3xl w-2/3 xl:w-1/3"
+            >
+                <a
+                    class="hover:text-white rounded-lg text-white bg-gradient-to-r dark:from-rose-600 dark:to-rose-800 from-rose-500 to-rose-700 p-3 drop-shadow-lg hover:opacity-70 transition-opacity duration-200 font-bold flex items-center justify-center space-x-3"
+                    href="/welcome"
+                    role="button"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="w-8 h-8"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+                        />
+                    </svg>
+
+                    <span>Read the Docs</span>
+                </a>
+                <a
+                    href="/getting-started/installation"
+                    class="hover:text-black border-zinc-200 border rounded-lg p-4 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 text-zinc-700 hover:bg-zinc-100 transition-all drop-shadow-sm flex items-center justify-center space-x-2"
+                    role="button"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="w-8 h-8"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"
+                        />
+                    </svg>
+
+                    <span>Install</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="flex items-center justify-center flex-col space-y-3">
+            <div
+                class="p-4 rounded-full border border-zinc-100 text-xl flex items-center justify-center space-x-3"
+            >
+                <code class="select-none border-0 bg-white text-xl">$</code>
+                <code class="border-0 bg-white text-xl"
+                    >pip install -U
+                    <span class="gradient font-mono">view.py</span></code
+                >
+                <button
+                    onclick="navigator.clipboard.writeText('pip install -U view.py')
+                
+                document.getElementById('clipboard').classList.add('hidden')
+                document.getElementById('clipboardDone').classList.remove('hidden')
+                setTimeout(() => {
+                    document.getElementById('clipboard').classList.remove('hidden')
+                    document.getElementById('clipboardDone').classList.add('hidden')
+                }, 1000)"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        id="clipboard"
+                        class="w-6 h-6 text-zinc-500 hover:text-zinc-800 transition-all"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
+                        />
+                    </svg>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        id="clipboardDone"
+                        class="w-6 h-6 text-emerald-500 hidden"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75"
+                        />
+                    </svg>
+                </button>
+            </div>
+            <div
+                class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-24 auto-rows-fr p-8"
+            >
+                <div>
+                    <p>Use view.py as a micro web framework</p>
+                    <pre><code>from view import new_app
+
+app = new_app()
+
+@app.get("/")
+@app.query("greeting", str, default="Hello")
+def index(greeting: str):
+    return f"{greeting}, view.py!"
+
+app.run()</code></pre>
+                </div>
+                <div>
+                    <p>...Or as fullstack</p>
+                    <pre><code># routes/index.py
+from view import get, query, template
+
+@get()
+@query("greeting", str, default="Hello")
+async def index(greeting: str):
+    # greeting is automatically accessible via the template
+    return await template("index")
+
+# Filesystem Based Routing</code></pre>
+                </div>
+            </div>
+        </section>
+        <section class="flex items-center justify-center flex-col">
+            <div class="py-4 w-1/3">
+                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+            </div>
+            <div class="flex items-center justify-center space-x-3">
+                <p class="text-zinc-500 text-xl">Affiliated With</p>
+                <a
+                    href="https://clientarea.space-hosting.net/aff.php?aff=303"
+                    target="_blank"
+                    class="hover:opacity-50 hover:scale-105"
+                    ><img
+                        src="/icons/space_hosting.svg"
+                        alt="Space Hosting"
+                        height="auto"
+                        width="250"
+                /></a>
+            </div>
+            <div class="py-4 w-1/3">
+                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+            </div>
+        </section>
+
+        <section class="flex items-center justify-center flex-col">
+            <div
+                class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-24 auto-rows-fr p-8"
+            >
+                <div class="border-zinc-100 border p-4 rounded-lg">
+                    <h1
+                        class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50 py-0"
+                    >
+                        Lightning Fast
+                    </h1>
+                    <p>
+                        With the core built in
+                        <span class="gradient">pure C</span>, View is
+                        <span class="gradient">extremely fast</span>,
+                        outperforming some of the top web frameworks. It's
+                        <code class="p-1 bg-zinc-100 rounded-lg"
+                            >PyAwaitable</code
+                        >
+                        API makes view.py
+                        <span class="gradient">the first framework</span> to
+                        implement ASGI in C, without the use of external
+                        transpilers.
+                    </p>
+                </div>
+                <div class="border-zinc-100 border p-4 rounded-lg">
+                    <h1
+                        class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50 py-0"
+                    >
+                        Easy to Learn
+                    </h1>
+                    <p>
+                        Intuitive API's specifically designed for
+                        <span class="gradient">ease of use</span>, as well as a
+                        <span class="gradient">rich documentation</span> make
+                        view.py quick and easy to pick up.
+                        <span class="gradient">Get support</span> from the
+                        developers themselves on
+                        <a href="https://discord.gg/tZAfuWAbm2">the discord</a>.
+                    </p>
+                </div>
+                <div class="border-zinc-100 border p-4 rounded-lg">
+                    <h1
+                        class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50 py-0"
+                    >
+                        Customizable
+                    </h1>
+                    <p>
+                        Don't want to use View's built in API's?
+                        <span class="gradient">No problem.</span> View includes
+                        <span class="gradient">native support</span> for your
+                        favorite libraries, as well as
+                        <span class="gradient">built in object protocols</span>
+                        for customizing view.py to your liking.
+                    </p>
+                </div>
+            </div>
+        </section>
+        <section
+            class="flex items-center justify-center pt-4 flex-col space-y-2"
+        >
+            <h2
+                class="text-4xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+            >
+                The View Philosophy
+            </h2>
+            <div class="py-4 w-1/3">
+                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+            </div>
+            <div class="flex w-5/6 items-center justify-center">
+                <div
+                    class="font-bold border-2 border-dashed rounded-lg border-zinc-100 p-2 w-5/6 xl:w-1/3"
+                >
+                    <div
+                        class="flex space-x-1 text-rose-400 items-center hidden"
+                        id="no_voices"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="w-8 h-8"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                            />
+                        </svg>
+                        <p class="py-0">
+                            Your browser doesn't support text to speech!
+                        </p>
+                    </div>
+
+                    <div class="flex items-center space-x-1">
+                        <p class="text-2xl text-slate-700 py-0">
+                            Batteries Detachable
+                        </p>
+                        <p
+                            class="text-zinc-500 bg-zinc-100 rounded-lg p-1 text-sm cursor-default"
+                        >
+                            adjective
+                        </p>
+                        <button
+                            class="rounded-full bg-zinc-100 p-2 hover:bg-zinc-200 transition-all disabled:bg-rose-100 disabled:hover:bg-rose-200 disabled:cursor-not-allowed"
+                            onclick="(() => {
+                            if (voices.length == 0) {
+                                document.getElementById('no_voices').classList.remove('hidden');
+                                this.disabled = true;
+                                document.getElementById('audio').classList.add('hidden')
+                                document.getElementById('noaudio').classList.remove('hidden')
+                                return;
+                            }
+
+                            var msg = new SpeechSynthesisUtterance();
+                            msg.text = 'Batteries Detachable';
+                            window.speechSynthesis.speak(msg);
+                        })()"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-8 h-8"
+                                id="audio"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"
+                                />
+                            </svg>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-8 h-8 hidden"
+                                id="noaudio"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="text-zinc-500 font-normal">
+                        <p class="text-xl py-0">
+                            /&#712;b&aelig;t&#601;riz
+                            d&#618;&#712;t&aelig;&#679;&#601;b&#601;l/
+                        </p>
+                        <p class="py-0">
+                            We'll provide a way to do something right out of the
+                            box, but
+                            <span class="gradient">won't make you use it</span>,
+                            and instead will
+                            <span class="gradient"
+                                >natively support external libraries</span
+                            >, meaning you don't have to relearn anything if you
+                            don't want to.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="flex items-center justify-center flex-col">
+            <h2
+                class="text-4xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+            >
+                View Insiders
+            </h2>
+            <div class="py-4 w-1/3">
+                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+            </div>
+            <div
+                class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-12 auto-rows-fr p-4"
+            >
+                <div
+                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
+                >
+                    <div>
+                        <div class="flex items-center space-x-1">
+                            <header
+                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+                            >
+                                Level 1
+                            </header>
+                            <span
+                                class="pointer-default select-none rounded-lg font-bold text-sm bg-indigo-100 text-indigo-500 dark:bg-indigo-900 dark:text-indigo-300 p-1"
+                            >
+                                Starter
+                            </span>
+                        </div>
+                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
+                            $5/month
+                        </p>
+                    </div>
+
+                    <div>
+                        <div
+                            class="text-indigo-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Your name added to a
+                                <code>__sponsors__</code> variable.
+                            </p>
+                        </div>
+                        <div
+                            class="text-indigo-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Your name added to the README.
+                            </p>
+                        </div>
+                        <div
+                            class="text-indigo-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Access to a special channel in
+                                <a href="https://discord.gg/tZAfuWAbm2"
+                                    >our discord</a
+                                >.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center pt-4">
+                        <a
+                            href="https://github.com/sponsors/ZeroIntensity"
+                            target="_blank"
+                            class="flex items-center space-x-1 border border-indigo-500 rounded-lg p-2 text-indigo-500 font-bold hover:bg-indigo-500 hover:text-white transition-all"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                                />
+                            </svg>
+                            <p class="py-0">Sponsors Page</p>
+                        </a>
+                    </div>
+                </div>
+                <div
+                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
+                >
+                    <div>
+                        <div class="flex items-center space-x-1">
+                            <header
+                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+                            >
+                                Level 2
+                            </header>
+                            <span
+                                class="pointer-default select-none rounded-lg font-bold text-sm bg-emerald-100 text-emerald-500 p-1"
+                            >
+                                Standard
+                            </span>
+                        </div>
+                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
+                            $10/month
+                        </p>
+                    </div>
+
+                    <div>
+                        <div
+                            class="text-emerald-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">Previous rewards.</p>
+                        </div>
+                        <div
+                            class="text-emerald-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Weekly Newsletter (accessible via
+                                <a href="https://discord.gg/tZAfuWAbm2"
+                                    >the discord</a
+                                >).
+                            </p>
+                        </div>
+                        <div
+                            class="text-emerald-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Priority on your view.py bug reports.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center pt-4">
+                        <a
+                            href="https://github.com/sponsors/ZeroIntensity"
+                            target="_blank"
+                            class="flex items-center space-x-1 border border-emerald-500 rounded-lg p-2 text-emerald-500 font-bold hover:bg-emerald-500 hover:text-white transition-all"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                                />
+                            </svg>
+                            <p class="py-0">Sponsors Page</p>
+                        </a>
+                    </div>
+                </div>
+                <div
+                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
+                >
+                    <div>
+                        <div class="flex items-center space-x-1">
+                            <header
+                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+                            >
+                                Level 3
+                            </header>
+                            <span
+                                class="pointer-default select-none rounded-lg font-bold text-sm bg-fuchsia-100 text-fuchsia-500 p-1"
+                            >
+                                Premium
+                            </span>
+                        </div>
+                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
+                            $25/month
+                        </p>
+                    </div>
+
+                    <div>
+                        <div
+                            class="text-fuchsia-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">Previous rewards.</p>
+                        </div>
+                        <div
+                            class="text-fuchsia-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Priority on your view.py feature requests.
+                            </p>
+                        </div>
+                        <div
+                            class="text-fuchsia-500 flex items-center space-x-1"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">Project partnership.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center pt-4">
+                        <a
+                            href="https://github.com/sponsors/ZeroIntensity"
+                            target="_blank"
+                            class="flex items-center space-x-1 border border-fuchsia-500 rounded-lg p-2 text-fuchsia-500 font-bold hover:bg-fuchsia-500 hover:text-white transition-all"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                                />
+                            </svg>
+                            <p class="py-0">Sponsors Page</p>
+                        </a>
+                    </div>
+                </div>
+                <div
+                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
+                >
+                    <div>
+                        <div class="flex items-center space-x-1">
+                            <header
+                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+                            >
+                                Level 4
+                            </header>
+                            <span
+                                class="pointer-default select-none rounded-lg font-bold text-sm bg-rose-100 text-rose-500 p-1"
+                            >
+                                Commercial
+                            </span>
+                        </div>
+                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
+                            $40/month
+                        </p>
+                    </div>
+
+                    <div>
+                        <div class="text-rose-500 flex items-center space-x-1">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">Previous rewards.</p>
+                        </div>
+                        <div class="text-rose-500 flex items-center space-x-1">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Advertise your company on our website.
+                            </p>
+                        </div>
+                        <div class="text-rose-500 flex items-center space-x-1">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m4.5 12.75 6 6 9-13.5"
+                                />
+                            </svg>
+                            <p class="py-0 text-black">
+                                Employee training on view.py from the author.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center pt-4">
+                        <a
+                            href="https://github.com/sponsors/ZeroIntensity"
+                            target="_blank"
+                            class="flex items-center space-x-1 border border-rose-500 rounded-lg p-2 text-rose-500 font-bold hover:bg-rose-500 hover:text-white transition-all"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                                />
+                            </svg>
+                            <p class="py-0">Sponsors Page</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+<script>
+    window.speechSynthesis.addEventListener("voiceschanged", () => {
+        voices = window.speechSynthesis.getVoices();
+    });
+
+    let app = document.getElementById("title");
+    let typewriter = new Typewriter(app, { loop: true });
+
+    typewriter
+        .typeString("The Batteries-Detachable Web Framework")
+        .deleteAll()
+        .typeString("A new web framework for Python.")
+        .deleteChars(7)
+        .typeString("everyone.")
+        .deleteAll()
+        .typeString("Lightning fast, modern web framework.")
+        .start();
+</script>
+{% endblock %}

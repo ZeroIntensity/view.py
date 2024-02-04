@@ -8,10 +8,10 @@ In HTTP, the query string is at the end of the URL and is prefixed with a `?`. F
 
 Bodies are a little bit more complicated. An HTTP body can be a number of different formats, but in a nutshell they are again, key-value pairs, but they can be a number of types. For now, JSON will be the main focus, which can have `str` keys, and any of the following as a value (in terms of Python types):
 
-- `str`
-- `int`
-- `bool`
-- `dict[str, <any of these types>]`
+-   `str`
+-   `int`
+-   `bool`
+-   `dict[str, <any of these types>]`
 
 The main similiarity here is that they are both key value pairs, which will make more sense in a moment.
 
@@ -19,8 +19,8 @@ The main similiarity here is that they are both key value pairs, which will make
 
 In view.py, a route input is anything that feeds a parameter (or "input") to the route. This can be either a parameter received through the HTTP body, or something taken from the query string. View treats these two essentially the same on the user's end. Route inputs are similar to routes in the sense that there are standard and direct versions of the same thing:
 
-- `query` or `App.query`
-- `body` or `App.body`
+-   `query` or `App.query`
+-   `body` or `App.body`
 
 There is little to no difference between the standard and direct variations, **including loading**. The direct versions are only to be used when the app is already available to **prevent extra imports**.
 
@@ -31,8 +31,8 @@ There is little to no difference between the standard and direct variations, **i
 
 For documentation purposes, only `query` variations will be used. However, **`body` works the exact same way**. A route input function (`query` in this case) takes one or more parameters:
 
-- The name of the parameter, should be a `str`.
-- The type that it expects (optional). Note that this can be passed as many times as you want, and each type is just treated as a union.
+-   The name of the parameter, should be a `str`.
+-   The type that it expects (optional). Note that this can be passed as many times as you want, and each type is just treated as a union.
 
 The below code would expect a parameter in the query string named `hello` of type `int`:
 
@@ -65,7 +65,7 @@ async def index(hello: int):
     from view import new_app
 
     app = new_app()
-    
+
     @app.get("/")
     @app.query("hello", str)
     @app.query("world", str)
@@ -92,7 +92,7 @@ app.run()
 Note that automatic inputs create inputs for **query parameters only**.
 
 !!! note
-    
+
     When mixing automatic route inputs with decorators (e.g. `query` and `body`), view.py assumes that decorator inputs have the same name as the parameter. For example, the following will not work:
 
     ```py
@@ -114,10 +114,10 @@ In query strings, only a string can be sent, but these strings can represent oth
 
 View has this exact same behavior when it comes to route inputs. If you tell your route to take an `int`, view.py will do all the necessary computing internally to make sure that you get an integer in your route. If a proper integer was not sent, then the server will automatically return an error `400` (Bad Request). There are a few things that should be noted for this behavior:
 
-- Every type can be casted to `str`.
-- Every type can be casted to `Any`.
-- `bool` expects `true` and `false` (instead of Python's `True` and `False`) to fit with JSON's types.
-- `dict` expects valid JSON, **not** a valid Python dictionary.
+-   Every type can be casted to `str`.
+-   Every type can be casted to `Any`.
+-   `bool` expects `true` and `false` (instead of Python's `True` and `False`) to fit with JSON's types.
+-   `dict` expects valid JSON, **not** a valid Python dictionary.
 
 ## Typing Inputs
 
@@ -149,19 +149,19 @@ app.run()
 
 The types supported are (all of which can be mixed and matched to your needs):
 
-- `str`
-- `int`
-- `bool`
-- `list` (or `typing.List`)
-- `dict` (or `typing.Dict`)
-- `Any` (as in `typing.Any`)
-- `None`
-- `dataclasses.dataclass`
-- `pydantic.BaseModel`
-- Classes decorated with `attrs.define`
-- `typing.NamedTuple`
-- `typing.TypedDict`
-- Any object supporting the `__view_body__` protocol.
+-   `str`
+-   `int`
+-   `bool`
+-   `list` (or `typing.List`)
+-   `dict` (or `typing.Dict`)
+-   `Any` (as in `typing.Any`)
+-   `None`
+-   `dataclasses.dataclass`
+-   `pydantic.BaseModel`
+-   Classes decorated with `attrs.define`
+-   `typing.NamedTuple`
+-   `typing.TypedDict`
+-   Any object supporting the `__view_body__` protocol.
 
 ### Lists and Dictionaries
 
@@ -192,9 +192,9 @@ Note that backport is **not possible** if you're using new typing features (such
 
 As listed about earlier, view.py supports a few different objects to be used as types. All of these objects are meant for holding data to a specific model, which can be incredibly useful in developing web apps. Some things should be noted when using these types:
 
-- Any annotated value types must an available type already (i.e. `str | int` is supported, but `set | str` is not). Other objects are indeed supported.
-- Respected modifiers are supported (such as `dataclasses.field` on `dataclass`).
-- Methods are unrelated to the parsing, and may return any type and take any parameters. Methods are not accessible to the user (as JSON doesn't have methods).
+-   Any annotated value types must an available type already (i.e. `str | int` is supported, but `set | str` is not). Other objects are indeed supported.
+-   Respected modifiers are supported (such as `dataclasses.field` on `dataclass`).
+-   Methods are unrelated to the parsing, and may return any type and take any parameters. Methods are not accessible to the user (as JSON doesn't have methods).
 
 Here's an example using `dataclasses`:
 
@@ -254,9 +254,9 @@ validator = compile_type(str | int)
 
 With a validator, you can do three things:
 
-- Cast an object to the type.
-- Check if an object is compatible with the type.
-- Check if an object is compatible, without the use of casting.
+-   Cast an object to the type.
+-   Check if an object is compatible with the type.
+-   Check if an object is compatible, without the use of casting.
 
 `cast` will raise a `TypeValidationError` if the type is not compatible:
 
@@ -270,7 +270,7 @@ tp.cast("123")  # TypeValidationError
 
 The difference between `check_type` and `is_compatible`, is that `check_type` is a [type guard](https://mypy.readthedocs.io/en/latest/type_narrowing.html), which `is_compatible` is not.
 
-This means that `check_type` will ensure that the object is *an instance* of the type, while `is_compatible` checks whether it can be casted. For example:
+This means that `check_type` will ensure that the object is _an instance_ of the type, while `is_compatible` checks whether it can be casted. For example:
 
 ```py
 from view import compile_type
@@ -293,9 +293,9 @@ if tp.is_compatible(y):
 
 If any of the above types do not support your needs, you may design your own type with the `__view_body__` protocol. On a type, `__view_body__` can be held in one of two things:
 
-- An attribute (e.g. `cls.__view_body__ = ...`)
-- A property
-- A static (or class) method.
+-   An attribute (e.g. `cls.__view_body__ = ...`)
+-   A property
+-   A static (or class) method.
 
 Whichever way you choose, the `__view_body__` data must be accessed statically, **not in an instance**. The data should be a dictionary (containing only `str` keys, once again), but the values should be types, not instances. These types outline how view.py should parse it at runtime. For example, a `__view_body__` to create an object that has a key called `a`, which a `str` value would look like so:
 
@@ -312,6 +312,7 @@ class MyObject:
 
     @classmethod
     def __view_construct__(cls, **kwargs):
+        self = cls()
         self.a: str = kwargs["a"]
 ```
 
@@ -328,6 +329,7 @@ class MyObject:
 
     @classmethod
     def __view_construct__(cls, **kwargs):
+        self = cls()
         self.a: str | int = kwargs["a"]
         self.a: str = kwargs["b"]
 ```

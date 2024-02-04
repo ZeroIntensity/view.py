@@ -2,119 +2,254 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-    font-family: "Gabarito", sans-serif;
-    @apply text-base;
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap");
+
+@media (prefers-color-scheme: dark) {
 }
 
-h1 {
-    @apply text-2xl md:text-4xl font-bold py-4;
+@font-face {
+    font-family: "Modern Deco";
+    src: url("/modern_deco.ttf");
 }
 
-h2 {
-    @apply text-2xl md:text-3xl font-bold py-3;
+body {
+    font-family: "Inter", sans-serif;
 }
 
-h3 {
-    @apply text-xl md:text-2xl font-bold py-2;
-}
-
-h4 {
-    @apply font-bold py-1 text-xl;
-}
-
-p {
-    @apply py-2 text-base;
-}
-
-pre {
-    @apply rounded drop-shadow-sm text-base;
-}
-
-a {
-    @apply transition-opacity hover:opacity-50 duration-75 cursor-pointer bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-400 text-transparent;
-}
-
-code {
-    @apply text-emerald-500 p-1 rounded bg-zinc-800 text-base;
-}
-
-ul {
-    @apply list-disc pl-12;
-}
-
-ol {
-    @apply list-decimal pl-12;
-}
-
-hr {
-    @apply border-t border-zinc-700;
-}
-
-table {
-    @apply w-full text-left p-4 bg-zinc-800 rounded drop-shadow-sm border-spacing-2 border-4 border-separate border-zinc-700 table-auto;
-}
-
-thead {
-    @apply p-2;
-}
-
-tbody {
-    @apply p-2;
-}
-
-td {
-    @apply px-6 py-3 font-thin;
-}
-
-tr {
-    @apply border-4 border-zinc-700 border-solid;
-}
-
-th {
-    @apply font-bold text-lg whitespace-nowrap;
-}
-
-.divider {
-    @apply py-4;
+.modern-deco {
+    font-family: "Modern Deco", "Inter", sans-serif;
 }
 
 .hljs {
-    @apply bg-zinc-800;
+    @apply border-zinc-100 border rounded-lg;
+}
+
+a {
+    @apply text-rose-600 hover:text-rose-500 transition-all;
+}
+
+.custom-shape-divider-bottom-1706484168 {
+    position: relative;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    transform: rotate(180deg);
+}
+
+.custom-shape-divider-bottom-1706484168 svg {
+    position: relative;
+    display: block;
+    width: calc(100% + 1.3px);
+    height: 297px;
+    transform: rotateY(180deg);
+}
+
+.custom-shape-divider-bottom-1706484168 .shape-fill {
+    fill: #18181b;
+}
+
+h1 {
+    @apply pt-6 pb-12 text-5xl font-extrabold text-center bg-gradient-to-t from-zinc-400 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50;
+}
+
+.headerlink {
+    @apply pl-2;
+}
+
+h2 {
+    @apply text-3xl font-bold pt-4;
+}
+
+h3 {
+    @apply text-xl font-bold pt-4;
+}
+
+.gradient {
+    @apply bg-gradient-to-r from-rose-400 to-rose-700 inline-block text-transparent bg-clip-text font-bold dark:from-rose-600 dark:to-rose-800;
+}
+
+pre {
+    @apply py-2;
+}
+
+p {
+    @apply py-2 leading-loose;
+}
+
+code {
+    @apply bg-zinc-100 rounded-lg p-1 border border-zinc-200 text-sm;
+}
+
+ul {
+    @apply list-disc pl-6 flex flex-col space-y-2 py-2;
+}
+
+.headerlink {
+    @apply text-zinc-600;
+}
+
+.headerlink.doc {
+    @apply text-xs text-center;
+}
+
+.on-this-page {
+    @apply text-zinc-500;
+}
+
+.doc-object {
+    @apply border-zinc-100 border p-4 rounded-lg;
+}
+
+.doc-children {
+    @apply py-2 flex flex-col space-y-3;
+}
+
+table {
+    @apply w-full text-sm text-left rtl:text-right text-zinc-500 overflow-x-auto;
+}
+
+thead {
+    @apply text-base text-zinc-700 uppercase bg-zinc-50 select-none cursor-pointer;
+}
+
+th {
+    @apply px-6 py-3;
+}
+
+tr {
+    @apply odd:bg-white even:bg-zinc-50 border-b;
+}
+
+td {
+    @apply px-6 py-4;
+}
+
+.example {
+    @apply pt-4;
 }
 
 .admonition {
-    @apply bg-zinc-800 drop-shadow-lg p-2 rounded-lg py-1;
+    @apply border-zinc-100 border rounded-lg;
 }
 
 .admonition-title {
-    @apply text-xl pb-1 text-emerald-300;
+    @apply bg-zinc-50 text-xl font-bold;
 }
 
-.note {
-    @apply border-2 border-sky-300;
+.admonition p {
+    @apply px-4;
 }
 
-.warning {
-    @apply border-2 border-amber-300;
+.admonition pre {
+    @apply text-xs p-2;
 }
 
-.danger {
-    @apply border-2 border-rose-300;
+.admonition.question {
+    @apply border-emerald-300;
 }
 
-.danger-text {
-    @apply text-rose-300;
+.question .admonition-title {
+    @apply bg-emerald-50 text-emerald-700;
 }
 
-.warning-text {
-    @apply text-amber-300;
+.admonition.info {
+    @apply border-blue-300;
 }
 
-.note-text {
-    @apply text-sky-300;
+.info .admonition-title {
+    @apply bg-blue-50 text-blue-700;
+}
+
+.admonition.note {
+    @apply border-indigo-300;
+}
+
+.note .admonition-title {
+    @apply bg-indigo-50 text-indigo-700;
+}
+
+.admonition.danger {
+    @apply border-rose-300;
+}
+
+.danger .admonition-title {
+    @apply bg-rose-50 text-rose-700;
+}
+
+.admonition.warning {
+    @apply border-orange-300;
+}
+
+.warning .admonition-title {
+    @apply bg-orange-50 text-orange-700;
+}
+
+.doc-label-async code {
+    @apply bg-indigo-100 text-indigo-500 rounded-lg p-1 font-bold border-0;
+}
+
+.doc-label-module-attribute code {
+    @apply bg-sky-100 text-sky-500 rounded-lg p-1 font-bold border-0;
+}
+
+.doc-label-instance-attribute code {
+    @apply bg-lime-100 text-lime-500 rounded-lg p-1 font-bold border-0;
+}
+
+.doc-label-class-attribute code {
+    @apply bg-pink-100 text-pink-500 rounded-lg p-1 font-bold border-0;
+}
+
+.doc-label-classmethod code {
+    @apply bg-violet-100 text-violet-500 rounded-lg p-1 font-bold border-0;
+}
+
+.doc-contents p {
+    @apply text-zinc-500;
+}
+
+.doc-contents strong {
+    @apply uppercase font-normal text-zinc-400;
+}
+
+.n {
+    @apply text-blue-500;
+}
+
+.nb {
+    @apply text-teal-500;
+}
+
+.kc {
+    @apply text-indigo-500;
+}
+
+.mi {
+    @apply text-green-500;
+}
+
+.s1 {
+    @apply text-green-500;
+}
+
+.Typewriter__cursor {
+    @apply text-black;
+}
+
+#mkdocs-search-results article {
+    @apply rounded-lg border border-zinc-100 p-2;
+}
+
+#mkdocs-search-results p {
+    @apply text-ellipsis italic break-words py-0;
+}
+
+#mkdocs-search-results p::after {
+    content: "...";
 }
 
 .doc-contents {
-    @apply flex flex-col space-y-2;
+    @apply overflow-x-auto;
 }

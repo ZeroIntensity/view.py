@@ -94,6 +94,11 @@ This can be formatted as so:
     [(union1_tc, None, []), (union2_tc, None, [(type_tc, obj, [])])]
 """
 
+"""
+-- Route Data Information --
+1 - Context
+*more to be added later*
+"""
 
 class _ViewNotRequired:
     __VIEW_NOREQ__ = 1

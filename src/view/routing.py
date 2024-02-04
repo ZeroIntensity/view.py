@@ -68,12 +68,6 @@ class Part(Generic[V]):
 
 RouteData = Literal[1]
 
-"""
-Route Data Information
-1 - Context
-"""
-
-
 @dataclass
 class Route(LoadChecker):
     """Standard Route Wrapper"""

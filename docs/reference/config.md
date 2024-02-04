@@ -1,0 +1,3 @@
+# Configuration Reference
+
+::: view.config
