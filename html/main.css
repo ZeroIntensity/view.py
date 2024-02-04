@@ -254,22 +254,22 @@ td {
     @apply overflow-x-auto;
 }
 
-.doc-symbol-function {
+.doc-symbol-function::before {
     @apply bg-red-100 text-red-500 rounded-lg p-1 font-bold border-0;
     content: "function";
 }
 
-.doc-symbol-class {
+.doc-symbol-class::before {
     @apply bg-amber-100 text-amber-500 rounded-lg p-1 font-bold border-0;
     content: "class";
 }
 
-.doc-symbol-attribute {
+.doc-symbol-attribute::before {
     @apply bg-cyan-100 text-cyan-500 rounded-lg p-1 font-bold border-0;
     content: "attr";
 }
 
-.doc-symbol-method {
+.doc-symbol-method::before {
     @apply bg-blue-100 text-blue-500 rounded-lg p-1 font-bold border-0;
     content: "method";
 }
