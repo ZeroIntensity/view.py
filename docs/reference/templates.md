@@ -1,0 +1,3 @@
+# Templating Reference
+
+::: view.templates

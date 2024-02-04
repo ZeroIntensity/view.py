@@ -18,6 +18,15 @@ nav:
           - Getting Request Data: building-projects/request_data.md
           - HTML Templating: building-projects/templating.md
           - Writing Documentation: building-projects/documenting.md
+    - API Reference:
+          - Types: reference/types.md
+          - Utilities: reference/utils.md
+          - Exceptions: reference/exceptions.md
+          - Applications: reference/app.md
+          - Configuration: reference/config.md
+          - Routing: reference/routing.md
+          - Responses: reference/responses.md
+          - Templates: reference/templates.md
 
 theme:
     name: null
@@ -37,6 +46,7 @@ markdown_extensions:
     - pymdownx.superfences
 
 plugins:
+    - search
     - mkdocstrings:
           handlers:
               python:
@@ -50,3 +60,6 @@ plugins:
                       seperate_signature: true
                       show_signature_annotations: true
                       signature_crossrefs: true
+                      show_source: false
+                      show_if_no_docstring: true
+                      show_docstring_examples: false

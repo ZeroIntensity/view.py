@@ -1,6 +1,9 @@
 {% extends "base.html" %} {% block content %}
-<div class="flex justify-between px-16">
-    <nav class="flex flex-col space-y-6 sticky top-0 self-start pt-32">
+<div class="flex justify-between px-4 lg:px-16">
+    <nav
+        class="flex-col space-y-6 sticky top-0 self-start hidden md:flex lg:pt-28 z-10 sm:z-0 pt-48"
+        id="sidebar"
+    >
         {% for item in nav %} {% if item.children %}
         <div>
             <p class="font-bold">{{ item.title }}</p>
@@ -9,7 +12,9 @@
             </div>
             <div class="flex flex-col space-y-2">
                 {% for sub in item.children %}
-                <a href="{{ sub.url|url }}" class="text-zinc-500"
+                <a
+                    href="{{ sub.url|url }}"
+                    class="{{ 'text-rose-500' if sub.active else 'text-zinc-500' }}"
                     >{{ sub.title }}</a
                 >
                 {% endfor %}
@@ -17,22 +22,22 @@
         </div>
         {% endif %} {% endfor %}
     </nav>
-    <div class="flex flex-col space-y-1 p-4 w-2/3">
+    <div class="flex flex-col space-y-1 p-4 md:w-2/3 w-full overflow-x-auto">
         {{ page.content }}
         <div>
             <div class="py-4">
                 <hr class="border-t border-zinc-100 dark:border-zinc-800" />
             </div>
-            <div class="flex justify-between">
+            <div
+                class="flex flex-col space-y-3 lg:space-y-0 lg:flex-row lg:justify-between"
+            >
                 {% if page.previous_page %}
-                <div
-                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg"
+                <a
+                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 hover:border-zinc-200"
+                    href="/{{ page.previous_page.url }}"
                 >
                     <p class="text-zinc-600 text-sm">Previous Page</p>
-                    <a
-                        href="/{{ page.previous_page.url }}"
-                        class="flex space-x-3 text-xl items-center text-black"
-                    >
+                    <div class="flex space-x-2 items-center text-xl">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
@@ -49,17 +54,15 @@
                         </svg>
 
                         <span>{{ page.previous_page.title }}</span>
-                    </a>
-                </div>
+                    </div>
+                </a>
                 {% endif %} {% if page.next_page %}
-                <div
-                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg"
+                <a
+                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 hover:border-zinc-200"
+                    href="/{{ page.next_page.url }}"
                 >
                     <p class="text-zinc-600 text-sm">Next Page</p>
-                    <a
-                        href="/{{ page.next_page.url }}"
-                        class="flex space-x-3 text-xl items-center text-black"
-                    >
+                    <div class="flex space-x-2 items-center text-xl">
                         <span>{{ page.next_page.title }}</span>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -75,14 +78,16 @@
                                 d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3"
                             />
                         </svg>
-                    </a>
-                </div>
+                    </div>
+                </a>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="sticky top-0 self-start pt-32 w-1/6 flex flex-col space-y-3">
+    <div
+        class="sticky top-0 self-start pt-32 w-1/6 lg:flex flex-col space-y-3 hidden"
+    >
         <div>
             <p class="font-bold">On this page</p>
             <div class="py-2">

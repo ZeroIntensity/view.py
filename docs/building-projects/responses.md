@@ -59,6 +59,8 @@ app.run()
 
     `Error` can only be used to send back *error* responses. It can **not** be used to return status codes such as `200`.
 
+::: view.app.Error
+
 ## Caching
 
 Sometimes, computing the response for a route can be expensive or unnecessary. For this, view.py, along with many other web frameworks, provide the ability to cache responses.
@@ -100,12 +102,12 @@ In the above example, `index` is only called every 10 requests, so after 20 call
 
 ## Response Protocol
 
-If you have some sort of object that you want to wrap a response around, view.py gives you the `__view_response__` protocol. The only requirements are:
+If you have some sort of object that you want to wrap a response around, view.py gives you the `__view_result__` protocol. The only requirements are:
 
--   `__view_response__` is available on the returned object (doesn't matter if it's static or instance)
--   `__view_response__` returns data that corresponds to the allowed return values.
+-   `__view_result__` is available on the returned object (doesn't matter if it's static or instance)
+-   `__view_result__` returns data that corresponds to the allowed return values.
 
-For example, a type `MyObject` defining `__view_response__` could look like:
+For example, a type `MyObject` defining `__view_result__` could look like:
 
 ```py
 from view import new_app
@@ -113,7 +115,7 @@ from view import new_app
 app = new_app()
 
 class MyObject:
-    def __view_response__(self):
+    def __view_result__(self):
         return "Hello from MyObject!", {"x-www-myobject": "foo"}
 
 @app.get("/")
@@ -146,7 +148,7 @@ View comes with two built in response objects: `Response` and `HTML`.
 ::: view.response.HTML
 ::: view.response.JSON
 
-A common use case for `Response` is wrapping an object that has a `__view_response__` and changing one of the values. For example:
+A common use case for `Response` is wrapping an object that has a `__view_result__` and changing one of the values. For example:
 
 ```py
 from view import new_app, Response
@@ -197,11 +199,11 @@ Note that **all response classes inherit from `Response`**, meaning you can use 
 
 ### Body Translate Strategy
 
-The body translate strategy in the `__view_response__` protocol refers to how the `Response` class will translate the body into a `str`. There are four available strategies:
+The body translate strategy in the `__view_result__` protocol refers to how the `Response` class will translate the body into a `str`. There are four available strategies:
 
 -   `str`, which uses the object's `__str__` method.
 -   `repr`, which uses the object's `__repr__` method.
--   `result`, which calls the `__view_response__` protocol implemented on the object (assuming it exists).
+-   `result`, which calls the `__view_result__` protocol implemented on the object (assuming it exists).
 -   `custom`, uses the `Response` instance's `_custom` attribute (this only works on subclasses of `Response` that implement it).
 
 For example, the route below would return the string `"'hi'"`:
@@ -288,6 +290,6 @@ Responses can be returned with a string, integer, and/or dictionary in any order
 -   The integer represents the status code (200 by default)
 -   The dictionary represents the headers (e.g. `{"x-www-my-header": "some value"}`)
 
-`Response` objects can also be returned, which implement the `__view_response__` protocol. All response classes inherit from `Response`, which supports operations like setting cookies.
+`Response` objects can also be returned, which implement the `__view_result__` protocol. All response classes inherit from `Response`, which supports operations like setting cookies.
 
 Finally, the `middleware` method on a `Route` can be used to implement middleware.
