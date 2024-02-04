@@ -285,3 +285,11 @@ td {
 .doc-symbol-method::before {
     content: "method";
 }
+
+.doc-symbol-module {
+    @apply bg-teal-100 text-teal-500 rounded-lg p-1 font-bold border-0;
+}
+
+.doc-symbol-module::before {
+    content: "mod";
+}
