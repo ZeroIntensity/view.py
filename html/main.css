@@ -154,6 +154,14 @@ td {
     @apply bg-emerald-50 text-emerald-700;
 }
 
+.admonition.tip {
+    @apply border-green-300;
+}
+
+.tip .admonition-title {
+    @apply bg-green-50 text-green-700;
+}
+
 .admonition.info {
     @apply border-blue-300;
 }
