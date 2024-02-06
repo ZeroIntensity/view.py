@@ -9,10 +9,7 @@ import subprocess
 import venv as _venv
 from inspect import iscoroutine
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn
-
-if TYPE_CHECKING:
-    from .routing import Route
+from typing import NoReturn
 
 import click
 

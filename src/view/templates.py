@@ -290,6 +290,7 @@ async def template(
 
     return HTML(await render(source, engine, params, app=app))
 
+
 async def markdown(
     name: str | Path,
     *,

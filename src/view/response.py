@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime as DateTime
 from pathlib import Path
-from typing import Any, Dict, Generic, TextIO, TypeVar, Union
+from typing import Any, Dict, Generic, TextIO, TypeVar, Union, overload
 
 import ujson
 
@@ -12,7 +12,7 @@ from .util import timestamp
 
 T = TypeVar("T")
 
-__all__ = "Response", "HTML", "JSON"
+__all__ = "Response", "HTML", "JSON", "redirect"
 
 _Find = None
 HTMLContent = Union[TextIO, str, Path, DOMNode]
@@ -131,6 +131,7 @@ class Response(Generic[T]):
 
         return body, self.status, self._build_headers()
 
+
 class HTML(Response[HTMLContent]):
     """HTML response wrapper."""
 
@@ -163,6 +164,7 @@ class HTML(Response[HTMLContent]):
 
         return parsed_body
 
+
 class JSON(Response[Dict[str, Any]]):
     """JSON response wrapper."""
 
@@ -177,3 +179,44 @@ class JSON(Response[Dict[str, Any]]):
 
     def _custom(self, body: dict[str, Any]) -> str:
         return ujson.dumps(body)
+
+
+R = TypeVar("R", bound=Response[str])
+
+
+@overload
+def redirect(
+    url: str,
+    *,
+    code: int = 307,
+    response_class: None = None
+) -> tuple[str, int, dict[str, str]]:
+    ...
+
+
+@overload
+def redirect(
+    url: str,
+    *,
+    code: int = 307,
+    response_class: type[R]
+) -> R:
+    ...
+
+
+def redirect(
+    url: str,
+    *,
+    code: int = 307,
+    response_class: type[R] | None = None
+) -> tuple[str, int, dict[str, str]] | R:
+    """Return a redirection.
+
+    Args:
+        url: The URL to redirect to.
+        code: The redirection response code to use.
+        response_class: The class to use for returning a response. If `None`, uses a response tuple."""  # noqa
+    if not response_class:
+        return "", code, {"Location": url}
+
+    return response_class("", status=code, headers={"Location": url})

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 -   Added the `view docs` command
+-   Added the `redirect` function
 
 ## [1.0.0-alpha9] - 2024-2-4
 
