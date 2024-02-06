@@ -83,6 +83,7 @@ def info(msg: str) -> None:
 def ver() -> None:
     click.echo(f"view.py {__version__}")
 
+
 def welcome() -> None:
     click.secho(random.choice(VIEW_TEXT) + "\n", fg="blue", bold=True)
     ver()
@@ -209,6 +210,7 @@ def prod():
 def deploy(target: str):
     raise NotImplementedError
 
+
 @main.command()
 @click.option(
     "--path",
@@ -226,7 +228,7 @@ def build(path: Path):
     from .config import load_config
     from .routing import Method
     from .util import extract_path
-    
+
     conf = load_config()
     app = extract_path(conf.app.app_path)
     app.load()
@@ -237,7 +239,7 @@ def build(path: Path):
         if (not i.method) or (i.method != Method.GET):
             warn(f"{i} is not a GET route, skipping it")
             continue
-        
+
         if not i.path:
             warn(f"{i} needs path parameters, skipping it")
             continue
@@ -253,7 +255,7 @@ def build(path: Path):
         if iscoroutine(res):
             loop = asyncio.get_event_loop()
             res = loop.run_until_complete(res)
-        
+
         text: str
 
         if hasattr(res, "__view_response__"):
@@ -277,7 +279,7 @@ def build(path: Path):
 
     path.mkdir()
     success(f"Created directory {path}")
-    
+
     for file_path, content in results.items():
         directory = path / file_path
         file = directory / "index.html"
@@ -451,6 +453,34 @@ async def index():
     welcome()
     success(f"Successfully initalized app in `{path}`")
     return
+
+
+@main.command()
+@click.option(
+    "--file",
+    "-f",
+    type=click.Path(
+        exists=False,
+        dir_okay=False,
+        resolve_path=True,
+        path_type=Path,
+        writable=True,
+    ),
+    default=Path.cwd() / "docs.md"
+)
+@click.option("--app", "-a", type=str, default=None)
+def docs(file: Path, app: str | None):
+    from .config import load_config
+    from .util import extract_path
+
+    if not app:
+        conf = load_config()
+        target = extract_path(conf.app.app_path)
+    else:
+        target = extract_path(app)
+
+    target.docs(file)
+    success(f"Created `{file}`")
 
 
 if __name__ == "__main__":
