@@ -2,8 +2,18 @@ from __future__ import annotations
 
 from ._util import run_path
 from .exceptions import DuplicateRouteError, InvalidRouteError
-from .routing import (Callable, Method, Route, RouteOrCallable, delete, get,
-                      options, patch, post, put)
+from .routing import (
+    Callable,
+    Method,
+    Route,
+    RouteOrCallable,
+    delete,
+    get,
+    options,
+    patch,
+    post,
+    put,
+)
 from .routing import route as route_impl
 from .typing import StrMethod, ViewRoute
 
@@ -29,6 +39,7 @@ _STR_MAPPINGS = {
 }
 
 RouteInput = Callable[[RouteOrCallable], Route]
+
 
 def _get_method_enum(method: StrMethod | None | Method) -> Method:
     if isinstance(method, str):
@@ -65,7 +76,7 @@ def path(
             raise InvalidRouteError(f"no route in {path_or_function}")
     else:
         route = path_or_function
-    
+
     if not isinstance(route, Route):
         method_enum = _get_method_enum(method)
         func = _FUNC_MAPPINGS[method_enum]

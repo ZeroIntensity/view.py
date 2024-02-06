@@ -16,9 +16,11 @@ if TYPE_CHECKING:
 
 __all__ = ("run", "env", "enable_debug", "timestamp", "extract_path")
 
+
 def extract_path(path: str) -> App:
     """Extract an `App` instance from a path."""
     from .app import App
+
     split = path.split(":", maxsplit=1)
 
     if len(split) != 2:
@@ -31,9 +33,7 @@ def extract_path(path: str) -> App:
     try:
         mod = run_path(file_path)
     except FileNotFoundError:
-        raise AppNotFoundError(
-            f'"{split[0]}" in {path} does not exist'
-        ) from None
+        raise AppNotFoundError(f'"{split[0]}" in {path} does not exist') from None
 
     try:
         target = mod[split[1]]
@@ -44,6 +44,7 @@ def extract_path(path: str) -> App:
         raise MistakeError(f"{target!r} is not an instance of view.App")
 
     return target
+
 
 def run(app_or_path: str | App) -> None:
     """Run a view app. Should not be used over `App.run()`
@@ -56,7 +57,7 @@ def run(app_or_path: str | App) -> None:
     if isinstance(app_or_path, App):
         app_or_path.run()
         return
-    
+
     target = extract_path(app_or_path)
     target._run()
 

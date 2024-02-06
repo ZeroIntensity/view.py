@@ -33,14 +33,16 @@ class Response(Generic[T]):
         self.status = status
         self.headers = headers or {}
         self._raw_headers: list[tuple[bytes, bytes]] = []
-        
+
         if body_translate:
             self.translate = body_translate
         else:
             self.translate = "str" if not hasattr(body, "__view_result__") else "result"
 
     def _custom(self, body: T) -> str:
-        raise NotImplementedError('the "custom" translate strategy can only be used in subclasses that implement it')  # noqa
+        raise NotImplementedError(
+            'the "custom" translate strategy can only be used in subclasses that implement it'
+        )  # noqa
 
     def cookie(
         self,
@@ -141,7 +143,6 @@ class HTML(Response[HTMLContent]):
         status: int = 200,
         headers: dict[str, str] | None = None,
     ) -> None:
-
         super().__init__(body, status, headers, body_translate="custom")
         self._raw_headers.append((b"content-type", b"text/html"))
 
@@ -186,36 +187,26 @@ R = TypeVar("R", bound=Response[str])
 
 @overload
 def redirect(
-    url: str,
-    *,
-    code: int = 307,
-    response_class: None = None
+    url: str, *, code: int = 307, response_class: None = None
 ) -> tuple[str, int, dict[str, str]]:
     ...
 
 
 @overload
-def redirect(
-    url: str,
-    *,
-    code: int = 307,
-    response_class: type[R]
-) -> R:
+def redirect(url: str, *, code: int = 307, response_class: type[R]) -> R:
     ...
 
 
 def redirect(
-    url: str,
-    *,
-    code: int = 307,
-    response_class: type[R] | None = None
+    url: str, *, code: int = 307, response_class: type[R] | None = None
 ) -> tuple[str, int, dict[str, str]] | R:
     """Return a redirection.
 
     Args:
         url: The URL to redirect to.
         code: The redirection response code to use.
-        response_class: The class to use for returning a response. If `None`, uses a response tuple."""  # noqa
+        response_class: The class to use for returning a response. If `None`, uses a response tuple.
+    """  # noqa
     if not response_class:
         return "", code, {"Location": url}
 
