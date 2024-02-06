@@ -96,6 +96,13 @@ with open("docs.md", "w") as f:
     app.docs(f)
 ```
 
+Alternatively, you can also use the `view docs` command to generate your documentation:
+
+```
+$ view docs
+- Created `docs.md`
+```
+
 ::: view.app.App.docs
 
 ## Review
@@ -104,7 +111,7 @@ with open("docs.md", "w") as f:
 
 To write a description for a route, you may pass a `doc` parameter to the router call, or instead add a docstring to the route function itself. In a route input, it's quite similar, where you pass `doc` to the input function, but **using a docstring is not allowed**.  However, this rule is broken in the case of using an object as the type. When using an object, you must provide a docstring to define the class's description, and use `typing.Annotated` (or `typing_extensions.Annotated`) to set descriptions for object attributes.
 
-Finally, you can actually generate the markdown content via the `docs()` method on your `App`. `docs()` can take three types of parameters:
+Finally, you can actually generate the markdown content via the `docs()` method on your `App`, or by the `view docs` command. `docs()` can take three types of parameters:
 
 - A `str`, in which it opens the file path and attempts to write to it.
 - A `Path`, in which the same thing happens.
