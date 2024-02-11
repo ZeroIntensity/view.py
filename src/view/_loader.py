@@ -97,8 +97,9 @@ This can be formatted as so:
 """
 -- Route Data Information --
 1 - Context
-*more to be added later*
+2 - WebSocket
 """
+
 
 class _ViewNotRequired:
     __VIEW_NOREQ__ = 1
@@ -152,7 +153,8 @@ def _format_body(
         vbody_defaults[k] = default
 
     return [
-        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k]) for k, v in vbody_final.items()
+        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
+        for k, v in vbody_final.items()
     ]
 
 
@@ -342,7 +344,9 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp)))
+            codes.append(
+                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
+            )
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -356,7 +360,9 @@ def _build_type_codes(
             key, value = get_args(tp)
 
             if key is not str:
-                raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
+                raise InvalidBodyError(
+                    f"dictionary keys must be strings, not {key}"
+                )
 
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
@@ -412,6 +418,7 @@ def finalize(routes: list[Route], app: ViewApp):
         Method.PATCH: app._patch,
         Method.DELETE: app._delete,
         Method.OPTIONS: app._options,
+        Method.WEBSOCKET: app._websocket,
     }
 
     for route in routes:
@@ -421,7 +428,6 @@ def finalize(routes: list[Route], app: ViewApp):
             target = targets[route.method]
         else:
             target = None
-    
 
         if (not route.path) and (not route.parts):
             raise InvalidRouteError(f"{route} did not specify a path")
@@ -455,7 +461,9 @@ def finalize(routes: list[Route], app: ViewApp):
                     route.inputs.insert(index, 1)
                     continue
 
-                default = v.default if v.default is not inspect._empty else _NoDefault
+                default = (
+                    v.default if v.default is not inspect._empty else _NoDefault
+                )
 
                 route.inputs.insert(
                     index,
@@ -466,14 +474,16 @@ def finalize(routes: list[Route], app: ViewApp):
                         default,
                         None,
                         [],
-                    )
+                    ),
                 )
                 index += 1
 
             if len(route.inputs) != len(sig.parameters):
                 raise InvalidRouteError(
                     "mismatch in parameter names with automatic route inputs",
-                    hint=docs_hint("https://view.zintensity.dev/building-projects/parameters/#automatically")
+                    hint=docs_hint(
+                        "https://view.zintensity.dev/building-projects/parameters/#automatically"
+                    ),
                 )
 
         app.loaded_routes.append(route)
@@ -485,7 +495,7 @@ def finalize(routes: list[Route], app: ViewApp):
                 _format_inputs(route.inputs),
                 route.errors or {},
                 route.parts,  # type: ignore
-                [i for i in reversed(route.middleware_funcs)]
+                [i for i in reversed(route.middleware_funcs)],
             )
         else:
             for i in (route.method_list) or targets.keys():
@@ -497,9 +507,8 @@ def finalize(routes: list[Route], app: ViewApp):
                     _format_inputs(route.inputs),
                     route.errors or {},
                     route.parts,  # type: ignore
-                    [i for i in reversed(route.middleware_funcs)]
+                    [i for i in reversed(route.middleware_funcs)],
                 )
-
 
 
 def load_fs(app: ViewApp, target_dir: Path) -> None:
@@ -550,7 +559,9 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
+                    stripped = list(
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -603,7 +614,8 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
             for route in mini_routes:
                 if not route.path:
                     raise InvalidRouteError(
-                        "omitting path is only supported" " on filesystem loading",
+                        "omitting path is only supported"
+                        " on filesystem loading",
                     )
 
                 routes.append(route)

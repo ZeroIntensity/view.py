@@ -9,12 +9,19 @@ typedef struct {
 } TCPublic;
 
 static void dealloc(TCPublic* self) {
-    free_type_codes(self->codes, self->codes_len);
+    free_type_codes(
+        self->codes,
+        self->codes_len
+    );
     Py_DECREF(self->json_parser);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
 static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
-    TCPublic* self = (TCPublic*) type->tp_alloc(type, 0);
+    TCPublic* self = (TCPublic*) type->tp_alloc(
+        type,
+        0
+    );
     if (!self)
         return NULL;
 
@@ -26,7 +33,12 @@ static PyObject* cast_from_typecodes_public(PyObject* self, PyObject* args) {
     PyObject* obj;
     int allow_cast;
 
-    if (!PyArg_ParseTuple(args, "Op", &obj, &allow_cast))
+    if (!PyArg_ParseTuple(
+        args,
+        "Op",
+        &obj,
+        &allow_cast
+        ))
         return NULL;
 
     PyObject* res = cast_from_typecodes(
@@ -37,8 +49,10 @@ static PyObject* cast_from_typecodes_public(PyObject* self, PyObject* args) {
         allow_cast
     );
     if (!res) {
-        PyErr_SetString(PyExc_RuntimeError,
-            "cast_from_typecodes returned NULL");
+        PyErr_SetString(
+            PyExc_RuntimeError,
+            "cast_from_typecodes returned NULL"
+        );
         return NULL;
     }
 
@@ -50,11 +64,19 @@ static PyObject* compile(PyObject* self, PyObject* args) {
     PyObject* list;
     PyObject* json_parser;
 
-    if (!PyArg_ParseTuple(args, "OO", &list, &json_parser))
+    if (!PyArg_ParseTuple(
+        args,
+        "OO",
+        &list,
+        &json_parser
+        ))
         return NULL;
 
     if (!PySequence_Check(list)) {
-        PyErr_SetString(PyExc_TypeError, "expected a sequence");
+        PyErr_SetString(
+            PyExc_TypeError,
+            "expected a sequence"
+        );
         return NULL;
     }
 
@@ -62,7 +84,10 @@ static PyObject* compile(PyObject* self, PyObject* args) {
     if (size < 0)
         return NULL;
 
-    type_info** info = build_type_codes(list, size);
+    type_info** info = build_type_codes(
+        list,
+        size
+    );
     tc->codes = info;
     tc->codes_len = size;
     tc->json_parser = Py_NewRef(json_parser);
@@ -77,7 +102,10 @@ static PyMethodDef methods[] = {
 
 
 PyTypeObject TCPublicType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
+    PyVarObject_HEAD_INIT(
+        NULL,
+        0
+    )
     .tp_name = "_view.TCPublic",
     .tp_basicsize = sizeof(TCPublic),
     .tp_itemsize = 0,

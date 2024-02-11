@@ -20,8 +20,9 @@ static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
                                     methods};
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
+PyObject* ws_handshake_error = NULL;
 
-void view_fatal(
+NORETURN void view_fatal(
     const char* message,
     const char* where,
     const char* func,
@@ -51,7 +52,8 @@ PyMODINIT_FUNC PyInit__view() {
         (PyType_Ready(&ViewAppType) < 0) ||
         (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) ||
         (PyType_Ready(&ContextType) < 0) ||
-        (PyType_Ready(&TCPublicType) < 0)) {
+        (PyType_Ready(&TCPublicType) < 0) ||
+        (PyType_Ready(&WebSocketType) < 0)) {
         Py_DECREF(m);
         return NULL;
     }
@@ -108,6 +110,16 @@ PyMODINIT_FUNC PyInit__view() {
         return NULL;
     }
 
+    Py_INCREF(&WebSocketType);
+    if (PyModule_AddObject(
+        m,
+        "WebSocket",
+        (PyObject*) &WebSocketType
+        ) < 0) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
     PyObject* ipaddress_mod = PyImport_ImportModule("ipaddress");
     if (!ipaddress_mod) {
         Py_DECREF(m);
@@ -143,6 +155,28 @@ PyMODINIT_FUNC PyInit__view() {
         ) < 0) {
         Py_DECREF(m);
         Py_DECREF(ip_address);
+        Py_DECREF(invalid_status_error);
+        return NULL;
+    }
+
+    ws_handshake_error = PyErr_NewException(
+        "_view.WebSocketHandshakeError",
+        PyExc_RuntimeError,
+        NULL
+    );
+    if (!ws_handshake_error) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+    }
+
+    if (PyModule_AddObject(
+        m,
+        "WebSocketHandshakeError",
+        ws_handshake_error
+        ) < 0) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        Py_DECREF(ws_handshake_error);
         return NULL;
     }
 

@@ -18,16 +18,46 @@ typedef struct {
 } Context;
 
 static PyMemberDef members[] = {
-    {"scheme", T_OBJECT_EX, offsetof(Context, scheme), 0, NULL},
-    {"headers", T_OBJECT_EX, offsetof(Context, headers), 0, NULL},
-    {"cookies", T_OBJECT_EX, offsetof(Context, cookies), 0, NULL},
-    {"http_version", T_OBJECT_EX, offsetof(Context, http_version), 0, NULL},
-    {"client", T_OBJECT, offsetof(Context, client), 0, NULL},
-    {"client_port", T_OBJECT, offsetof(Context, client_port), 0, NULL},
-    {"server", T_OBJECT, offsetof(Context, server), 0, NULL},
-    {"server_port", T_OBJECT, offsetof(Context, server_port), 0, NULL},
-    {"method", T_OBJECT, offsetof(Context, method), 0, NULL},
-    {"path", T_OBJECT, offsetof(Context, path), 0, NULL},
+    {"scheme", T_OBJECT_EX, offsetof(
+        Context,
+        scheme
+     ), 0, NULL},
+    {"headers", T_OBJECT_EX, offsetof(
+        Context,
+        headers
+     ), 0, NULL},
+    {"cookies", T_OBJECT_EX, offsetof(
+        Context,
+        cookies
+     ), 0, NULL},
+    {"http_version", T_OBJECT_EX, offsetof(
+        Context,
+        http_version
+     ), 0, NULL},
+    {"client", T_OBJECT, offsetof(
+        Context,
+        client
+     ), 0, NULL},
+    {"client_port", T_OBJECT, offsetof(
+        Context,
+        client_port
+     ), 0, NULL},
+    {"server", T_OBJECT, offsetof(
+        Context,
+        server
+     ), 0, NULL},
+    {"server_port", T_OBJECT, offsetof(
+        Context,
+        server_port
+     ), 0, NULL},
+    {"method", T_OBJECT, offsetof(
+        Context,
+        method
+     ), 0, NULL},
+    {"path", T_OBJECT, offsetof(
+        Context,
+        path
+     ), 0, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -60,26 +90,66 @@ static void dealloc(Context* self) {
     Py_XDECREF(self->server_port);
     Py_XDECREF(self->method);
     Py_XDECREF(self->path);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
-PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
-    Context* self = (Context*) type->tp_alloc(type, 0);
+static PyObject* Context_new(
+    PyTypeObject* type,
+    PyObject* args,
+    PyObject* kwargs
+) {
+    Context* self = (Context*) type->tp_alloc(
+        type,
+        0
+    );
     if (!self)
         return NULL;
 
     return (PyObject*) self;
 }
 
-PyObject* handle_route_data(int data, PyObject* scope) {
-    Context* context = (Context*) Context_new(&ContextType, NULL, NULL);
-    PyObject* scheme = Py_XNewRef(PyDict_GetItemString(scope, "scheme"));
-    PyObject* http_version = Py_XNewRef(PyDict_GetItemString(scope,
-        "http_version"));
-    PyObject* method = Py_XNewRef(PyDict_GetItemString(scope, "method"));
-    PyObject* path = Py_XNewRef(PyDict_GetItemString(scope, "path"));
-    PyObject* header_list = PyDict_GetItemString(scope, "headers");
-    PyObject* client = PyDict_GetItemString(scope, "client"); // [host, port]
-    PyObject* server = PyDict_GetItemString(scope, "server"); // [host, port/None]
+PyObject* context_from_data(PyObject* scope) {
+    Context* context = (Context*) Context_new(
+        &ContextType,
+        NULL,
+        NULL
+    );
+    PyObject* scheme = Py_XNewRef(
+        PyDict_GetItemString(
+            scope,
+            "scheme"
+        )
+    );
+    PyObject* http_version = Py_XNewRef(
+        PyDict_GetItemString(
+            scope,
+            "http_version"
+        )
+    );
+    PyObject* method = Py_XNewRef(
+        PyDict_GetItemString(
+            scope,
+            "method"
+        )
+    );
+    PyObject* path = Py_XNewRef(
+        PyDict_GetItemString(
+            scope,
+            "path"
+        )
+    );
+    PyObject* header_list = PyDict_GetItemString(
+        scope,
+        "headers"
+    );
+    PyObject* client = PyDict_GetItemString(
+        scope,
+        "client"
+    );                                                        // [host, port]
+    PyObject* server = PyDict_GetItemString(
+        scope,
+        "server"
+    );                                                        // [host, port/None]
 
     if (!scheme || !header_list || !http_version || !client || !server ||
         !path || !method) {
@@ -104,7 +174,12 @@ PyObject* handle_route_data(int data, PyObject* scope) {
             return NULL;
         }
 
-        context->client_port = Py_NewRef(PyTuple_GET_ITEM(client, 1));
+        context->client_port = Py_NewRef(
+            PyTuple_GET_ITEM(
+                client,
+                1
+            )
+        );
         if (PyErr_Occurred()) {
             Py_DECREF(context);
             return NULL;
@@ -112,7 +187,10 @@ PyObject* handle_route_data(int data, PyObject* scope) {
 
         PyObject* address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) { PyTuple_GET_ITEM(client, 0) },
+            (PyObject*[]) { PyTuple_GET_ITEM(
+                client,
+                0
+                            ) },
             1,
             NULL
         );
@@ -131,10 +209,18 @@ PyObject* handle_route_data(int data, PyObject* scope) {
             return NULL;
         }
 
-        context->server_port = Py_NewRef(PyTuple_GET_ITEM(server, 1));
+        context->server_port = Py_NewRef(
+            PyTuple_GET_ITEM(
+                server,
+                1
+            )
+        );
         PyObject* address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) { PyTuple_GET_ITEM(server, 0) },
+            (PyObject*[]) { PyTuple_GET_ITEM(
+                server,
+                0
+                            ) },
             1,
             NULL
         );
@@ -159,7 +245,10 @@ PyObject* handle_route_data(int data, PyObject* scope) {
     context->cookies = cookies;
 
     for (int i = 0; i < PyList_GET_SIZE(header_list); i++) {
-        PyObject* header = PyList_GET_ITEM(header_list, i);
+        PyObject* header = PyList_GET_ITEM(
+            header_list,
+            i
+        );
 
         if (PyTuple_Size(header) != 2) {
             Py_DECREF(context);
@@ -167,8 +256,14 @@ PyObject* handle_route_data(int data, PyObject* scope) {
             return NULL;
         }
 
-        PyObject* key_bytes = PyTuple_GET_ITEM(header, 0);
-        PyObject* value_bytes = PyTuple_GET_ITEM(header, 1);
+        PyObject* key_bytes = PyTuple_GET_ITEM(
+            header,
+            0
+        );
+        PyObject* value_bytes = PyTuple_GET_ITEM(
+            header,
+            1
+        );
         PyObject* key = PyUnicode_FromEncodedObject(
             key_bytes,
             "utf8",
@@ -187,7 +282,10 @@ PyObject* handle_route_data(int data, PyObject* scope) {
             return NULL;
         }
 
-        if (PyUnicode_CompareWithASCIIString(key, "cookie") == 0) {
+        if (PyUnicode_CompareWithASCIIString(
+            key,
+            "cookie"
+            ) == 0) {
             PyObject* d = PyUnicode_FromString("=");
 
             if (!d) {
@@ -197,11 +295,24 @@ PyObject* handle_route_data(int data, PyObject* scope) {
                 return NULL;
             }
 
-            PyObject* parts = PyUnicode_Partition(value, d);
-            PyObject* cookie_key = PyTuple_GET_ITEM(parts, 0);
-            PyObject* cookie_value = PyTuple_GET_ITEM(parts, 2);
+            PyObject* parts = PyUnicode_Partition(
+                value,
+                d
+            );
+            PyObject* cookie_key = PyTuple_GET_ITEM(
+                parts,
+                0
+            );
+            PyObject* cookie_value = PyTuple_GET_ITEM(
+                parts,
+                2
+            );
 
-            if (PyDict_SetItem(cookies, cookie_key, cookie_value) < 0) {
+            if (PyDict_SetItem(
+                cookies,
+                cookie_key,
+                cookie_value
+                ) < 0) {
                 Py_DECREF(cookie_key);
                 Py_DECREF(cookie_value);
                 Py_DECREF(parts);
@@ -215,7 +326,11 @@ PyObject* handle_route_data(int data, PyObject* scope) {
             Py_DECREF(parts);
             Py_DECREF(d);
         } else {
-            if (PyDict_SetItem(headers, key, value) < 0) {
+            if (PyDict_SetItem(
+                headers,
+                key,
+                value
+                ) < 0) {
                 Py_DECREF(key);
                 Py_DECREF(value);
                 Py_DECREF(context);
@@ -231,7 +346,10 @@ PyObject* handle_route_data(int data, PyObject* scope) {
 }
 
 PyTypeObject ContextType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
+    PyVarObject_HEAD_INIT(
+        NULL,
+        0
+    )
     .tp_name = "_view.Context",
     .tp_basicsize = sizeof(Context),
     .tp_itemsize = 0,

@@ -129,6 +129,7 @@ StrMethod = Literal[
     "PATCH",
     "DELETE",
     "OPTIONS",
+    "WEBSOCKET",
 ]
 TemplateEngine = Literal["view", "jinja", "django", "mako", "chameleon"]
 StrMethodASGI = Literal[

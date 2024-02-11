@@ -2,6 +2,8 @@
 #include <view/view.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <signal.h>
+
 #define ER(code, str) case code: return str
 #define LOAD_ROUTE(target) \
     char* path; \
@@ -57,8 +59,7 @@
     if (!PySequence_Size(parts)) \
         map_set(self-> target, path, r); \
     else \
-        if (load_parts(self, self-> target, parts, r) < 0) return NULL; \
-    Py_RETURN_NONE;
+        if (load_parts(self, self-> target, parts, r) < 0) return NULL;
 #define TRANSPORT_MAP() map_new(2, (map_free_func) route_free)
 
 #define ROUTE(target) static PyObject* target ( \
@@ -66,6 +67,7 @@
     PyObject* args \
 ) { \
         LOAD_ROUTE(target); \
+        Py_RETURN_NONE; \
 }
 #define ERR(code, msg) case code: return send_raw_text( \
     awaitable, \
@@ -105,6 +107,7 @@ typedef struct _ViewApp {
     map* patch;
     map* delete;
     map* options;
+    map* websocket;
     map* all_routes;
     PyObject* client_errors[28];
     PyObject* server_errors[11];
@@ -149,6 +152,7 @@ struct Route {
     PyObject* server_errors[11];
     PyObject* exceptions;
     bool has_body;
+    bool is_http;
     PyObject** middleware;
     Py_ssize_t middleware_size;
 
@@ -226,6 +230,7 @@ route* route_new(
     r->inputs = NULL;
     r->inputs_size = inputs_size;
     r->has_body = has_body;
+    r->is_http = true;
 
     // transports
     r->routes = NULL;
@@ -374,6 +379,7 @@ route* route_transport_new(route* r) {
     rt->inputs = NULL;
     rt->inputs_size = 0;
     rt->has_body = false;
+    rt->is_http = false;
 
     for (int i = 0; i < 28; i++)
         rt->client_errors[i] = NULL;
@@ -458,6 +464,26 @@ static int verify_dict_typecodes(
 
     return 0;
 }
+
+static PyObject* build_data_input(
+    int num,
+    PyObject* scope,
+    PyObject* receive,
+    PyObject* send
+) {
+    switch (num) {
+    case 1: return context_from_data(scope);
+    case 2: return ws_from_data(
+        send,
+        receive
+    );
+
+    default:
+        VIEW_FATAL("got invalid route data number");
+    }
+    return NULL; // to make editor happy
+}
+
 
 static int verify_list_typecodes(
     type_info** codes,
@@ -826,7 +852,9 @@ static PyObject** generate_params(
     PyObject* query,
     route_input** inputs,
     Py_ssize_t inputs_size,
-    PyObject* scope
+    PyObject* scope,
+    PyObject* receive,
+    PyObject* send
 ) {
     PyObject* py_str = PyUnicode_FromString(data);
     if (!py_str)
@@ -856,9 +884,11 @@ static PyObject** generate_params(
     for (int i = 0; i < inputs_size; i++) {
         route_input* inp = inputs[i];
         if (inp->route_data) {
-            PyObject* data = handle_route_data(
+            PyObject* data = build_data_input(
                 inp->route_data,
-                scope
+                scope,
+                receive,
+                send
             );
             if (!data) {
                 Py_DECREF(obj);
@@ -939,6 +969,10 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
         (map_free_func) route_free
     );
     self->options = map_new(
+        4,
+        (map_free_func) route_free
+    );
+    self->websocket = map_new(
         4,
         (map_free_func) route_free
     );
@@ -1813,6 +1847,7 @@ static void dealloc(ViewApp* self) {
     map_free(self->patch);
     map_free(self->delete);
     map_free(self->options);
+    map_free(self->websocket);
     Py_XDECREF(self->exceptions);
 
     for (int i = 0; i < 11; i++)
@@ -2007,13 +2042,14 @@ static int handle_route_callback(
     PyObject* result
 ) {
     PyObject* send;
+    PyObject* receive;
     route* r;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         NULL,
         NULL,
-        NULL,
+        &receive,
         &send
         ) < 0) return -1;
 
@@ -2023,6 +2059,7 @@ static int handle_route_callback(
         NULL,
         NULL
         ) < 0) return -1;
+
 
     char* res_str;
     int status;
@@ -2124,13 +2161,15 @@ static int handle_route_impl(
     Py_ssize_t* size;
     PyObject** path_params;
     PyObject* scope;
+    PyObject* receive;
+    PyObject* send;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
         &scope,
-        NULL,
-        NULL
+        &receive,
+        &send
         ) < 0) {
         return -1;
     }
@@ -2166,7 +2205,9 @@ static int handle_route_impl(
         query_obj,
         r->inputs,
         r->inputs_size,
-        scope
+        scope,
+        receive,
+        send
     );
 
     Py_DECREF(query_obj);
@@ -2462,13 +2503,15 @@ static int handle_route_query(PyObject* awaitable, char* query) {
     PyObject** path_params;
     Py_ssize_t* size;
     PyObject* scope;
+    PyObject* receive;
+    PyObject* send;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         &self,
         &scope,
-        NULL,
-        NULL
+        &receive,
+        &send
         ) < 0) {
         return -1;
     }
@@ -2515,9 +2558,11 @@ static int handle_route_query(PyObject* awaitable, char* query) {
 
     for (int i = 0; i < r->inputs_size; i++) {
         if (r->inputs[i]->route_data) {
-            PyObject* data = handle_route_data(
+            PyObject* data = build_data_input(
                 r->inputs[i]->route_data,
-                scope
+                scope,
+                receive,
+                send
             );
             if (!data) {
                 for (int i = 0; i < r->inputs_size; i++)
@@ -2880,72 +2925,14 @@ static PyObject* app(
         Py_DECREF(awaitable);
         return NULL;
     }
-    const char* method = dict_get_str(
-        scope,
-        "method"
+
+    bool is_http = !strcmp(
+        type,
+        "http"
     );
-    if (!method) {
-        Py_DECREF(awaitable);
-        return NULL;
-    }
-
-    PyObject* query_obj = PyDict_GetItemString(
-        scope,
-        "query_string"
-    );
-
-    if (!query_obj) {
-        Py_DECREF(awaitable);
-        return NULL;
-    }
-
-    const char* query_str = PyBytes_AsString(query_obj);
-
-    if (!query_str) {
-        Py_DECREF(awaitable);
-        return NULL;
-    }
-
-    char* query = strdup(query_str);
-
-    map* ptr = NULL;
-    if (!strcmp(
-        method,
-        "GET"
-        ))
-        ptr = self->get;
-    else if (!strcmp(
-        method,
-        "POST"
-             ))
-        ptr = self->post;
-    else if (!strcmp(
-        method,
-        "PATCH"
-             ))
-        ptr = self->patch;
-    else if (!strcmp(
-        method,
-        "PUT"
-             ))
-        ptr = self->put;
-    else if (!strcmp(
-        method,
-        "DELETE"
-             ))
-        ptr = self->delete;
-    else if (!strcmp(
-        method,
-        "OPTIONS"
-             )) ptr = self->options;
-
-    if (!ptr) {
-        ptr = self->get;
-    }
 
     size_t len = strlen(raw_path);
     char* path;
-
     if (raw_path[len - 1] == '/' && len != 1) {
         path = malloc(len);
         if (!path) {
@@ -2964,6 +2951,71 @@ static PyObject* app(
             return PyErr_NoMemory();
         }
     }
+    const char* method = NULL;
+
+    if (is_http) {
+        method = dict_get_str(
+            scope,
+            "method"
+        );
+    }
+
+    PyObject* query_obj = PyDict_GetItemString(
+        scope,
+        "query_string"
+    );
+
+    if (!query_obj) {
+        Py_DECREF(awaitable);
+        free(path);
+        return NULL;
+    }
+
+    const char* query_str = PyBytes_AsString(query_obj);
+
+    if (!query_str) {
+        Py_DECREF(awaitable);
+        free(path);
+        return NULL;
+    }
+    char* query = strdup(query_str);
+    map* ptr = self->websocket; // ws by default
+
+    if (is_http) {
+        if (!strcmp(
+            method,
+            "GET"
+            ))
+            ptr = self->get;
+        else if (!strcmp(
+            method,
+            "POST"
+                 ))
+            ptr = self->post;
+        else if (!strcmp(
+            method,
+            "PATCH"
+                 ))
+            ptr = self->patch;
+        else if (!strcmp(
+            method,
+            "PUT"
+                 ))
+            ptr = self->put;
+        else if (!strcmp(
+            method,
+            "DELETE"
+                 ))
+            ptr = self->delete;
+        else if (!strcmp(
+            method,
+            "OPTIONS"
+                 )) ptr = self->options;
+        if (!ptr) {
+            ptr = self->get;
+        }
+    }
+
     route* r = map_get(
         ptr,
         path
@@ -3135,7 +3187,8 @@ static PyObject* app(
         }
     }
 
-    if ((r->cache_rate != -1) && (r->cache_index++ < r->cache_rate) &&
+    if (is_http && (r->cache_rate != -1) && (r->cache_index++ <
+                                             r->cache_rate) &&
         r->cache) {
         PyObject* dct = Py_BuildValue(
             "{s:s,s:i,s:O}",
@@ -3301,6 +3354,7 @@ static PyObject* app(
 
         return awaitable;
     } else {
+        if (!is_http) VIEW_FATAL("got a websocket without an input!");
         PyObject* res_coro;
         if (size) {
             res_coro = PyObject_Vectorcall(
@@ -3919,6 +3973,12 @@ ROUTE(put);
 ROUTE(delete);
 ROUTE(options);
 
+static PyObject* websocket(ViewApp* self, PyObject* args) {
+    LOAD_ROUTE(websocket);
+    r->is_http = false;
+    Py_RETURN_NONE;
+}
+
 static PyObject* err_handler(ViewApp* self, PyObject* args) {
     PyObject* handler;
     int status_code;
@@ -3978,6 +4038,14 @@ static PyObject* exc_handler(ViewApp* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static void sigsegv_handler(int signum) {
+    signal(
+        SIGSEGV,
+        SIG_DFL
+    );
+    VIEW_FATAL("segmentation fault");
+}
+
 static PyObject* set_dev_state(ViewApp* self, PyObject* args) {
     int value;
     if (!PyArg_ParseTuple(
@@ -3986,6 +4054,13 @@ static PyObject* set_dev_state(ViewApp* self, PyObject* args) {
         &value
         )) return NULL;
     self->dev = (bool) value;
+
+    if (value)
+        signal(
+            SIGSEGV,
+            sigsegv_handler
+        );
+
     Py_RETURN_NONE;
 }
 
@@ -4036,10 +4111,10 @@ static PyMethodDef methods[] = {
     {"_patch", (PyCFunction) patch, METH_VARARGS, NULL},
     {"_delete", (PyCFunction) delete, METH_VARARGS, NULL},
     {"_options", (PyCFunction) options, METH_VARARGS, NULL},
+    {"_websocket", (PyCFunction) websocket, METH_VARARGS, NULL},
     {"_set_dev_state", (PyCFunction) set_dev_state, METH_VARARGS, NULL},
     {"_err", (PyCFunction) err_handler, METH_VARARGS, NULL},
-    {"_supply_parsers", (PyCFunction) supply_parsers, METH_VARARGS,
-     NULL},
+    {"_supply_parsers", (PyCFunction) supply_parsers, METH_VARARGS, NULL},
     {"_register_error", (PyCFunction) register_error, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };

@@ -7,6 +7,7 @@
 #include <view/map.h>
 #include <view/context.h>
 #include <view/tcpublic.h>
+#include <view/ws.h>
 
 void view_fatal(
     const char* message,
@@ -17,11 +18,18 @@ void view_fatal(
 
 extern PyObject* ip_address;
 extern PyObject* invalid_status_error;
+extern PyObject* ws_handshake_error;
 
 #if defined(__LINE__) && defined(__FILE__)
 #define VIEW_FATAL(msg) view_fatal(msg, __FILE__, __func__, __LINE__)
 #else
 #define VIEW_FATAL(msg) fail(msg, "<unknown>.c", __func__, 0)
+#endif
+
+#ifdef __GNUC__
+#define NORETURN __attribute__((noreturn))
+#else
+#define NORETURN __declspec(noreturn)
 #endif
 
 #endif
