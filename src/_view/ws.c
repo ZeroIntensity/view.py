@@ -20,8 +20,11 @@ static void dealloc(WebSocket* self) {
     Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
-static PyObject* WebSocket_new(PyTypeObject* type, PyObject* args,
-                               PyObject* kwargs) {
+static PyObject* WebSocket_new(
+    PyTypeObject* type,
+    PyObject* args,
+    PyObject* kwargs
+) {
     WebSocket* self = (WebSocket*) type->tp_alloc(
         type,
         0
@@ -62,8 +65,8 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         "websocket.disconnect"
         )) {
         PyErr_SetString(
-            PyExc_RuntimeError,
-            "websocket disconnected"
+            ws_closed,
+            "connection closed"
         );
         return -1;
     }
@@ -128,6 +131,17 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
     const char* type = PyUnicode_AsUTF8(tp);
     if (!type)
         return -1;
+
+    if (!strcmp(
+        type,
+        "websocket.disconnect"
+        )) {
+        PyErr_SetString(
+            ws_closed,
+            "connection closed"
+        );
+        return -1;
+    }
 
     if (strcmp(
         type,

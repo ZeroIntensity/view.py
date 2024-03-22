@@ -1942,6 +1942,7 @@ static int route_error(
 ) {
     ViewApp* self;
     route* r;
+    PyObject* send;
     bool handler_was_called;
 
     if (PyAwaitable_UnpackValues(
@@ -1949,7 +1950,7 @@ static int route_error(
         &self,
         NULL,
         NULL,
-        NULL
+        &send
         ) < 0) return -1;
 
     if (PyAwaitable_UnpackArbValues(
@@ -2010,6 +2011,57 @@ static int route_error(
 
         Py_DECREF(status_obj);
         Py_DECREF(msg_obj);
+        return 0;
+    }
+
+    if (!r->is_http) {
+        // send a websocket error code
+        PyObject* send_dict;
+        if (self->dev) {
+            PyObject* str = PyObject_Str(value);
+            if (!str)
+                return -1;
+
+            send_dict = Py_BuildValue(
+                "{s:s,s:i,s:S}",
+                "type",
+                "websocket.close",
+                "code",
+                1006,
+                "reason",
+                str
+            );
+            Py_DECREF(str);
+        }
+
+        else send_dict = Py_BuildValue(
+            "{s:s,s:i}",
+            "type",
+            "websocket.close",
+            "code",
+            1006
+        );
+
+        if (!send_dict)
+            return -1;
+
+        PyObject* coro = PyObject_Vectorcall(
+            send,
+            (PyObject*[]) { send_dict },
+            1,
+            NULL
+        );
+        Py_DECREF(send_dict);
+
+        if (PyAwaitable_AWAIT(
+            awaitable,
+            coro
+            ) < 0) {
+            Py_DECREF(coro);
+            return -1;
+        }
+        Py_DECREF(coro);
+
         return 0;
     }
 

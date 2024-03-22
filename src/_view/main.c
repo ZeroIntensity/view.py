@@ -21,6 +21,7 @@ static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
 PyObject* ws_handshake_error = NULL;
+PyObject* ws_closed = NULL;
 
 NORETURN void view_fatal(
     const char* message,
@@ -167,6 +168,7 @@ PyMODINIT_FUNC PyInit__view() {
     if (!ws_handshake_error) {
         Py_DECREF(m);
         Py_DECREF(ip_address);
+        return NULL;
     }
 
     if (PyModule_AddObject(
@@ -177,6 +179,28 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(m);
         Py_DECREF(ip_address);
         Py_DECREF(ws_handshake_error);
+        return NULL;
+    }
+
+    ws_closed = PyErr_NewException(
+        "_view.WebSocketClosed",
+        PyExc_RuntimeError,
+        NULL
+    );
+    if (!ws_closed) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        return NULL;
+    }
+
+    if (PyModule_AddObject(
+        m,
+        "WebSocketClosed",
+        ws_closed
+        ) < 0) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        Py_DECREF(ws_closed);
         return NULL;
     }
 
