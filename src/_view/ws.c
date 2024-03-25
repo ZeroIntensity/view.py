@@ -10,9 +10,8 @@ typedef struct {
 
 static PyObject* repr(PyObject* self) {
     WebSocket* ws = (WebSocket*) self;
-    return PyUnicode_FromString("WebSocket()");
+    return PyUnicode_FromFormat("_WebSocket(%p)", self);
 }
-
 
 static void dealloc(WebSocket* self) {
     Py_XDECREF(self->send);
@@ -42,7 +41,6 @@ PyObject* ws_from_data(PyObject* send, PyObject* receive) {
         NULL
     );
 
-
     ws->send = Py_NewRef(send);
     ws->receive = Py_NewRef(receive);
     return (PyObject*) ws;
@@ -64,11 +62,8 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         type,
         "websocket.disconnect"
         )) {
-        PyErr_SetString(
-            ws_closed,
-            "connection closed"
-        );
-        return -1;
+
+        return 0;
     }
 
     if (strcmp(
@@ -136,11 +131,7 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
         type,
         "websocket.disconnect"
         )) {
-        PyErr_SetString(
-            ws_closed,
-            "connection closed"
-        );
-        return -1;
+        return 0;
     }
 
     if (strcmp(
@@ -183,6 +174,20 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
     return 0;
 }
 
+static int ws_err(
+    PyObject* awaitable,
+    PyObject* tp,
+    PyObject* value,
+    PyObject* tb
+) {
+    // NOTE: this needs to be here for the error to propagate! otherwise, the error is deferred to the ASGI server (which we don't want)
+    PyErr_Restore(tp, value, tb);
+    PyErr_Print();
+    PyErr_Clear();
+    PyAwaitable_Cancel(awaitable);
+    return -2;
+}
+
 static PyObject* recv_awaitable(WebSocket* self, awaitcallback cb) {
     PyObject* recv_coro = PyObject_CallNoArgs(self->receive);
     if (!recv_coro)
@@ -208,7 +213,7 @@ static PyObject* recv_awaitable(WebSocket* self, awaitcallback cb) {
         awaitable,
         recv_coro,
         cb,
-        NULL
+        ws_err
         ) < 0) {
         Py_DECREF(recv_coro);
         return NULL;
@@ -384,7 +389,7 @@ PyTypeObject WebSocketType = {
         NULL,
         0
     )
-    .tp_name = "_view.WebSocket",
+    .tp_name = "_view.ViewWebSocket",
     .tp_basicsize = sizeof(WebSocket),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,

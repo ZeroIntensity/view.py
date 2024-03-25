@@ -249,7 +249,14 @@ gen_next(PyObject *self)
         }
 
         Py_INCREF(aw);
-        if (cb->callback((PyObject *) aw, value) < 0) {
+        int result = cb->callback((PyObject *) aw, value);
+        if (result < -1) {
+            // -2 or lower denotes that the error should be deferred
+            // regardless of whether a handler is present
+            return NULL;
+        }
+
+        if (result < 0) {
             if (!PyErr_Occurred()) {
                 PyErr_SetString(PyExc_SystemError, "callback returned -1 without exception set");
                 return NULL;
@@ -413,7 +420,7 @@ PyTypeObject PyAwaitable_Type = {
 };
 
 void
-PyAwaitable_ClearAwaits(PyObject *aw)
+PyAwaitable_Cancel(PyObject *aw)
 {
     assert(aw != NULL);
     Py_INCREF(aw);
@@ -426,6 +433,8 @@ PyAwaitable_ClearAwaits(PyObject *aw)
             Py_DECREF(cb->coro);
     }
 
+    PyMem_Free(a->aw_callbacks);
+    a->aw_callback_size = 0;
     Py_DECREF(aw);
 }
 

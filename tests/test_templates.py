@@ -79,7 +79,9 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/")).message.replace("\n", "") == "hello"
         assert (await test.get("/other")).message.replace("\n", "") == "1"
-        assert (await test.get("/markdown")).message.replace("\n", "") == "<!DOCTYPE html><html><h1>A</h1><h2>B</h2><h3>C</h3></html>"
+        assert (await test.get("/markdown")).message.replace(
+            "\n", ""
+        ) == "<!DOCTYPE html><html><h1>A</h1><h2>B</h2><h3>C</h3></html>"
 
 
 @test("template configuration settings")

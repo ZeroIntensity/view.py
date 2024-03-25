@@ -14,8 +14,10 @@ from .typing import TypeInfo
 __all__ = "TCValidator", "compile_type"
 T = TypeVar("T")
 
+
 class TCValidator(TCPublic, Generic[T]):
     """Class for holding a typecode to be validated against."""
+
     def __init__(self, tp: type[T], codes: Iterable[TypeInfo]) -> None:
         self.tp: type[T] = tp
         self.codes: Iterable[TypeInfo] = codes
@@ -46,6 +48,7 @@ class TCValidator(TCPublic, Generic[T]):
             return self._cast(obj, True)
         except RuntimeError:
             raise TypeValidationError(f"{obj} is not assignable to {self.tp}") from None
+
 
 def compile_type(tp: type[T]) -> TCValidator[T]:
     """Compile a type to a type validation object."""

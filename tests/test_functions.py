@@ -81,6 +81,7 @@ def _():
 | friend | Your friend's info. | `Person` | **Required** |"""
     )
 
+
 @test("public typecode interface")
 async def _():
     @dataclass

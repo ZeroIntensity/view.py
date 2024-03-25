@@ -10,5 +10,5 @@ PATTERNS = (
     path("/delete", d),
     path("/options", o),
     path("/any", r),
-    path("/inputs", inputs, query("a", str))
+    path("/inputs", inputs, query("a", str)),
 )

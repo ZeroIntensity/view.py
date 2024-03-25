@@ -1,27 +1,39 @@
 #include <Python.h>
 #include <view/view.h>
 
-// i hate my formatter
-
-#define METHOD(name)                                                           \
-  {                                                                            \
-#name, name, METH_VARARGS, NULL                                            \
-  }
-#define METHOD_NOARGS(name)                                                    \
-  {                                                                            \
-#name, name, METH_NOARGS, NULL                                             \
-  }
-
-
-
-static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};
-
-static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
-                                    methods};
+PyObject* route_log = NULL;
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
 PyObject* ws_handshake_error = NULL;
-PyObject* ws_closed = NULL;
+
+static PyObject* setup_route_log(PyObject* self, PyObject* args) {
+    PyObject* func;
+
+    if (!PyArg_ParseTuple(args, "O", &func))
+        return NULL;
+
+    if (!PyCallable_Check(func)) {
+        PyErr_Format(PyExc_RuntimeError,
+            "setup_route_log got non-function object: %R", func);
+        return NULL;
+    }
+
+    route_log = Py_NewRef(func);
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef methods[] = {
+    {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef module = {
+    PyModuleDef_HEAD_INIT,
+    "_view",
+    NULL,
+    -1,
+    methods
+};
 
 NORETURN void view_fatal(
     const char* message,
@@ -114,7 +126,7 @@ PyMODINIT_FUNC PyInit__view() {
     Py_INCREF(&WebSocketType);
     if (PyModule_AddObject(
         m,
-        "WebSocket",
+        "ViewWebSocket",
         (PyObject*) &WebSocketType
         ) < 0) {
         Py_DECREF(m);
@@ -179,28 +191,6 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(m);
         Py_DECREF(ip_address);
         Py_DECREF(ws_handshake_error);
-        return NULL;
-    }
-
-    ws_closed = PyErr_NewException(
-        "_view.WebSocketClosed",
-        PyExc_RuntimeError,
-        NULL
-    );
-    if (!ws_closed) {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        return NULL;
-    }
-
-    if (PyModule_AddObject(
-        m,
-        "WebSocketClosed",
-        ws_closed
-        ) < 0) {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        Py_DECREF(ws_closed);
         return NULL;
     }
 

@@ -37,8 +37,7 @@ from ._logging import (Internal, Service, UvicornHijack, enter_server,
 from ._parsers import supply_parsers
 from ._util import make_hint
 from .config import Config, load_config
-from .exceptions import (BadEnvironmentError, ConfigurationError, ViewError,
-                         ViewInternalError)
+from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
@@ -59,9 +58,7 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = (
-    "routes argument should only be passed when load strategy is manual"
-)
+_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
 _ConfigSpecified = None
 _CurrentFrame = None
 
@@ -189,8 +186,7 @@ class TestingContext:
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
         headers_list = [
-            (key.encode(), value.encode())
-            for key, value in (headers or {}).items()
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
         ]
 
         await self.app(
@@ -198,9 +194,7 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode()
-                if query
-                else b"",  # noqa
+                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
                 "headers": headers_list,
                 "method": method,
                 "http_version": "view_test",
@@ -338,9 +332,7 @@ class Error(BaseException):
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError(
-                "status code can only be a client or server error"
-            )
+            raise InvalidStatusError("status code can only be a client or server error")
 
         self.status = status
         self.message = message
@@ -415,9 +407,7 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -536,9 +526,7 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, post)
 
-    def delete(
-        self, path: str, doc: str | None = None, *, cache_rate: int = -1
-    ):
+    def delete(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Add a DELETE route.
 
         Args:
@@ -613,9 +601,7 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, put)
 
-    def options(
-        self, path: str, doc: str | None = None, *, cache_rate: int = -1
-    ):
+    def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Add an OPTIONS route.
 
         Args:
@@ -738,9 +724,7 @@ class App(ViewApp):
         else:
             f = frame
 
-        return await template(
-            name, directory, engine, f, app=self, **parameters
-        )
+        return await template(name, directory, engine, f, app=self, **parameters)
 
     async def markdown(
         self,
@@ -823,31 +807,28 @@ class App(ViewApp):
                 ] = RouteDoc(r.doc or "No description provided.", body, query)
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
-        Internal.info(f"using event loop: {asyncio.get_event_loop()}")
+        loop = asyncio.get_event_loop()
+        Internal.info(f"using event loop: {loop}")
         Internal.info(f"spawning {coro}")
 
-        task = asyncio.create_task(coro)
-        if self.config.log.hijack:
-            if self.config.server.backend == "uvicorn":
-                Internal.info("hijacking uvicorn")
-                for log in (
-                    logging.getLogger("uvicorn.error"),
-                    logging.getLogger("uvicorn.access"),
-                ):
+        task = loop.create_task(coro)
+
+        if self.config.server.backend == "uvicorn":
+            for log in (
+                logging.getLogger("uvicorn.error"),
+                logging.getLogger("uvicorn.access"),
+            ):
+                log.disabled = not self.config.log.server_logger
+                if self.config.log.hijack:
+                    Internal.info("hijacking uvicorn")
                     log.addFilter(UvicornHijack())
-            else:
-                Internal.info("hijacking hypercorn")
 
         if self.config.log.fancy:
-            if not self.config.log.hijack:
-                raise ConfigurationError(
-                    "hijack must be enabled for fancy mode"
-                )
-
             enter_server()
 
         self.running = True
         Internal.debug("here we go!")
+        Service.info("server online!")
         await task
         self.running = False
 
@@ -902,9 +883,7 @@ class App(ViewApp):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(
-                    self._app, conf
-                )
+                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")

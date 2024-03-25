@@ -466,7 +466,7 @@ async def index():
         path_type=Path,
         writable=True,
     ),
-    default=Path.cwd() / "docs.md"
+    default=Path.cwd() / "docs.md",
 )
 @click.option("--app", "-a", type=str, default=None)
 def docs(file: Path, app: str | None):

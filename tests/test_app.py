@@ -6,8 +6,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 from ward import test
 
-from view import (JSON, BodyParam, Context, Response, body, context, get,
-                  new_app, query)
+from view import JSON, BodyParam, Context, Response, body, context, get, new_app, query
 from view import route as route_impl
 
 
@@ -596,22 +595,22 @@ async def _():
     @app.context
     async def scheme(ctx: Context):
         return ctx.scheme
-    
+
     @app.get("/method")
     @app.context()
     async def method(ctx: Context):
         return ctx.method
-    
+
     @app.post("/method")
     @context
     async def method_post(ctx: Context):
         return ctx.method
-    
+
     @app.get("/version")
     @context
     async def http_version(ctx: Context):
         return ctx.http_version
-    
+
     @app.get("/cookies")
     async def cookies(ctx: Context):
         return ctx.cookies["hello"]
@@ -622,7 +621,10 @@ async def _():
         assert (await test.get("/method")).message == "GET"
         assert (await test.post("/method")).message == "POST"
         assert (await test.get("/version")).message == "view_test"
-        assert (await test.get("/cookies", headers={"cookie": "hello=world"})).message == "world"
+        assert (
+            await test.get("/cookies", headers={"cookie": "hello=world"})
+        ).message == "world"
+
 
 @test("context alongside other inputs")
 async def _():
@@ -636,7 +638,10 @@ async def _():
         return a + ctx.headers["b"] + c
 
     async with app.test() as test:
-        assert (await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})).message == "abc"
+        assert (
+            await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})
+        ).message == "abc"
+
 
 @test("middleware")
 async def _():
@@ -654,6 +659,7 @@ async def _():
 
     async with app.test() as test:
         assert (await test.get("/")).message == "True"
+
 
 @test("middleware with parameters")
 async def _():
@@ -683,6 +689,7 @@ async def _():
     async with app.test() as test:
         await test.get("/", query={"a": "a"})
         await test.get("/both", query={"a": "a"}, body={"b": "b"})
+
 
 @test("methodless routes")
 async def _():
@@ -718,6 +725,7 @@ async def _():
         assert (await test.post("/methods")).message == "POST"
         assert (await test.put("/methods")).status == 405
 
+
 @test("method not allowed errors")
 async def _():
     app = new_app()
@@ -732,6 +740,7 @@ async def _():
         assert res.status == 405
         assert res.message == "Method Not Allowed"
 
+
 @test("json response class")
 async def _():
     app = new_app()
@@ -743,13 +752,14 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/")).message == '{"hello":"world"}'
 
+
 @test("body translate strategies")
 async def _():
     app = new_app()
 
     @app.get("/")
     async def index():
-        return Response('a', body_translate="repr")
+        return Response("a", body_translate="repr")
 
     @app.get("/result")
     async def result():
@@ -767,6 +777,6 @@ async def _():
         return CustomResponse(["1", "2", "3"])
 
     async with app.test() as test:
-        assert (await test.get("/")).message == repr('a')
+        assert (await test.get("/")).message == repr("a")
         assert (await test.get("/result")).message == "{}"
         assert (await test.get("/custom")).message == "1 2 3"

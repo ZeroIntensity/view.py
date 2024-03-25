@@ -33,14 +33,16 @@ class Response(Generic[T]):
         self.status = status
         self.headers = headers or {}
         self._raw_headers: list[tuple[bytes, bytes]] = []
-        
+
         if body_translate:
             self.translate = body_translate
         else:
             self.translate = "str" if not hasattr(body, "__view_result__") else "result"
 
     def _custom(self, body: T) -> str:
-        raise NotImplementedError('the "custom" translate strategy can only be used in subclasses that implement it')  # noqa
+        raise NotImplementedError(
+            'the "custom" translate strategy can only be used in subclasses that implement it'
+        )  # noqa
 
     def cookie(
         self,
@@ -131,6 +133,7 @@ class Response(Generic[T]):
 
         return body, self.status, self._build_headers()
 
+
 class HTML(Response[HTMLContent]):
     """HTML response wrapper."""
 
@@ -140,7 +143,6 @@ class HTML(Response[HTMLContent]):
         status: int = 200,
         headers: dict[str, str] | None = None,
     ) -> None:
-
         super().__init__(body, status, headers, body_translate="custom")
         self._raw_headers.append((b"content-type", b"text/html"))
 
@@ -162,6 +164,7 @@ class HTML(Response[HTMLContent]):
                 ) from None
 
         return parsed_body
+
 
 class JSON(Response[Dict[str, Any]]):
     """JSON response wrapper."""

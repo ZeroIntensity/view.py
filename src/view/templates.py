@@ -290,6 +290,7 @@ async def template(
 
     return HTML(await render(source, engine, params, app=app))
 
+
 async def markdown(
     name: str | Path,
     *,
@@ -298,6 +299,7 @@ async def markdown(
 ) -> HTML:
     """Convert a markdown file into HTML. This returns a view.py HTML response."""
     from .app import get_app
+
     try:
         from markdown import markdown as md_to_html
     except ModuleNotFoundError as e:

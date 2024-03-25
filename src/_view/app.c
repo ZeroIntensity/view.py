@@ -155,6 +155,7 @@ struct Route {
     bool is_http;
     PyObject** middleware;
     Py_ssize_t middleware_size;
+    PyObject* raw_path;
 
     // transport attributes
     map* routes;
@@ -1487,7 +1488,8 @@ static int find_result_for(
 
     return 0;
 }
-static int handle_result(
+
+static int handle_result_impl(
     PyObject* raw_result,
     char** res_target,
     int* status_target,
@@ -1577,15 +1579,52 @@ static int handle_result(
     return 0;
 }
 
+static int handle_result(
+    PyObject* raw_result,
+    char** res_target,
+    int* status_target,
+    PyObject** headers_target,
+    PyObject* raw_path,
+    const char* method
+) {
+    int res = handle_result_impl(
+        raw_result,
+        res_target,
+        status_target,
+        headers_target
+    );
+    if (!route_log) return res;
+
+    PyObject* args = Py_BuildValue(
+        "(iOs)",
+        *status_target,
+        raw_path,
+        method
+    );
+
+    if (!PyObject_Call(route_log, args, NULL)) {
+        Py_DECREF(args);
+        return -1;
+    }
+    Py_DECREF(args);
+
+    return res;
+}
+
 static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
     PyObject* send;
+    PyObject* raw_path;
+    const char* method_str;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
-        &send
-        ) < 0) {
+        &send,
+        &raw_path
+        ) < 0)
         return -1;
-    }
+
+    if (PyAwaitable_UnpackArbValues(awaitable, NULL, &method_str) < 0)
+        return -1;
 
     char* res_str;
     int status_code;
@@ -1595,7 +1634,9 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
         result,
         &res_str,
         &status_code,
-        &headers
+        &headers,
+        raw_path,
+        method_str
         ) < 0) {
         Py_DECREF(result);
         return -1;
@@ -1623,7 +1664,9 @@ static int run_err_cb(
     PyObject* send,
     int status,
     bool* called,
-    const char* message
+    const char* message,
+    route* r,
+    PyObject* raw_path
 ) {
     if (!handler) {
         if (called) *called = false;
@@ -1663,9 +1706,16 @@ static int run_err_cb(
 
     if (PyAwaitable_SaveValues(
         new_awaitable,
-        1,
-        send
+        2,
+        send,
+        raw_path
         ) < 0) {
+        Py_DECREF(new_awaitable);
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    if (PyAwaitable_SaveArbValues(new_awaitable, 1, r) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;
@@ -1703,12 +1753,15 @@ static int fire_error(
     const char* message
 ) {
     PyObject* send;
+    PyObject* raw_path;
+
     if (PyAwaitable_UnpackValues(
         awaitable,
         NULL,
         NULL,
         NULL,
-        &send
+        &send,
+        &raw_path
         ) < 0)
         return -1;
 
@@ -1735,7 +1788,9 @@ static int fire_error(
         send,
         status,
         called,
-        message
+        message,
+        r,
+        raw_path
         ) < 0) {
         if (send_raw_text(
             awaitable,
@@ -1761,7 +1816,8 @@ static int lifespan(PyObject* awaitable, PyObject* result) {
         &self,
         NULL,
         &receive,
-        &send
+        &send,
+        NULL
         ) < 0)
         return -1;
 
@@ -1950,12 +2006,14 @@ static int route_error(
         &self,
         NULL,
         NULL,
-        &send
+        &send,
+        NULL
         ) < 0) return -1;
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
         &r,
+        NULL,
         NULL,
         NULL
         ) < 0) return -1;
@@ -2032,9 +2090,7 @@ static int route_error(
                 str
             );
             Py_DECREF(str);
-        }
-
-        else send_dict = Py_BuildValue(
+        } else send_dict = Py_BuildValue(
             "{s:s,s:i}",
             "type",
             "websocket.close",
@@ -2095,23 +2151,26 @@ static int handle_route_callback(
 ) {
     PyObject* send;
     PyObject* receive;
+    PyObject* raw_path;
     route* r;
+    const char* method_str;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
         NULL,
         NULL,
         &receive,
-        &send
+        &send,
+        &raw_path
         ) < 0) return -1;
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
         &r,
         NULL,
-        NULL
+        NULL,
+        &method_str
         ) < 0) return -1;
-
 
     char* res_str;
     int status;
@@ -2121,7 +2180,9 @@ static int handle_route_callback(
         result,
         &res_str,
         &status,
-        &headers
+        &headers,
+        raw_path,
+        method_str
         ) < 0) {
         return -1;
     }
@@ -2221,7 +2282,8 @@ static int handle_route_impl(
         &self,
         &scope,
         &receive,
-        &send
+        &send,
+        NULL
         ) < 0) {
         return -1;
     }
@@ -2230,7 +2292,8 @@ static int handle_route_impl(
         awaitable,
         &r,
         &path_params,
-        &size
+        &size,
+        NULL
         ) < 0) {
         return -1;
     }
@@ -2563,7 +2626,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         &self,
         &scope,
         &receive,
-        &send
+        &send,
+        NULL
         ) < 0) {
         return -1;
     }
@@ -2588,7 +2652,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         awaitable,
         &r,
         &path_params,
-        &size
+        &size,
+        NULL
         ) < 0) {
         Py_DECREF(query_obj);
         return -1;
@@ -2822,6 +2887,7 @@ static int handle_route(PyObject* awaitable, char* query) {
         awaitable,
         &r,
         NULL,
+        NULL,
         NULL
         ) < 0)
         return -1;
@@ -2933,18 +2999,6 @@ static PyObject* app(
     if (!awaitable)
         return NULL;
 
-    if (PyAwaitable_SaveValues(
-        awaitable,
-        4,
-        self,
-        scope,
-        receive,
-        send
-        ) < 0) {
-        Py_DECREF(awaitable);
-        return NULL;
-    }
-
     if (!strcmp(
         type,
         "lifespan"
@@ -2969,11 +3023,27 @@ static PyObject* app(
         return awaitable;
     }
 
-    const char* raw_path = dict_get_str(
-        scope,
-        "path"
-    );
+    PyObject* raw_path_obj = PyDict_GetItemString(scope, "path");
+    if (!raw_path_obj) {
+        Py_DECREF(awaitable);
+        PyErr_BadASGI();
+        return NULL;
+    }
+    const char* raw_path = PyUnicode_AsUTF8(raw_path_obj);
     if (!raw_path) {
+        Py_DECREF(awaitable);
+        return NULL;
+    }
+
+    if (PyAwaitable_SaveValues(
+        awaitable,
+        5,
+        self,
+        scope,
+        receive,
+        send,
+        raw_path_obj
+        ) < 0) {
         Py_DECREF(awaitable);
         return NULL;
     }
@@ -3032,37 +3102,51 @@ static PyObject* app(
     }
     char* query = strdup(query_str);
     map* ptr = self->websocket; // ws by default
+    const char* method_str;
 
     if (is_http) {
         if (!strcmp(
             method,
             "GET"
-            ))
+            )) {
             ptr = self->get;
+            method_str = "GET";
+        }
         else if (!strcmp(
             method,
             "POST"
-                 ))
+                 )) {
             ptr = self->post;
+            method_str = "POST";
+        }
         else if (!strcmp(
             method,
             "PATCH"
-                 ))
+                 )) {
             ptr = self->patch;
+            method_str = "PATCH";
+        }
         else if (!strcmp(
             method,
             "PUT"
-                 ))
+                 )) {
             ptr = self->put;
+            method_str = "PUT";
+        }
         else if (!strcmp(
             method,
             "DELETE"
-                 ))
+                 )) {
             ptr = self->delete;
+            method_str = "DELETE";
+        }
         else if (!strcmp(
             method,
             "OPTIONS"
-                 )) ptr = self->options;
+                 )) {
+            ptr = self->options;
+            method_str = "OPTIONS";
+        }
         if (!ptr) {
             ptr = self->get;
         }
@@ -3373,10 +3457,11 @@ static PyObject* app(
 
     if (PyAwaitable_SaveArbValues(
         awaitable,
-        3,
+        4,
         r,
         params,
-        size
+        size,
+        method_str
         ) < 0) {
         Py_DECREF(awaitable);
         return NULL;

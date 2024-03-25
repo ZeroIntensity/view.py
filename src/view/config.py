@@ -59,6 +59,7 @@ class LogConfig(ConfigModel, env_prefix="view_log_"):
     level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
     hijack: bool = True
     fancy: bool = True
+    server_logger: bool = False
     pretty_tracebacks: bool = True
     user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
 
