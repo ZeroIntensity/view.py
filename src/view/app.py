@@ -1060,6 +1060,8 @@ def new_app(
     return app
 
 
+# this is forbidden pointers.py technology
+
 ctypes.pythonapi.Py_IncRef.argtypes = (ctypes.py_object,)
 
 

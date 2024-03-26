@@ -115,7 +115,7 @@ LCOLORS = {
 class ViewFormatter(logging.Formatter):
     def formatMessage(self, record: logging.LogRecord):
         return (
-            f"[bold {LCOLORS[record.levelno]}]{record.levelname.lower()}[/]:"
+            f"[bold white][[/][bold {LCOLORS[record.levelno]}]{record.levelname.lower()}[/][bold white]][/]:"
             f" {record.getMessage()}"
         )
 
@@ -288,22 +288,22 @@ svc.addFilter(ServiceIntercept())
 
 def _status_color(status: int) -> str:
     if status >= 500:
-        return "red"
+        return "bold red"
     if status >= 400:
-        return "purple"
+        return "bold purple"
     if status >= 300:
-        return "yellow"
+        return "bold yellow"
     if status >= 200:
-        return "green"
+        return "bold dim green"
     if status >= 100:
-        return "blue"
+        return "bold blue"
 
     raise ViewInternalError(f"got bad status: {status}")
 
 
 _METHOD_COLORS: dict[str, str] = {
-    "HEAD": "bold dim green",
-    "GET": "bold green",
+    "HEAD": "bold green",
+    "GET": "bold dim green",
     "POST": "bold blue",
     "PUT": "bold dim blue",
     "PATCH": "bold cyan",

@@ -155,7 +155,6 @@ struct Route {
     bool is_http;
     PyObject** middleware;
     Py_ssize_t middleware_size;
-    PyObject* raw_path;
 
     // transport attributes
     map* routes;
@@ -1666,7 +1665,8 @@ static int run_err_cb(
     bool* called,
     const char* message,
     route* r,
-    PyObject* raw_path
+    PyObject* raw_path,
+    const char* method
 ) {
     if (!handler) {
         if (called) *called = false;
@@ -1677,6 +1677,20 @@ static int run_err_cb(
                 return -1;
         } else msg = message;
 
+        PyObject* args = Py_BuildValue(
+            "(iOs)",
+            status,
+            raw_path,
+            method
+        );
+
+        if (!PyObject_Call(route_log, args, NULL)) {
+            PyErr_Print();
+            Py_DECREF(args);
+            return -1;
+        }
+
+        Py_DECREF(args);
         if (send_raw_text(
             awaitable,
             send,
@@ -1684,9 +1698,8 @@ static int run_err_cb(
             msg,
             NULL
             ) < 0
-        ) {
+        )
             return -1;
-        }
 
         return 0;
     }
@@ -1750,7 +1763,8 @@ static int fire_error(
     int status,
     route* r,
     bool* called,
-    const char* message
+    const char* message,
+    const char* method_str
 ) {
     PyObject* send;
     PyObject* raw_path;
@@ -1790,7 +1804,8 @@ static int fire_error(
         called,
         message,
         r,
-        raw_path
+        raw_path,
+        method_str
         ) < 0) {
         if (send_raw_text(
             awaitable,
@@ -1938,7 +1953,8 @@ static int server_err_exc(
     uint16_t status,
     route* r,
     bool* handler_was_called,
-    PyObject* msg
+    PyObject* msg,
+    const char* method_str
 ) {
     const char* message = NULL;
     PyObject* msg_str = NULL;
@@ -1961,13 +1977,14 @@ static int server_err_exc(
         status,
         r,
         handler_was_called,
-        message
+        message,
+        method_str
         ) < 0) {
         Py_XDECREF(msg_str);
         return -1;
     }
 
-    //Py_XDECREF(msg_str);
+    Py_XDECREF(msg_str);
     return 0;
 }
 
@@ -1976,7 +1993,8 @@ static int server_err(
     PyObject* awaitable,
     uint16_t status,
     route* r,
-    bool* handler_was_called
+    bool* handler_was_called,
+    const char* method_str
 ) {
     int res = server_err_exc(
         self,
@@ -1984,7 +2002,8 @@ static int server_err(
         status,
         r,
         handler_was_called,
-        PyErr_Occurred()
+        PyErr_Occurred(),
+        method_str
     );
     PyErr_Clear();
     return res;
@@ -2010,12 +2029,14 @@ static int route_error(
         NULL
         ) < 0) return -1;
 
+    const char* method_str;
+
     if (PyAwaitable_UnpackArbValues(
         awaitable,
         &r,
         NULL,
         NULL,
-        NULL
+        &method_str
         ) < 0) return -1;
 
     if (tp == self->error_type) {
@@ -2060,7 +2081,8 @@ static int route_error(
             status,
             r,
             NULL,
-            message
+            message,
+            method_str
             ) < 0) {
             Py_DECREF(status_obj);
             Py_DECREF(msg_obj);
@@ -2127,7 +2149,8 @@ static int route_error(
         500,
         r,
         &handler_was_called,
-        value
+        value,
+        method_str
         ) < 0) {
         return -1;
     }
@@ -2288,12 +2311,14 @@ static int handle_route_impl(
         return -1;
     }
 
+    const char* method_str;
+
     if (PyAwaitable_UnpackArbValues(
         awaitable,
         &r,
         &path_params,
         &size,
-        NULL
+        &method_str
         ) < 0) {
         return -1;
     }
@@ -2310,7 +2335,8 @@ static int handle_route_impl(
             awaitable,
             400,
             r,
-            NULL
+            NULL,
+            method_str
         );
     }
 
@@ -2336,7 +2362,8 @@ static int handle_route_impl(
             awaitable,
             400,
             r,
-            NULL
+            NULL,
+            method_str
         );
     }
 
@@ -2374,7 +2401,8 @@ static int handle_route_impl(
                     awaitable,
                     500,
                     r,
-                    NULL
+                    NULL,
+                    method_str
                     ) < 0)
                     return -1;
                 return 0;
@@ -2399,7 +2427,8 @@ static int handle_route_impl(
             awaitable,
             500,
             r,
-            NULL
+            NULL,
+            method_str
             ) < 0)
             return -1;
     } else {
@@ -2420,7 +2449,8 @@ static int handle_route_impl(
                     awaitable,
                     500,
                     r,
-                    NULL
+                    NULL,
+                    method_str
                     ) < 0)
                     return -1;
                 return 0;
@@ -2439,7 +2469,8 @@ static int handle_route_impl(
                         awaitable,
                         500,
                         r,
-                        NULL
+                        NULL,
+                        method_str
                         ) < 0)
                         return -1;
                     return 0;
@@ -2475,7 +2506,8 @@ static int handle_route_impl(
                 awaitable,
                 500,
                 r,
-                NULL
+                NULL,
+                method_str
                 ) < 0)
                 return -1;
         }
@@ -2628,9 +2660,14 @@ static int handle_route_query(PyObject* awaitable, char* query) {
         &receive,
         &send,
         NULL
-        ) < 0) {
+        ) < 0)
         return -1;
-    }
+
+    const char* method_str;
+
+    if (PyAwaitable_UnpackArbValues(awaitable, NULL, NULL, NULL, &method_str) <
+        0)
+        return -1;
 
     PyObject* query_obj = query_parser(
         &self->parsers,
@@ -2644,7 +2681,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
             awaitable,
             400,
             r,
-            NULL
+            NULL,
+            method_str
         );
     }
 
@@ -2718,7 +2756,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 400,
                 r,
                 NULL,
-                NULL
+                NULL,
+                method_str
             );
         } else ++final_size;
 
@@ -2743,7 +2782,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                     400,
                     r,
                     NULL,
-                    NULL
+                    NULL,
+                    method_str
                 );
             }
             params[i] = parsed_item;
@@ -2780,7 +2820,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 awaitable,
                 500,
                 r,
-                NULL
+                NULL,
+                method_str
                 ) < 0) {
                 for (int x = 0; x < final_size + *size; x++)
                     Py_XDECREF(merged[x]);
@@ -2805,7 +2846,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                     awaitable,
                     500,
                     r,
-                    NULL
+                    NULL,
+                    method_str
                     ) < 0) {
                     for (int x = 0; x < final_size + *size; x++)
                         Py_XDECREF(merged[x]);
@@ -2850,7 +2892,8 @@ static int handle_route_query(PyObject* awaitable, char* query) {
                 awaitable,
                 500,
                 r,
-                NULL
+                NULL,
+                method_str
                 ) < 0)
                 return -1;
         }
@@ -3171,7 +3214,8 @@ static PyObject* app(
                     405,
                     NULL,
                     NULL,
-                    NULL
+                    NULL,
+                    method_str
                     ) < 0) {
                     Py_DECREF(awaitable);
                     free(path);
@@ -3186,7 +3230,8 @@ static PyObject* app(
                 404,
                 NULL,
                 NULL,
-                NULL
+                NULL,
+                method_str
                 ) < 0) {
                 Py_DECREF(awaitable);
                 free(path);
@@ -3282,7 +3327,8 @@ static PyObject* app(
                     404,
                     NULL,
                     NULL,
-                    NULL
+                    NULL,
+                    method_str
                     ) < 0) {
                     Py_DECREF(awaitable);
                     return NULL;
@@ -3315,7 +3361,8 @@ static PyObject* app(
                 404,
                 NULL,
                 NULL,
-                NULL
+                NULL,
+                method_str
                 ) < 0) {
                 Py_DECREF(awaitable);
                 return NULL;
@@ -3538,7 +3585,8 @@ static PyObject* app(
                 awaitable,
                 500,
                 r,
-                NULL
+                NULL,
+                method_str
                 ) < 0)
                 return NULL;
             return awaitable;
@@ -3557,7 +3605,8 @@ static PyObject* app(
                     awaitable,
                     500,
                     r,
-                    NULL
+                    NULL,
+                    method_str
                     ) < 0)
                     return NULL;
                 return awaitable;

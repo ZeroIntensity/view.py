@@ -1,5 +1,6 @@
 #include <Python.h>
 #include <view/view.h>
+#include <signal.h>
 
 PyObject* route_log = NULL;
 PyObject* ip_address = NULL;
@@ -55,8 +56,6 @@ NORETURN void view_fatal(
     );
     Py_FatalError("view.py core died");
 };
-
-
 
 PyMODINIT_FUNC PyInit__view() {
     PyObject* m = PyModule_Create(&module);
