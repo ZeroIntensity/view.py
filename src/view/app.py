@@ -23,19 +23,19 @@ from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
 from urllib.parse import urlencode
 
 import ujson
-import uvicorn
 from rich import print
 from rich.traceback import install
 from typing_extensions import Unpack
 
 from _view import InvalidStatusError, ViewApp
 
+from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (Internal, Service, UvicornHijack, enter_server,
-                       exit_server, format_warnings)
+from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
+                       format_warnings)
 from ._parsers import supply_parsers
-from ._util import make_hint
+from ._util import make_hint, needs_dep
 from .config import Config, load_config
 from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
@@ -321,6 +321,7 @@ class RouteDoc:
     body: dict[str, InputDoc]
     query: dict[str, InputDoc]
 
+_LEVELS = dict((v, k) for k, v in LOGS.items())
 
 class Error(BaseException):
     """Base class to act as a transport for raising HTTP exceptions."""
@@ -819,15 +820,16 @@ class App(ViewApp):
                 logging.getLogger("uvicorn.access"),
             ):
                 log.disabled = not self.config.log.server_logger
-                if self.config.log.hijack:
-                    Internal.info("hijacking uvicorn")
-                    log.addFilter(UvicornHijack())
 
         if self.config.log.fancy:
             enter_server()
 
         self.running = True
         Internal.debug("here we go!")
+        
+        if (self.config.log.startup_message) and (not self.config.log.fancy):
+            welcome()
+
         Service.info("server online!")
         await task
         self.running = False
@@ -844,7 +846,10 @@ class App(ViewApp):
         uvloop_enabled = False
 
         if self.config.app.uvloop is True:
-            uvloop = importlib.import_module("uvloop")
+            try:
+                import uvloop
+            except ModuleNotFoundError as e:
+                needs_dep("uvloop", e)
             uvloop.install()
             uvloop_enabled = True
         elif self.config.app.uvloop == "decide":
@@ -856,6 +861,11 @@ class App(ViewApp):
         start = start_target or asyncio.run
 
         if server == "uvicorn":
+            try:
+                import uvicorn
+            except ModuleNotFoundError as e:
+                needs_dep("uvicorn", e, "servers")
+
             config = uvicorn.Config(
                 self._app,
                 port=self.config.server.port,
@@ -872,7 +882,12 @@ class App(ViewApp):
             return start(self._spawn(server.serve()))
 
         elif server == "hypercorn":
-            raise NotImplementedError
+            try:
+                import hypercorn
+            except ModuleNotFoundError as e:
+                needs_dep("hypercorn", e, "servers")
+            
+            from hypercorn.asyncio import serve
             conf = hypercorn.Config()
             conf.loglevel = "debug" if self.config.dev else "info"
             conf.bind = [
@@ -883,8 +898,38 @@ class App(ViewApp):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(self._app, conf)
+                self._spawn(serve(self._app, conf))
             )
+        elif server == "daphne":
+            try:
+                import daphne as _
+            except ModuleNotFoundError as e:
+                needs_dep("daphne", e, "servers")
+            
+            from daphne.endpoints import build_endpoint_description_strings
+            from daphne.server import Server
+
+            endpoints = build_endpoint_description_strings(
+                host=str(self.config.server.host),
+                port=self.config.server.port,
+            )
+            
+            logger = logging.getLogger("daphne.cli")
+            logger.disabled = not self.config.log.server_logger
+            # default daphne log configuration
+            level = _LEVELS[self.config.log.level] if not isinstance(self.config.log.level, int) else self.config.log.level
+            logger.setLevel(level)
+            logging.basicConfig(
+                level=level,
+                format="%(asctime)-15s %(levelname)-8s %(message)s",
+            )
+
+            server = Server(
+                self._app,
+                server_name="view.py",
+                endpoints=endpoints
+            )
+            return start(self._spawn(asyncio.to_thread(server.run)))
         else:
             raise NotImplementedError("viewserver is not implemented yet")
 

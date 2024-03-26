@@ -92,7 +92,13 @@ def welcome() -> None:
     click.echo("GitHub: ", nl=False)
     click.secho(
         "https://github.com/ZeroIntensity/view.py",
-        fg="blue",
+        fg="green",
+        bold=True,
+    )
+    click.echo("Support: ", nl=False)
+    click.secho(
+        "https://github.com/ZeroIntensity/sponsors",
+        fg="bright_magenta",
         bold=True,
     )
 

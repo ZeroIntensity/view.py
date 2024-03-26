@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 -   Added the `view docs` command
--   Reworked internal logging API
+-   Reworked internal logging API and changed default logger format
 -   Added the `websocket` router
 -   Made hijack optional in fancy mode
+-   Added a startup message
+-   Added support for `daphne` and `hypercorn` as servers
 
 ## [1.0.0-alpha9] - 2024-2-4
 

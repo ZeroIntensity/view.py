@@ -94,15 +94,6 @@ def format_warnings():
     warnings.showwarning = _showwarning
     warnings.formatwarning = _warning_no_src_line  # type: ignore
 
-
-class UvicornHijack(logging.Filter):
-    def filter(self, record: logging.LogRecord):
-        if record.exc_text:
-            Service.error(record.exc_text)
-        Service.log.handle(record)
-        return False
-
-
 LCOLORS = {
     logging.DEBUG: "blue",
     logging.INFO: "green",
