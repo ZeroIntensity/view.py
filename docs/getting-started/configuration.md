@@ -54,6 +54,29 @@ All environment prefixes look like `view_<subcategory>_`. For example, the `load
 $ export view_app_loader=filesystem
 ```
 
+Environment variables can also be set via the `env` config setting, or by adding a `.env` file to the project:
+
+```toml
+[env]
+TEST = "hello"
+```
+
+```.env
+TEST=hello
+```
+
+You can access environment variables via the `view.env` utility:
+
+```py
+from view import env
+
+test = env("TEST", tp=int)
+# test will be an integer. if environment variable "TEST" does not  exist, an exception is thrown.
+# if environment variable "TEST" is not an integer, an exception is thrown.
+```
+
+::: view.util.env
+
 ### App Settings
 
 *Environment Prefix:* `view_app_`
@@ -93,9 +116,10 @@ port = 8080
 *Environment Prefix:* `view_log_`
 
 - `level`: Log level. May be `debug`, `info`, `warning`, `error`, `critical`, or an `int`. This is based on Python's built-in [logging module](https://docs.python.org/3/library/logging.html). `info` by default.
-- `hijack`: This is a `bool` value defining whether or not to "hijack" the ASGI backend's logger and convert it to view.py's logging style. `True` by default.
+- `server_logger`: This is a `bool` determining whether the ASGI backend's logger should be displayed. `False` by default.
 - `fancy`: Whether to use View's fancy output mode. `True` by default.
 - `pretty_tracebacks`: Whether to use [Rich Exceptions](https://rich.readthedocs.io/en/stable/logging.html?highlight=exceptions#handle-exceptions). `True` by default.
+- `startup_message`: Whether to show the view.py welcome message on server startup.
 
 ### User Logging Settings
 

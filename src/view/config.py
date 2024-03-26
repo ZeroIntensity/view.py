@@ -108,6 +108,7 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):
 
 class Config(ConfigModel):
     dev: bool = True
+    env: Dict[str, Any] = ConfigField(default_factory=dict)
     app: AppConfig = ConfigField(default_factory=AppConfig)
     server: ServerConfig = ConfigField(default_factory=ServerConfig)
     log: LogConfig = ConfigField(default_factory=LogConfig)

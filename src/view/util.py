@@ -107,6 +107,19 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
     Args:
         key: Environment variable to access.
         tp: Type to convert to.
+
+    Example:
+        ```py
+        from view import new_app, env
+        
+        app = new_app()
+
+        @app.get("/")
+        def index():
+            return env("FOO")
+
+        app.run()
+        ```
     """
     value = os.environ.get(key)
 
@@ -152,5 +165,4 @@ def timestamp(tm: DateTime | None = _Now) -> str:
     Args:
         tm: Date object to create a timestamp for. Now by default."""
     stamp: float = DateTime.now().timestamp() if not tm else tm.timestamp()
-
     return formatdate(stamp, usegmt=True)

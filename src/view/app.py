@@ -363,6 +363,8 @@ class App(ViewApp):
         self.loaded_routes: list[Route] = []
         self.templaters: dict[str, Any] = {}
         self._register_error(error_class)
+        
+        os.environ.update({k: str(v) for k, v in config.env.items()})
 
         Service.log.setLevel(
             config.log.level
@@ -814,13 +816,6 @@ class App(ViewApp):
 
         task = loop.create_task(coro)
 
-        if self.config.server.backend == "uvicorn":
-            for log in (
-                logging.getLogger("uvicorn.error"),
-                logging.getLogger("uvicorn.access"),
-            ):
-                log.disabled = not self.config.log.server_logger
-
         if self.config.log.fancy:
             enter_server()
 
@@ -854,7 +849,7 @@ class App(ViewApp):
             uvloop_enabled = True
         elif self.config.app.uvloop == "decide":
             with suppress(ModuleNotFoundError):
-                uvloop = importlib.import_module("uvloop")
+                import uvloop
                 uvloop.install()
                 uvloop_enabled = True
 
@@ -865,6 +860,13 @@ class App(ViewApp):
                 import uvicorn
             except ModuleNotFoundError as e:
                 needs_dep("uvicorn", e, "servers")
+            
+            for log in (
+                logging.getLogger("uvicorn.error"),
+                logging.getLogger("uvicorn.access"),
+            ):
+                log.disabled = not self.config.log.server_logger
+
 
             config = uvicorn.Config(
                 self._app,
@@ -886,6 +888,13 @@ class App(ViewApp):
                 import hypercorn
             except ModuleNotFoundError as e:
                 needs_dep("hypercorn", e, "servers")
+            
+            for log in (
+                logging.getLogger("hypercorn.error"),
+                logging.getLogger("hypercorn.access"),
+            ):
+                log.disabled = not self.config.log.server_logger
+
             
             from hypercorn.asyncio import serve
             conf = hypercorn.Config()
