@@ -311,7 +311,7 @@ def build(path: Path):
     "-l",
     help="Preset for route loading.",
     default="simple",
-    type=click.Choice(("manual", "filesystem", "simple")),
+    type=click.Choice(("manual", "filesystem", "simple", "patterns")),
     prompt="Loader strategy",
 )
 @click.option(
@@ -401,7 +401,7 @@ def init(
     from .__about__ import __version__
 
     with open(app_path, "w") as f:
-        if load in {"filesystem", "simple"}:
+        if load in {"filesystem", "simple", "patterns"}:
             f.write(
                 f"# view.py {__version__}\n"
                 """from view import new_app
@@ -435,6 +435,17 @@ app.run()
             f.write(PYPROJECT_BASE(name))
 
         success("Created `pyproject.toml`")
+
+    if load == "patterns":
+        urls = path / "urls.py"
+        with open(urls, "w") as f:
+            f.write("""from view import path
+from routes.index import index
+
+PATTERNS = (
+    path("/", index),
+)
+""")
 
     if load != "manual":
         routes = path / "routes"

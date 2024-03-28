@@ -1,20 +1,7 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    TextIO,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
+                    List, Literal, Tuple, Type, TypeVar, Union)
 
 from typing_extensions import ParamSpec, Protocol, TypedDict
 
