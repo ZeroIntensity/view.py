@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import ctypes
 import faulthandler
-import importlib
 import inspect
 import logging
 import os
