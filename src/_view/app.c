@@ -474,6 +474,7 @@ static PyObject* build_data_input(
     switch (num) {
     case 1: return context_from_data(scope);
     case 2: return ws_from_data(
+        scope,
         send,
         receive
     );
@@ -3540,6 +3541,7 @@ static PyObject* app(
         return awaitable;
     } else {
         if (!is_http) VIEW_FATAL("got a websocket without an input!");
+
         PyObject* res_coro;
         if (size) {
             res_coro = PyObject_Vectorcall(

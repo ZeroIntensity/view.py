@@ -130,7 +130,7 @@ internal.setLevel(10000)
 
 
 class RouteInfo(NamedTuple):
-    status: int
+    status: int | str  # str for websocket states
     route: str
     method: str
 
@@ -277,7 +277,10 @@ class Internal(_Logger):
 svc.addFilter(ServiceIntercept())
 
 
-def _status_color(status: int) -> str:
+def _status_color(status: int | str) -> str:
+    if isinstance(status, str):
+        return "bold green"
+
     if status >= 500:
         return "bold red"
     if status >= 400:
@@ -293,6 +296,7 @@ def _status_color(status: int) -> str:
 
 
 _METHOD_COLORS: dict[str, str] = {
+    "websocket": "bold dim magenta",
     "HEAD": "bold green",
     "GET": "bold dim green",
     "POST": "bold blue",
@@ -998,7 +1002,8 @@ def _server_logger():
                 )
 
 
-def _write_route(status: int, route: str, method: str) -> None:
+def _write_route(status: int | str, route: str, method_raw: str) -> None:
+    method = method_raw or "websocket"
     info = RouteInfo(status, route, method)
 
     if _LIVE:

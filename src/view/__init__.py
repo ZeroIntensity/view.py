@@ -25,3 +25,4 @@ from .routing import *
 from .templates import *
 from .typecodes import *
 from .util import *
+from .default_page import *

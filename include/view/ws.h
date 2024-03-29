@@ -5,6 +5,6 @@
 #include <view/backport.h>
 
 extern PyTypeObject WebSocketType;
-PyObject* ws_from_data(PyObject* send, PyObject* receive);
+PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive);
 
 #endif

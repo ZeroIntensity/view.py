@@ -824,7 +824,7 @@ class App(ViewApp):
         if (self.config.log.startup_message) and (not self.config.log.fancy):
             welcome()
 
-        Service.info("server online!")
+        Service.info(f"server online at http://{self.config.server.host}:{self.config.server.port}")
         await task
         self.running = False
 

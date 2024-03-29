@@ -6,6 +6,7 @@ typedef struct {
     PyObject_HEAD
     PyObject* send;
     PyObject* receive;
+    PyObject* raw_path;
 } WebSocket;
 
 static PyObject* repr(PyObject* self) {
@@ -34,7 +35,7 @@ static PyObject* WebSocket_new(
     return (PyObject*) self;
 }
 
-PyObject* ws_from_data(PyObject* send, PyObject* receive) {
+PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
     WebSocket* ws = (WebSocket*) WebSocket_new(
         &WebSocketType,
         NULL,
@@ -43,6 +44,13 @@ PyObject* ws_from_data(PyObject* send, PyObject* receive) {
 
     ws->send = Py_NewRef(send);
     ws->receive = Py_NewRef(receive);
+    ws->raw_path = Py_XNewRef(PyDict_GetItemString(scope, "path"));
+
+    if (!ws->raw_path) {
+        PyErr_BadASGI();
+        return NULL;
+    }
+
     return (PyObject*) ws;
 }
 
@@ -111,6 +119,19 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         Py_DECREF(coro);
         return -1;
     }
+    PyObject* args = Py_BuildValue(
+        "(zOz)",
+        "N/A",
+        ws->raw_path,
+        "websocket"
+    );
+
+    if (!PyObject_Call(route_log, args, NULL)) {
+        Py_DECREF(args);
+        Py_DECREF(awaitable);
+        return -1;
+    }
+    Py_DECREF(args);
 
     return 0;
 }
