@@ -131,7 +131,7 @@ td {
 }
 
 .admonition {
-    @apply border-zinc-100 border rounded-lg dark:border-zinc-900;
+    @apply border-zinc-100 border-2 rounded-lg dark:border-zinc-900;
 }
 
 .admonition-title {
@@ -155,26 +155,26 @@ td {
 }
 
 .admonition.tip {
-    @apply border-green-300;
+    @apply border-green-300 dark:border-green-600;
 }
 
 
 .admonition.info {
-    @apply border-blue-300;
+    @apply border-blue-300 dark:border-blue-600;
 }
 
 
 .admonition.note {
-    @apply border-indigo-300;
+    @apply border-indigo-300 dark:border-indigo-600;
 }
 
 .admonition.danger {
-    @apply border-rose-300;
+    @apply border-rose-300 dark:border-rose-600;
 }
 
 
 .admonition.warning {
-    @apply border-orange-300;
+    @apply border-orange-300 dark:border-orange-600;
 }
 
 
@@ -211,15 +211,15 @@ td {
 }
 
 .n {
-    @apply text-blue-500 dark:text-blue-400;
+    @apply text-black dark:text-white;
 }
 
 .o {
-    @apply text-black dark:text-white;
+    @apply text-black dark:text-zinc-400;
 }
 
 .p {
-    @apply text-black dark:text-white;
+    @apply text-black dark:text-zinc-400; 
 }
 
 .fn {
