@@ -4,7 +4,6 @@ import logging
 import os
 import queue
 import random
-import re
 import sys
 import time
 import warnings
@@ -26,12 +25,11 @@ from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
 
+from _view import setup_route_log
+
 from ._util import shell_hint
 from .exceptions import ViewInternalError
 from .typing import LogLevel
-
-UVICORN_ROUTE_REGEX = re.compile(r'.*"(.+) (\/.*) .+" ([0-9]{1,3}).*')
-
 
 # see https://github.com/Textualize/rich/issues/433
 
@@ -96,32 +94,6 @@ def format_warnings():
     warnings.showwarning = _showwarning
     warnings.formatwarning = _warning_no_src_line  # type: ignore
 
-
-class UvicornHijack(logging.Filter):
-    def filter(self, record: logging.LogRecord):
-        if record.exc_text:
-            Service.error(record.exc_text)
-        STATUS_TO_SVC = {
-            logging.DEBUG: Service.debug,
-            logging.INFO: Service.info,
-            logging.WARNING: Service.warning,
-            logging.ERROR: Service.error,
-            logging.CRITICAL: Service.critical,
-        }
-        message = record.getMessage()
-        match = UVICORN_ROUTE_REGEX.match(message)
-
-        if match:
-            # its a route message
-            method = match.group(1)
-            path = match.group(2)
-            status = int(match.group(3))
-            route(path, status, method)
-        else:
-            STATUS_TO_SVC[record.levelno](message)
-        return False
-
-
 LCOLORS = {
     logging.DEBUG: "blue",
     logging.INFO: "green",
@@ -134,7 +106,7 @@ LCOLORS = {
 class ViewFormatter(logging.Formatter):
     def formatMessage(self, record: logging.LogRecord):
         return (
-            f"[bold {LCOLORS[record.levelno]}]{record.levelname.lower()}[/]:"
+            f"[bold white][[/][bold {LCOLORS[record.levelno]}]{record.levelname.lower()}[/][bold white]][/]:"
             f" {record.getMessage()}"
         )
 
@@ -148,6 +120,7 @@ for lg in (svc, internal):
         show_path=False,
         show_time=False,
         rich_tracebacks=True,
+        markup=True,
     )
     handler.setFormatter(ViewFormatter())
     lg.addHandler(handler)
@@ -306,29 +279,29 @@ svc.addFilter(ServiceIntercept())
 
 def _status_color(status: int) -> str:
     if status >= 500:
-        return "red"
+        return "bold red"
     if status >= 400:
-        return "purple"
+        return "bold purple"
     if status >= 300:
-        return "yellow"
+        return "bold yellow"
     if status >= 200:
-        return "green"
+        return "bold dim green"
     if status >= 100:
-        return "blue"
+        return "bold blue"
 
     raise ViewInternalError(f"got bad status: {status}")
 
 
 _METHOD_COLORS: dict[str, str] = {
-    "HEAD": "dim green",
-    "GET": "green",
-    "POST": "blue",
-    "PUT": "dim blue",
-    "PATCH": "cyan",
-    "DELETE": "red",
-    "CONNECT": "magenta",
-    "OPTIONS": "yellow",
-    "TRACE": "dim yellow",
+    "HEAD": "bold green",
+    "GET": "bold dim green",
+    "POST": "bold blue",
+    "PUT": "bold dim blue",
+    "PATCH": "bold cyan",
+    "DELETE": "bold red",
+    "CONNECT": "bold magenta",
+    "OPTIONS": "bold yellow",
+    "TRACE": "bold dim yellow",
 }
 
 
@@ -829,7 +802,7 @@ def _server_logger():
 
     try:
         import plotext as plt
-    except ModuleNotFoundError as e:
+    except ModuleNotFoundError:
         plt = None
 
     class Plot:
@@ -1023,6 +996,21 @@ def _server_logger():
                     info.route,
                     f"[bold {_status_color(info.status)}]{info.status}[/]",
                 )
+
+
+def _write_route(status: int, route: str, method: str) -> None:
+    info = RouteInfo(status, route, method)
+
+    if _LIVE:
+        _QUEUE.put_nowait(QueueItem(True, True, "info", "", info))
+    else:
+        Service.info(
+            f"[{_METHOD_COLORS[method]}]{method.lower()}[/] [white]{route}[/] [{_status_color(status)}]{status}[/]",
+            highlight=False,
+        )
+
+
+setup_route_log(_write_route)
 
 
 def enter_server():

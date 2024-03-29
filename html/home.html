@@ -8,31 +8,18 @@
         <section
             class="flex items-center justify-center pt-12 flex-col space-y-3"
         >
-            <div
-                class="flex flex-col sm:flex-row items-center justify-center space-x-2"
-            >
-                <p
-                    class="bg-orange-100 text-orange-500 rounded-lg p-1 py-0 font-bold select-none"
-                >
-                    Warning
-                </p>
-                <p class="text-zinc-700">
-                    View is still in alpha. To follow development progress, join
-                    <a href="https://discord.gg/tZAfuWAbm2">the discord</a>.
-                </p>
-            </div>
             <h1
                 id="title"
-                class="text-4xl md:text-7xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
+                class="text-4xl lg:text-6xl 2xl:text-7xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
             ></h1>
         </section>
 
         <section class="flex items-center justify-center p-4">
             <div
-                class="grid grid-cols-1 xl:grid-cols-2 auto-rows-fr gap-3 font-semibold text-xl lg:text-2xl xl:text-3xl w-2/3 xl:w-1/3"
+                class="grid grid-cols-1 2xl:grid-cols-2 auto-rows-fr gap-3 font-semibold text-xl lg:text-2xl xl:text-3xl w-2/3 xl:w-1/3"
             >
                 <a
-                    class="hover:text-white rounded-lg text-white bg-gradient-to-r dark:from-rose-600 dark:to-rose-800 from-rose-500 to-rose-700 p-3 drop-shadow-lg hover:opacity-70 transition-opacity duration-200 font-bold flex items-center justify-center space-x-3"
+                    class="hover:text-white rounded-lg text-white dark:text-white dark:hover:text-white bg-gradient-to-r dark:from-rose-600 dark:to-rose-800 from-rose-500 to-rose-700 p-3 drop-shadow-lg hover:opacity-70 transition-opacity duration-200 font-bold flex items-center justify-center space-x-3"
                     href="/welcome"
                     role="button"
                 >
@@ -55,7 +42,7 @@
                 </a>
                 <a
                     href="/getting-started/installation"
-                    class="hover:text-black border-zinc-200 border rounded-lg p-4 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 text-zinc-700 hover:bg-zinc-100 transition-all drop-shadow-sm flex items-center justify-center space-x-2"
+                    class="border-zinc-200 border rounded-lg p-4 dark:hover:text-white dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 text-zinc-700 hover:bg-zinc-100 transition-all drop-shadow-sm flex items-center justify-center space-x-2"
                     role="button"
                 >
                     <svg
@@ -80,10 +67,13 @@
 
         <section class="flex items-center justify-center flex-col space-y-3">
             <div
-                class="p-4 rounded-full border border-zinc-100 text-xl flex items-center justify-center space-x-3"
+                class="p-4 rounded-full border border-zinc-100 dark:border-zinc-900 text-xl flex items-center justify-center space-x-3"
             >
-                <code class="select-none border-0 bg-white text-xl">$</code>
-                <code class="border-0 bg-white text-xl"
+                <code
+                    class="select-none border-0 bg-white text-xl dark:bg-black"
+                    >$</code
+                >
+                <code class="border-0 bg-white text-xl dark:bg-black"
                     >pip install -U
                     <span class="gradient font-mono">view.py</span></code
                 >
@@ -130,10 +120,12 @@
                 </button>
             </div>
             <div
-                class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-24 auto-rows-fr p-8"
+                class="grid grid-cols-1 2xl:grid-cols-2 gap-6 2xl:gap-24 auto-rows-fr p-8"
             >
                 <div>
-                    <p>Use view.py as a micro web framework</p>
+                    <p class="text-xl font-semibold">
+                        Use view.py as a micro web framework
+                    </p>
                     <pre><code>from view import new_app
 
 app = new_app()
@@ -146,7 +138,7 @@ def index(greeting: str):
 app.run()</code></pre>
                 </div>
                 <div>
-                    <p>...Or as fullstack</p>
+                    <p class="text-xl font-semibold">...Or as fullstack</p>
                     <pre><code># routes/index.py
 from view import get, query, template
 
@@ -162,10 +154,12 @@ async def index(greeting: str):
         </section>
         <section class="flex items-center justify-center flex-col">
             <div class="py-4 w-1/3">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+                <hr class="border-t border-zinc-100 dark:border-zinc-900" />
             </div>
             <div class="flex items-center justify-center space-x-3">
-                <p class="text-zinc-500 text-xl">Affiliated With</p>
+                <p class="text-zinc-300 text-xl font-semibold">
+                    Affiliated With
+                </p>
                 <a
                     href="https://clientarea.space-hosting.net/aff.php?aff=303"
                     target="_blank"
@@ -178,7 +172,7 @@ async def index(greeting: str):
                 /></a>
             </div>
             <div class="py-4 w-1/3">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+                <hr class="border-t border-zinc-100 dark:border-zinc-900" />
             </div>
         </section>
 
@@ -186,7 +180,9 @@ async def index(greeting: str):
             <div
                 class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-24 auto-rows-fr p-8"
             >
-                <div class="border-zinc-100 border p-4 rounded-lg">
+                <div
+                    class="border-zinc-100 dark:border-zinc-900 border p-4 rounded-lg"
+                >
                     <h1
                         class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50 py-0"
                     >
@@ -206,7 +202,9 @@ async def index(greeting: str):
                         transpilers.
                     </p>
                 </div>
-                <div class="border-zinc-100 border p-4 rounded-lg">
+                <div
+                    class="border-zinc-100 dark:border-zinc-900 border p-4 rounded-lg"
+                >
                     <h1
                         class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50 py-0"
                     >
@@ -222,581 +220,23 @@ async def index(greeting: str):
                         <a href="https://discord.gg/tZAfuWAbm2">the discord</a>.
                     </p>
                 </div>
-                <div class="border-zinc-100 border p-4 rounded-lg">
+                <div
+                    class="border-zinc-100 dark:border-zinc-900 border p-4 rounded-lg"
+                >
                     <h1
                         class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50 py-0"
                     >
-                        Customizable
+                        Batteries-Detachable
                     </h1>
                     <p>
-                        Don't want to use View's built in API's?
-                        <span class="gradient">No problem.</span> View includes
-                        <span class="gradient">native support</span> for your
-                        favorite libraries, as well as
-                        <span class="gradient">built in object protocols</span>
-                        for customizing view.py to your liking.
+                        We'll provide a way to do something right out of the
+                        box, but
+                        <span class="gradient">won't make you use it</span>, and
+                        instead will
+                        <span class="gradient">natively support</span> external
+                        libraries, meaning you don't have to relearn anything if
+                        you don't want to.
                     </p>
-                </div>
-            </div>
-        </section>
-        <section
-            class="flex items-center justify-center pt-4 flex-col space-y-2"
-        >
-            <h2
-                class="text-4xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
-            >
-                The View Philosophy
-            </h2>
-            <div class="py-4 w-1/3">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
-            </div>
-            <div class="flex w-5/6 items-center justify-center">
-                <div
-                    class="font-bold border-2 border-dashed rounded-lg border-zinc-100 p-2 w-5/6 xl:w-1/3"
-                >
-                    <div
-                        class="flex space-x-1 text-rose-400 items-center hidden"
-                        id="no_voices"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-8 h-8"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-                            />
-                        </svg>
-                        <p class="py-0">
-                            Your browser doesn't support text to speech!
-                        </p>
-                    </div>
-
-                    <div class="flex items-center space-x-1">
-                        <p class="text-2xl text-slate-700 py-0">
-                            Batteries Detachable
-                        </p>
-                        <p
-                            class="text-zinc-500 bg-zinc-100 rounded-lg p-1 text-sm cursor-default"
-                        >
-                            adjective
-                        </p>
-                        <button
-                            class="rounded-full bg-zinc-100 p-2 hover:bg-zinc-200 transition-all disabled:bg-rose-100 disabled:hover:bg-rose-200 disabled:cursor-not-allowed"
-                            onclick="(() => {
-                            if (voices.length == 0) {
-                                document.getElementById('no_voices').classList.remove('hidden');
-                                this.disabled = true;
-                                document.getElementById('audio').classList.add('hidden')
-                                document.getElementById('noaudio').classList.remove('hidden')
-                                return;
-                            }
-
-                            var msg = new SpeechSynthesisUtterance();
-                            msg.text = 'Batteries Detachable';
-                            window.speechSynthesis.speak(msg);
-                        })()"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-8 h-8"
-                                id="audio"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"
-                                />
-                            </svg>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-8 h-8 hidden"
-                                id="noaudio"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="text-zinc-500 font-normal">
-                        <p class="text-xl py-0">
-                            /&#712;b&aelig;t&#601;riz
-                            d&#618;&#712;t&aelig;&#679;&#601;b&#601;l/
-                        </p>
-                        <p class="py-0">
-                            We'll provide a way to do something right out of the
-                            box, but
-                            <span class="gradient">won't make you use it</span>,
-                            and instead will
-                            <span class="gradient"
-                                >natively support external libraries</span
-                            >, meaning you don't have to relearn anything if you
-                            don't want to.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <section class="flex items-center justify-center flex-col">
-            <h2
-                class="text-4xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
-            >
-                View Insiders
-            </h2>
-            <div class="py-4 w-1/3">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
-            </div>
-            <div
-                class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-12 auto-rows-fr p-4"
-            >
-                <div
-                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
-                >
-                    <div>
-                        <div class="flex items-center space-x-1">
-                            <header
-                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
-                            >
-                                Level 1
-                            </header>
-                            <span
-                                class="pointer-default select-none rounded-lg font-bold text-sm bg-indigo-100 text-indigo-500 dark:bg-indigo-900 dark:text-indigo-300 p-1"
-                            >
-                                Starter
-                            </span>
-                        </div>
-                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
-                            $5/month
-                        </p>
-                    </div>
-
-                    <div>
-                        <div
-                            class="text-indigo-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Your name added to a
-                                <code>__sponsors__</code> variable.
-                            </p>
-                        </div>
-                        <div
-                            class="text-indigo-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Your name added to the README.
-                            </p>
-                        </div>
-                        <div
-                            class="text-indigo-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Access to a special channel in
-                                <a href="https://discord.gg/tZAfuWAbm2"
-                                    >our discord</a
-                                >.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-center pt-4">
-                        <a
-                            href="https://github.com/sponsors/ZeroIntensity"
-                            target="_blank"
-                            class="flex items-center space-x-1 border border-indigo-500 rounded-lg p-2 text-indigo-500 font-bold hover:bg-indigo-500 hover:text-white transition-all"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                                />
-                            </svg>
-                            <p class="py-0">Sponsors Page</p>
-                        </a>
-                    </div>
-                </div>
-                <div
-                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
-                >
-                    <div>
-                        <div class="flex items-center space-x-1">
-                            <header
-                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
-                            >
-                                Level 2
-                            </header>
-                            <span
-                                class="pointer-default select-none rounded-lg font-bold text-sm bg-emerald-100 text-emerald-500 p-1"
-                            >
-                                Standard
-                            </span>
-                        </div>
-                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
-                            $10/month
-                        </p>
-                    </div>
-
-                    <div>
-                        <div
-                            class="text-emerald-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">Previous rewards.</p>
-                        </div>
-                        <div
-                            class="text-emerald-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Weekly Newsletter (accessible via
-                                <a href="https://discord.gg/tZAfuWAbm2"
-                                    >the discord</a
-                                >).
-                            </p>
-                        </div>
-                        <div
-                            class="text-emerald-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Priority on your view.py bug reports.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-center pt-4">
-                        <a
-                            href="https://github.com/sponsors/ZeroIntensity"
-                            target="_blank"
-                            class="flex items-center space-x-1 border border-emerald-500 rounded-lg p-2 text-emerald-500 font-bold hover:bg-emerald-500 hover:text-white transition-all"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                                />
-                            </svg>
-                            <p class="py-0">Sponsors Page</p>
-                        </a>
-                    </div>
-                </div>
-                <div
-                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
-                >
-                    <div>
-                        <div class="flex items-center space-x-1">
-                            <header
-                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
-                            >
-                                Level 3
-                            </header>
-                            <span
-                                class="pointer-default select-none rounded-lg font-bold text-sm bg-fuchsia-100 text-fuchsia-500 p-1"
-                            >
-                                Premium
-                            </span>
-                        </div>
-                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
-                            $25/month
-                        </p>
-                    </div>
-
-                    <div>
-                        <div
-                            class="text-fuchsia-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">Previous rewards.</p>
-                        </div>
-                        <div
-                            class="text-fuchsia-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Priority on your view.py feature requests.
-                            </p>
-                        </div>
-                        <div
-                            class="text-fuchsia-500 flex items-center space-x-1"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">Project partnership.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-center pt-4">
-                        <a
-                            href="https://github.com/sponsors/ZeroIntensity"
-                            target="_blank"
-                            class="flex items-center space-x-1 border border-fuchsia-500 rounded-lg p-2 text-fuchsia-500 font-bold hover:bg-fuchsia-500 hover:text-white transition-all"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                                />
-                            </svg>
-                            <p class="py-0">Sponsors Page</p>
-                        </a>
-                    </div>
-                </div>
-                <div
-                    class="drop-shadow-sm p-4 border-zinc-200 border rounded-lg dark:border-zinc-800"
-                >
-                    <div>
-                        <div class="flex items-center space-x-1">
-                            <header
-                                class="text-3xl font-extrabold text-center bg-gradient-to-t from-zinc-500 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50"
-                            >
-                                Level 4
-                            </header>
-                            <span
-                                class="pointer-default select-none rounded-lg font-bold text-sm bg-rose-100 text-rose-500 p-1"
-                            >
-                                Commercial
-                            </span>
-                        </div>
-                        <p class="text-zinc-500 font-bold dark:text-zinc-400">
-                            $40/month
-                        </p>
-                    </div>
-
-                    <div>
-                        <div class="text-rose-500 flex items-center space-x-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">Previous rewards.</p>
-                        </div>
-                        <div class="text-rose-500 flex items-center space-x-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Advertise your company on our website.
-                            </p>
-                        </div>
-                        <div class="text-rose-500 flex items-center space-x-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m4.5 12.75 6 6 9-13.5"
-                                />
-                            </svg>
-                            <p class="py-0 text-black">
-                                Employee training on view.py from the author.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-center pt-4">
-                        <a
-                            href="https://github.com/sponsors/ZeroIntensity"
-                            target="_blank"
-                            class="flex items-center space-x-1 border border-rose-500 rounded-lg p-2 text-rose-500 font-bold hover:bg-rose-500 hover:text-white transition-all"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                                />
-                            </svg>
-                            <p class="py-0">Sponsors Page</p>
-                        </a>
-                    </div>
                 </div>
             </div>
         </section>

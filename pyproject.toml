@@ -44,6 +44,7 @@ databases = [
 ]
 templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon", "markdown"]
 fancy = ["psutil", "plotext"]
+servers = ["uvicorn", "hypercorn", "daphne"]
 full = [
     "psutil",
     "plotext",
@@ -57,7 +58,10 @@ full = [
     "mysql-connector-python",
     "pymongo",
     "aiosqlite",
-    "markdown"
+    "markdown",
+    "uvicorn",
+    "hypercorn",
+    "daphne"
 ]
 
 [project.urls]

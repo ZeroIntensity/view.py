@@ -7,13 +7,11 @@ GitHub: https://github.com/zerointensity/view.py
 """
 try:
     import _view
-except ImportError as e:
-    raise ImportError(
-        "_view has not been built, did you forget to compile it?"
-    ) from e
+except ModuleNotFoundError as e:
+    raise ImportError("_view has not been built, did you forget to compile it?") from e
 
-from _view import Context  # re-export
-from _view import InvalidStatusError  # re-export
+# these are re-exports
+from _view import Context, InvalidStatusError, WebSocketHandshakeError
 
 from . import _codec
 from .__about__ import *

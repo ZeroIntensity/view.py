@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="dark">
     <head>
         <style>
             @import url("https://fonts.googleapis.com/css2?family=Gabarito&display=swap");
@@ -10,8 +10,9 @@
         </title>
         <link
             rel="stylesheet"
-            href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css"
+            href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css"
         />
+        <script src="https://cdn.tailwindcss.com"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
         <script src="https://unpkg.com/lunr/lunr.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,18 +28,21 @@
         {% endfor %}
     </head>
 
-    <body class="dark:bg-zinc-950 dark:text-white">
-        <dialog id="search" class="rounded-lg border border-zinc-100 w-5/6">
-            <div class="flex flex-col sticky top-0 bg-white">
+    <body class="dark:bg-black dark:text-white">
+        <dialog
+            id="search"
+            class="rounded-lg border border-zinc-100 w-5/6 dark:border-zinc-900 dark:bg-black"
+        >
+            <div class="flex flex-col sticky top-0 bg-white dark:bg-black">
                 <div class="flex items-center justify-between p-4">
                     <input
                         type="text"
-                        class="placeholder:italic placerholder:text-zinc-500 p-4 focus:outline-none border border-zinc-100 rounded-lg"
+                        class="dark:text-white placeholder:italic placerholder:text-zinc-500 dark:placeholder:text-zinc-300 p-4 focus:outline-none border dark:border-zinc-900 dark:bg-black border-zinc-100 rounded-lg"
                         id="mkdocs-search-query"
                         placeholder="Search documentation..."
                     />
                     <button
-                        class="rounded-lg border-zinc-100 p-2 border hover:bg-zinc-50 transition-all"
+                        class="rounded-lg dark:border-zinc-900 border-zinc-100 p-2 border dark:bg-black dark:hover:bg-zinc-950 hover:bg-zinc-50 transition-all"
                         onclick="document.getElementById('search').close()"
                     >
                         <svg
@@ -47,7 +51,7 @@
                             viewBox="0 0 24 24"
                             stroke-width="1.5"
                             stroke="currentColor"
-                            class="w-10 h-10"
+                            class="w-10 h-10 dark:text-white"
                         >
                             <path
                                 stroke-linecap="round"
@@ -58,7 +62,7 @@
                     </button>
                 </div>
                 <div class="pt-4">
-                    <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+                    <hr class="border-t border-zinc-100 dark:border-zinc-900" />
                 </div>
             </div>
 
@@ -67,20 +71,20 @@
                 id="mkdocs-search-results"
             ></div>
         </dialog>
-        <nav class="sticky top-0 bg-white z-10">
+        <nav class="sticky top-0 bg-black z-10">
             <div
                 class="flex xl:flex-row space-y-3 xl:space-y-0 flex-col items-center xl:justify-between p-4"
             >
                 <a
-                    class="modern-deco text-6xl text-black hover:text-black hover:opacity-50"
+                    class="modern-deco text-6xl text-black dark:text-white hover:opacity-50 dark:hover:text-white"
                     href="/"
                 >
-                    view<span class="text-logo">.py</span>
+                    view<span class="text-logo dark:hover:text-logo">.py</span>
                 </a>
                 <div class="flex space-x-3 md:hidden">
                     {% if not page.is_homepage %}
                     <button
-                        class="p-2 rounded-lg border border-zinc-100 hover:bg-zinc-50 transition-all"
+                        class="p-2 rounded-lg border border-zinc-100 hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-950 transition-all"
                         onclick="(() => {
                             let e = document.getElementById('sidebar')
                     
@@ -111,7 +115,7 @@
                     </button>
                     {% endif %}
                     <button
-                        class="p-2 rounded-lg border border-zinc-100 hover:bg-zinc-50 transition-all"
+                        class="p-2 rounded-lg border border-zinc-100 hover:bg-zinc-50 transition-all dark:border-zinc-900 dark:hover:bg-zinc-950"
                         onclick="(() => {
                             let e = document.getElementById('navbar')
                     
@@ -145,7 +149,7 @@
                     >
                         <a
                             href="/"
-                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            class="dark:border-zinc-900 dark:hover:bg-zinc-950 dark:text-white text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
                             ><svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
@@ -164,7 +168,7 @@
                         >
                         <a
                             href="/welcome"
-                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            class="text-black p-2 border border-zinc-100 dark:border-zinc-900 dark:hover:bg-zinc-950 dark:text-white rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
                             ><svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
@@ -183,7 +187,7 @@
                         >
                         <a
                             href="https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md"
-                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            class="dark:border-zinc-900 dark:hover:bg-zinc-950 dark:text-white text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
                             ><svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
@@ -203,7 +207,7 @@
                         >
                         <a
                             href="https://github.com/sponsors/ZeroIntensity"
-                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            class="dark:border-zinc-900 dark:hover:bg-zinc-950 dark:text-white text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
                             ><svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
@@ -223,7 +227,7 @@
                         >
                         <a
                             href="https://pypi.org/project/view.py"
-                            class="text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
+                            class="dark:border-zinc-900 dark:hover:bg-zinc-950 dark:text-white text-black p-2 border border-zinc-100 rounded-lg flex items-center justify-center space-x-2 hover:bg-zinc-50 transition-all"
                             ><svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
@@ -248,7 +252,7 @@
                     >
                         <div
                             onclick="document.getElementById('search').showModal()"
-                            class="border-zinc-100 rounded-lg p-4 border flex items-center justify-center space-x-2 transition-all hover:bg-zinc-50"
+                            class="border-zinc-100 dark:bg-black dark:border-zinc-900 rounded-lg p-4 border flex items-center justify-center space-x-2 transition-all hover:bg-zinc-50 dark:hover:bg-zinc-950"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -256,7 +260,7 @@
                                 viewBox="0 0 24 24"
                                 stroke-width="1.5"
                                 stroke="currentColor"
-                                class="w-6 h-6 text-zinc-500"
+                                class="w-6 h-6 text-zinc-500 dark:text-zinc-300"
                             >
                                 <path
                                     stroke-linecap="round"
@@ -264,7 +268,8 @@
                                     d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
                                 />
                             </svg>
-                            <span class="italic text-zinc-500"
+                            <span
+                                class="italic text-zinc-500 dark:text-zinc-300"
                                 >Search documentation...</span
                             >
                         </div>
@@ -332,7 +337,7 @@
                 </div>
             </div>
             <div class="pt-4">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+                <hr class="border-t border-zinc-100 dark:border-zinc-900" />
             </div>
         </nav>
         {% block content %} {% endblock %}
@@ -424,7 +429,7 @@
                             class="flex md:flex-row flex-col md:space-x-6 items-center justify-center text-base"
                         >
                             <a
-                                class="flex space-x-2 items-center justify-center text-white hover:text-white hover:opacity-50"
+                                class="flex space-x-2 items-center justify-center dark:text-white dark:hover:text-white text-white hover:text-white hover:opacity-50"
                                 href="https://github.com/ZeroIntensity/view.py"
                             >
                                 <img
@@ -435,7 +440,7 @@
                                 <p>GitHub</p>
                             </a>
                             <a
-                                class="flex space-x-2 items-center justify-center text-white hover:text-white hover:opacity-50"
+                                class="flex space-x-2 items-center justify-center text-white hover:text-white hover:opacity-50 dark:text-white dark:hover:text-white"
                                 href="https://discord.gg/tZAfuWAbm2"
                             >
                                 <img
@@ -446,7 +451,7 @@
                                 <p>Discord</p>
                             </a>
                             <a
-                                class="flex space-x-2 items-center justify-center text-white hover:text-white hover:opacity-50"
+                                class="flex space-x-2 items-center justify-center text-white hover:text-white hover:opacity-50 dark:text-white dark:hover:text-white"
                                 href="https://clientarea.space-hosting.net/aff.php?aff=303"
                                 target="_blank"
                             >

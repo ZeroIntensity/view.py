@@ -6,13 +6,11 @@ import re
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
-                    Union)
+from typing import Any, Callable, Generic, Iterable, Literal, Type, TypeVar, Union
 
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
-from .typing import (Middleware, StrMethod, Validator, ValueType, ViewResponse,
-                     ViewRoute)
+from .typing import Middleware, StrMethod, Validator, ValueType, ViewResponse, ViewRoute
 
 __all__ = (
     "get",
@@ -26,7 +24,8 @@ __all__ = (
     "route_types",
     "BodyParam",
     "context",
-    "route"
+    "route",
+    "websocket",
 )
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
@@ -39,6 +38,7 @@ class Method(Enum):
     PATCH = 4
     PUT = 5
     OPTIONS = 6
+    WEBSOCKET = 7
 
 
 V = TypeVar("V", bound="ValueType")
@@ -66,7 +66,8 @@ class Part(Generic[V]):
     type: type[V] | None
 
 
-RouteData = Literal[1]
+RouteData = Literal[1, 2]
+
 
 @dataclass
 class Route(LoadChecker):
@@ -96,16 +97,17 @@ class Route(LoadChecker):
 
     def middleware(self, func_or_none: Middleware | None = None):
         """Define a middleware function for the route."""
+
         def inner(func: Middleware):
             self.middleware_funcs.append(func)
-        
+
         if func_or_none:
             return inner(func_or_none)
 
         return inner
 
     def __repr__(self):
-        return f"Route({self.method.name if self.method else 'ANY_METHOD'}(\"{self.path or '/???'}\"))"  # noqa
+        return f"Route({self.method.name if self.method else 'ANY_METHOD'}(\"{self.path or self.func.__name__}\"))"  # noqa
 
     __str__ = __repr__
 
@@ -150,7 +152,8 @@ def _method(
     method: Method | None,
     cache_rate: int,
     *,
-    method_list: list[Method] | None = None
+    method_list: list[Method] | None = None,
+    inputs: list[RouteInput | RouteData] | None = None,
 ) -> Route:
     route = _ensure_route(r)
     route.method = method
@@ -211,6 +214,9 @@ def _method(
     else:
         route.doc = route.func.__doc__
 
+    if inputs:
+        route.inputs.extend(inputs)
+
     return route
 
 
@@ -223,13 +229,22 @@ def _method_wrapper(
     method: Method | None,
     cache_rate: int,
     *,
-    method_list: list[Method] | None = None
+    method_list: list[Method] | None = None,
+    inputs: list[RouteInput | RouteData] | None = None,
 ) -> Path:
     def inner(r: RouteOrCallable) -> Route:
         if (not isinstance(path_or_route, str)) and path_or_route:
             raise TypeError(f"{path_or_route!r} is not a string")
 
-        return _method(r, path_or_route, doc, method, cache_rate, method_list=method_list)
+        return _method(
+            r,
+            path_or_route,
+            doc,
+            method,
+            cache_rate,
+            method_list=method_list,
+            inputs=inputs,
+        )
 
     if not path_or_route:
         return inner
@@ -390,6 +405,14 @@ def options(
     return _method_wrapper(path_or_route, doc, Method.OPTIONS, cache_rate)
 
 
+def websocket(
+    path_or_route: str | None | RouteOrCallable = None,
+    doc: str | None = None,
+) -> Path:
+    """Add a websocket route."""
+    return _method_wrapper(path_or_route, doc, Method.WEBSOCKET, -1, inputs=[2])
+
+
 _STR_METHOD_MAPPING: dict[StrMethod, Method] = {
     "GET": Method.GET,
     "POST": Method.POST,
@@ -397,14 +420,16 @@ _STR_METHOD_MAPPING: dict[StrMethod, Method] = {
     "PATCH": Method.PATCH,
     "DELETE": Method.DELETE,
     "OPTIONS": Method.OPTIONS,
+    "WEBSOCKET": Method.WEBSOCKET,
 }
+
 
 def route(
     path_or_route: str | None | RouteOrCallable = None,
     doc: str | None = None,
     *,
     cache_rate: int = -1,
-    methods: Iterable[StrMethod] | None = None
+    methods: Iterable[StrMethod] | None = None,
 ) -> Path:
     """Add a route that can be called with any method (or only specific methods).
 
@@ -428,9 +453,8 @@ def route(
         doc,
         None,
         cache_rate,
-        method_list=[_STR_METHOD_MAPPING[i] for i in methods] if methods else None
+        method_list=[_STR_METHOD_MAPPING[i] for i in methods] if methods else None,
     )
-
 
 
 class _NoDefault:
@@ -530,6 +554,7 @@ def body(
 
 def context(r_or_none: RouteOrCallable | None = None):
     """Add a context input to the route."""
+
     def inner(r: RouteOrCallable) -> Route:
         route = _ensure_route(r)
         route.inputs.append(1)

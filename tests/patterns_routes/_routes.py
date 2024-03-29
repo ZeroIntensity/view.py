@@ -29,9 +29,11 @@ async def d():
 async def o():
     return "options"
 
+
 @route()
 async def r():
     return "any"
+
 
 @post()
 async def inputs(a: str):

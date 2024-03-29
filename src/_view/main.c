@@ -1,27 +1,42 @@
 #include <Python.h>
 #include <view/view.h>
+#include <signal.h>
 
-// i hate my formatter
-
-#define METHOD(name)                                                           \
-  {                                                                            \
-#name, name, METH_VARARGS, NULL                                            \
-  }
-#define METHOD_NOARGS(name)                                                    \
-  {                                                                            \
-#name, name, METH_NOARGS, NULL                                             \
-  }
-
-
-
-static PyMethodDef methods[] = {{NULL, NULL, 0, NULL}};
-
-static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_view", NULL, -1,
-                                    methods};
+PyObject* route_log = NULL;
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
+PyObject* ws_handshake_error = NULL;
 
-void view_fatal(
+static PyObject* setup_route_log(PyObject* self, PyObject* args) {
+    PyObject* func;
+
+    if (!PyArg_ParseTuple(args, "O", &func))
+        return NULL;
+
+    if (!PyCallable_Check(func)) {
+        PyErr_Format(PyExc_RuntimeError,
+            "setup_route_log got non-function object: %R", func);
+        return NULL;
+    }
+
+    route_log = Py_NewRef(func);
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef methods[] = {
+    {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef module = {
+    PyModuleDef_HEAD_INIT,
+    "_view",
+    NULL,
+    -1,
+    methods
+};
+
+NORETURN void view_fatal(
     const char* message,
     const char* where,
     const char* func,
@@ -42,8 +57,6 @@ void view_fatal(
     Py_FatalError("view.py core died");
 };
 
-
-
 PyMODINIT_FUNC PyInit__view() {
     PyObject* m = PyModule_Create(&module);
 
@@ -51,7 +64,8 @@ PyMODINIT_FUNC PyInit__view() {
         (PyType_Ready(&ViewAppType) < 0) ||
         (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) ||
         (PyType_Ready(&ContextType) < 0) ||
-        (PyType_Ready(&TCPublicType) < 0)) {
+        (PyType_Ready(&TCPublicType) < 0) ||
+        (PyType_Ready(&WebSocketType) < 0)) {
         Py_DECREF(m);
         return NULL;
     }
@@ -108,6 +122,16 @@ PyMODINIT_FUNC PyInit__view() {
         return NULL;
     }
 
+    Py_INCREF(&WebSocketType);
+    if (PyModule_AddObject(
+        m,
+        "ViewWebSocket",
+        (PyObject*) &WebSocketType
+        ) < 0) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
     PyObject* ipaddress_mod = PyImport_ImportModule("ipaddress");
     if (!ipaddress_mod) {
         Py_DECREF(m);
@@ -143,6 +167,29 @@ PyMODINIT_FUNC PyInit__view() {
         ) < 0) {
         Py_DECREF(m);
         Py_DECREF(ip_address);
+        Py_DECREF(invalid_status_error);
+        return NULL;
+    }
+
+    ws_handshake_error = PyErr_NewException(
+        "_view.WebSocketHandshakeError",
+        PyExc_RuntimeError,
+        NULL
+    );
+    if (!ws_handshake_error) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        return NULL;
+    }
+
+    if (PyModule_AddObject(
+        m,
+        "WebSocketHandshakeError",
+        ws_handshake_error
+        ) < 0) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        Py_DECREF(ws_handshake_error);
         return NULL;
     }
 

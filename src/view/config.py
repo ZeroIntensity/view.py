@@ -40,7 +40,7 @@ class AppConfig(ConfigModel, env_prefix="view_app_"):
 class ServerConfig(ConfigModel, env_prefix="view_server_"):
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
-    backend: Literal["uvicorn"] = "uvicorn"
+    backend: Literal["uvicorn", "hypercorn", "daphne"] = "uvicorn"
     extra_args: Dict[str, Any] = ConfigField(default_factory=dict)
 
 
@@ -57,10 +57,11 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
 
 class LogConfig(ConfigModel, env_prefix="view_log_"):
     level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
-    hijack: bool = True
     fancy: bool = True
+    server_logger: bool = False
     pretty_tracebacks: bool = True
     user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
+    startup_message: bool = True
 
 
 class MongoConfig(ConfigModel, env_prefix="view_mongo_"):
@@ -107,6 +108,7 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):
 
 class Config(ConfigModel):
     dev: bool = True
+    env: Dict[str, Any] = ConfigField(default_factory=dict)
     app: AppConfig = ConfigField(default_factory=AppConfig)
     server: ServerConfig = ConfigField(default_factory=ServerConfig)
     log: LogConfig = ConfigField(default_factory=LogConfig)

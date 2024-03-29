@@ -4,8 +4,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
-                    get_type_hints)
+from typing import Any, ClassVar, Set, TypeVar, Union, get_origin, get_type_hints
 
 from typing_extensions import Annotated, Self, dataclass_transform, get_args
 

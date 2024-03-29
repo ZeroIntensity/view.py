@@ -25,7 +25,7 @@ body {
 }
 
 a {
-    @apply text-rose-600 hover:text-rose-500 transition-all;
+    @apply text-rose-600 hover:text-rose-500 transition-all dark:text-rose-600 dark:hover:text-rose-700;
 }
 
 .custom-shape-divider-bottom-1706484168 {
@@ -51,7 +51,7 @@ a {
 }
 
 h1 {
-    @apply pt-6 pb-12 text-5xl font-extrabold text-center bg-gradient-to-t from-zinc-400 to-black inline-block text-transparent bg-clip-text dark:from-zinc-400 dark:to-zinc-50;
+    @apply pt-6 pb-12 dark:text-5xl text-5xl dark:font-extrabold font-extrabold dark:text-center text-center dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
 }
 
 .headerlink {
@@ -59,11 +59,11 @@ h1 {
 }
 
 h2 {
-    @apply text-3xl font-bold pt-4;
+    @apply pt-2 pb-2 dark:text-3xl text-3xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
 }
 
 h3 {
-    @apply text-xl font-bold pt-4;
+    @apply pt-2 pb-2 dark:text-xl text-xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
 }
 
 .gradient {
@@ -71,19 +71,19 @@ h3 {
 }
 
 pre {
-    @apply py-2;
+    @apply py-2 dark:py-2;
 }
 
 p {
-    @apply py-2 leading-loose;
+    @apply py-1 leading-loose dark:py-1 dark:leading-loose dark:text-zinc-200;
 }
 
 code {
-    @apply bg-zinc-100 rounded-lg p-1 border border-zinc-200 text-sm;
+    @apply dark:text-white bg-zinc-100 dark:bg-zinc-950 dark:border-zinc-900 rounded-lg p-1 border border-zinc-200 text-sm;
 }
 
 ul {
-    @apply list-disc pl-6 flex flex-col space-y-2 py-2;
+    @apply list-disc dark:list-disc dark:pl-6 flex flex-col space-y-2 py-2;
 }
 
 .headerlink {
@@ -95,11 +95,11 @@ ul {
 }
 
 .on-this-page {
-    @apply text-zinc-500;
+    @apply text-zinc-500 dark:text-zinc-400;
 }
 
 .doc-object {
-    @apply border-zinc-100 border p-4 rounded-lg;
+    @apply border-zinc-100 border p-4 rounded-lg dark:border-zinc-900;
 }
 
 .doc-children {
@@ -107,11 +107,11 @@ ul {
 }
 
 table {
-    @apply w-full text-sm text-left rtl:text-right text-zinc-500 overflow-x-auto;
+    @apply w-full text-sm text-left rtl:text-right text-zinc-500 overflow-x-auto dark:text-zinc-400;
 }
 
 thead {
-    @apply text-base text-zinc-700 uppercase bg-zinc-50 select-none cursor-pointer;
+    @apply text-base text-zinc-700 uppercase bg-zinc-50 select-none cursor-pointer dark:text-zinc-300;
 }
 
 th {
@@ -119,7 +119,7 @@ th {
 }
 
 tr {
-    @apply odd:bg-white even:bg-zinc-50 border-b;
+    @apply odd:bg-white even:bg-zinc-50 border-b dark:odd:bg-black dark:even:bg-zinc-950 dark:border-black;
 }
 
 td {
@@ -131,11 +131,11 @@ td {
 }
 
 .admonition {
-    @apply border-zinc-100 border rounded-lg;
+    @apply border-zinc-100 border rounded-lg dark:border-zinc-900;
 }
 
 .admonition-title {
-    @apply bg-zinc-50 text-xl font-bold;
+    @apply text-xl font-bold;
 }
 
 .admonition p {
@@ -147,111 +147,115 @@ td {
 }
 
 .admonition.question {
-    @apply border-emerald-300;
+    @apply border-emerald-300 dark:border-emerald-700;
 }
 
 .question .admonition-title {
-    @apply bg-emerald-50 text-emerald-700;
+    @apply text-white;
 }
 
 .admonition.tip {
     @apply border-green-300;
 }
 
-.tip .admonition-title {
-    @apply bg-green-50 text-green-700;
-}
 
 .admonition.info {
     @apply border-blue-300;
 }
 
-.info .admonition-title {
-    @apply bg-blue-50 text-blue-700;
-}
 
 .admonition.note {
     @apply border-indigo-300;
-}
-
-.note .admonition-title {
-    @apply bg-indigo-50 text-indigo-700;
 }
 
 .admonition.danger {
     @apply border-rose-300;
 }
 
-.danger .admonition-title {
-    @apply bg-rose-50 text-rose-700;
-}
 
 .admonition.warning {
     @apply border-orange-300;
 }
 
-.warning .admonition-title {
-    @apply bg-orange-50 text-orange-700;
-}
 
 .doc-label-async code {
-    @apply bg-indigo-100 text-indigo-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-indigo-100 text-indigo-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-indigo-500;
 }
 
 .doc-label-module-attribute code {
-    @apply bg-sky-100 text-sky-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-sky-100 text-sky-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-sky-500;
 }
 
 .doc-label-instance-attribute code {
-    @apply bg-lime-100 text-lime-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-lime-100 text-lime-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-lime-500;
 }
 
 .doc-label-class-attribute code {
-    @apply bg-pink-100 text-pink-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-pink-100 text-pink-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-pink-500;
 }
 
 .doc-label-classmethod code {
-    @apply bg-violet-100 text-violet-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-violet-100 text-violet-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-violet-500 ;
 }
 
 .doc-contents p {
-    @apply text-zinc-500;
+    @apply text-zinc-500 dark:text-zinc-300;
 }
 
 .doc-contents strong {
-    @apply uppercase font-normal text-zinc-400;
+    @apply uppercase font-normal text-zinc-400 dark:text-zinc-300;
+}
+
+.doc-heading {
+    @apply text-base dark:text-base;
 }
 
 .n {
-    @apply text-blue-500;
+    @apply text-blue-500 dark:text-blue-400;
+}
+
+.o {
+    @apply text-black dark:text-white;
+}
+
+.p {
+    @apply text-black dark:text-white;
+}
+
+.fn {
+    @apply text-teal-500 dark:text-teal-400;
 }
 
 .nb {
-    @apply text-teal-500;
+    @apply text-teal-500 dark:text-teal-400;
 }
 
 .kc {
-    @apply text-indigo-500;
+    @apply text-indigo-500 dark:text-indigo-400;
 }
 
 .mi {
-    @apply text-green-500;
+    @apply text-green-500 dark:text-green-400;
 }
 
 .s1 {
-    @apply text-green-500;
+    @apply text-green-500 dark:text-green-400;
 }
 
 .Typewriter__cursor {
-    @apply text-black;
+    @apply text-white;
 }
 
 #mkdocs-search-results article {
-    @apply rounded-lg border border-zinc-100 p-2;
+    @apply rounded-lg border border-zinc-100 dark:border-zinc-900 p-2;
+}
+
+#mkdocs-search-results a {
+    @apply font-bold text-xl;
 }
 
 #mkdocs-search-results p {
-    @apply text-ellipsis italic break-words py-0;
+    @apply text-ellipsis italic break-words py-0 dark:text-white;
 }
 
 #mkdocs-search-results p::after {
@@ -263,7 +267,7 @@ td {
 }
 
 .doc-symbol-function {
-    @apply bg-red-100 text-red-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-red-100 text-red-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-red-500;
 }
 
 .doc-symbol-function::before {
@@ -271,7 +275,7 @@ td {
 }
 
 .doc-symbol-class {
-    @apply bg-amber-100 text-amber-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-amber-100 text-amber-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-amber-500;
 }
 
 .doc-symbol-class::before {
@@ -279,7 +283,7 @@ td {
 }
 
 .doc-symbol-attribute {
-    @apply bg-cyan-100 text-cyan-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-cyan-100 text-cyan-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-cyan-500;
 }
 
 .doc-symbol-attribute::before {
@@ -287,7 +291,7 @@ td {
 }
 
 .doc-symbol-method {
-    @apply bg-blue-100 text-blue-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-blue-100 text-blue-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-blue-500;
 }
 
 .doc-symbol-method::before {
@@ -295,7 +299,7 @@ td {
 }
 
 .doc-symbol-module {
-    @apply bg-teal-100 text-teal-500 rounded-lg p-1 font-bold border-0;
+    @apply bg-teal-100 text-teal-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-teal-500;
 }
 
 .doc-symbol-module::before {

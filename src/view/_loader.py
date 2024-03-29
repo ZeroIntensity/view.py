@@ -5,8 +5,15 @@ import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
-                    get_args, get_type_hints)
+from typing import (
+    TYPE_CHECKING,
+    ForwardRef,
+    Iterable,
+    NamedTuple,
+    TypedDict,
+    get_args,
+    get_type_hints,
+)
 
 from _view import Context
 
@@ -24,10 +31,13 @@ import inspect
 
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
-from .exceptions import (DuplicateRouteError, InvalidBodyError,
-                         InvalidRouteError, LoaderWarning)
-from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
-                      _NoDefault)
+from .exceptions import (
+    DuplicateRouteError,
+    InvalidBodyError,
+    InvalidRouteError,
+    LoaderWarning,
+)
+from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired = None
@@ -97,8 +107,9 @@ This can be formatted as so:
 """
 -- Route Data Information --
 1 - Context
-*more to be added later*
+2 - WebSocket
 """
+
 
 class _ViewNotRequired:
     __VIEW_NOREQ__ = 1
@@ -412,6 +423,7 @@ def finalize(routes: list[Route], app: ViewApp):
         Method.PATCH: app._patch,
         Method.DELETE: app._delete,
         Method.OPTIONS: app._options,
+        Method.WEBSOCKET: app._websocket,
     }
 
     for route in routes:
@@ -421,7 +433,6 @@ def finalize(routes: list[Route], app: ViewApp):
             target = targets[route.method]
         else:
             target = None
-    
 
         if (not route.path) and (not route.parts):
             raise InvalidRouteError(f"{route} did not specify a path")
@@ -466,14 +477,16 @@ def finalize(routes: list[Route], app: ViewApp):
                         default,
                         None,
                         [],
-                    )
+                    ),
                 )
                 index += 1
 
             if len(route.inputs) != len(sig.parameters):
                 raise InvalidRouteError(
                     "mismatch in parameter names with automatic route inputs",
-                    hint=docs_hint("https://view.zintensity.dev/building-projects/parameters/#automatically")
+                    hint=docs_hint(
+                        "https://view.zintensity.dev/building-projects/parameters/#automatically"
+                    ),
                 )
 
         app.loaded_routes.append(route)
@@ -485,7 +498,7 @@ def finalize(routes: list[Route], app: ViewApp):
                 _format_inputs(route.inputs),
                 route.errors or {},
                 route.parts,  # type: ignore
-                [i for i in reversed(route.middleware_funcs)]
+                [i for i in reversed(route.middleware_funcs)],
             )
         else:
             for i in (route.method_list) or targets.keys():
@@ -497,9 +510,8 @@ def finalize(routes: list[Route], app: ViewApp):
                     _format_inputs(route.inputs),
                     route.errors or {},
                     route.parts,  # type: ignore
-                    [i for i in reversed(route.middleware_funcs)]
+                    [i for i in reversed(route.middleware_funcs)],
                 )
-
 
 
 def load_fs(app: ViewApp, target_dir: Path) -> None:

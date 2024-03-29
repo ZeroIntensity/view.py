@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import ctypes
 import faulthandler
-import importlib
 import inspect
 import logging
 import os
@@ -23,22 +22,21 @@ from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
 from urllib.parse import urlencode
 
 import ujson
-import uvicorn
 from rich import print
 from rich.traceback import install
 from typing_extensions import Unpack
 
 from _view import InvalidStatusError, ViewApp
 
+from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (Internal, Service, UvicornHijack, enter_server,
-                       exit_server, format_warnings)
+from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
+                       format_warnings)
 from ._parsers import supply_parsers
-from ._util import make_hint
+from ._util import make_hint, needs_dep
 from .config import Config, load_config
-from .exceptions import (BadEnvironmentError, ConfigurationError, ViewError,
-                         ViewInternalError)
+from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
@@ -59,9 +57,7 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = (
-    "routes argument should only be passed when load strategy is manual"
-)
+_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
 _ConfigSpecified = None
 _CurrentFrame = None
 
@@ -189,8 +185,7 @@ class TestingContext:
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
         headers_list = [
-            (key.encode(), value.encode())
-            for key, value in (headers or {}).items()
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
         ]
 
         await self.app(
@@ -198,9 +193,7 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode()
-                if query
-                else b"",  # noqa
+                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
                 "headers": headers_list,
                 "method": method,
                 "http_version": "view_test",
@@ -327,6 +320,7 @@ class RouteDoc:
     body: dict[str, InputDoc]
     query: dict[str, InputDoc]
 
+_LEVELS = dict((v, k) for k, v in LOGS.items())
 
 class Error(BaseException):
     """Base class to act as a transport for raising HTTP exceptions."""
@@ -338,9 +332,7 @@ class Error(BaseException):
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError(
-                "status code can only be a client or server error"
-            )
+            raise InvalidStatusError("status code can only be a client or server error")
 
         self.status = status
         self.message = message
@@ -370,6 +362,8 @@ class App(ViewApp):
         self.loaded_routes: list[Route] = []
         self.templaters: dict[str, Any] = {}
         self._register_error(error_class)
+        
+        os.environ.update({k: str(v) for k, v in config.env.items()})
 
         Service.log.setLevel(
             config.log.level
@@ -415,9 +409,7 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -536,9 +528,7 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, post)
 
-    def delete(
-        self, path: str, doc: str | None = None, *, cache_rate: int = -1
-    ):
+    def delete(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Add a DELETE route.
 
         Args:
@@ -613,9 +603,7 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, put)
 
-    def options(
-        self, path: str, doc: str | None = None, *, cache_rate: int = -1
-    ):
+    def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Add an OPTIONS route.
 
         Args:
@@ -738,9 +726,7 @@ class App(ViewApp):
         else:
             f = frame
 
-        return await template(
-            name, directory, engine, f, app=self, **parameters
-        )
+        return await template(name, directory, engine, f, app=self, **parameters)
 
     async def markdown(
         self,
@@ -823,31 +809,22 @@ class App(ViewApp):
                 ] = RouteDoc(r.doc or "No description provided.", body, query)
 
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
-        Internal.info(f"using event loop: {asyncio.get_event_loop()}")
+        loop = asyncio.get_event_loop()
+        Internal.info(f"using event loop: {loop}")
         Internal.info(f"spawning {coro}")
 
-        task = asyncio.create_task(coro)
-        if self.config.log.hijack:
-            if self.config.server.backend == "uvicorn":
-                Internal.info("hijacking uvicorn")
-                for log in (
-                    logging.getLogger("uvicorn.error"),
-                    logging.getLogger("uvicorn.access"),
-                ):
-                    log.addFilter(UvicornHijack())
-            else:
-                Internal.info("hijacking hypercorn")
+        task = loop.create_task(coro)
 
         if self.config.log.fancy:
-            if not self.config.log.hijack:
-                raise ConfigurationError(
-                    "hijack must be enabled for fancy mode"
-                )
-
             enter_server()
 
         self.running = True
         Internal.debug("here we go!")
+        
+        if (self.config.log.startup_message) and (not self.config.log.fancy):
+            welcome()
+
+        Service.info("server online!")
         await task
         self.running = False
 
@@ -863,18 +840,33 @@ class App(ViewApp):
         uvloop_enabled = False
 
         if self.config.app.uvloop is True:
-            uvloop = importlib.import_module("uvloop")
+            try:
+                import uvloop
+            except ModuleNotFoundError as e:
+                needs_dep("uvloop", e)
             uvloop.install()
             uvloop_enabled = True
         elif self.config.app.uvloop == "decide":
             with suppress(ModuleNotFoundError):
-                uvloop = importlib.import_module("uvloop")
+                import uvloop
                 uvloop.install()
                 uvloop_enabled = True
 
         start = start_target or asyncio.run
 
         if server == "uvicorn":
+            try:
+                import uvicorn
+            except ModuleNotFoundError as e:
+                needs_dep("uvicorn", e, "servers")
+            
+            for log in (
+                logging.getLogger("uvicorn.error"),
+                logging.getLogger("uvicorn.access"),
+            ):
+                log.disabled = not self.config.log.server_logger
+
+
             config = uvicorn.Config(
                 self._app,
                 port=self.config.server.port,
@@ -891,7 +883,19 @@ class App(ViewApp):
             return start(self._spawn(server.serve()))
 
         elif server == "hypercorn":
-            raise NotImplementedError
+            try:
+                import hypercorn
+            except ModuleNotFoundError as e:
+                needs_dep("hypercorn", e, "servers")
+            
+            for log in (
+                logging.getLogger("hypercorn.error"),
+                logging.getLogger("hypercorn.access"),
+            ):
+                log.disabled = not self.config.log.server_logger
+
+            
+            from hypercorn.asyncio import serve
             conf = hypercorn.Config()
             conf.loglevel = "debug" if self.config.dev else "info"
             conf.bind = [
@@ -902,10 +906,38 @@ class App(ViewApp):
                 setattr(conf, k, v)
 
             return start(
-                importlib.import_module("hypercorn.asyncio").serve(
-                    self._app, conf
-                )
+                self._spawn(serve(self._app, conf))
             )
+        elif server == "daphne":
+            try:
+                import daphne as _
+            except ModuleNotFoundError as e:
+                needs_dep("daphne", e, "servers")
+            
+            from daphne.endpoints import build_endpoint_description_strings
+            from daphne.server import Server
+
+            endpoints = build_endpoint_description_strings(
+                host=str(self.config.server.host),
+                port=self.config.server.port,
+            )
+            
+            logger = logging.getLogger("daphne.cli")
+            logger.disabled = not self.config.log.server_logger
+            # default daphne log configuration
+            level = _LEVELS[self.config.log.level] if not isinstance(self.config.log.level, int) else self.config.log.level
+            logger.setLevel(level)
+            logging.basicConfig(
+                level=level,
+                format="%(asctime)-15s %(levelname)-8s %(message)s",
+            )
+
+            server = Server(
+                self._app,
+                server_name="view.py",
+                endpoints=endpoints
+            )
+            return start(self._spawn(asyncio.to_thread(server.run)))
         else:
             raise NotImplementedError("viewserver is not implemented yet")
 
@@ -1080,6 +1112,8 @@ def new_app(
 
     return app
 
+
+# this is forbidden pointers.py technology
 
 ctypes.pythonapi.Py_IncRef.argtypes = (ctypes.py_object,)
 

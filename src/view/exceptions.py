@@ -108,5 +108,6 @@ class NeedsDependencyError(ViewError):
 class InvalidTemplateError(ViewError):
     """Something is wrong with a template."""
 
+
 class TypeValidationError(TypeError, ViewError):
     """Could not assign the object to the target type."""
