@@ -124,4 +124,4 @@ async def _():
     assert test2["hello"] == "world"
 
     os.environ["_TEST3"] = "false"
-    assert env("_TEST3") is False
+    assert env("_TEST3", tp=bool) is False
