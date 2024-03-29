@@ -1,10 +1,12 @@
+import os
 from dataclasses import dataclass
 from typing import Dict
 
 from typing_extensions import Annotated
 from ward import raises, test
 
-from view import App, TypeValidationError, compile_type, get_app, new_app
+from view import (App, BadEnvironmentError, TypeValidationError, compile_type,
+                  env, get_app, new_app)
 
 
 @test("app creation")
@@ -105,3 +107,21 @@ async def _():
 
     with raises(TypeValidationError):
         tp.cast("{}")
+
+@test("environment variables")
+async def _():
+    with raises(BadEnvironmentError):
+        env("_TEST")
+
+    os.environ["_TEST"] = "1"
+
+    assert env("_TEST") == "1"
+    assert env("_TEST", tp=int) == 1
+    os.environ["_TEST2"] = '{"hello": "world"}'
+    
+    test2 = env("_TEST2", tp=dict)
+    assert isinstance(test2, dict)
+    assert test2["hello"] == "world"
+
+    os.environ["_TEST3"] = "false"
+    assert env("_TEST3") is False
