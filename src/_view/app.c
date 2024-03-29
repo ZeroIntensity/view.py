@@ -2922,6 +2922,7 @@ static int handle_route(PyObject* awaitable, char* query) {
         NULL,
         NULL,
         &receive,
+        NULL,
         NULL
         ) < 0)
         return -1;
