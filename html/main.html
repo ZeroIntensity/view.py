@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% block content %}
 <div class="flex justify-between px-4 lg:px-16">
     <nav
-        class="flex-col space-y-6 sticky top-0 self-start hidden md:flex lg:pt-28 z-10 sm:z-0 pt-48"
+        class="flex-col space-y-6 overflow-y-auto self-start hidden md:flex z-10 sm:z-0"
         id="sidebar"
     >
         {% for item in nav %} {% if item.children %}
@@ -14,7 +14,7 @@
                 {% for sub in item.children %}
                 <a
                     href="{{ sub.url|url }}"
-                    class="{{ 'text-rose-500' if sub.active else 'text-zinc-500' }}"
+                    class="{{ 'text-rose-500 dark:text-rose-600' if sub.active else 'text-zinc-500 dark:text-zinc-400' }}"
                     >{{ sub.title }}</a
                 >
                 {% endfor %}
@@ -33,10 +33,12 @@
             >
                 {% if page.previous_page %}
                 <a
-                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 hover:border-zinc-200"
+                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 hover:border-zinc-200 dark:hover:bg-zinc-950 dark:border-zinc-900 dark:bg-black dark:hover:border-zinc-900"
                     href="/{{ page.previous_page.url }}"
                 >
-                    <p class="text-zinc-600 text-sm">Previous Page</p>
+                    <p class="text-zinc-600 text-sm dark:text-zinc-300">
+                        Previous Page
+                    </p>
                     <div class="flex space-x-2 items-center text-xl">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -58,10 +60,12 @@
                 </a>
                 {% endif %} {% if page.next_page %}
                 <a
-                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 hover:border-zinc-200"
+                    class="flex flex-col space-y-1 p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 hover:border-zinc-200 dark:hover:bg-zinc-950 dark:border-zinc-900 dark:bg-black dark:hover:border-zinc-900"
                     href="/{{ page.next_page.url }}"
                 >
-                    <p class="text-zinc-600 text-sm">Next Page</p>
+                    <p class="text-zinc-600 text-sm dark:text-zinc-300">
+                        Next Page
+                    </p>
                     <div class="flex space-x-2 items-center text-xl">
                         <span>{{ page.next_page.title }}</span>
                         <svg
@@ -85,9 +89,7 @@
         </div>
     </div>
 
-    <div
-        class="sticky top-0 self-start pt-32 w-1/6 lg:flex flex-col space-y-3 hidden"
-    >
+    <div class="self-start pt-32 w-1/6 lg:flex flex-col space-y-3 hidden">
         <div>
             <p class="font-bold">On this page</p>
             <div class="py-2">
