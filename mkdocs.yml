@@ -12,7 +12,7 @@ nav:
           - Project Creation: getting-started/creating_a_project.md
     - Building Projects:
           - App Basics: building-projects/app_basics.md
-          - Routing: building-projects/routing.md
+          - URL Routing: building-projects/routing.md
           - Returning Responses: building-projects/responses.md
           - Taking Parameters: building-projects/parameters.md
           - Getting Request Data: building-projects/request_data.md
