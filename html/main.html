@@ -1,26 +1,27 @@
 {% extends "base.html" %} {% block content %}
-<div class="flex justify-between px-4 lg:px-16">
-    <nav
-        class="flex-col space-y-6 overflow-y-auto self-start hidden md:flex z-10 sm:z-0"
-        id="sidebar"
-    >
-        {% for item in nav %} {% if item.children %}
-        <div>
-            <p class="font-bold">{{ item.title }}</p>
-            <div class="py-2">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+<div class="flex justify-between px-4">
+    <nav class="py-2" id="sidebar">
+        <div
+            class="flex-col space-y-6 self-start hidden md:flex z-10 sm:z-0 px-12"
+        >
+            {% for item in nav %} {% if item.children %}
+            <div>
+                <p class="font-bold">{{ item.title }}</p>
+                <div class="py-2">
+                    <hr class="border-t border-zinc-100 dark:border-zinc-800" />
+                </div>
+                <div class="flex flex-col space-y-2">
+                    {% for sub in item.children %}
+                    <a
+                        href="{{ sub.url|url }}"
+                        class="{{ 'text-rose-500 dark:text-rose-600' if sub.active else 'text-zinc-500 dark:text-zinc-400' }}"
+                        >{{ sub.title }}</a
+                    >
+                    {% endfor %}
+                </div>
             </div>
-            <div class="flex flex-col space-y-2">
-                {% for sub in item.children %}
-                <a
-                    href="{{ sub.url|url }}"
-                    class="{{ 'text-rose-500 dark:text-rose-600' if sub.active else 'text-zinc-500 dark:text-zinc-400' }}"
-                    >{{ sub.title }}</a
-                >
-                {% endfor %}
-            </div>
+            {% endif %} {% endfor %}
         </div>
-        {% endif %} {% endfor %}
     </nav>
     <div class="flex flex-col space-y-1 p-4 md:w-2/3 w-full overflow-x-auto">
         {{ page.content }}
@@ -89,7 +90,7 @@
         </div>
     </div>
 
-    <div class="self-start pt-32 w-1/6 lg:flex flex-col space-y-3 hidden">
+    <div class="self-start py-2 w-1/6 lg:flex flex-col space-y-3 hidden">
         <div>
             <p class="font-bold">On this page</p>
             <div class="py-2">
@@ -109,9 +110,6 @@
                     >{{ toc_item.title }}</a
                 >
                 {% endfor %} {% endfor %} {% endfor %}
-            </div>
-            <div class="py-2">
-                <hr class="border-t border-zinc-100 dark:border-zinc-800" />
             </div>
         </div>
         <div>

@@ -131,7 +131,7 @@ td {
 }
 
 .admonition {
-    @apply border-zinc-100 border-2 rounded-lg dark:border-zinc-900;
+    @apply border-zinc-100 border-[3px] rounded-lg dark:border-zinc-900;
 }
 
 .admonition-title {

@@ -376,6 +376,13 @@ def init(
         res = subprocess.call(["git", "init", str(path)])
         if res != 0:
             warn("failed to initalize git repository")
+        else:
+            gitignore = path / ".gitignore"
+
+            with open(gitignore, "w") as f:
+                f.write("__pycache__/")
+
+            success("Created `.gitignore`")
 
     if venv:
         info("Creating venv...")
@@ -414,13 +421,13 @@ app.run()
         if load == "manual":
             f.write(
                 f"# view.py {__version__}\n"
-                """from view import new_app
+                """from view import new_app, default_page
 
 app = new_app()
 
 @app.get("/")
 async def index():
-    return "Hello, view.py!"
+    return default_page()
 
 app.run()
 """
@@ -439,13 +446,15 @@ app.run()
     if load == "patterns":
         urls = path / "urls.py"
         with open(urls, "w") as f:
-            f.write("""from view import path
+            f.write(
+                """from view import path
 from routes.index import index
 
 PATTERNS = (
     path("/", index),
 )
-""")
+"""
+            )
 
     if load != "manual":
         routes = path / "routes"
@@ -457,11 +466,11 @@ PATTERNS = (
         pathstr = "" if load == "filesystem" else "'/'"
         with open(index, "w") as f:
             f.write(
-                f"""from view import get
+                f"""from view import get, default_page
 
 @get({pathstr})
 async def index():
-    return 'Hello, view.py!'
+    return default_page()
 """
             )
 

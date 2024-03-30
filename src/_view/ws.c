@@ -51,7 +51,14 @@ PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
         return NULL;
     }
 
-    return (PyObject*) ws;
+    PyObject* py_ws = PyObject_Vectorcall(
+        ws_cls,
+        (PyObject*[]) { (PyObject*) ws },
+        1,
+        NULL
+    );
+
+    return py_ws;
 }
 
 static int run_ws_accept(PyObject* awaitable, PyObject* result) {
@@ -357,13 +364,28 @@ static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
     if (!awaitable)
         return NULL;
 
-    PyObject* send_dict = Py_BuildValue(
-        "{s:s,s:S}",
-        "type",
-        "websocket.send",
-        "text",
-        data
-    );
+    PyObject* send_dict;
+    if (PyUnicode_Check(data)) {
+        send_dict = Py_BuildValue(
+            "{s:s,s:S}",
+            "type",
+            "websocket.send",
+            "text",
+            data
+        );
+    } else if (PyBytes_Check(data)) {
+        send_dict = Py_BuildValue(
+            "{s:s,s:S}",
+            "type",
+            "websocket.send",
+            "bytes",
+            data
+        );
+    } else {
+        PyErr_Format(PyExc_TypeError, "expected string or bytes, got %R",
+            Py_TYPE(data));
+        return NULL;
+    }
 
     if (!send_dict) {
         Py_DECREF(awaitable);

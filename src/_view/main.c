@@ -6,6 +6,7 @@ PyObject* route_log = NULL;
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
 PyObject* ws_handshake_error = NULL;
+PyObject* ws_cls = NULL;
 
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     PyObject* func;
@@ -23,8 +24,25 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
+    PyObject* cls;
+
+    if (!PyArg_ParseTuple(args, "O", &cls))
+        return NULL;
+
+    if (!PyType_Check(cls)) {
+        PyErr_Format(PyExc_RuntimeError,
+            "register_ws_cls got non-function object: %R", cls);
+        return NULL;
+    }
+
+    ws_cls = Py_NewRef(cls);
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef methods[] = {
     {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
+    {"register_ws_cls", register_ws_cls, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

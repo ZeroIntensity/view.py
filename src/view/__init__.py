@@ -17,6 +17,7 @@ from . import _codec
 from .__about__ import *
 from .app import *
 from .components import *
+from .default_page import *
 from .exceptions import *
 from .logging import *
 from .patterns import *
@@ -25,4 +26,3 @@ from .routing import *
 from .templates import *
 from .typecodes import *
 from .util import *
-from .default_page import *

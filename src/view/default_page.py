@@ -1,8 +1,8 @@
 from .response import HTML
 
-__all__ = "default_page",
+__all__ = ("default_page",)
 
-_DEFAULT_PAGE_HTML = """<!DOCTYPE html>
+_DEFAULT_PAGE_HTML = r"""<!DOCTYPE html>
 <html lang="en">
     <head>
         <title>Hello, view.py!</title>
@@ -733,6 +733,7 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
     </body>
 </html>
 """
+
 
 def default_page() -> HTML:
     """Return the view.py default page."""

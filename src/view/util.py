@@ -111,7 +111,7 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
     Example:
         ```py
         from view import new_app, env
-        
+
         app = new_app()
 
         @app.get("/")

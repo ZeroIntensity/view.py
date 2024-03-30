@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added documentation for `view.env` and added environment variables to configuration
 -   Removed dead file `src/view/nodes.py`
 -   Added `patterns` loader to `view init`
+-   Added the `default_page` function
+-   Made `default_page` the example response in `view init`
+-   Added `.gitignore` generation to `view init`
 
 ## [1.0.0-alpha9] - 2024-2-4
 
