@@ -3,7 +3,9 @@ from typing import overload
 import ujson
 from typing_extensions import Self
 
-from _view import ViewWebSocket, WebSocketHandshakeError
+from _view import ViewWebSocket, WebSocketHandshakeError, register_ws_cls
+
+__all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
 WebSocketSendable = str | bytes | dict | int | bool
 WebSocketReceivable = str | bytes | dict | int | bool
@@ -11,6 +13,7 @@ WebSocketReceivable = str | bytes | dict | int | bool
 
 class WebSocket:
     """Object representing a WebSocket connection."""
+
     def __init__(self, socket: ViewWebSocket) -> None:
         self.socket: ViewWebSocket = socket
         self.open: bool = False
@@ -31,7 +34,7 @@ class WebSocket:
     @overload
     async def receive(self, tp: type[int] = int) -> int:
         ...
-    
+
     @overload
     async def receive(self, tp: type[bool] = bool) -> bool:
         ...
@@ -42,7 +45,9 @@ class WebSocket:
         Args:
             tp: Python type to cast the received message to."""
         if not self.open:
-            raise WebSocketHandshakeError("cannot receive from connection that is not open")
+            raise WebSocketHandshakeError(
+                "cannot receive from connection that is not open"
+            )
         res: str = await self.socket.receive()
 
         if tp is str:
@@ -84,8 +89,10 @@ class WebSocket:
         elif isinstance(message, bool):
             await self.socket.send("true" if message else "false")
         else:
-            raise TypeError(f"expected object of type str, bytes, dict, int, or bool, but got {message!r}")
-   
+            raise TypeError(
+                f"expected object of type str, bytes, dict, int, or bool, but got {message!r}"
+            )
+
     @overload
     async def pair(
         self,
@@ -95,7 +102,7 @@ class WebSocket:
         recv_first: bool = False,
     ) -> str:
         ...
-    
+
     @overload
     async def pair(
         self,
@@ -105,7 +112,7 @@ class WebSocket:
         recv_first: bool = False,
     ) -> bytes:
         ...
-    
+
     @overload
     async def pair(
         self,
@@ -115,7 +122,7 @@ class WebSocket:
         recv_first: bool = False,
     ) -> int:
         ...
-    
+
     @overload
     async def pair(
         self,
@@ -125,7 +132,7 @@ class WebSocket:
         recv_first: bool = False,
     ) -> dict:
         ...
-    
+
     @overload
     async def pair(
         self,
@@ -148,7 +155,8 @@ class WebSocket:
         Args:
             message: Message to send. Equivalent to `message` in `send()`
             tp: Type to cast the result to. Equivalent to `tp` in `receive()`
-            recv_first: Whether to receive the message before sending. If this is `False`, a message is sent first, then a message is received. """
+            recv_first: Whether to receive the message before sending. If this is `False`, a message is sent first, then a message is received.
+        """
         if not recv_first:
             await self.send(message)
             return await self.receive(tp)
@@ -183,3 +191,6 @@ class WebSocket:
 
     async def __aexit__(self, *_) -> None:
         await self.close()
+
+
+register_ws_cls(WebSocket)

@@ -17,17 +17,8 @@ from pathlib import Path
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (
-    Any,
-    Callable,
-    Coroutine,
-    Generic,
-    Iterable,
-    TextIO,
-    TypeVar,
-    get_type_hints,
-    overload,
-)
+from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
+                    TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -40,26 +31,22 @@ from _view import InvalidStatusError, ViewApp
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (
-    LOGS,
-    Internal,
-    Service,
-    enter_server,
-    exit_server,
-    format_warnings,
-)
+from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
+                       format_warnings)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .config import Config, load_config
 from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
 from .response import HTML
+from .routing import Path as RoutingPath
 from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .routing import route as route_impl
+from .routing import websocket
 from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
 from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
@@ -144,6 +131,31 @@ def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
     return query_str
 
 
+class VirtualWebSocket:
+    def __init__(self) -> None:
+        self.recv_queue = asyncio.Queue()
+        self.send_queue = asyncio.Queue()
+        self.recv_queue.put_nowait({"type": "websocket.connect"})
+
+    async def close(self):
+        await self.recv_queue.put({"type": "websocket.disconnect"})
+
+    async def _server_receive(self):
+        return await self.recv_queue.get()
+
+    async def _server_send(self, data: dict):
+        await self.send_queue.put(data.get("text") or data.get("bytes"))
+
+    async def send(self, message: str) -> None:
+        await self.recv_queue.put({"type": "websocket.receive", "text": message})
+
+    async def receive(self) -> str:
+        return await self.send_queue.get()
+
+    async def handshake(self) -> None:
+        assert (await self.send_queue.get())["type"] == "websocket.accept"
+
+
 class TestingContext:
     def __init__(
         self,
@@ -164,6 +176,14 @@ class TestingContext:
 
     async def stop(self):
         await self._lifespan.put("lifespan.shutdown")
+
+    def _gen_headers(self, headers: dict[str, str]) -> list[tuple[bytes, bytes]]:
+        return [
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
+        ]
+
+    def _truncate(self, route: str) -> str:
+        return route[: route.find("?")] if "?" in route else route
 
     async def _request(
         self,
@@ -197,11 +217,9 @@ class TestingContext:
             else:
                 raise ViewInternalError(f"bad type: {obj['type']}")
 
-        truncated_route = route[: route.find("?")] if "?" in route else route
+        truncated_route = self._truncate(route)
         query_str = _format_qs(query or {})
-        headers_list = [
-            (key.encode(), value.encode()) for key, value in (headers or {}).items()
-        ]
+        headers_list = self._gen_headers(headers or {})
 
         await self.app(
             {
@@ -320,6 +338,32 @@ class TestingContext:
             query=query,
             headers=headers,
         )
+
+    async def websocket(
+        self,
+        route: str,
+        *,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> VirtualWebSocket:
+        query_str = _format_qs(query or {})
+        headers_list = self._gen_headers(headers or {})
+        truncated_route = self._truncate(route)
+
+        socket = VirtualWebSocket()
+        await self.app(
+            {
+                "type": "websocket",
+                "path": truncated_route,
+                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
+                "headers": headers_list,
+            },
+            socket._server_receive,
+            socket._server_send,
+        )
+
+        await socket.handshake()
+        return socket
 
 
 @dataclass
@@ -499,11 +543,23 @@ class App(ViewApp):
 
         return inner
 
+    def websocket(
+        self,
+        path: str,
+        doc: str | None = None,
+    ) -> Callable[[RouteOrCallable], Route]:
+        def inner(route: RouteOrCallable) -> Route:
+            new_route = websocket(path, doc)(route)
+            self._push_route(new_route)
+            return new_route
+
+        return inner
+
     def get(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
         """Add a GET route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route, or the route itself.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -526,7 +582,7 @@ class App(ViewApp):
         """Add a POST route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route, or the route itself.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -549,7 +605,7 @@ class App(ViewApp):
         """Add a DELETE route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route, or the route itself.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -578,7 +634,7 @@ class App(ViewApp):
         """Add a PATCH route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route, or the route itself.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -601,7 +657,7 @@ class App(ViewApp):
         """Add a PUT route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route, or the route itself.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -624,7 +680,7 @@ class App(ViewApp):
         """Add an OPTIONS route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route, or the route itself.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
