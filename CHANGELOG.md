@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added the `default_page` function
 -   Made `default_page` the example response in `view init`
 -   Added `.gitignore` generation to `view init`
+-   **Breaking Change:** Removed the `hijack` configuration setting
 
 ## [1.0.0-alpha9] - 2024-2-4
 

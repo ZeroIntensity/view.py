@@ -1,4 +1,6 @@
-from typing import overload
+from __future__ import annotations
+
+from typing import Union, overload
 
 import ujson
 from typing_extensions import Self
@@ -7,8 +9,8 @@ from _view import ViewWebSocket, WebSocketHandshakeError, register_ws_cls
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
-WebSocketSendable = str | bytes | dict | int | bool
-WebSocketReceivable = str | bytes | dict | int | bool
+WebSocketSendable = Union[str, bytes, dict, int, bool]
+WebSocketReceivable = Union[str, bytes, dict, int, bool]
 
 
 class WebSocket:
@@ -39,7 +41,9 @@ class WebSocket:
     async def receive(self, tp: type[bool] = bool) -> bool:
         ...
 
-    async def receive(self, tp: type[WebSocketReceivable] = str) -> WebSocketReceivable:
+    async def receive(
+        self, tp: type[WebSocketReceivable] = str
+    ) -> WebSocketReceivable:
         """Receive a message from the WebSocket.
 
         Args:
@@ -49,6 +53,9 @@ class WebSocket:
                 "cannot receive from connection that is not open"
             )
         res: str = await self.socket.receive()
+
+        if res is None:
+            raise WebSocketHandshakeError("socket disconnected")
 
         if tp is str:
             return res
@@ -63,7 +70,9 @@ class WebSocket:
             return res.encode()
 
         if tp is bool:
-            if (res not in {"True", "true", "False", "false"}) and (not res.isdigit()):
+            if (res not in {"True", "true", "False", "false"}) and (
+                not res.isdigit()
+            ):
                 raise TypeError(f"{res!r} is not boolean-like")
 
             if res.isdigit():
@@ -71,7 +80,9 @@ class WebSocket:
 
             return res in {"True", "true"}
 
-        raise TypeError(f"expected type str, bytes, dict, int, or bool, but got {tp!r}")
+        raise TypeError(
+            f"expected type str, bytes, dict, int, or bool, but got {tp!r}"
+        )
 
     async def send(self, message: WebSocketSendable) -> None:
         """Send a message to the client.
@@ -79,7 +90,9 @@ class WebSocket:
         Args:
             message: Message to send."""
         if not self.open:
-            raise WebSocketHandshakeError("cannot send to connection that is not open")
+            raise WebSocketHandshakeError(
+                "cannot send to connection that is not open"
+            )
         if isinstance(message, (str, bytes)):
             await self.socket.send(message)
         elif isinstance(message, dict):
@@ -168,7 +181,9 @@ class WebSocket:
     async def close(self) -> None:
         """Close the connection."""
         if not self.open:
-            raise WebSocketHandshakeError("cannot close connection that isn't open")
+            raise WebSocketHandshakeError(
+                "cannot close connection that isn't open"
+            )
 
         self.open = False
         self.done = True

@@ -14,11 +14,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from io import UnsupportedOperation
 from pathlib import Path
+from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
-                    TypeVar, get_type_hints, overload)
+from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
+                    TextIO, TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -59,7 +60,9 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
+_ROUTES_WARN_MSG = (
+    "routes argument should only be passed when load strategy is manual"
+)
 _ConfigSpecified = None
 _CurrentFrame = None
 
@@ -131,29 +134,50 @@ def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
     return query_str
 
 
+async def _to_thread(func: Callable[[], T]) -> T:
+    if hasattr(asyncio, "to_thread"):
+        return await asyncio.to_thread(func)
+    else:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func)
+
+
 class VirtualWebSocket:
     def __init__(self) -> None:
-        self.recv_queue = asyncio.Queue()
-        self.send_queue = asyncio.Queue()
+        self.recv_queue = Queue()
+        self.send_queue = Queue()
         self.recv_queue.put_nowait({"type": "websocket.connect"})
 
     async def close(self):
-        await self.recv_queue.put({"type": "websocket.disconnect"})
+        self.recv_queue.put_nowait({"type": "websocket.disconnect"})
 
     async def _server_receive(self):
-        return await self.recv_queue.get()
+        return await _to_thread(self.recv_queue.get)
 
     async def _server_send(self, data: dict):
-        await self.send_queue.put(data.get("text") or data.get("bytes"))
+        self.send_queue.put_nowait(data)
 
     async def send(self, message: str) -> None:
-        await self.recv_queue.put({"type": "websocket.receive", "text": message})
+        self.recv_queue.put_nowait(
+            {"type": "websocket.receive", "text": message}
+        )
 
     async def receive(self) -> str:
-        return await self.send_queue.get()
+        data = await _to_thread(self.send_queue.get)
+        msg = data.get("text") or data.get("bytes")
+
+        if not msg:
+            reason = data.get("reason")
+            if reason:
+                raise RuntimeError(reason)
+            raise ViewInternalError(f"{data!r} has no text or bytes key")
+
+        return msg
 
     async def handshake(self) -> None:
-        assert (await self.send_queue.get())["type"] == "websocket.accept"
+        assert (await _to_thread(self.send_queue.get))[
+            "type"
+        ] == "websocket.accept"
 
 
 class TestingContext:
@@ -177,9 +201,12 @@ class TestingContext:
     async def stop(self):
         await self._lifespan.put("lifespan.shutdown")
 
-    def _gen_headers(self, headers: dict[str, str]) -> list[tuple[bytes, bytes]]:
+    def _gen_headers(
+        self, headers: dict[str, str]
+    ) -> list[tuple[bytes, bytes]]:
         return [
-            (key.encode(), value.encode()) for key, value in (headers or {}).items()
+            (key.encode(), value.encode())
+            for key, value in (headers or {}).items()
         ]
 
     def _truncate(self, route: str) -> str:
@@ -226,7 +253,9 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
+                "query_string": urlencode(query_str).encode()
+                if query
+                else b"",  # noqa
                 "headers": headers_list,
                 "method": method,
                 "http_version": "view_test",
@@ -339,31 +368,44 @@ class TestingContext:
             headers=headers,
         )
 
+    @asynccontextmanager
     async def websocket(
         self,
         route: str,
         *,
         query: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
-    ) -> VirtualWebSocket:
+    ) -> AsyncIterator[VirtualWebSocket]:
         query_str = _format_qs(query or {})
         headers_list = self._gen_headers(headers or {})
         truncated_route = self._truncate(route)
 
         socket = VirtualWebSocket()
-        await self.app(
-            {
-                "type": "websocket",
-                "path": truncated_route,
-                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
-                "headers": headers_list,
-            },
-            socket._server_receive,
-            socket._server_send,
-        )
+
+        def _wrapper():
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(
+                self.app(
+                    {
+                        "type": "websocket",
+                        "path": truncated_route,
+                        "query_string": urlencode(query_str).encode()
+                        if query
+                        else b"",  # noqa
+                        "headers": headers_list,
+                    },
+                    socket._server_receive,
+                    socket._server_send,
+                )
+            )
+
+        Thread(target=_wrapper).start()
 
         await socket.handshake()
-        return socket
+        try:
+            yield socket
+        finally:
+            await socket.close()
 
 
 @dataclass
@@ -393,7 +435,9 @@ class Error(BaseException):
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError("status code can only be a client or server error")
+            raise InvalidStatusError(
+                "status code can only be a client or server error"
+            )
 
         self.status = status
         self.message = message
@@ -452,6 +496,14 @@ class App(ViewApp):
                     if value.hint:
                         print(value.hint)
 
+                if isinstance(value, ViewInternalError):
+                    print(
+                        "[bold dim red]This is an internal error, not your fault![/]"
+                    )
+                    print(
+                        "[bold dim red]Please report this at https://github.com/ZeroIntensity/view.py/issues[/]"
+                    )
+
             sys.excepthook = _hook
             with suppress(UnsupportedOperation):
                 faulthandler.enable()
@@ -470,7 +522,9 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn("load() was never called (did you forget to start the app?)")
+        warnings.warn(
+            "load() was never called (did you forget to start the app?)"
+        )
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -601,7 +655,9 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, post)
 
-    def delete(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def delete(
+        self, path: str, doc: str | None = None, *, cache_rate: int = -1
+    ):
         """Add a DELETE route.
 
         Args:
@@ -676,7 +732,9 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, put)
 
-    def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def options(
+        self, path: str, doc: str | None = None, *, cache_rate: int = -1
+    ):
         """Add an OPTIONS route.
 
         Args:
@@ -799,7 +857,9 @@ class App(ViewApp):
         else:
             f = frame
 
-        return await template(name, directory, engine, f, app=self, **parameters)
+        return await template(
+            name, directory, engine, f, app=self, **parameters
+        )
 
     async def markdown(
         self,
@@ -1009,7 +1069,9 @@ class App(ViewApp):
                 format="%(asctime)-15s %(levelname)-8s %(message)s",
             )
 
-            server = Server(self._app, server_name="view.py", endpoints=endpoints)
+            server = Server(
+                self._app, server_name="view.py", endpoints=endpoints
+            )
             return start(self._spawn(asyncio.to_thread(server.run)))
         else:
             raise NotImplementedError("viewserver is not implemented yet")
