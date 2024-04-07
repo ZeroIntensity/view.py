@@ -333,7 +333,6 @@ awaitable_repr(PyObject *self) {
                                 self);
 }
 
-
 static PyObject *
 awaitable_send_with_arg(PyObject *self, PyObject *value)
 {
@@ -392,9 +391,9 @@ awaitable_throw(PyObject *self, PyObject *args)
                 return NULL;
             }
 
-        PyErr_SetRaisedException(err);
+        PyErr_Restore(err, NULL, NULL);
     } else
-        PyErr_SetRaisedException(Py_NewRef(type));
+        PyErr_Restore(Py_NewRef(type), Py_XNewRef(value), Py_XNewRef(traceback));
 
     PyAwaitableObject *aw = (PyAwaitableObject *) self;
     if ((aw->aw_gen != NULL) && (aw->aw_state != 0)) {
@@ -411,11 +410,12 @@ awaitable_throw(PyObject *self, PyObject *args)
     assert(NULL);
 }
 
+#if PY_MINOR_VERSION > 8
 static PySendResult
 awaitable_am_send(PyObject *self, PyObject *arg, PyObject **presult) {
     PyObject *send_res = awaitable_send_with_arg(self, arg);
     if (send_res == NULL) {
-        PyObject *occurred = PyErr_GetRaisedException();
+        PyObject *occurred = PyErr_Occurred();
         if (PyErr_GivenExceptionMatches(occurred, PyExc_StopIteration)) {
             PyObject *item = PyObject_GetAttrString(occurred, "value");
 
@@ -426,7 +426,6 @@ awaitable_am_send(PyObject *self, PyObject *arg, PyObject **presult) {
             *presult = item;
             return PYGEN_RETURN;
         }
-        PyErr_SetRaisedException(occurred);
         *presult = NULL;
         return PYGEN_ERROR;
     }
@@ -435,6 +434,7 @@ awaitable_am_send(PyObject *self, PyObject *arg, PyObject **presult) {
 
     return PYGEN_NEXT;
 }
+#endif
 
 static PyMethodDef awaitable_methods[] = {
     {"send", awaitable_send, METH_VARARGS, NULL},
@@ -444,9 +444,14 @@ static PyMethodDef awaitable_methods[] = {
 };
 
 static PyAsyncMethods async_methods = {
+    #if PY_MINOR_VERSION == 8
+    .am_await = awaitable_next
+    #else
     .am_await = awaitable_next,
     .am_send = awaitable_am_send
+    #endif
 };
+
 
 PyTypeObject _PyAwaitable_GenWrapper_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
