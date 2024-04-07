@@ -1,7 +1,7 @@
 name: RFC
-description: A request for comments. This is used for discussion about view.py
-title: "[Request for Comments]: "
-labels: ["rfc"] 
+description: An enhancement proposal. This is used for discussion about view.py
+title: "[VEP]: "
+labels: ["vep"] 
 body:
   - type: checkboxes
     attributes:
