@@ -97,7 +97,7 @@ def welcome() -> None:
     )
     click.echo("Support: ", nl=False)
     click.secho(
-        "https://github.com/ZeroIntensity/sponsors",
+        "https://github.com/sponsors/ZeroIntensity",
         fg="bright_magenta",
         bold=True,
     )
