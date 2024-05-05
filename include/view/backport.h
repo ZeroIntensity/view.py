@@ -1,50 +1,35 @@
 #ifndef VIEW_BACKPORT_H
 #define VIEW_BACKPORT_H
 
-#include <Python.h>
+#ifndef _PyObject_Vectorcall
+#define VIEW_NEEDS_VECTORCALL
+PyObject *_PyObject_VectorcallBackport(
+    PyObject *obj,
+    PyObject **args,
+    size_t nargsf,
+    PyObject *kwargs
+);
+
+#define PyObject_CallNoArgs(o) PyObject_CallObject(o, NULL)
+#define PyObject_Vectorcall _PyObject_VectorcallBackport
+#define PyObject_VectorcallDict _PyObject_FastCallDict
+#endif
+
+#if PY_VERSION_HEX < 0x030c0000
+PyObject *PyErr_GetRaisedException(void);
+void PyErr_SetRaisedException(PyObject *err);
+#endif
 
 #ifndef Py_NewRef
-static inline PyObject* Py_NewRef(PyObject* o) {
-    Py_INCREF(o);
-    return o;
-}
+#define VIEW_NEEDS_NEWREF
+PyObject *Py_NewRef_Backport(PyObject *o);
+#define Py_NewRef Py_NewRef_Backport
 #endif
 
 #ifndef Py_XNewRef
-static inline PyObject* Py_XNewRef(PyObject* o) {
-    Py_XINCREF(o);
-    return o;
-}
-#endif
-
-#ifndef _PyObject_Vectorcall
-#define PyObject_CallNoArgs(o) PyObject_CallObject( \
-    o, \
-    NULL \
-)
-static PyObject* _PyObject_VectorcallBackport(PyObject* obj,
-                                              PyObject** args,
-                                              size_t nargsf, PyObject* kwargs) {
-    PyObject* tuple = PyTuple_New(nargsf);
-    if (!tuple) return NULL;
-    for (size_t i = 0; i < nargsf; i++) {
-        Py_INCREF(args[i]);
-        PyTuple_SET_ITEM(
-            tuple,
-            i,
-            args[i]
-        );
-    }
-    PyObject* o = PyObject_Call(
-        obj,
-        tuple,
-        kwargs
-    );
-    Py_DECREF(tuple);
-    return o;
-}
-#define PyObject_Vectorcall _PyObject_VectorcallBackport
-#define PyObject_VectorcallDict _PyObject_FastCallDict
+#define VIEW_NEEDS_XNEWREF
+PyObject *Py_XNewRef_Backport(PyObject *o);
+#define Py_XNewRef Py_XNewRef_Backport
 #endif
 
 #ifndef Py_IS_TYPE
