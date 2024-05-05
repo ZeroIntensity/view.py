@@ -1,0 +1,21 @@
+name: Feature
+description: Suggest a new feature.
+labels: ["feature"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              # Feature Proposal
+
+              This is where you should propose a *new* feature to view.py. New features should not make breaking changes. This should be for something totally new, such as adding a new function. For general improvements to existing features, make an improvement request.
+    - type: textarea
+      attributes:
+          label: "Proposal:"
+          description: >
+              Outline your idea and why it would be a good idea for PyAwaitable. Make sure to include an example API for what this could look like if implemented.
+          value: |
+              ```py
+              // Example API
+              ```
+      validations:
+          required: true
