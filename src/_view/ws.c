@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <stddef.h> // offsetof
 
+#include <view/app.h> // PyErr_BadASGI
 #include <view/awaitable.h>
 #include <view/backport.h>
 #include <view/ws.h>

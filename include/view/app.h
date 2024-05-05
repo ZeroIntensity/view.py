@@ -11,7 +11,7 @@ extern PyTypeObject ViewAppType;
 int PyErr_BadASGI(void);
 
 typedef struct _ViewApp {
-    PyObject_HEAD;
+    PyObject_HEAD
     PyObject* startup;
     PyObject* cleanup;
     map* get;
