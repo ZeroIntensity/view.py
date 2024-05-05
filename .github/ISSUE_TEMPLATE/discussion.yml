@@ -1,0 +1,13 @@
+name: Discussion
+description: General discussion about something related to the development of view.py. This can be used for meta issues, proposals for big changes, etc.
+labels: ["discussion"]
+body:
+    - type: textarea
+      attributes:
+          label: "Content:"
+          description: >
+              Write anything relevant to this discussion!
+          value: |
+              Hello world...
+      validations:
+          required: true
