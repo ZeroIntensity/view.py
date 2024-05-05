@@ -18,6 +18,7 @@ nav:
           - Getting Request Data: building-projects/request_data.md
           - HTML Templating: building-projects/templating.md
           - Writing Documentation: building-projects/documenting.md
+          - Using WebSockets: building-projects/websockets.md
     - API Reference:
           - Types: reference/types.md
           - Utilities: reference/utils.md

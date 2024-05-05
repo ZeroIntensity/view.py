@@ -1,6 +1,6 @@
 from ward import raises, test
 
-from view import WebSocket, new_app
+from view import WebSocket, new_app, websocket
 
 
 @test("websocket echo server")
@@ -27,7 +27,7 @@ async def _():
 async def _():
     app = new_app()
 
-    @app.websocket("/")
+    @websocket("/")
     async def back_and_forth(ws: WebSocket):
         await ws.accept()
         count = 0
@@ -36,6 +36,8 @@ async def _():
             message = await ws.pair(count, tp=int)
             assert message == count
             count += 1
+
+    app.load([back_and_forth])
 
     async with app.test() as test:
         async with test.websocket("/") as ws:
