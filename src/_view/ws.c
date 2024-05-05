@@ -1,6 +1,10 @@
-#include <view/view.h>
 #include <Python.h>
 #include <stddef.h> // offsetof
+
+#include <view/awaitable.h>
+#include <view/backport.h>
+#include <view/ws.h>
+#include <view/view.h>
 
 typedef struct {
     PyObject_HEAD

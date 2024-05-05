@@ -1,6 +1,12 @@
 #include <Python.h>
-#include <view/view.h>
 #include <signal.h>
+
+#include <view/app.h>
+#include <view/awaitable.h>
+#include <view/context.h>
+#include <view/typecodes.h>
+#include <view/ws.h>
+#include <view/view.h>
 
 PyObject* route_log = NULL;
 PyObject* ip_address = NULL;

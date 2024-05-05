@@ -1,7 +1,6 @@
 #include <Python.h>
 #include <stdint.h> // uint64_t
 #include <stdio.h>
-#include <stdlib.h> // size_t
 #include <string.h> // strdup
 #include <view/map.h>
 
@@ -12,7 +11,7 @@
 static uint64_t hash_key(const char* key) {
     uint64_t hash = FNV_OFFSET;
     for (const char* p = key; *p; p++) {
-        hash ^= (uint64_t)(unsigned char)(*p);
+        hash ^= (uint64_t) (unsigned char) (*p);
         hash *= FNV_PRIME;
     }
     return hash;
@@ -20,7 +19,7 @@ static uint64_t hash_key(const char* key) {
 
 void* map_get(map* m, const char* key) {
     uint64_t hash = hash_key(key);
-    size_t index = (size_t)(hash & (uint64_t)(m->capacity - 1));
+    Py_ssize_t index = (Py_ssize_t) (hash & (uint64_t)(m->capacity - 1));
 
     while (m->items[index] != NULL) {
         if (!strcmp(
@@ -37,10 +36,10 @@ void* map_get(map* m, const char* key) {
     return NULL;
 }
 
-map* map_new(size_t inital_capacity, map_free_func dealloc) {
+map* map_new(Py_ssize_t inital_capacity, map_free_func dealloc) {
     map* m = malloc(sizeof(map));
     if (!m)
-        return (map*)PyErr_NoMemory();
+        return (map*) PyErr_NoMemory();
 
     m->len = 0;
     m->capacity = inital_capacity;
@@ -49,15 +48,15 @@ map* map_new(size_t inital_capacity, map_free_func dealloc) {
         sizeof(pair)
     );
     if (!m->items)
-        return (map*)PyErr_NoMemory();
+        return (map*) PyErr_NoMemory();
     m->dealloc = dealloc;
     return m;
 }
 
-static int set_entry(pair** items, size_t capacity, const char* key,
-                     void* value, size_t* len, map_free_func dealloc) {
+static int set_entry(pair** items, Py_ssize_t capacity, const char* key,
+                     void* value, Py_ssize_t* len, map_free_func dealloc) {
     uint64_t hash = hash_key(key);
-    size_t index = (size_t)(hash & (uint64_t)(capacity - 1));
+    Py_ssize_t index = (Py_ssize_t) (hash & (uint64_t)(capacity - 1));
 
     while (items[index] != NULL) {
         if (!strcmp(
@@ -91,7 +90,7 @@ static int set_entry(pair** items, size_t capacity, const char* key,
 }
 
 static int expand(map* m) {
-    size_t new_capacity = m->capacity * 2;
+    Py_ssize_t new_capacity = m->capacity * 2;
     if (new_capacity < m->capacity) {
         PyErr_SetString(
             PyExc_RuntimeError,
@@ -108,7 +107,7 @@ static int expand(map* m) {
         return -1;
     }
 
-    for (int i = 0; i < m->capacity; i++) {
+    for (Py_ssize_t i = 0; i < m->capacity; i++) {
         pair* item = m->items[i];
         if (item) {
             if (set_entry(
@@ -132,7 +131,7 @@ static int expand(map* m) {
 }
 
 void map_free(map* m) {
-    for (int i = 0; i < m->capacity; i++) {
+    for (Py_ssize_t i = 0; i < m->capacity; i++) {
         pair* item = m->items[i];
         if (item) {
             m->dealloc(item->value);
