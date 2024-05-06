@@ -5,15 +5,8 @@ import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    ForwardRef,
-    Iterable,
-    NamedTuple,
-    TypedDict,
-    get_args,
-    get_type_hints,
-)
+from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
+                    get_args, get_type_hints)
 
 from _view import Context
 
@@ -31,13 +24,10 @@ import inspect
 
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
-from .exceptions import (
-    DuplicateRouteError,
-    InvalidBodyError,
-    InvalidRouteError,
-    LoaderWarning,
-)
-from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
+from .exceptions import (DuplicateRouteError, InvalidBodyError,
+                         InvalidRouteError, LoaderWarning)
+from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
+                      _NoDefault)
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired = None

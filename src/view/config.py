@@ -4,7 +4,7 @@ import importlib.util
 import sys
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Any, Dict, Literal, Union, List
+from typing import Any, Dict, List, Literal, Union
 
 from configzen import ConfigField, ConfigModel, field_validator
 
@@ -73,9 +73,7 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
 
 
 class LogConfig(ConfigModel, env_prefix="view_log_"):
-    level: Union[
-        Literal["debug", "info", "warning", "error", "critical"], int
-    ] = "info"
+    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
     fancy: bool = True
     server_logger: bool = False
     pretty_tracebacks: bool = True

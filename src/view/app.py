@@ -320,7 +320,9 @@ class RouteDoc:
     body: dict[str, InputDoc]
     query: dict[str, InputDoc]
 
+
 _LEVELS = dict((v, k) for k, v in LOGS.items())
+
 
 class Error(BaseException):
     """Base class to act as a transport for raising HTTP exceptions."""
@@ -362,7 +364,7 @@ class App(ViewApp):
         self.loaded_routes: list[Route] = []
         self.templaters: dict[str, Any] = {}
         self._register_error(error_class)
-        
+
         os.environ.update({k: str(v) for k, v in config.env.items()})
 
         Service.log.setLevel(
@@ -820,7 +822,7 @@ class App(ViewApp):
 
         self.running = True
         Internal.debug("here we go!")
-        
+
         if (self.config.log.startup_message) and (not self.config.log.fancy):
             welcome()
 
@@ -849,6 +851,7 @@ class App(ViewApp):
         elif self.config.app.uvloop == "decide":
             with suppress(ModuleNotFoundError):
                 import uvloop
+
                 uvloop.install()
                 uvloop_enabled = True
 
@@ -859,13 +862,12 @@ class App(ViewApp):
                 import uvicorn
             except ModuleNotFoundError as e:
                 needs_dep("uvicorn", e, "servers")
-            
+
             for log in (
                 logging.getLogger("uvicorn.error"),
                 logging.getLogger("uvicorn.access"),
             ):
                 log.disabled = not self.config.log.server_logger
-
 
             config = uvicorn.Config(
                 self._app,
@@ -887,15 +889,15 @@ class App(ViewApp):
                 import hypercorn
             except ModuleNotFoundError as e:
                 needs_dep("hypercorn", e, "servers")
-            
+
             for log in (
                 logging.getLogger("hypercorn.error"),
                 logging.getLogger("hypercorn.access"),
             ):
                 log.disabled = not self.config.log.server_logger
 
-            
             from hypercorn.asyncio import serve
+
             conf = hypercorn.Config()
             conf.loglevel = "debug" if self.config.dev else "info"
             conf.bind = [
@@ -905,15 +907,13 @@ class App(ViewApp):
             for k, v in self.config.server.extra_args.items():
                 setattr(conf, k, v)
 
-            return start(
-                self._spawn(serve(self._app, conf))
-            )
+            return start(self._spawn(serve(self._app, conf)))
         elif server == "daphne":
             try:
                 import daphne as _
             except ModuleNotFoundError as e:
                 needs_dep("daphne", e, "servers")
-            
+
             from daphne.endpoints import build_endpoint_description_strings
             from daphne.server import Server
 
@@ -921,22 +921,22 @@ class App(ViewApp):
                 host=str(self.config.server.host),
                 port=self.config.server.port,
             )
-            
+
             logger = logging.getLogger("daphne.cli")
             logger.disabled = not self.config.log.server_logger
             # default daphne log configuration
-            level = _LEVELS[self.config.log.level] if not isinstance(self.config.log.level, int) else self.config.log.level
+            level = (
+                _LEVELS[self.config.log.level]
+                if not isinstance(self.config.log.level, int)
+                else self.config.log.level
+            )
             logger.setLevel(level)
             logging.basicConfig(
                 level=level,
                 format="%(asctime)-15s %(levelname)-8s %(message)s",
             )
 
-            server = Server(
-                self._app,
-                server_name="view.py",
-                endpoints=endpoints
-            )
+            server = Server(self._app, server_name="view.py", endpoints=endpoints)
             return start(self._spawn(asyncio.to_thread(server.run)))
         else:
             raise NotImplementedError("viewserver is not implemented yet")

@@ -6,11 +6,13 @@ import re
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, Iterable, Literal, Type, TypeVar, Union
+from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
+                    Union)
 
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MistakeError
-from .typing import Middleware, StrMethod, Validator, ValueType, ViewResponse, ViewRoute
+from .typing import (Middleware, StrMethod, Validator, ValueType, ViewResponse,
+                     ViewRoute)
 
 __all__ = (
     "get",

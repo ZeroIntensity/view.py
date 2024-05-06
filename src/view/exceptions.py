@@ -20,6 +20,8 @@ __all__ = (
     "NeedsDependencyError",
     "InvalidTemplateError",
     "TypeValidationError",
+    "BuildWarning",
+    "BuildError",
 )
 
 
@@ -111,3 +113,11 @@ class InvalidTemplateError(ViewError):
 
 class TypeValidationError(TypeError, ViewError):
     """Could not assign the object to the target type."""
+
+
+class BuildWarning(ViewWarning):
+    """Warning issued during building."""
+
+
+class BuildError(ViewError):
+    """Build failed."""

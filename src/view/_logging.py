@@ -94,6 +94,7 @@ def format_warnings():
     warnings.showwarning = _showwarning
     warnings.formatwarning = _warning_no_src_line  # type: ignore
 
+
 LCOLORS = {
     logging.DEBUG: "blue",
     logging.INFO: "green",
