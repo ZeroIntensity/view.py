@@ -1,0 +1,20 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "inputs.h": "c",
+        "backport.h": "c",
+        "any": "c",
+        "array": "c",
+        "charconv": "c",
+        "compare": "c",
+        "functional": "c",
+        "ranges": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "variant": "c",
+        "parsers.h": "c",
+        "errors.h": "c"
+    }
+}

@@ -4,13 +4,30 @@ import importlib.util
 import sys
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Any, Dict, Literal, Union
+from typing import Any, Dict, Literal, Union, List
 
 from configzen import ConfigField, ConfigModel, field_validator
 
 from .exceptions import ViewInternalError
 from .logging import FileWriteMethod, Urgency
 from .typing import TemplateEngine
+
+__all__ = (
+    "AppConfig",
+    "ServerConfig",
+    "UserLogConfig",
+    "LogConfig",
+    "MongoConfig",
+    "PostgresConfig",
+    "SQLiteConfig",
+    "DatabaseConfig",
+    "TemplatesConfig",
+    "BuildStep",
+    "BuildConfig",
+    "Config",
+    "make_preset",
+    "load_config",
+)
 
 
 class AppConfig(ConfigModel, env_prefix="view_app_"):
@@ -56,7 +73,9 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
 
 
 class LogConfig(ConfigModel, env_prefix="view_log_"):
-    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
+    level: Union[
+        Literal["debug", "info", "warning", "error", "critical"], int
+    ] = "info"
     fancy: bool = True
     server_logger: bool = False
     pretty_tracebacks: bool = True
@@ -106,6 +125,20 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):
     engine: TemplateEngine = "view"
 
 
+class BuildStep(ConfigModel):
+    requires: List[str] = ConfigField(default_factory=list)
+    command: Union[str, None] = None
+    script: Union[Path, None] = None
+    enabled_by_default: bool = True
+
+
+class BuildConfig(ConfigModel, env_prefix="view_build_"):
+    default_steps: Union[List[str], None] = None
+    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = ConfigField(
+        default_factory=list
+    )
+
+
 class Config(ConfigModel):
     dev: bool = True
     env: Dict[str, Any] = ConfigField(default_factory=dict)
@@ -113,6 +146,7 @@ class Config(ConfigModel):
     server: ServerConfig = ConfigField(default_factory=ServerConfig)
     log: LogConfig = ConfigField(default_factory=LogConfig)
     templates: TemplatesConfig = ConfigField(default_factory=TemplatesConfig)
+    build: BuildConfig = ConfigField(default_factory=BuildConfig)
 
 
 B_OPEN = "{"

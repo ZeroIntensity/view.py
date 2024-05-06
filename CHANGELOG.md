@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added a startup message
 -   Added support for `daphne` and `hypercorn` as servers
 -   Added documentation for `view.env` and added environment variables to configuration
--   Removed dead file `src/view/nodes.py`
+-   Removed dead file `src/view/nodes.py` and `src/view/compiler.py`
 -   Added `patterns` loader to `view init`
 
 ## [1.0.0-alpha9] - 2024-2-4

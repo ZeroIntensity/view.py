@@ -55,9 +55,9 @@ name = "{name}"
 authors = [
     {B_OPEN}name = "{getpass.getuser()}", email = "{_get_email()}"{B_CLOSE}
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = "MIT"
-dependencies = ["view.py", "uvicorn"]
+dependencies = ["view.py"]
 version = "1.0.0"
 """
 )
@@ -439,13 +439,15 @@ app.run()
     if load == "patterns":
         urls = path / "urls.py"
         with open(urls, "w") as f:
-            f.write("""from view import path
+            f.write(
+                """from view import path
 from routes.index import index
 
 PATTERNS = (
     path("/", index),
 )
-""")
+"""
+            )
 
     if load != "manual":
         routes = path / "routes"

@@ -47,7 +47,9 @@ class TCValidator(TCPublic, Generic[T]):
         try:
             return self._cast(obj, True)
         except RuntimeError:
-            raise TypeValidationError(f"{obj} is not assignable to {self.tp}") from None
+            raise TypeValidationError(
+                f"{obj} is not assignable to {self.tp}"
+            ) from None
 
 
 def compile_type(tp: type[T]) -> TCValidator[T]:
