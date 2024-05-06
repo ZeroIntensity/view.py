@@ -73,7 +73,9 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
 
 
 class LogConfig(ConfigModel, env_prefix="view_log_"):
-    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
+    level: Union[
+        Literal["debug", "info", "warning", "error", "critical"], int
+    ] = "info"
     fancy: bool = True
     server_logger: bool = False
     pretty_tracebacks: bool = True
@@ -125,16 +127,13 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):
 
 class BuildStep(ConfigModel):
     requires: List[str] = ConfigField(default_factory=list)
-    command: Union[str, None] = None
-    script: Union[Path, None] = None
-    enabled_by_default: bool = True
+    command: Union[str, None, List[str]] = None
+    script: Union[Path, None, List[Path]] = None
 
 
 class BuildConfig(ConfigModel, env_prefix="view_build_"):
     default_steps: Union[List[str], None] = None
-    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = ConfigField(
-        default_factory=list
-    )
+    steps: Dict[str, BuildStep] = ConfigField(default_factory=dict)
 
 
 class Config(ConfigModel):

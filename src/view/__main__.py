@@ -5,6 +5,7 @@ import getpass
 import os
 import random
 import re
+import shutil
 import subprocess
 import venv as _venv
 from inspect import iscoroutine
@@ -18,8 +19,8 @@ import click
 
 from .__about__ import __version__
 from ._logging import VIEW_TEXT
-from .build import run_build
-from .exceptions import AppNotFoundError
+from .build import build_app
+from .exceptions import AppNotFoundError, BuildError
 
 B_OPEN = "{"
 B_CLOSE = "}"
@@ -232,6 +233,7 @@ def deploy(target: str):
     default=Path.cwd() / "build",
 )
 def build(path: Path):
+    from ._logging import Internal
     from .config import load_config
     from .util import extract_path
 
@@ -239,7 +241,20 @@ def build(path: Path):
     app = extract_path(conf.app.app_path)
     app.load()
 
-    run_build(app, path=path)
+    if path.exists():
+        if not click.confirm(f"`{path}` exists, overwrite?"):
+            exit(-1)
+        shutil.rmtree(str(path))
+
+    def info_hook(*msg: object, **kwargs):
+        info(" ".join([str(i) for i in msg]))
+
+    Internal.info = info_hook
+
+    try:
+        build_app(app, path=path)
+    except BuildError as e:
+        error(str(e))
 
 
 @main.command()

@@ -22,6 +22,7 @@ __all__ = (
     "TypeValidationError",
     "BuildWarning",
     "BuildError",
+    "MissingRequirementError",
 )
 
 
@@ -121,3 +122,7 @@ class BuildWarning(ViewWarning):
 
 class BuildError(ViewError):
     """Build failed."""
+
+
+class MissingRequirementError(BuildError):
+    """Build requirement is missing."""
