@@ -10,7 +10,7 @@ Here, you can learn how to use view.py and its various features.
 
     view.py is in very early stages and not yet considered to be ready for production.
     If you would like to follow development progress, join [the discord](https://discord.gg/tZAfuWAbm2).
-    For contributing to view.py, please see our [CONTRIBUTING.md](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
+    For contributing to view.py, please see our [contributors file](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
 
 ## Quickstart
 
