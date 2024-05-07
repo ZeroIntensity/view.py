@@ -79,12 +79,14 @@ test = env("TEST", tp=int)
 
 ### App Settings
 
-*Environment Prefix:* `view_app_`
+**Environment Prefix: `view_app_`**
 
-- `loader`: This is the strategy that will be used to load routes. Can be `manual`, `simple`, or `filesystem`. `manual` by default.
-- `app_path`: A string defining the location of the app, as well as the variable name. Should be in the format of `file_path:variable_name`. `app.py:app` by default.
-- `uvloop`: Whether or not to use `uvloop` as a means of event loop. Can be `decide` or a `bool` value. `decide` by default.
-- `loader_path`: When the loader is `simple` or `filesystem`, this is the path that it searches for routes. `routes/` by default.
+| Key          | Description                                                                                                                    | Default      | 
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| `loader`     | This is the strategy that will be used to load routes. Can be `manual`, `simple`, or `filesystem`.                             | `manual`     |
+| `app_path`   | A string defining the location of the app, as well as the variable name. Should be in the format of `file_path:variable_name`. | `app.py:app` | 
+| `uvloop`     | Whether or not to use `uvloop` as a means of event loop. Can be `decide` or a `bool` value.                                    | `decide`     |
+| `loader_path`| When the loader is `simple` or `filesystem`, this is the path that it searches for routes.                                     | `routes/`    |
 
 Example with TOML:
 
