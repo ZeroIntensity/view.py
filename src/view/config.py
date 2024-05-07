@@ -132,6 +132,7 @@ class BuildStep(ConfigModel):
 
 
 class BuildConfig(ConfigModel, env_prefix="view_build_"):
+    path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
     steps: Dict[str, BuildStep] = ConfigField(default_factory=dict)
 

@@ -1,19 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import getpass
 import os
 import random
 import re
-import shutil
 import subprocess
 import venv as _venv
-from inspect import iscoroutine
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn
-
-if TYPE_CHECKING:
-    from .routing import Route
+from typing import NoReturn
 
 import click
 
@@ -240,11 +234,6 @@ def build(path: Path):
     conf = load_config()
     app = extract_path(conf.app.app_path)
     app.load()
-
-    if path.exists():
-        if not click.confirm(f"`{path}` exists, overwrite?"):
-            exit(-1)
-        shutil.rmtree(str(path))
 
     def info_hook(*msg: object, **kwargs):
         info(" ".join([str(i) for i in msg]))

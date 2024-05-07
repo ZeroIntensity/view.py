@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-import platform
 import re
 import runpy
 import shlex
+import shutil
 import subprocess
 import warnings
 from collections.abc import Coroutine
@@ -259,12 +259,13 @@ def build_app(app: App, *, path: Path | None = None) -> None:
         results[i.path[1:]] = text
         Internal.info(f"Got response for {i.path}")
 
-    path = path or Path.cwd() / "build"
+    path = path or app.config.build.path
 
     if path.exists():
-        raise BuildError(f"{path} already exists")
-
-    path.mkdir()
+        shutil.rmtree(str(path))
+        path.mkdir()
+    elif not path.exists():
+        path.mkdir()
 
     for file_path, content in results.items():
         directory = path / file_path

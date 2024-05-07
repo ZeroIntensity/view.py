@@ -35,6 +35,7 @@ from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
                        format_warnings)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
+from .build import build_steps
 from .config import Config, load_config
 from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
@@ -57,7 +58,9 @@ S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 
-_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
+_ROUTES_WARN_MSG = (
+    "routes argument should only be passed when load strategy is manual"
+)
 _ConfigSpecified = None
 _CurrentFrame = None
 
@@ -185,7 +188,8 @@ class TestingContext:
         truncated_route = route[: route.find("?")] if "?" in route else route
         query_str = _format_qs(query or {})
         headers_list = [
-            (key.encode(), value.encode()) for key, value in (headers or {}).items()
+            (key.encode(), value.encode())
+            for key, value in (headers or {}).items()
         ]
 
         await self.app(
@@ -193,7 +197,9 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode() if query else b"",  # noqa
+                "query_string": urlencode(query_str).encode()
+                if query
+                else b"",  # noqa
                 "headers": headers_list,
                 "method": method,
                 "http_version": "view_test",
@@ -334,7 +340,9 @@ class Error(BaseException):
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError("status code can only be a client or server error")
+            raise InvalidStatusError(
+                "status code can only be a client or server error"
+            )
 
         self.status = status
         self.message = message
@@ -411,7 +419,9 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn("load() was never called (did you forget to start the app?)")
+        warnings.warn(
+            "load() was never called (did you forget to start the app?)"
+        )
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -530,7 +540,9 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, post)
 
-    def delete(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def delete(
+        self, path: str, doc: str | None = None, *, cache_rate: int = -1
+    ):
         """Add a DELETE route.
 
         Args:
@@ -605,7 +617,9 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, put)
 
-    def options(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def options(
+        self, path: str, doc: str | None = None, *, cache_rate: int = -1
+    ):
         """Add an OPTIONS route.
 
         Args:
@@ -728,7 +742,9 @@ class App(ViewApp):
         else:
             f = frame
 
-        return await template(name, directory, engine, f, app=self, **parameters)
+        return await template(
+            name, directory, engine, f, app=self, **parameters
+        )
 
     async def markdown(
         self,
@@ -936,7 +952,9 @@ class App(ViewApp):
                 format="%(asctime)-15s %(levelname)-8s %(message)s",
             )
 
-            server = Server(self._app, server_name="view.py", endpoints=endpoints)
+            server = Server(
+                self._app, server_name="view.py", endpoints=endpoints
+            )
             return start(self._spawn(asyncio.to_thread(server.run)))
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -953,11 +971,13 @@ class App(ViewApp):
         back = frame.f_back
         base = os.path.basename(back.f_code.co_filename)
         app_path = self.config.app.app_path
-        fname = app_path.split(":")[0]
+        fname = app_path.split(":", maxsplit=1)[0]
         if base != fname:
             warnings.warn(
                 f"ran app from {base}, but app path is {fname} in config",
             )
+
+        build_steps(self)
 
         if (not os.environ.get("_VIEW_RUN")) and (
             back.f_globals.get("__name__") == "__main__"
