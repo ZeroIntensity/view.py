@@ -33,9 +33,11 @@ app.load()  # Call the loader manually, since we aren't calling run()
 build_app(app)
 ```
 
+::: view.build.build_app
+
 ## Build Steps
 
-Instead of exporting static HTML, you might just want to call some build script at runtime for your app to use. For example, this could be something like a [Next.js](https://nextjs.org) app, which you want to use as the UI for your website. Each different build is called a **build step** in View.
+Instead of exporting static HTML, you might just want to call some build script at runtime for your app to use. For example, this could be something like a [Next.js](https://nextjs.org) app, which you want to use as the UI for your website. Each different build is called a **build step** in View. View's build system does not aim to be a full fledged build system, but instead a bridge to use other package managers or tools to build requirements for your app. It tries to be *extendable*, instead of batteries-included.
 
 To specify a build step, add it under `build.steps` in your configuration. A build step should contain a list of requirements under `requires` and a `command`:
 
@@ -62,7 +64,6 @@ async def index():
 app.run()
 ```
 
-
 ## Executing Build Scripts
 
 Instead of running a command, you can also run a Python script. To do this, simply specify a `script` value as a path to a file instead of a `command`:
@@ -74,6 +75,10 @@ requires = []
 script = "foo.py"
 ```
 
+!!! note
+
+    `__name__` is set to `__view_build__` when using a build script. If you want to use the file for other things, you can simply check `if __name__ == "__view_build__"`
+
 You can also specify a list of files or commands for both, to run multiple of either:
 
 ```toml
@@ -84,11 +89,42 @@ script = ["foo.py", "bar.py"]
 command = ["gcc -c -Wall -Werror -fpic foo.c", "gcc -shared -o libfoo.so foo.o"]
 ```
 
+If the script needs to run asynchronous code, export a `__view_build__` from the script:
+
+```py
+# build.py
+import aiofiles
+
+# This function will be run by the view.py build system
+async def __view_build__():
+    async with aiofiles.open("something.txt", "w") as f:
+        await f.write("...")
+```
+
+## Default Steps
+
+As said earlier, the default build steps are always run right before the app is started, and then never ran again (unless explicitly needed by a route). If you would like only certain steps to run, specify them with the `build.default_steps` value:
+
+```toml
+# view.toml
+[build]
+default_steps = ["nextjs"]
+# Only NextJS will be built on startup
+
+[build.steps.nextjs]
+requires = ["npm"]
+command = "npm run build"
+
+[build.steps.php]
+requires = ["php"]
+command = "php -f payment.php"
+```
+
 ## Build Requirements
 
 As you've seen above, build requirements are specified via the `requires` value. Out of the box, view.py supports a number of different build tools, compilers, and interpreters. To specify a requirement for one, simply add the name of their executable (*i.e.*, how you access their CLI). For example, since `pip` is accessed via using the `pip` command in your terminal, `pip` is the name of the requirement.
 
-However, view.py might not support checking for a command by default (this is the case if you get a `Unknown build requirement` error). If so, you need a custom requirement. If you would like to, you can make an [issue](https://github.com/ZeroIntensity/view.py/issues] requesting support for it as well.
+However, view.py might not support checking for a command by default (this is the case if you get a `Unknown build requirement` error). If so, you need a custom requirement. If you would like to, you can make an [issue](https://github.com/ZeroIntensity/view.py/issues) requesting support for it as well.
 
 ### Custom Requirements
 
@@ -110,7 +146,7 @@ command = "gcc *.c -o out"
 
 ### The Requirement Protocol
 
-In a custom requirement specifying a module or script, view.py will attempt to call an asynchronous `__view_requirement__` function. This function should return a `bool` value, `True` indicating that the requirement exists, and `False` otherwise.
+In a custom requirement specifying a module or script, view.py will attempt to call an asynchronous `__view_requirement__` function (similar to `__view_build__`). This function should return a `bool` value, with `True` indicating that the requirement exists, and `False` otherwise.
 
 !!! note
 
@@ -133,21 +169,9 @@ The above could actually be used via both `script+check_310.py` and `mod+check_3
 
     Don't use the view.py build system to check the Python version or if a Python package is installed. Instead, use the `dependencies` section of a `pyproject.toml` file, or [PEP 723](https://peps.python.org/pep-0723/) script metadata.
 
-## Default Steps
 
-As said earlier, the default build steps are always run right before the app is started, and then never ran again (unless explicitly needed by a route). If you would like only certain steps to run, specify them with the `build.default_steps` value:
+## Review
 
-```toml
-# view.toml
-[build]
-default_steps = ["nextjs"]
-# Only NextJS will be built on startup
+View can build static HTML with the `view build` command, or via `view.build.build_app`. Build steps in view.py are used to call external build systems, which can then in turn be used to build things your app needs at runtime (such as static HTML generated by [Next.js](https://nextjs.org)). Builds can run commands, Python scripts, or both.
 
-[build.steps.nextjs]
-requires = ["npm"]
-command = "npm run build"
-
-[build.steps.php]
-requires = ["php"]
-command = "php -f payment.php"
-```
+Each build step contains a list of build requirements. View provides several known requirements to specify out of the box, but you may also specify custom requirements, either via a Python script or module, checking a file path, or executing an arbitrary command.
