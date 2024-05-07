@@ -37,7 +37,7 @@ build_app(app)
 
 Instead of exporting static HTML, you might just want to call some build script at runtime for your app to use. For example, this could be something like a [Next.js](https://nextjs.org) app, which you want to use as the UI for your website. Each different build is called a **build step** in View.
 
-To specify a build step, add it under `build.steps` in your configuration:
+To specify a build step, add it under `build.steps` in your configuration. A build step should contain a list of requirements under `requires` and a `command`:
 
 ```toml
 # view.toml
@@ -62,24 +62,28 @@ async def index():
 app.run()
 ```
 
-## Default Steps
 
-As said earlier, the default build steps are always run right before the app is started, and then never ran again (unless explicitly needed by a route). If you would like only certain steps to run, specify them with the `build.default_steps` value:
+## Executing Build Scripts
+
+Instead of running a command, you can also run a Python script. To do this, simply specify a `script` value as a path to a file instead of a `command`:
 
 ```toml
 # view.toml
-[build]
-default_steps = ["nextjs"]
-# Only NextJS will be built on startup
-
-[build.steps.nextjs]
-requires = ["npm"]
-command = "npm run build"
-
-[build.steps.php]
-requires = ["php"]
-command = "php -f payment.php"
+[build.steps.foo]
+requires = []
+script = "foo.py"
 ```
+
+You can also specify a list of files or commands for both, to run multiple scripts or commands:
+
+```
+# view.toml
+[build.steps.foo]
+requires = ["gcc"]
+script = ["foo.py", "bar.py"]
+command = ["gcc -c -Wall -Werror -fpic foo.c", "gcc -shared -o libfoo.so foo.o"]
+```
+
 
 ## Build Requirements
 
@@ -129,3 +133,22 @@ The above could actually be used via both `script+check_310.py` and `mod+check_3
 !!! tip
 
     Don't use the view.py build system to check the Python version or if a Python package is installed. Instead, use the `dependencies` section of a `pyproject.toml` file, or [PEP 723](https://peps.python.org/pep-0723/) script metadata.
+
+## Default Steps
+
+As said earlier, the default build steps are always run right before the app is started, and then never ran again (unless explicitly needed by a route). If you would like only certain steps to run, specify them with the `build.default_steps` value:
+
+```toml
+# view.toml
+[build]
+default_steps = ["nextjs"]
+# Only NextJS will be built on startup
+
+[build.steps.nextjs]
+requires = ["npm"]
+command = "npm run build"
+
+[build.steps.php]
+requires = ["php"]
+command = "php -f payment.php"
+```
