@@ -76,7 +76,7 @@ script = "foo.py"
 
 You can also specify a list of files or commands for both, to run multiple scripts or commands:
 
-```
+```toml
 # view.toml
 [build.steps.foo]
 requires = ["gcc"]
