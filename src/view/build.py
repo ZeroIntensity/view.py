@@ -257,7 +257,7 @@ def build_app(app: App, *, path: Path | None = None) -> None:
 
         assert i.path
         results[i.path[1:]] = text
-        Internal.info(f"Got response for {i.path}")
+        # Internal.debug(f"Got response for {i.path}")
 
     path = path or app.config.build.path
 
