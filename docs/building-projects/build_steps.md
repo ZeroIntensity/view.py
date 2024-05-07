@@ -85,3 +85,40 @@ command = "php -f payment.php"
 
 As you've seen above, build requirements are specified via the `requires` value. Out of the box, view.py supports a number of different build tools, compilers, and interpreters. To specify a requirement for one, simply add the name of their executable (*i.e.*, how you access their CLI). For example, since `pip` is accessed via using the `pip` command in your terminal, `pip` is the name of the requirement.
 
+However, view.py might not support checking for a command by default (this is the case if you get a `Unknown build requirement` error). If so, you need a custom requirement. If you would like to, you can make an [issue](https://github.com/ZeroIntensity/view.py/issues] requesting support for it as well.
+
+### Custom Requirements
+
+There are four types of custom requirements, which are specified by adding a prefix to the requirement name:
+
+- Importing a Python module (`mod+`)
+- Executing a Python script (`script+`)
+- Checking if a path exists (`path+`)
+- Checking if a command exists (`command+`)
+
+For example, the `command+gcc` would make sure that `gcc --version` return `0`:
+
+```
+# view.toml
+[build.steps.c]
+requires = ["command+gcc"]
+command = "gcc *.c -o out"
+```
+
+### The Requirement Protocol
+
+In a custom requirement specifying a module or script, view.py will attempt to call an asynchronous `__view_requirement__` function. This function should return a `bool` value, `True` indicating that the requirement exists, and `False` otherwise.
+
+!!! note
+
+    If no `__view_requirement__` function exists, then all view.py does it check that execution or import was successful, and marks the requirement as passing.
+
+For example, if you were to write a requirement script that checks if the Python version is at least `3.10`, it could look like:
+
+```py
+import sys
+
+async def __view_requirement__() -> bool:
+    # Make sure we're running on at least Python 3.10
+    return sys.version_info >= (3, 10)
+```
