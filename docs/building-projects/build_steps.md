@@ -98,7 +98,7 @@ There are four types of custom requirements, which are specified by adding a pre
 
 For example, the `command+gcc` would make sure that `gcc --version` return `0`:
 
-```
+```toml
 # view.toml
 [build.steps.c]
 requires = ["command+gcc"]
@@ -116,9 +116,16 @@ In a custom requirement specifying a module or script, view.py will attempt to c
 For example, if you were to write a requirement script that checks if the Python version is at least `3.10`, it could look like:
 
 ```py
+# check_310.py
 import sys
 
 async def __view_requirement__() -> bool:
     # Make sure we're running on at least Python 3.10
     return sys.version_info >= (3, 10)
 ```
+
+The above could actually be used via both `script+check_310.py` and `mod+check_310`. 
+
+!!! tip
+
+    Don't use the view.py build system to check the Python version or if a Python package is installed. Instead, use the `dependencies` section of a `pyproject.toml` file, or [PEP 723](https://peps.python.org/pep-0723/) script metadata.
