@@ -4,14 +4,15 @@ import asyncio
 import importlib
 import re
 import runpy
-import shlex
 import shutil
-import subprocess
+from asyncio import subprocess
 import warnings
 from collections.abc import Coroutine
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
-
+from .typing import ViewResult
+import aiofiles
+import aiofiles.os
 from ._logging import Internal
 
 if TYPE_CHECKING:
@@ -33,14 +34,23 @@ class _BuildStepWithName(NamedTuple):
 _SPECIAL_REQ = re.compile(r"(\w+)\+(.+)")
 
 
-def _call_command(command: str) -> None:
+async def _call_command(command: str) -> None:
     Internal.info(f"Running `{command}`")
-    subprocess.call(shlex.split(command))
+    proc = await subprocess.create_subprocess_exec(command)
+    await proc.wait()
+
+    if proc.returncode != 0:
+        raise BuildError(f"{command} returned non-zero exit code")
 
 
-def _call_script(path: Path) -> None:
+async def _call_script(path: Path, *, call_func: str | None = None) -> None:
     Internal.info(f"Executing Python script at `{path}`")
-    runpy.run_path(str(path), run_name="__view_build__")
+    globls = runpy.run_path(str(path), run_name="__view_build__")
+    
+    if call_func:
+        func = globls.get(call_func)
+        if func:
+            await func()
 
 
 _COMMAND_REQS = [
@@ -98,7 +108,7 @@ _USE_V_FLAG = ["lua", "php"]
 _USE_SINGLE_DASH = ["kotlinc", "java", "javac"]
 
 
-def _check_version_command(name: str) -> bool:
+async def _check_version_command(name: str) -> bool:
     command = "--version"
 
     if name in _USE_V_FLAG:
@@ -107,16 +117,15 @@ def _check_version_command(name: str) -> bool:
     if name in _USE_SINGLE_DASH:
         command = "-version"
 
-    return (
-        subprocess.check_call(
-            [name, command],
-            stdout=subprocess.PIPE,
-        )
-        == 0
+    proc = await subprocess.create_subprocess_exec(
+        f"{name} {command}",
+        stdout=subprocess.PIPE,
     )
+    await proc.wait()
+    return proc.returncode == 0
 
 
-def _check_requirement(req: str) -> None:
+async def _check_requirement(req: str) -> None:
     Internal.info(f"Ensuring dependency {req!r}")
     special = _SPECIAL_REQ.match(req)
 
@@ -134,9 +143,13 @@ def _check_requirement(req: str) -> None:
     if prefix == "mod":
         Internal.info(f"Importing `{target}`")
         try:
-            importlib.import_module(target)
+            mod = importlib.import_module(target)
         except ModuleNotFoundError as e:
             raise MissingRequirementError(f"Could not import {target}") from e
+
+        reqfunc = getattr(mod, "__view_requirement__", None)
+        if reqfunc:
+            await reqfunc
     elif prefix == "script":
         path = Path(target)
         if (not path.exists()) or (not path.is_file()):
@@ -144,7 +157,7 @@ def _check_requirement(req: str) -> None:
                 f"Python script at {target} does not exist or is not a file"
             )
 
-        _call_script(path)
+        await _call_script(path)
     elif prefix == "path":
         if not Path(target).exists():
             raise MissingRequirementError(f"{target} does not exist")
@@ -152,7 +165,7 @@ def _check_requirement(req: str) -> None:
         raise BuildError(f"Invalid requirement prefix: {prefix}")
 
 
-def _build_step(step: _BuildStepWithName) -> None:
+async def _build_step(step: _BuildStepWithName) -> None:
     Internal.info(f"Building step {step.name!r}")
     data = step.step
 
@@ -161,31 +174,31 @@ def _build_step(step: _BuildStepWithName) -> None:
             Internal.info(f"{req} was already checked, skipping it")
             continue
 
-        _check_requirement(req)
+        await _check_requirement(req)
         step.cache.append(req)
 
     if data.command:
         if isinstance(data.command, list):
             for command in data.command:
-                _call_command(command)
+                await _call_command(command)
         else:
-            _call_command(data.command)
+            await _call_command(data.command)
 
     if data.script:
         if isinstance(data.script, list):
             for script in data.script:
-                _call_script(script)
+                await _call_script(script)
         else:
-            _call_script(data.script)
+            await _call_script(data.script)
 
 
-def run_step(app: App, name: str) -> None:
+async def run_step(app: App, name: str) -> None:
     """Run an individual build step."""
     step = _BuildStepWithName(name, app.config.build.steps[name], [])
-    _build_step(step)
+    await _build_step(step)
 
 
-def build_steps(app: App) -> None:
+async def build_steps(app: App) -> None:
     """Run the default build steps for a given application."""
     build = app.config.build
     cache: list[str] = []
@@ -205,17 +218,34 @@ def build_steps(app: App) -> None:
 
     Internal.info("Starting build steps")
 
-    for step in steps:
-        _build_step(step)
+    if app.config.build.parallel:
+        coros = [_build_step(step) for step in steps]
+        await asyncio.gather(*coros)
+    else:
+        for step in steps:
+            await _build_step(step)
 
+def _handle_result(res: ViewResult, path: str) -> str:
+    text: str
 
-def build_app(app: App, *, path: Path | None = None) -> None:
-    """Compile an app into static HTML, including running all of it's build steps."""
+    if hasattr(res, "__view_response__"):
+        res = res.__view_response__()  # type: ignore
+
+    if isinstance(res, tuple):
+        for x in res:
+            if isinstance(x, str):
+                text = x
+                break
+        raise BuildError(f"{path} didn't return a response")
+    else:
+        text = res  # type: ignore
+    
+    return text
+
+async def _compile_routes(app: App, *, should_await: bool = False) -> dict[str, str]:
     results: dict[str, str] = {}
-    Internal.info("Starting build process!")
-    build_steps(app)
+    coros: list[Coroutine] = []
 
-    Internal.info("Getting routes")
     for i in app.loaded_routes:
         if (not i.method) or (i.method != Method.GET):
             warnings.warn(f"{i} is not a GET route, skipping it", BuildWarning)
@@ -238,41 +268,49 @@ def build_app(app: App, *, path: Path | None = None) -> None:
         res = i.func()
 
         if isinstance(res, Coroutine):
-            loop = asyncio.get_event_loop()
-            res = loop.run_until_complete(res)
+            if should_await:
+                results[i.path[1:]] = _handle_result(await res, i.path)
+            else:
+                task = asyncio.create_task(res)
+                
+                def cb(fut: asyncio.Task[ViewResult]):
+                    text = fut.result()
+                    assert i.path is not None
+                    results[i.path[1:]] = _handle_result(text, i.path)
 
-        text: str
+                task.add_done_callback(cb)
+                coros.append(res)
 
-        if hasattr(res, "__view_response__"):
-            res = res.__view_response__()  # type: ignore
+    if not should_await:
+        await asyncio.gather(*coros)
 
-        if isinstance(res, tuple):
-            for x in res:
-                if isinstance(x, str):
-                    text = x
-                    break
-            raise BuildError(f"{i.path} didn't return a response")
-        else:
-            text = res  # type: ignore
+    return results
 
-        assert i.path
-        results[i.path[1:]] = text
-        # Internal.debug(f"Got response for {i.path}")
+async def build_app(app: App, *, path: Path | None = None) -> None:
+    """Compile an app into static HTML, including running all of it's build steps."""
+    Internal.info("Starting build process!")
+    await build_steps(app)
 
+    Internal.info("Getting routes")
+    results = await _compile_routes(app, should_await=not app.config.build.parallel)
     path = path or app.config.build.path
 
     if path.exists():
-        shutil.rmtree(str(path))
-        path.mkdir()
+        await aiofiles.os.removedirs(path)
+        await aiofiles.os.mkdir(path)
     elif not path.exists():
-        path.mkdir()
+        await aiofiles.os.mkdir(path)
 
     for file_path, content in results.items():
         directory = path / file_path
         file = directory / "index.html"
-        directory.mkdir(exist_ok=True)
-        Internal.info(f"Created {directory}")
-        file.write_text(content, encoding="utf-8")
+
+        if not (await aiofiles.os.path.exists(directory)):
+            await aiofiles.os.mkdir(directory)
+            Internal.info(f"Created {directory}")
+        
+        async with aiofiles.open(file, "w", encoding="utf-8") as f:
+            await f.write(content)
         Internal.info(f"Created {file}")
 
     Internal.info("Successfully built app")
