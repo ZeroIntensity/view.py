@@ -98,12 +98,14 @@ loader_path = "./app"
 
 ## Server Settings
 
-*Environment Prefix:* `view_server_`
+**Environment Prefix:** `view_server_`
 
-- `host`: IPv4 address specifying what address to bind the server to. `0.0.0.0` by default.
-- `port`: Integer defining what port to bind the server to. `5000` by default.
-- `backend`: ASGI backend to use. Only `uvicorn` is supported as of now.
-- `extra_args`: Dictionary containing extra parameters for the ASGI backend. This parameter is specific to the backend (only `uvicorn`, as of now) and not view.
+| Key          | Description                                                                                                          | Default    | 
+| ------------ | -------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `host`       | IPv4 address specifying what address to bind the server to. `0.0.0.0` by default.                                    | `0.0.0.0`  |
+| `port`       | Integer defining what port to bind the server to.                                                                    | `5000`     |
+| `backend`    | ASGI backend to use. Can be `uvicorn`, `daphne`, or `hypercorn`.                                                     | `uvicorn`  |
+| `extra_args` | Dictionary containing extra parameters for the ASGI backend. This parameter is specific to the backend and not View. | `{}`       |
 
 Example with TOML:
 
@@ -115,13 +117,15 @@ port = 8080
 
 ## Log Settings
 
-*Environment Prefix:* `view_log_`
+**Environment Prefix:** `view_log_`
 
-- `level`: Log level. May be `debug`, `info`, `warning`, `error`, `critical`, or an `int`. This is based on Python's built-in [logging module](https://docs.python.org/3/library/logging.html). `info` by default.
-- `server_logger`: This is a `bool` determining whether the ASGI backend's logger should be displayed. `False` by default.
-- `fancy`: Whether to use View's fancy output mode. `True` by default.
-- `pretty_tracebacks`: Whether to use [Rich Exceptions](https://rich.readthedocs.io/en/stable/logging.html?highlight=exceptions#handle-exceptions). `True` by default.
-- `startup_message`: Whether to show the view.py welcome message on server startup.
+| Key                 | Description                                                                                                                                                                          | Default | 
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| `level`             | Log level. May be `debug`, `info`, `warning`, `error`, `critical`, or an `int`. This is based on Python's built-in [logging module](https://docs.python.org/3/library/logging.html). | `info`  |
+| `server_logger`     | This is a `bool` determining whether the ASGI backend's logger should be displayed.                                                                                                  | `False` |
+| `fancy`             | Whether to use View's fancy output mode.                                                                                                                                             | `True`  |
+| `pretty_tracebacks` | Whether to use [Rich Exceptions](https://rich.readthedocs.io/en/stable/logging.html?highlight=exceptions#handle-exceptions).                                                         | `True`  |
+| `startup_message`   | Whether to show the view.py welcome message on server startup.                                                                                                                       | `True`  |
 
 ### User Logging Settings
 
