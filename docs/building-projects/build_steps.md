@@ -74,7 +74,7 @@ requires = []
 script = "foo.py"
 ```
 
-You can also specify a list of files or commands for both, to run multiple scripts or commands:
+You can also specify a list of files or commands for both, to run multiple of either:
 
 ```toml
 # view.toml
@@ -83,7 +83,6 @@ requires = ["gcc"]
 script = ["foo.py", "bar.py"]
 command = ["gcc -c -Wall -Werror -fpic foo.c", "gcc -shared -o libfoo.so foo.o"]
 ```
-
 
 ## Build Requirements
 
