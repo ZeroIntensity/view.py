@@ -16,12 +16,19 @@ PyObject* ws_handshake_error = NULL;
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     PyObject* func;
 
-    if (!PyArg_ParseTuple(args, "O", &func))
+    if (!PyArg_ParseTuple(
+        args,
+        "O",
+        &func
+        ))
         return NULL;
 
     if (!PyCallable_Check(func)) {
-        PyErr_Format(PyExc_RuntimeError,
-            "setup_route_log got non-function object: %R", func);
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "setup_route_log got non-function object: %R",
+            func
+        );
         return NULL;
     }
 

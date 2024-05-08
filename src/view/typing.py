@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
                     List, Literal, Tuple, Type, TypeVar, Union)
 
-from typing_extensions import ParamSpec, Protocol, TypedDict
+from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
 
 if TYPE_CHECKING:
     from .app import RouteDoc
@@ -57,7 +57,7 @@ V = TypeVar("V", bound="ValueType")
 
 ViewResponse = Awaitable[ViewResult]
 R = TypeVar("R", bound="ViewResponse")
-ViewRoute = Callable[P, R]
+ViewRoute = Callable[P, Union[ViewResponse, ViewResult]]
 
 ValidatorResult = Union[bool, Tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
@@ -140,4 +140,5 @@ StrMethodASGI = Literal[
     "DELETE",
     "OPTIONS",
 ]
-Middleware = Callable[P, Union[Awaitable[None], None]]
+CallNext = Callable[[], ViewResponse]
+Middleware = Callable[Concatenate[CallNext, P], ViewResponse]

@@ -7,12 +7,13 @@ from typing import Any, Dict, Generic, TextIO, TypeVar, Union
 import ujson
 
 from .components import DOMNode
-from .typing import BodyTranslateStrategy, SameSite
+from .exceptions import InvalidResultError
+from .typing import BodyTranslateStrategy, SameSite, ViewResult
 from .util import timestamp
 
 T = TypeVar("T")
 
-__all__ = "Response", "HTML", "JSON"
+__all__ = "Response", "HTML", "JSON", "to_response"
 
 _Find = None
 HTMLContent = Union[TextIO, str, Path, DOMNode]
@@ -37,7 +38,9 @@ class Response(Generic[T]):
         if body_translate:
             self.translate = body_translate
         else:
-            self.translate = "str" if not hasattr(body, "__view_result__") else "result"
+            self.translate = (
+                "str" if not hasattr(body, "__view_result__") else "result"
+            )
 
     def _custom(self, body: T) -> str:
         raise NotImplementedError(
@@ -180,3 +183,41 @@ class JSON(Response[Dict[str, Any]]):
 
     def _custom(self, body: dict[str, Any]) -> str:
         return ujson.dumps(body)
+
+
+def to_response(result: ViewResult) -> Response[str]:
+    """Cast a result from a route function to a `Response` object."""
+
+    if hasattr(result, "__view_result__"):
+        result = result.__view_result__()  # type: ignore
+        return to_response(result)
+
+    if isinstance(result, tuple):
+        status: int = 200
+        headers: dict[str, str] = {}
+        raw_headers: list[tuple[bytes, bytes]] = []
+        body: str | None = None
+
+        for value in result:
+            if isinstance(value, int):
+                status = value
+            elif isinstance(value, str):
+                body = value
+            elif isinstance(value, dict):
+                headers = value
+            elif isinstance(value, list):
+                raw_headers = value
+            else:
+                raise InvalidResultError(
+                    f"{value!r} is not a valid response tuple item"
+                )
+
+        if not body:
+            raise InvalidResultError("result has no body")
+
+        res = Response(body, status, headers)
+        res._raw_headers = raw_headers
+        return res
+
+    assert isinstance(result, str)
+    return Response(result)

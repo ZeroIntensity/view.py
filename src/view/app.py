@@ -35,7 +35,7 @@ from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
                        format_warnings)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
-from .build import build_steps
+from .build import build_app, build_steps
 from .config import Config, load_config
 from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
@@ -829,6 +829,7 @@ class App(ViewApp):
     async def _spawn(self, coro: Coroutine[Any, Any, Any]):
         loop = asyncio.get_event_loop()
         Internal.info(f"using event loop: {loop}")
+        await self.build()
         Internal.info(f"spawning {coro}")
 
         task = loop.create_task(coro)
@@ -842,8 +843,12 @@ class App(ViewApp):
         if (self.config.log.startup_message) and (not self.config.log.fancy):
             welcome()
 
-        Service.info("server online!")
-        await task
+        async def subcoro():
+            Service.info(
+                f"server running at http://{self.config.server.host}:{self.config.server.port}"
+            )
+
+        await asyncio.gather(task, subcoro())
         self.running = False
 
         if self.config.log.fancy:
@@ -977,14 +982,20 @@ class App(ViewApp):
                 f"ran app from {base}, but app path is {fname} in config",
             )
 
-        build_steps(self)
-
         if (not os.environ.get("_VIEW_RUN")) and (
             back.f_globals.get("__name__") == "__main__"
         ):
             self._run()
         else:
             Internal.info("called run, but env or scope prevented startup")
+
+    async def build(self) -> None:
+        """Run the default build steps for the app."""
+        await build_steps(self)
+
+    async def export(self, path: str | Path | None = None) -> None:
+        """Export the app as static HTML."""
+        await build_app(self, path=Path(path) if path else None)
 
     def run_threaded(self, *, daemon: bool = True) -> Thread:
         """Run the app in a thread."""

@@ -4,25 +4,26 @@ import asyncio
 import importlib
 import re
 import runpy
-import shutil
-from asyncio import subprocess
 import warnings
+from asyncio import subprocess
 from collections.abc import Coroutine
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
-from .typing import ViewResult
+
 import aiofiles
 import aiofiles.os
+
 from ._logging import Internal
+from .typing import ViewResult
 
 if TYPE_CHECKING:
     from .app import App
 
 from .config import BuildStep
 from .exceptions import BuildError, BuildWarning, MissingRequirementError
-from .routing import Method
+from .response import to_response
 
-__all__ = "run_step", "build_steps", "build_app"
+__all__ = "build_steps", "build_app"
 
 
 class _BuildStepWithName(NamedTuple):
@@ -36,7 +37,7 @@ _SPECIAL_REQ = re.compile(r"(\w+)\+(.+)")
 
 async def _call_command(command: str) -> None:
     Internal.info(f"Running `{command}`")
-    proc = await subprocess.create_subprocess_exec(command)
+    proc = await subprocess.create_subprocess_shell(command)
     await proc.wait()
 
     if proc.returncode != 0:
@@ -46,7 +47,7 @@ async def _call_command(command: str) -> None:
 async def _call_script(path: Path, *, call_func: str | None = None) -> None:
     Internal.info(f"Executing Python script at `{path}`")
     globls = runpy.run_path(str(path), run_name="__view_build__")
-    
+
     if call_func:
         func = globls.get(call_func)
         if func:
@@ -117,7 +118,7 @@ async def _check_version_command(name: str) -> bool:
     if name in _USE_SINGLE_DASH:
         command = "-version"
 
-    proc = await subprocess.create_subprocess_exec(
+    proc = await subprocess.create_subprocess_shell(
         f"{name} {command}",
         stdout=subprocess.PIPE,
     )
@@ -133,7 +134,7 @@ async def _check_requirement(req: str) -> None:
         if req not in _COMMAND_REQS:
             raise BuildError(f"Unknown build requirement: {req!r}")
 
-        if not _check_version_command(req):
+        if not await _check_version_command(req):
             raise MissingRequirementError(f"{req} is not installed")
         return
 
@@ -225,24 +226,17 @@ async def build_steps(app: App) -> None:
         for step in steps:
             await _build_step(step)
 
-def _handle_result(res: ViewResult, path: str) -> str:
-    text: str
 
-    if hasattr(res, "__view_response__"):
-        res = res.__view_response__()  # type: ignore
+def _handle_result(res: ViewResult) -> str:
+    response = to_response(res)
+    return response.body
 
-    if isinstance(res, tuple):
-        for x in res:
-            if isinstance(x, str):
-                text = x
-                break
-        raise BuildError(f"{path} didn't return a response")
-    else:
-        text = res  # type: ignore
-    
-    return text
 
-async def _compile_routes(app: App, *, should_await: bool = False) -> dict[str, str]:
+async def _compile_routes(
+    app: App, *, should_await: bool = False
+) -> dict[str, str]:
+    from .routing import Method
+
     results: dict[str, str] = {}
     coros: list[Coroutine] = []
 
@@ -269,14 +263,14 @@ async def _compile_routes(app: App, *, should_await: bool = False) -> dict[str, 
 
         if isinstance(res, Coroutine):
             if should_await:
-                results[i.path[1:]] = _handle_result(await res, i.path)
+                results[i.path[1:]] = _handle_result(await res)
             else:
                 task = asyncio.create_task(res)
-                
+
                 def cb(fut: asyncio.Task[ViewResult]):
                     text = fut.result()
                     assert i.path is not None
-                    results[i.path[1:]] = _handle_result(text, i.path)
+                    results[i.path[1:]] = _handle_result(text)
 
                 task.add_done_callback(cb)
                 coros.append(res)
@@ -286,13 +280,16 @@ async def _compile_routes(app: App, *, should_await: bool = False) -> dict[str, 
 
     return results
 
+
 async def build_app(app: App, *, path: Path | None = None) -> None:
     """Compile an app into static HTML, including running all of it's build steps."""
     Internal.info("Starting build process!")
     await build_steps(app)
 
     Internal.info("Getting routes")
-    results = await _compile_routes(app, should_await=not app.config.build.parallel)
+    results = await _compile_routes(
+        app, should_await=not app.config.build.parallel
+    )
     path = path or app.config.build.path
 
     if path.exists():
@@ -308,7 +305,7 @@ async def build_app(app: App, *, path: Path | None = None) -> None:
         if not (await aiofiles.os.path.exists(directory)):
             await aiofiles.os.mkdir(directory)
             Internal.info(f"Created {directory}")
-        
+
         async with aiofiles.open(file, "w", encoding="utf-8") as f:
             await f.write(content)
         Internal.info(f"Created {file}")

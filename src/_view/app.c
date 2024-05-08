@@ -20,17 +20,15 @@
     Py_ssize_t cache_rate; \
     PyObject* errors; \
     PyObject* parts = NULL; \
-    PyObject* middleware_list; \
     if (!PyArg_ParseTuple( \
         args, \
-        "zOnOOOO", \
+        "zOnOOO", \
         &path, \
         &callable, \
         &cache_rate, \
         &inputs, \
         &errors, \
-        &parts, \
-        &middleware_list \
+        &parts \
         )) return NULL; \
     route* r = route_new( \
         callable, \
@@ -43,10 +41,6 @@
         r, \
         inputs \
         ) < 0) { \
-        route_free(r); \
-        return NULL; \
-    } \
-    if (load_middleware(r, middleware_list) < 0) { \
         route_free(r); \
         return NULL; \
     } \
@@ -328,7 +322,10 @@ static PyObject* app(
         return awaitable;
     }
 
-    PyObject* raw_path_obj = PyDict_GetItemString(scope, "path");
+    PyObject* raw_path_obj = PyDict_GetItemString(
+        scope,
+        "path"
+    );
     if (!raw_path_obj) {
         Py_DECREF(awaitable);
         PyErr_BadASGI();
@@ -504,7 +501,16 @@ static PyObject* app(
         }
 
         // path parameter extraction
-        int res = extract_parts(self, awaitable, ptr, path, method_str, size, &r, &params);
+        int res = extract_parts(
+            self,
+            awaitable,
+            ptr,
+            path,
+            method_str,
+            size,
+            &r,
+            &params
+        );
         if (res < 0) {
             free(path);
             free(size);
@@ -705,24 +711,7 @@ static PyObject* app(
             free(path);
             free(params);
             free(size);
-        } else {
-            for (int i = 0; i < r->middleware_size; i++) {
-                PyObject* res = PyObject_CallNoArgs(r->middleware[i]);
-                if (PyCoro_CheckExact(res)) {
-                    if (PyAwaitable_AddAwait(
-                        awaitable,
-                        res,
-                        NULL,
-                        route_error
-                        ) < 0) {
-                        Py_DECREF(awaitable);
-                        Py_DECREF(res);
-                        return NULL;
-                    };
-                }
-            }
-            res_coro = PyObject_CallNoArgs(r->callable);
-        }
+        } else res_coro = PyObject_CallNoArgs(r->callable);
 
         if (!res_coro) {
             Py_DECREF(awaitable);
@@ -743,28 +732,6 @@ static PyObject* app(
             return awaitable;
         }
 
-        if (!Py_IS_TYPE(
-            res_coro,
-            &PyCoro_Type
-            )) {
-            if (handle_route_callback(
-                awaitable,
-                res_coro
-                ) < 0) {
-                if (server_err(
-                    self,
-                    awaitable,
-                    500,
-                    r,
-                    NULL,
-                    method_str
-                    ) < 0)
-                    return NULL;
-                return awaitable;
-            };
-            return awaitable;
-        }
-
         if (PyAwaitable_AddAwait(
             awaitable,
             res_coro,
@@ -779,32 +746,6 @@ static PyObject* app(
     }
 
     return awaitable;
-}
-
-
-static int load_middleware(route* r, PyObject* list) {
-    Py_ssize_t size = PyList_GET_SIZE(list);
-    PyObject** middleware = PyMem_Calloc(
-        size,
-        sizeof(PyObject*)
-    );
-    r->middleware_size = size;
-
-    if (!middleware) {
-        PyErr_NoMemory();
-        return -1;
-    }
-
-    for (int i = 0; i < size; i++) {
-        PyObject* func = PyList_GET_ITEM(
-            list,
-            i
-        );
-        middleware[i] = Py_NewRef(func);
-    }
-
-    r->middleware = middleware;
-    return 0;
 }
 
 ROUTE(get);

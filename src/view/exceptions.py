@@ -23,6 +23,7 @@ __all__ = (
     "BuildWarning",
     "BuildError",
     "MissingRequirementError",
+    "InvalidResultError",
 )
 
 
@@ -126,3 +127,7 @@ class BuildError(ViewError):
 
 class MissingRequirementError(BuildError):
     """Build requirement is missing."""
+
+
+class InvalidResultError(ViewError, TypeError):
+    """Invalid route result."""

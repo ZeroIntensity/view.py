@@ -70,10 +70,6 @@ void route_free(route* r) {
 
     PyMem_Free(r->inputs);
 
-    for (int i = 0; i < r->middleware_size; i++)
-        Py_DECREF(r->middleware[i]);
-
-    PyMem_Free(r->middleware);
     Py_XDECREF(r->cache_headers);
     Py_DECREF(r->callable);
 
@@ -292,34 +288,6 @@ int handle_route_impl(
         for (int i = *size; i < r->inputs_size + *size; i++)
             merged[i] = params[i];
 
-        for (int i = 0; i < r->middleware_size; i++) {
-            PyObject* res = PyObject_Vectorcall(
-                r->middleware[i],
-                merged,
-                r->inputs_size + (*size),
-                NULL
-            );
-
-            if (!res) {
-                for (int x = 0; x < r->inputs_size + *size; x++)
-                    Py_DECREF(merged[x]);
-
-                free(path_params);
-                free(size);
-                free(merged);
-                if (server_err(
-                    self,
-                    awaitable,
-                    500,
-                    r,
-                    NULL,
-                    method_str
-                    ) < 0)
-                    return -1;
-                return 0;
-            }
-        }
-
         coro = PyObject_Vectorcall(
             r->callable,
             merged,
@@ -342,95 +310,18 @@ int handle_route_impl(
             method_str
             ) < 0)
             return -1;
-    } else {
-        for (int i = 0; i < r->middleware_size; i++) {
-            PyObject* res = PyObject_Vectorcall(
-                r->middleware[i],
-                params,
-                r->inputs_size,
-                NULL
-            );
-
-            if (!res) {
-                for (int x = 0; x < r->inputs_size; x++)
-                    Py_DECREF(params[x]);
-
-                if (server_err(
-                    self,
-                    awaitable,
-                    500,
-                    r,
-                    NULL,
-                    method_str
-                    ) < 0)
-                    return -1;
-                return 0;
-            }
-
-            if (PyCoro_CheckExact(res)) {
-                if (PyAwaitable_AddAwait(
-                    awaitable,
-                    res,
-                    NULL,
-                    route_error
-                    ) <
-                    0) {
-                    if (server_err(
-                        self,
-                        awaitable,
-                        500,
-                        r,
-                        NULL,
-                        method_str
-                        ) < 0)
-                        return -1;
-                    return 0;
-                }
-            }
-        }
-
-        coro = PyObject_Vectorcall(
-            r->callable,
-            params,
-            r->inputs_size,
-            NULL
-        );
-
-
-        for (int i = 0; i < r->inputs_size; i++)
-            Py_DECREF(params[i]);
     }
 
     if (!coro)
         return -1;
 
-    if (!Py_IS_TYPE(
+    if (PyAwaitable_AddAwait(
+        awaitable,
         coro,
-        &PyCoro_Type
-        )) {
-        if (handle_route_callback(
-            awaitable,
-            coro
-            ) < 0) {
-            if (server_err(
-                self,
-                awaitable,
-                500,
-                r,
-                NULL,
-                method_str
-                ) < 0)
-                return -1;
-        }
-    } else {
-        if (PyAwaitable_AddAwait(
-            awaitable,
-            coro,
-            handle_route_callback,
-            route_error
-            ) < 0) {
-            return -1;
-        }
+        handle_route_callback,
+        route_error
+        ) < 0) {
+        return -1;
     }
 
     return 0;

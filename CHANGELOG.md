@@ -17,7 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Removed dead file `src/view/nodes.py` and `src/view/compiler.py`
 -   Added `patterns` loader to `view init`
 -   Updated internal C API structure
--   Added builds
+-   Added `build` to config
+-   Added the `build_app` and `build_steps` functions
+-   `Route.__call__` is now used internally over `Route.func`
+-   Added the `to_response` function
+-   **Breaking Change:**  Middleware functions must now take `call_next`
 
 ## [1.0.0-alpha9] - 2024-2-4
 

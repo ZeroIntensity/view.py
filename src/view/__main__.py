@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import getpass
 import os
 import random
@@ -19,8 +20,6 @@ from .exceptions import AppNotFoundError, BuildError
 B_OPEN = "{"
 B_CLOSE = "}"
 
-_GIT_EMAIL = re.compile(r' *email = "(.+)"')
-
 
 def _get_email():
     home = Path.home()
@@ -34,7 +33,8 @@ def _get_email():
         return "your@email.com"
 
     for i in text.split("\n"):
-        match = _GIT_EMAIL.match(i)
+        # don't use re.compile to keep the import lazy
+        match = re.match(r' *email = "(.+)"', i)
         if match:
             return match.group(1)
 
@@ -241,7 +241,7 @@ def build(path: Path):
     Internal.info = info_hook
 
     try:
-        build_app(app, path=path)
+        asyncio.run(build_app(app, path=path))
     except BuildError as e:
         error(str(e))
 
