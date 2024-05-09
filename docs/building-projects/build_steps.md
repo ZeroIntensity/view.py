@@ -48,7 +48,7 @@ requires = ["npm"]
 command = "npm run build"
 ```
 
-By default, this will only be run once the app is started. If you would like to run it every time a certain route is called, add the `build` parameter to a router function. Note that this will make your route much slower (as a build process needs to be started for every request), so it's highly recommended that you [cache](https://view.zintensity.dev/building-projects/responses/#caching) the route.
+By default, this will only be run once the app is started. If you would like to run it every time a certain route is called, add the `steps` parameter to a router function. Note that this will make your route much slower (as a build process needs to be started for every request), so it's highly recommended that you [cache](https://view.zintensity.dev/building-projects/responses/#caching) the route.
 
 For example:
 
@@ -57,7 +57,7 @@ from view import new_app
 
 app = new_app()
 
-@app.get("/", build=["nextjs"], cache_rate=10000)  # Reloads app every 10,000 requests
+@app.get("/", steps=["nextjs"], cache_rate=10000)  # Reloads app every 10,000 requests
 async def index():
     return await app.template("out/index.html")
 
