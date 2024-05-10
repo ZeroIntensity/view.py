@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 import pytest
 
-from view import JSON, BodyParam, Context, Response, body, context, get, new_app, quey
+from view import JSON, BodyParam, Context, Response, body, context, get, new_app, query
 from view import route as route_impl
 
 
