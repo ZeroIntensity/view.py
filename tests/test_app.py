@@ -350,6 +350,22 @@ async def test_dict_validation():
 
 
 @pytest.mark.asyncio
+async def test_non_async_routes():
+    app = new_app()
+
+    @app.get("/")
+    def index():
+        return "hello world", 201, {"a":"b"}
+    
+    async with app.test() as test:
+        res = await test.get("/")
+
+        assert res.message == "hello world"
+        assert res.status == 201
+        assert res.headers["a"] == "b"
+
+
+@pytest.mark.asyncio
 async def test_list_validation():
     app = new_app()
 
@@ -530,7 +546,7 @@ async def test_caching():
 
     
 @pytest.mark.asyncio
-async def test_asynchronous_route_inputs():
+async def test_synchronous_route_inputs():
     app = new_app()
 
     @app.get("/")

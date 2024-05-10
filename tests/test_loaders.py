@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from ward import test
+import pytest
 
 from view import delete, get, new_app, options, patch, post, put
 
 
-@test("manual loader")
-async def _():
+@pytest.mark.asyncio
+async def test_manual_loader():
     app = new_app()
     assert app.config.app.loader == "manual"
 
@@ -45,8 +45,8 @@ async def _():
         assert (await test.options("/options")).message == "options"
 
 
-@test("simple loader")
-async def _():
+@pytest.mark.asyncio
+async def test_simple_loader():
     app = new_app(config_path=Path.cwd() / "tests" / "configs" / "simple.toml")
 
     async with app.test() as test:
@@ -58,8 +58,8 @@ async def _():
         assert (await test.options("/options")).message == "options"
 
 
-@test("filesystem loader")
-async def _():
+@pytest.mark.asyncio
+async def test_filesystem_loader():
     app = new_app(config_path=Path.cwd() / "tests" / "configs" / "fs.toml")
 
     async with app.test() as test:
@@ -71,8 +71,8 @@ async def _():
         assert (await test.options("/options")).message == "options"
 
 
-@test("patterns loader")
-async def _():
+@pytest.mark.asyncio
+async def test_patterns_loader():
     app = new_app(config_path=Path.cwd() / "tests" / "configs" / "urls.toml")
 
     async with app.test() as test:

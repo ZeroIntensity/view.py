@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from ward import test
+import pytest
 
 from view import markdown, new_app, render, template
 
 
-@test("view rendering")
-async def _():
+@pytest.mark.asyncio
+async def test_view_rendering():
     x = 2
 
     class Test:
@@ -43,8 +43,8 @@ async def _():
     ) == "bye"
 
 
-@test("other engines")
-async def _():
+@pytest.mark.asyncio
+async def test_other_engines():
     x = "world"
     assert (await render("hello {{ x }}", engine="jinja")) == "hello world"
     assert (await render("hello {{ x }}", engine="django")) == "hello world"
@@ -52,8 +52,8 @@ async def _():
     assert (await render("hello ${x}", engine="chameleon")) == "hello world"
 
 
-@test("templating")
-async def _():
+@pytest.mark.asyncio
+async def test_templating():
     app = new_app()
 
     @app.get("/")
@@ -84,8 +84,8 @@ async def _():
         ) == "<!DOCTYPE html><html><h1>A</h1><h2>B</h2><h3>C</h3></html>"
 
 
-@test("template configuration settings")
-async def _():
+@pytest.mark.asyncio
+async def test_template_configuration_settings():
     app = new_app(config_path=Path.cwd() / "tests" / "configs" / "templates.toml")
 
     @app.get("/")
@@ -97,8 +97,8 @@ async def _():
         assert (await test.get("/")).message.replace("\n", "") == "1"
 
 
-@test("view renderer subtemplates")
-async def _():
+@pytest.mark.asyncio
+async def test_view_renderer_subtemplates():
     app = new_app(config_path=Path.cwd() / "tests" / "configs" / "subtemplates.toml")
 
     @app.get("/")
