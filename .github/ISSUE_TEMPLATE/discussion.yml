@@ -4,7 +4,7 @@ labels: ["discussion"]
 body:
     - type: textarea
       attributes:
-          label: "Content:"
+          label: "Discussion:"
           description: >
               Write anything relevant to this discussion!
           value: |
