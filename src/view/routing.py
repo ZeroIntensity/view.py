@@ -4,12 +4,12 @@ import asyncio
 import builtins
 import inspect
 import re
-from collections.abc import Coroutine
+from collections.abc import Awaitable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
-                    Union)
+                    Union, overload)
 
 from typing_extensions import ParamSpec, TypeAlias
 
@@ -128,7 +128,7 @@ class Route(Generic[P], LoadChecker):
     __str__ = __repr__
 
     async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> ViewResult:
-        coros: list[Coroutine] = []
+        coros: list[Awaitable] = []
         assert self.app, "app is None"
 
         for step in self.steps or ():
@@ -148,7 +148,7 @@ class Route(Generic[P], LoadChecker):
                 if index < 0:
                     func = self.func(*args, **kwargs)
 
-                    if isinstance(func, Coroutine):
+                    if isinstance(func, Awaitable):
                         return await func
 
                     return func  # type: ignore
@@ -159,7 +159,7 @@ class Route(Generic[P], LoadChecker):
             return await mw(call_next, *args, **kwargs)
 
         result = self.func(*args, **kwargs)
-        if isinstance(result, Coroutine):
+        if isinstance(result, Awaitable):
             return await result
 
         # type checker still thinks its async for some reason
@@ -617,7 +617,7 @@ def query(
     *tps: type[V],
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
-):
+) -> Path[P]:
     """
     Add a route input for a query parameter.
 
@@ -654,7 +654,7 @@ def query(
         with suppress(TypeError):
             setattr(i, "_view_scope", {**target.f_locals, **target.f_globals})
 
-    def inner(r: RouteOrCallable) -> Route:
+    def inner(r: RouteOrCallable[P]) -> Route[P]:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, False, tps, default, doc, []))
         return route
@@ -667,7 +667,7 @@ def body(
     *tps: type[V],
     doc: str | None = None,
     default: V | None | _NoDefaultType = _NoDefault,
-):
+) -> Path[P]:
     """
     Add a route input for a body parameter.
 
@@ -692,7 +692,7 @@ def body(
         ```
     """
 
-    def inner(r: RouteOrCallable) -> Route:
+    def inner(r: RouteOrCallable[P]) -> Route[P]:
         route = _ensure_route(r)
         route.inputs.append(RouteInput(name, True, tps, default, doc, []))
         return route
@@ -700,10 +700,26 @@ def body(
     return inner
 
 
-def context(r_or_none: RouteOrCallable | None = None):
+@overload
+def context(
+    r_or_none: RouteOrCallable[P],
+) -> Route[P]:
+    ...
+
+
+@overload
+def context(
+    r_or_none: None = None,
+) -> Callable[[RouteOrCallable[P]], Route[P]]:
+    ...
+
+
+def context(
+    r_or_none: RouteOrCallable[P] | None = None,
+) -> Callable[[RouteOrCallable[P]], Route[P]] | Route[P]:
     """Add a context input to the route."""
 
-    def inner(r: RouteOrCallable) -> Route:
+    def inner(r: RouteOrCallable[P]) -> Route[P]:
         route = _ensure_route(r)
         route.inputs.append(1)
         return route

@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import Unpack
+from typing_extensions import ParamSpec, Unpack
 
 from _view import InvalidStatusError, ViewApp
 
@@ -40,7 +40,9 @@ from .config import Config, load_config
 from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
 from .response import HTML
-from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
+from .routing import Path as _RouteDeco
+from .routing import (Route, RouteInput, RouteOrCallable, V, _NoDefault,
+                      _NoDefaultType)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -57,6 +59,7 @@ __all__ = "App", "new_app", "get_app", "Error", "ERROR_CODES"
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
+P = ParamSpec("P")
 
 _ROUTES_WARN_MSG = (
     "routes argument should only be passed when load strategy is manual"
@@ -446,12 +449,12 @@ class App(ViewApp):
 
     def route(
         self,
-        path_or_route: str | None | RouteOrCallable = None,
+        path_or_route: str | None | RouteOrCallable[P] = None,
         doc: str | None = None,
         *,
         cache_rate: int = -1,
         methods: Iterable[StrMethod] | None = None,
-    ) -> Callable[[RouteOrCallable], Route]:
+    ) -> _RouteDeco[P]:
         """Add a route that can be called with any method (or only specific methods).
 
         Args:
@@ -470,7 +473,7 @@ class App(ViewApp):
             ```
         """
 
-        def inner(r: RouteOrCallable) -> Route:
+        def inner(r: RouteOrCallable[P]) -> Route[P]:
             new_r = route_impl(
                 path_or_route, doc, cache_rate=cache_rate, methods=methods
             )(r)
@@ -486,15 +489,21 @@ class App(ViewApp):
         cache_rate: int,
         target: Callable[..., Any],
         # i dont really feel like typing this properly
-    ) -> Callable[[RouteOrCallable], Route]:
-        def inner(route: RouteOrCallable) -> Route:
+    ) -> _RouteDeco[P]:
+        def inner(route: RouteOrCallable[P]) -> Route[P]:
             new_route = target(path, doc, cache_rate=cache_rate)(route)
             self._push_route(new_route)
             return new_route
 
         return inner
 
-    def get(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def get(
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ) -> _RouteDeco[P]:
         """Add a GET route.
 
         Args:
@@ -517,7 +526,13 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, get)
 
-    def post(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def post(
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ) -> _RouteDeco[P]:
         """Add a POST route.
 
         Args:
@@ -541,8 +556,12 @@ class App(ViewApp):
         return self._method_wrapper(path, doc, cache_rate, post)
 
     def delete(
-        self, path: str, doc: str | None = None, *, cache_rate: int = -1
-    ):
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ) -> _RouteDeco[P]:
         """Add a DELETE route.
 
         Args:
@@ -571,7 +590,7 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
-    ):
+    ) -> _RouteDeco[P]:
         """Add a PATCH route.
 
         Args:
@@ -594,7 +613,13 @@ class App(ViewApp):
         """
         return self._method_wrapper(path, doc, cache_rate, patch)
 
-    def put(self, path: str, doc: str | None = None, *, cache_rate: int = -1):
+    def put(
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ) -> _RouteDeco[P]:
         """Add a PUT route.
 
         Args:
@@ -618,8 +643,12 @@ class App(ViewApp):
         return self._method_wrapper(path, doc, cache_rate, put)
 
     def options(
-        self, path: str, doc: str | None = None, *, cache_rate: int = -1
-    ):
+        self,
+        path: str,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+    ) -> _RouteDeco[P]:
         """Add an OPTIONS route.
 
         Args:
@@ -685,7 +714,7 @@ class App(ViewApp):
         *tps: type[V],
         doc: str | None = None,
         default: V | None | _NoDefaultType = _NoDefault,
-    ):
+    ) -> Callable[[RouteOrCallable[P]], Route[P]]:
         """Set a query parameter.
 
         Args:
@@ -695,7 +724,7 @@ class App(ViewApp):
             default: Default value to be used if not supplied.
         """
 
-        def inner(func: RouteOrCallable) -> Route:
+        def inner(func: RouteOrCallable[P]) -> Route[P]:
             route = query_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
@@ -708,7 +737,7 @@ class App(ViewApp):
         *tps: type[V],
         doc: str | None = None,
         default: V | None | _NoDefaultType = _NoDefault,
-    ):
+    ) -> Callable[[RouteOrCallable[P]], Route[P]]:
         """Set a body parameter.
 
         Args:
@@ -718,7 +747,7 @@ class App(ViewApp):
             default: Default value to be used if not supplied.
         """
 
-        def inner(func: RouteOrCallable) -> Route:
+        def inner(func: RouteOrCallable[P]) -> Route[P]:
             route = body_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
@@ -755,7 +784,24 @@ class App(ViewApp):
         """Convert a markdown file into HTML. This returns a view.py HTML response."""
         return await markdown(name, directory=directory, app=self)
 
-    def context(self, r_or_none: RouteOrCallable | None = None):
+    @overload
+    def context(
+        self,
+        r_or_none: RouteOrCallable[P],
+    ) -> Route[P]:
+        ...
+
+    @overload
+    def context(
+        self,
+        r_or_none: None = None,
+    ) -> Callable[[RouteOrCallable[P]], Route[P]]:
+        ...
+
+    def context(
+        self,
+        r_or_none: RouteOrCallable[P] | None = None,
+    ) -> Callable[[RouteOrCallable[P]], Route[P]] | Route[P]:
         return context_impl(r_or_none)
 
     async def _app(self, scope, receive, send) -> None:
@@ -786,8 +832,6 @@ class App(ViewApp):
             finalize([*(routes or ()), *self._manual_routes], self)
 
         self.loaded = True
-
-        from .routing import RouteInput
 
         for r in self.loaded_routes:
             if not r.path:

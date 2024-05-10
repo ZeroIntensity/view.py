@@ -112,7 +112,7 @@ class Response(Generic[T]):
 
         return tuple(headers)
 
-    def __view_result__(self):
+    def __view_result__(self) -> ViewResult:
         body: str = ""
         if self.translate == "str":
             body = str(self.body)

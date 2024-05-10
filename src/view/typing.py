@@ -25,7 +25,12 @@ AsgiDict = Dict[str, AsgiSerial]
 AsgiReceive = Callable[[], Awaitable[AsgiDict]]
 AsgiSend = Callable[[AsgiDict], Awaitable[None]]
 
-ResponseHeaders = Dict[str, str]
+RawResponseHeader = Tuple[bytes, bytes]
+ResponseHeaders = Union[
+    Dict[str, str],
+    List[RawResponseHeader],
+    Tuple[RawResponseHeader, ...],
+]
 
 _ViewResponseTupleA = Tuple[str, int, ResponseHeaders]
 _ViewResponseTupleB = Tuple[int, str, ResponseHeaders]
@@ -37,6 +42,12 @@ _ViewResponseTupleG = Tuple[str, ResponseHeaders]
 _ViewResponseTupleH = Tuple[ResponseHeaders, str]
 _ViewResponseTupleI = Tuple[str, int]
 _ViewResponseTupleJ = Tuple[int, str]
+
+
+class SupportsViewResult(Protocol):
+    def __view_result__(self) -> ViewResult:
+        ...
+
 
 ViewResult = Union[
     _ViewResponseTupleA,
@@ -50,6 +61,7 @@ ViewResult = Union[
     _ViewResponseTupleI,
     _ViewResponseTupleJ,
     str,
+    SupportsViewResult,
 ]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added the `build_app` and `build_steps` functions
 -   `Route.__call__` is now used internally over `Route.func`
 -   Added the `to_response` function
+-   Improved type checking on functions decorated with a router function
 -   **Breaking Change:**  Middleware functions must now take `call_next`
 
 ## [1.0.0-alpha9] - 2024-2-4

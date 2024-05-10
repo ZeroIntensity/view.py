@@ -83,92 +83,6 @@ void route_free(route* r) {
     free(r);
 }
 
-void route_input_print(route_input* ri) {
-    puts("route_input {");
-    printf(
-        "name: %s\n",
-        ri->name
-    );
-    printf("df: ");
-    PyObject_Print(
-        ri->df,
-        stdout,
-        Py_PRINT_RAW
-    );
-    puts("");
-    printf(
-        "is_body: %d\n",
-        ri->is_body
-    );
-
-    puts("validators [");
-    for (int i = 0; i < ri->validators_size; i++) {
-        PyObject* o = ri->validators[i];
-        PyObject_Print(
-            o,
-            stdout,
-            Py_PRINT_RAW
-        );
-        puts("");
-    }
-    puts("]");
-
-    puts("}");
-}
-
-void route_print(route* r) {
-    puts("route {");
-    printf("callable: ");
-    PyObject_Print(
-        r->callable,
-        stdout,
-        Py_PRINT_RAW
-    );
-    puts("");
-    printf("route_inputs [");
-    for (int i = 0; i < r->inputs_size; i++) {
-        route_input* ri = r->inputs[i];
-        route_input_print(ri);
-    }
-    puts("]");
-    printf(
-        "cache: %s\ncache_headers: ",
-        r->cache ? r->cache : "\"\""
-    );
-    PyObject_Print(
-        r->cache_headers,
-        stdout,
-        Py_PRINT_RAW
-    );
-    printf(
-        "\ncache_status: %d\ncache_index: %ld\ncache_rate: %ld\n",
-        r->cache_status,
-        r->cache_index,
-        r->cache_rate
-    );
-
-    if (r->r) {
-        printf("r: ");
-        route_print(r->r);
-        puts("");
-    } else {
-        puts("r: NULL");
-    }
-
-    if (r->routes) {
-        printf("routes: ");
-        print_map(
-            r->routes,
-            (map_print_func) route_print
-        );
-        puts("");
-    } else {
-        puts("routes: NULL");
-    }
-
-    puts("}");
-}
-
 route* route_transport_new(route* r) {
     route* rt = malloc(sizeof(route));
     if (!rt) return (route*) PyErr_NoMemory();
@@ -310,7 +224,12 @@ int handle_route_impl(
             method_str
             ) < 0)
             return -1;
-    }
+    } else coro = PyObject_Vectorcall(
+        r->callable,
+        params,
+        r->inputs_size,
+        NULL
+    );
 
     if (!coro)
         return -1;
