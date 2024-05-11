@@ -731,7 +731,6 @@ static PyObject* app(
                 return NULL;
             return awaitable;
         }
-
         if (PyAwaitable_AddAwait(
             awaitable,
             res_coro,

@@ -297,7 +297,7 @@ def _method_wrapper(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    def inner(r: RouteOrCallable) -> Route:
+    def inner(r: RouteOrCallable[P]) -> Route[P]:
         if (not isinstance(path_or_route, str)) and path_or_route:
             raise TypeError(f"{path_or_route!r} is not a string")
 

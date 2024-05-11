@@ -435,6 +435,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if (not route.path) and (not route.parts):
             raise InvalidRouteError(f"{route} did not specify a path")
+
         lst = virtual_routes.get(route.path or "")
 
         if lst:
@@ -505,7 +506,7 @@ def finalize(routes: list[Route], app: ViewApp):
                 target = targets[i]
                 target(
                     route.path,  # type: ignore
-                    route.func,
+                    route,
                     route.cache_rate,
                     _format_inputs(route.inputs),
                     route.errors or {},
@@ -639,7 +640,10 @@ def load_patterns(app: ViewApp, target_path: Path) -> None:
 
     if not patterns:
         raise InvalidRouteError(
-            f"{target_path} did not define a PATTERNS, URL_PATTERNS, URLPATTERNS, urlpatterns, or patterns variable"
+            f"{target_path} did not define a PATTERNS, URL_PATTERNS, URLPATTERNS, urlpatterns, or patterns variable",
+            hint=docs_hint(
+                "https://view.zintensity.dev/building-projects/routing/#url-pattern-routing"
+            ),
         )
 
     finalize(patterns, app)
