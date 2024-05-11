@@ -587,6 +587,7 @@ def route(
     cache_rate: int = -1,
     methods: Iterable[StrMethod] | None = None,
     steps: Iterable[str] | None = None,
+    parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
     """Add a route that can be called with any method (or only specific methods).
 
@@ -614,6 +615,7 @@ def route(
         if methods
         else None,
         steps=steps,
+        parallel_build=parallel_build,
     )
 
 

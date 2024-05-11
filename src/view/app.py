@@ -351,6 +351,9 @@ class Error(BaseException):
         self.message = message
 
 
+_DefinedByConfig = None
+
+
 class App(ViewApp):
     """Public view.py app object."""
 
@@ -391,7 +394,7 @@ class App(ViewApp):
             format_warnings()
             weakref.finalize(self, self._finalize)
 
-            if config.log.pretty_tracebacks:
+            if config.log.pretty_tracebacks and (not config.log.fancy):
                 install(show_locals=True)
 
             rich_handler = sys.excepthook
@@ -454,6 +457,8 @@ class App(ViewApp):
         *,
         cache_rate: int = -1,
         methods: Iterable[StrMethod] | None = None,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add a route that can be called with any method (or only specific methods).
 
@@ -475,7 +480,12 @@ class App(ViewApp):
 
         def inner(r: RouteOrCallable[P]) -> Route[P]:
             new_r = route_impl(
-                path_or_route, doc, cache_rate=cache_rate, methods=methods
+                path_or_route,
+                doc,
+                cache_rate=cache_rate,
+                methods=methods,
+                steps=steps,
+                parallel_build=parallel_build,
             )(r)
             self._push_route(new_r)
             return new_r
@@ -488,10 +498,18 @@ class App(ViewApp):
         doc: str | None,
         cache_rate: int,
         target: Callable[..., Any],
+        steps: Iterable[str] | None,
+        parallel_build: bool | None,
         # i dont really feel like typing this properly
     ) -> _RouteDeco[P]:
         def inner(route: RouteOrCallable[P]) -> Route[P]:
-            new_route = target(path, doc, cache_rate=cache_rate)(route)
+            new_route = target(
+                path,
+                doc,
+                cache_rate=cache_rate,
+                steps=steps,
+                parallel_build=parallel_build,
+            )(route)
             self._push_route(new_route)
             return new_route
 
@@ -503,6 +521,8 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add a GET route.
 
@@ -524,7 +544,9 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(path, doc, cache_rate, get)
+        return self._method_wrapper(
+            path, doc, cache_rate, get, steps, parallel_build
+        )
 
     def post(
         self,
@@ -532,6 +554,8 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add a POST route.
 
@@ -553,7 +577,14 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(path, doc, cache_rate, post)
+        return self._method_wrapper(
+            path,
+            doc,
+            cache_rate,
+            post,
+            steps,
+            parallel_build,
+        )
 
     def delete(
         self,
@@ -561,6 +592,8 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add a DELETE route.
 
@@ -582,7 +615,14 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(path, doc, cache_rate, delete)
+        return self._method_wrapper(
+            path,
+            doc,
+            cache_rate,
+            delete,
+            steps,
+            parallel_build,
+        )
 
     def patch(
         self,
@@ -590,6 +630,8 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add a PATCH route.
 
@@ -611,7 +653,14 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(path, doc, cache_rate, patch)
+        return self._method_wrapper(
+            path,
+            doc,
+            cache_rate,
+            patch,
+            steps,
+            parallel_build,
+        )
 
     def put(
         self,
@@ -619,6 +668,8 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add a PUT route.
 
@@ -640,7 +691,9 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(path, doc, cache_rate, put)
+        return self._method_wrapper(
+            path, doc, cache_rate, put, steps, parallel_build
+        )
 
     def options(
         self,
@@ -648,6 +701,8 @@ class App(ViewApp):
         doc: str | None = None,
         *,
         cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
         """Add an OPTIONS route.
 
@@ -669,7 +724,9 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(path, doc, cache_rate, options)
+        return self._method_wrapper(
+            path, doc, cache_rate, options, steps, parallel_build
+        )
 
     def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
         if key not in kwargs:
