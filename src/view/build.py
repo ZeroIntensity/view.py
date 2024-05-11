@@ -20,7 +20,8 @@ if TYPE_CHECKING:
     from .app import App
 
 from .config import BuildStep
-from .exceptions import BuildError, BuildWarning, MissingRequirementError
+from .exceptions import (BuildError, BuildWarning, MissingRequirementError,
+                         UnknownBuildStepError)
 from .response import to_response
 
 __all__ = "build_steps", "build_app"
@@ -195,7 +196,12 @@ async def _build_step(step: _BuildStepWithName) -> None:
 
 async def run_step(app: App, name: str) -> None:
     """Run an individual build step."""
-    step = _BuildStepWithName(name, app.config.build.steps[name], [])
+    step_conf = app.config.build.steps.get(name)
+
+    if not step_conf:
+        raise UnknownBuildStepError(f"no step named {name!r}")
+
+    step = _BuildStepWithName(name, step_conf, [])
     await _build_step(step)
 
 

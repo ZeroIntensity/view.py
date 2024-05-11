@@ -155,14 +155,36 @@ B_OC = "{}"
 
 def make_preset(tp: str, loader: str) -> str:
     if tp == "toml":
-        return f"""dev = true
+        return f"""# See https://view.zintensity.dev/getting-started/configuration/
+dev = true # Development mode
 
 [app]
-loader = "{loader}"
+loader = "{loader}" # Loader strategy
+app_path = "app.py:app" # Location and name of the app instance
+uvloop = "decide" # Use uvloop for the event loop
+loader_path = "routes/" # Loader-specific path
 
 [server]
+host = "0.0.0.0" # Address to bind
+port = 5000 # Port to bind
+backend = "uvicorn" # ASGI server
+
+[server.extra_args]
+# ASGI backend specific arguments
+# workers = 4
 
 [log]
+level = "info" # Log level
+server_logger = false # Show ASGI servers raw logs
+fancy = true # Enable fancy output
+pretty_tracebacks = true # Use Rich exceptions
+startup_message = true # Show view.py welcome message
+
+[templates]
+directory = "./templates" # Template search directory
+locals = true # Allow templates to access local variables when rendered
+globals = true # Same as above, but with global variables
+engine = "view" # Default template engine
 """
     if tp == "json":
         return f"""{B_OPEN}

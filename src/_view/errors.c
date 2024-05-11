@@ -279,7 +279,11 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
         ) < 0)
         return -1;
 
-    if (PyAwaitable_UnpackArbValues(awaitable, NULL, &method_str) < 0)
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        NULL,
+        &method_str
+        ) < 0)
         return -1;
 
     char* res_str;
@@ -341,7 +345,11 @@ static int run_err_cb(
             method
         );
 
-        if (!PyObject_Call(route_log, args, NULL)) {
+        if (!PyObject_Call(
+            route_log,
+            args,
+            NULL
+            )) {
             PyErr_Print();
             Py_DECREF(args);
             return -1;
@@ -385,7 +393,11 @@ static int run_err_cb(
         return -1;
     }
 
-    if (PyAwaitable_SaveArbValues(new_awaitable, 1, r) < 0) {
+    if (PyAwaitable_SaveArbValues(
+        new_awaitable,
+        1,
+        r
+        ) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;

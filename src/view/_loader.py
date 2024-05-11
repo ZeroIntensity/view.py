@@ -25,7 +25,8 @@ import inspect
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
 from .exceptions import (DuplicateRouteError, InvalidBodyError,
-                         InvalidRouteError, LoaderWarning)
+                         InvalidRouteError, LoaderWarning,
+                         UnknownBuildStepError)
 from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
                       _NoDefault)
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
@@ -427,6 +428,12 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if route.parallel_build is None:
             route.parallel_build = app.config.build.parallel
+
+        for step in route.steps or []:
+            if step not in app.config.build.steps:
+                raise UnknownBuildStepError(
+                    f"build step {step!r} is not defined"
+                )
 
         if route.method:
             target = targets[route.method]

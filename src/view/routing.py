@@ -13,6 +13,7 @@ from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
 
 from typing_extensions import ParamSpec, TypeAlias
 
+from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .build import run_step
 from .exceptions import InvalidRouteError, MistakeError
@@ -80,6 +81,13 @@ class Part(Generic[V]):
 RouteData = Literal[1, 2]
 
 
+async def wrap_step(app: App, step: str) -> None:
+    try:
+        await run_step(app, step)
+    except Exception as e:
+        Service.exception(e)
+
+
 @dataclass
 class Route(Generic[P], LoadChecker):
     """Standard Route Wrapper"""
@@ -132,16 +140,20 @@ class Route(Generic[P], LoadChecker):
         assert self.app, "app is None"
 
         for step in self.steps or ():
-            coros.append(run_step(self.app, step))
+            coros.append(wrap_step(self.app, step))
 
         if self.parallel_build:
             await asyncio.gather(*coros)
+        else:
+            for coro in coros:
+                await coro
 
         if self.middleware_funcs:
             index = len(self.middleware_funcs) - 1
             mw = self.middleware_funcs[index]
 
             async def call_next() -> ViewResult:
+                nonlocal mw
                 nonlocal index
                 index -= 1
 

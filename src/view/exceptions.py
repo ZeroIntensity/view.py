@@ -24,6 +24,7 @@ __all__ = (
     "BuildError",
     "MissingRequirementError",
     "InvalidResultError",
+    "UnknownBuildStepError",
 )
 
 
@@ -131,3 +132,7 @@ class MissingRequirementError(BuildError):
 
 class InvalidResultError(ViewError, TypeError):
     """Invalid route result."""
+
+
+class UnknownBuildStepError(BuildError):
+    """Undefined build step was used."""
