@@ -3,29 +3,27 @@ from dataclasses import dataclass
 from typing import Dict
 
 from typing_extensions import Annotated
-from ward import raises, test
 
-from view import (App, BadEnvironmentError, TypeValidationError, compile_type,
-                  env, get_app, new_app)
+import pytest
+from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app
 
-
-@test("app creation")
-def _():
+@pytest.mark.asyncio
+def test_app_creation():
     app = new_app()
     assert isinstance(app, App)
     app.load()
 
 
-@test("app fetching")
-def _():
+@pytest.mark.asyncio
+def test_app_fetching():
     app = new_app()
     assert isinstance(get_app(), App)
     app.load()
     assert app is get_app()
 
 
-@test("documentation generation")
-def _():
+@pytest.mark.asyncio
+def documentation_generation():
     app = new_app()
 
     @dataclass
@@ -84,8 +82,8 @@ def _():
     )
 
 
-@test("public typecode interface")
-async def _():
+@pytest.mark.asyncio
+async def test_public_typecode_interface():
     @dataclass
     class Test:
         a: str
@@ -105,12 +103,13 @@ async def _():
 
     assert not x
 
-    with raises(TypeValidationError):
+    with pytest.raises(TypeValidationError):
         tp.cast("{}")
 
-@test("environment variables")
-async def _():
-    with raises(BadEnvironmentError):
+
+@pytest.mark.asyncio
+async def test_environment_variables():
+    with pytest.raises(BadEnvironmentError):
         env("_TEST")
 
     os.environ["_TEST"] = "1"
@@ -125,3 +124,5 @@ async def _():
 
     os.environ["_TEST3"] = "false"
     assert env("_TEST3", tp=bool) is False
+
+    
