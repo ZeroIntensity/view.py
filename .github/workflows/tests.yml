@@ -24,7 +24,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
+                os: [ubuntu-latest, windows-latest, macos-12]
                 python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
         steps:
@@ -35,11 +35,23 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
 
-            - name: Install Ward
-              run: pip install --upgrade --pre ward
+            - name:  Install PyTest
+              run:   |
+                     if [ "$RUNNER_OS" == "Windows" ]; then
+                          pip install pytest pytest-asyncio
+                     else
+                          pip install pytest pytest-asyncio pytest-memray
+                     fi
+              shell: bash
+    
+            - name: Build project
+              run: pip install .
 
-            - name: Install project
-              run: pip install .[full]
-
-            - name: Run tests
-              run: ward
+            - name:  Run tests
+              run:   |
+                     if [ "$RUNNER_OS" == "Windows" ]; then
+                          pytest
+                     else
+                          pytest --memray
+                     fi
+              shell: bash
