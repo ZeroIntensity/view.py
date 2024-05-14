@@ -4,40 +4,38 @@ from typing import Dict, List, NamedTuple, TypedDict, Union
 import attrs
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
-from ward import test
+import pytest
 
 from view import JSON, BodyParam, Context, Response, body, context, get, new_app, query
 from view import route as route_impl
 
 
-@test("responses")
-async def _():
+@pytest.mark.asyncio
+async def test_reponses():
     app = new_app()
 
     @app.get("/")
     async def index():
         return "hello"
-
+    
     async with app.test() as test:
         assert (await test.get("/")).message == "hello"
 
-
-@test("status codes")
-async def _():
+@pytest.mark.asyncio
+async def test_status_codes():
     app = new_app()
 
     @app.get("/")
     async def index():
         return "error", 400
-
+    
     async with app.test() as test:
         res = await test.get("/")
         assert res.status == 400
         assert res.message == "error"
 
-
-@test("headers")
-async def _():
+@pytest.mark.asyncio
+async def test_headers():
     app = new_app()
 
     @app.get("/")
@@ -49,9 +47,8 @@ async def _():
         assert res.headers["a"] == "b"
         assert res.message == "hello"
 
-
-@test("combination of headers, responses, and status codes")
-async def _():
+@pytest.mark.asyncio
+async def test_combination_of_headers_responses_and_status_codes():
     app = new_app()
 
     @app.get("/")
@@ -64,9 +61,8 @@ async def _():
         assert res.message == "123"
         assert res.headers["a"] == "b"
 
-
-@test("result protocol")
-async def _():
+@pytest.mark.asyncio
+async def test_result_protocol():
     app = new_app()
 
     class MyObject:
@@ -87,9 +83,8 @@ async def _():
         assert res.message == "hello"
         assert res.status == 201
 
-
-@test("body type validation")
-async def _():
+@pytest.mark.asyncio
+async def test_body_type_validation():
     app = new_app()
 
     @app.get("/")
@@ -129,9 +124,8 @@ async def _():
         assert res.status == 404
         assert res.message == "test"
 
-
-@test("query type validation")
-async def _():
+@pytest.mark.asyncio
+async def test_query_type_validation():
     app = new_app()
 
     @app.get("/")
@@ -171,9 +165,8 @@ async def _():
         assert res.status == 404
         assert res.message == "test"
 
-
-@test("queries directly from app and body")
-async def _():
+@pytest.mark.asyncio
+async def test_queries_directly_from_app_and_body():
     app = new_app()
 
     @app.query("name", str)
@@ -189,10 +182,9 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/", query={"name": "test"})).message == "test"
         assert (await test.get("/body", body={"name": "test"})).message == "test"
-
-
-@test("response type")
-async def _():
+  
+@pytest.mark.asyncio
+async def test_response_type():
     app = new_app()
 
     @app.get("/")
@@ -206,9 +198,8 @@ async def _():
         assert res.status == 201
         assert res.headers["hello"] == "world"
 
-
-@test("object validation")
-async def _():
+@pytest.mark.asyncio
+async def test_object_validation():
     app = new_app()
 
     @dataclass
@@ -334,8 +325,8 @@ async def _():
         ).status == 400
 
 
-@test("dict validation")
-async def _():
+@pytest.mark.asyncio
+async def test_dict_validation():
     app = new_app()
 
     class Object(NamedTuple):
@@ -358,14 +349,14 @@ async def _():
         ).message
 
 
-@test("non async routes")
-async def _():
+@pytest.mark.asyncio
+async def test_non_async_routes():
     app = new_app()
 
     @app.get("/")
     def index():
-        return "hello world", 201, {"a": "b"}
-
+        return "hello world", 201, {"a":"b"}
+    
     async with app.test() as test:
         res = await test.get("/")
 
@@ -374,8 +365,8 @@ async def _():
         assert res.headers["a"] == "b"
 
 
-@test("list validation")
-async def _():
+@pytest.mark.asyncio
+async def test_list_validation():
     app = new_app()
 
     @app.get("/")
@@ -452,8 +443,8 @@ async def _():
         ).status == 400
 
 
-@test("auto route inputs")
-async def _():
+@pytest.mark.asyncio
+async def test_auto_route_inputs():
     @dataclass()
     class Data:
         a: str
@@ -488,8 +479,8 @@ async def _():
         assert res3.status == 201
 
 
-@test("attrs validation")
-async def _():
+@pytest.mark.asyncio
+async def test_attrs_validation():
     app = new_app()
 
     @attrs.define
@@ -529,8 +520,8 @@ async def _():
         ).message == "b"
 
 
-@test("caching")
-async def _():
+@pytest.mark.asyncio
+async def test_caching():
     app = new_app()
     count = 0
 
@@ -553,9 +544,9 @@ async def _():
         results = [(await test.get("/param_std")).message for _ in range(10)]
         assert all(i == results[0] for i in results)
 
-
-@test("synchronous route inputs")
-async def _():
+    
+@pytest.mark.asyncio
+async def test_synchronous_route_inputs():
     app = new_app()
 
     @app.get("/")
@@ -582,8 +573,8 @@ async def _():
         ).message == "ab"
 
 
-@test("request data")
-async def _():
+@pytest.mark.asyncio
+async def test_request_data():
     app = new_app()
 
     @app.get("/")
@@ -626,8 +617,8 @@ async def _():
         ).message == "world"
 
 
-@test("context alongside other inputs")
-async def _():
+@pytest.mark.asyncio
+async def test_context_alongside_other_inputs():
     app = new_app()
 
     @app.get("/")
@@ -643,8 +634,8 @@ async def _():
         ).message == "abc"
 
 
-@test("middleware")
-async def _():
+@pytest.mark.asyncio
+async def test_middleware():
     app = new_app()
     value: bool = False
 
@@ -661,8 +652,8 @@ async def _():
         assert (await test.get("/")).message == "True"
 
 
-@test("middleware with parameters")
-async def _():
+@pytest.mark.asyncio
+async def test_middleware_with_parameters():
     app = new_app()
 
     @app.get("/")
@@ -691,8 +682,8 @@ async def _():
         await test.get("/both", query={"a": "a"}, body={"b": "b"})
 
 
-@test("methodless routes")
-async def _():
+@pytest.mark.asyncio
+async def test_methodless_routes():
     app = new_app()
 
     @app.route("/")
@@ -726,8 +717,8 @@ async def _():
         assert (await test.put("/methods")).status == 405
 
 
-@test("method not allowed errors")
-async def _():
+@pytest.mark.asyncio
+async def test_method_not_allowed_errors():
     app = new_app()
 
     @app.get("/")
@@ -741,8 +732,8 @@ async def _():
         assert res.message == "Method Not Allowed"
 
 
-@test("json response class")
-async def _():
+@pytest.mark.asyncio
+async def test_json_response_class():
     app = new_app()
 
     @app.get("/")
@@ -753,8 +744,8 @@ async def _():
         assert (await test.get("/")).message == '{"hello":"world"}'
 
 
-@test("body translate strategies")
-async def _():
+@pytest.mark.asyncio
+async def test_body_translate_strategies():
     app = new_app()
 
     @app.get("/")
@@ -779,4 +770,4 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/")).message == repr("a")
         assert (await test.get("/result")).message == "{}"
-        assert (await test.get("/custom")).message == "1 2 3"
+        assert (await test.get("/custom")).message == "1 2 3" 
