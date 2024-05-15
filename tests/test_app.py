@@ -10,9 +10,10 @@ from view import (JSON, BodyParam, Context, Response, body, context, get,
                   new_app, query)
 from view import route as route_impl
 from view.typing import CallNext
-
+from leaks import limit_leaks
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_reponses():
     app = new_app()
 
@@ -24,6 +25,7 @@ async def test_reponses():
         assert (await test.get("/")).message == "hello"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_status_codes():
     app = new_app()
 
@@ -37,6 +39,7 @@ async def test_status_codes():
         assert res.message == "error"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_headers():
     app = new_app()
 
@@ -50,6 +53,7 @@ async def test_headers():
         assert res.message == "hello"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_combination_of_headers_responses_and_status_codes():
     app = new_app()
 
@@ -64,6 +68,7 @@ async def test_combination_of_headers_responses_and_status_codes():
         assert res.headers["a"] == "b"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_result_protocol():
     app = new_app()
 
@@ -86,6 +91,7 @@ async def test_result_protocol():
         assert res.status == 201
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_body_type_validation():
     app = new_app()
 
@@ -131,6 +137,7 @@ async def test_body_type_validation():
         assert res.message == "test"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_query_type_validation():
     app = new_app()
 
@@ -176,6 +183,7 @@ async def test_query_type_validation():
         assert res.message == "test"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_queries_directly_from_app_and_body():
     app = new_app()
 
@@ -197,6 +205,7 @@ async def test_queries_directly_from_app_and_body():
         assert (await test.get("/body", body={"name": "test"})).message == "test"
   
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_response_type():
     app = new_app()
 
@@ -212,6 +221,7 @@ async def test_response_type():
         assert res.headers["hello"] == "world"
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_object_validation():
     app = new_app()
 
@@ -357,6 +367,7 @@ async def test_object_validation():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_dict_validation():
     app = new_app()
 
@@ -381,6 +392,7 @@ async def test_dict_validation():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_non_async_routes():
     app = new_app()
 
@@ -397,6 +409,7 @@ async def test_non_async_routes():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_list_validation():
     app = new_app()
 
@@ -479,6 +492,7 @@ async def test_list_validation():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_auto_route_inputs():
     @dataclass()
     class Data:
@@ -515,6 +529,7 @@ async def test_auto_route_inputs():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_attrs_validation():
     app = new_app()
 
@@ -557,6 +572,7 @@ async def test_attrs_validation():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_caching():
     app = new_app()
     count = 0
@@ -582,6 +598,7 @@ async def test_caching():
 
     
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_synchronous_route_inputs():
     app = new_app()
 
@@ -610,6 +627,7 @@ async def test_synchronous_route_inputs():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_request_data():
     app = new_app()
 
@@ -656,6 +674,7 @@ async def test_request_data():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_context_alongside_other_inputs():
     app = new_app()
 
@@ -675,6 +694,7 @@ async def test_context_alongside_other_inputs():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_middleware():
     app = new_app()
     value: bool = False
@@ -694,6 +714,7 @@ async def test_middleware():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_middleware_with_parameters():
     app = new_app()
 
@@ -728,6 +749,7 @@ async def test_middleware_with_parameters():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_methodless_routes():
     app = new_app()
 
@@ -763,6 +785,7 @@ async def test_methodless_routes():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_method_not_allowed_errors():
     app = new_app()
 
@@ -778,6 +801,7 @@ async def test_method_not_allowed_errors():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_json_response_class():
     app = new_app()
 
@@ -790,6 +814,7 @@ async def test_json_response_class():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_body_translate_strategies():
     app = new_app()
 

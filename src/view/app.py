@@ -1127,6 +1127,7 @@ class App(ViewApp):
     async def test(self):
         """Open the testing context."""
         self.load()
+        await self.build()
         ctx = TestingContext(self.asgi_app_entry)
         try:
             yield ctx

@@ -6,15 +6,16 @@ from typing_extensions import Annotated
 
 import pytest
 from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app
+from leaks import limit_leaks
 
-@pytest.mark.asyncio
+@limit_leaks("1 MB")
 def test_app_creation():
     app = new_app()
     assert isinstance(app, App)
     app.load()
 
 
-@pytest.mark.asyncio
+@limit_leaks("1 MB")
 def test_app_fetching():
     app = new_app()
     assert isinstance(get_app(), App)
@@ -22,7 +23,6 @@ def test_app_fetching():
     assert app is get_app()
 
 
-@pytest.mark.asyncio
 def documentation_generation():
     app = new_app()
 
@@ -83,6 +83,7 @@ def documentation_generation():
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_public_typecode_interface():
     @dataclass
     class Test:

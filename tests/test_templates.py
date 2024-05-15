@@ -4,7 +4,6 @@ import pytest
 
 from view import markdown, new_app, render, template
 
-
 @pytest.mark.asyncio
 async def test_view_rendering():
     x = 2
