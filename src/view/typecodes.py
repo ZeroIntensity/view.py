@@ -43,7 +43,7 @@ class TCValidator(TCPublic, Generic[T]):
         """Cast an object to the type.
 
         Raises:
-            TypeValidationFailed: The object is not compatible with the type."""
+            TypeValidationError: The object is not compatible with the type."""
         try:
             return self._cast(obj, True)
         except RuntimeError:
