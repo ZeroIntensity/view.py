@@ -11,8 +11,8 @@ body:
               This should only be for *bugs*, not crashes. For that, use the crash template.
 
           value: |
-              ```c
-              // Add your code here, if needed
+              ```py
+              # Add your code here, if needed
               ```
       validations:
           required: true

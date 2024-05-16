@@ -15,7 +15,7 @@ body:
               Outline your idea and why it would be a good idea for PyAwaitable. Make sure to include an example API for what this could look like if implemented.
           value: |
               ```py
-              // Example API
+              # Example API
               ```
       validations:
           required: true
