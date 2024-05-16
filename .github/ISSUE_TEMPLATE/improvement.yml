@@ -15,7 +15,7 @@ body:
               Outline what needs to be improved and why? Be sure to include an example API if necessary.
           value: |
               ```py
-              // Example API
+              # Example API
               ```
       validations:
           required: true
