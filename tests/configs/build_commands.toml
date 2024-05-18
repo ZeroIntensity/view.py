@@ -1,0 +1,10 @@
+[build]
+default_steps = ["test"]
+
+[build.steps.test]
+requires = ["command+python3"]
+command = "python3 -c 'print()'"
+
+[build.steps.fail]
+requires = ["command+fdsafasdjfkhas"]
+command = "exit -1"

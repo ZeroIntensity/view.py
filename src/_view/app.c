@@ -155,8 +155,7 @@ static int lifespan(PyObject* awaitable, PyObject* result) {
         &self,
         NULL,
         &receive,
-        &send,
-        NULL
+        &send
         ) < 0)
         return -1;
 
@@ -304,6 +303,18 @@ static PyObject* app(
         )) {
         PyObject* recv_coro = PyObject_CallNoArgs(receive);
         if (!recv_coro) {
+            Py_DECREF(awaitable);
+            return NULL;
+        }
+
+        if (PyAwaitable_SaveValues(
+            awaitable,
+            4,
+            self,
+            scope,
+            receive,
+            send
+        ) < 0) {
             Py_DECREF(awaitable);
             return NULL;
         }

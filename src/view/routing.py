@@ -86,6 +86,7 @@ async def wrap_step(app: App, step: str) -> None:
         await run_step(app, step)
     except Exception as e:
         Service.exception(e)
+        raise e
 
 
 @dataclass

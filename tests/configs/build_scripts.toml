@@ -1,0 +1,8 @@
+[build]
+default_steps = ["myscript"]
+
+[build.steps.myscript]
+script = ["./tests/build/my_build_script.py"]
+
+[build.steps.fail]
+script = "./tests/build/failing_build_script.py"

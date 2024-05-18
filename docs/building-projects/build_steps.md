@@ -17,9 +17,9 @@ $ view build
 
 This will export your app into a static folder called `build`, which can then be served via something like [http.server](https://docs.python.org/3/library/http.server.html). An exported route cannot contain:
 
-- Route Inputs
-- Path Parameters
-- A method other than `GET`
+-   Route Inputs
+-   Path Parameters
+-   A method other than `GET`
 
 As stated above, you can also build your app programatically via `build_app`:
 
@@ -37,7 +37,7 @@ build_app(app)
 
 ## Build Steps
 
-Instead of exporting static HTML, you might just want to call some build script at runtime for your app to use. For example, this could be something like a [Next.js](https://nextjs.org) app, which you want to use as the UI for your website. Each different build is called a **build step** in View. View's build system does not aim to be a full fledged build system, but instead a bridge to use other package managers or tools to build requirements for your app. It tries to be *extendable*, instead of batteries-included.
+Instead of exporting static HTML, you might just want to call some build script at runtime for your app to use. For example, this could be something like a [Next.js](https://nextjs.org) app, which you want to use as the UI for your website. Each different build is called a **build step** in View. View's build system does not aim to be a full fledged build system, but instead a bridge to use other package managers or tools to build requirements for your app. It tries to be _extendable_, instead of batteries-included.
 
 To specify a build step, add it under `build.steps` in your configuration. A build step should contain a list of requirements under `requires` and a `command`:
 
@@ -122,7 +122,7 @@ command = "php -f payment.php"
 
 ## Build Requirements
 
-As you've seen above, build requirements are specified via the `requires` value. Out of the box, view.py supports a number of different build tools, compilers, and interpreters. To specify a requirement for one, simply add the name of their executable (*i.e.*, how you access their CLI). For example, since `pip` is accessed via using the `pip` command in your terminal, `pip` is the name of the requirement.
+As you've seen above, build requirements are specified via the `requires` value. Out of the box, view.py supports a number of different build tools, compilers, and interpreters. To specify a requirement for one, simply add the name of their executable (_i.e._, how you access their CLI). For example, since `pip` is accessed via using the `pip` command in your terminal, `pip` is the name of the requirement.
 
 However, view.py might not support checking for a command by default (this is the case if you get a `Unknown build requirement` error). If so, you need a custom requirement. If you would like to, you can make an [issue](https://github.com/ZeroIntensity/view.py/issues) requesting support for it as well.
 
@@ -130,10 +130,10 @@ However, view.py might not support checking for a command by default (this is th
 
 There are four types of custom requirements, which are specified by adding a prefix to the requirement name:
 
-- Importing a Python module (`mod+`)
-- Executing a Python script (`script+`)
-- Checking if a path exists (`path+`)
-- Checking if a command exists (`command+`)
+-   Importing a Python module (`mod+`)
+-   Executing a Python script (`script+`)
+-   Checking if a path exists (`path+`)
+-   Checking if a command exists (`command+`)
 
 For example, the `command+gcc` would make sure that `gcc --version` return `0`:
 
@@ -163,12 +163,11 @@ async def __view_requirement__() -> bool:
     return sys.version_info >= (3, 10)
 ```
 
-The above could actually be used via both `script+check_310.py` and `mod+check_310`. 
+The above could actually be used via both `script+check_310.py` and `mod+check_310`.
 
 !!! tip
 
     Don't use the view.py build system to check the Python version or if a Python package is installed. Instead, use the `dependencies` section of a `pyproject.toml` file, or [PEP 723](https://peps.python.org/pep-0723/) script metadata.
-
 
 ## Review
 

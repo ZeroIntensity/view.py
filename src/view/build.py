@@ -52,8 +52,10 @@ async def _call_script(path: Path, *, call_func: str | None = None) -> None:
     if call_func:
         func = globls.get(call_func)
         if func:
-            await func()
-
+            try:
+                await func()
+            except Exception as e:
+                raise BuildError(f"Script at {path} raised exception!") from e
 
 _COMMAND_REQS = [
     # C
@@ -163,6 +165,9 @@ async def _check_requirement(req: str) -> None:
     elif prefix == "path":
         if not Path(target).exists():
             raise MissingRequirementError(f"{target} does not exist")
+    elif prefix == "command":
+         if not await _check_version_command(target):
+            raise MissingRequirementError(f"{target} is not installed")
     else:
         raise BuildError(f"Invalid requirement prefix: {prefix}")
 
@@ -189,9 +194,9 @@ async def _build_step(step: _BuildStepWithName) -> None:
     if data.script:
         if isinstance(data.script, list):
             for script in data.script:
-                await _call_script(script)
+                await _call_script(script, call_func="__view_build__")
         else:
-            await _call_script(data.script)
+            await _call_script(data.script, call_func="__view_build__")
 
 
 async def run_step(app: App, name: str) -> None:
