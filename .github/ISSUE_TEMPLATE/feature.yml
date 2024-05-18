@@ -12,7 +12,7 @@ body:
       attributes:
           label: "Proposal:"
           description: >
-              Outline your idea and why it would be a good idea for PyAwaitable. Make sure to include an example API for what this could look like if implemented.
+              Outline your idea and why it would be a good idea for view.py. Make sure to include an example API for what this could look like if implemented.
           value: |
               ```py
               # Example API
