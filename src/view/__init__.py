@@ -19,7 +19,6 @@ from . import _codec
 from .__about__ import *
 from .app import *
 from .build import *
-from .components import *
 from .exceptions import *
 from .logging import *
 from .patterns import *

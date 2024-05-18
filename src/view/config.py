@@ -29,8 +29,8 @@ __all__ = (
     "load_config",
 )
 
-
-class AppConfig(ConfigModel, env_prefix="view_app_"):
+# https://github.com/python/mypy/issues/11036
+class AppConfig(ConfigModel, env_prefix="view_app_"):  # type: ignore
     loader: Literal["manual", "simple", "filesystem", "patterns"] = "manual"
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
@@ -54,14 +54,14 @@ class AppConfig(ConfigModel, env_prefix="view_app_"):
         return loader_path.resolve()
 
 
-class ServerConfig(ConfigModel, env_prefix="view_server_"):
+class ServerConfig(ConfigModel, env_prefix="view_server_"):  # type: ignore
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
     backend: Literal["uvicorn", "hypercorn", "daphne"] = "uvicorn"
     extra_args: Dict[str, Any] = ConfigField(default_factory=dict)
 
 
-class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
+class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):  # type: ignore
     urgency: Urgency = "info"
     log_file: Union[Path, str, None] = None
     show_time: bool = True
@@ -72,7 +72,7 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):
     strftime: str = "%H:%M:%S"
 
 
-class LogConfig(ConfigModel, env_prefix="view_log_"):
+class LogConfig(ConfigModel, env_prefix="view_log_"):  # type: ignore
     level: Union[
         Literal["debug", "info", "warning", "error", "critical"], int
     ] = "info"
@@ -83,7 +83,7 @@ class LogConfig(ConfigModel, env_prefix="view_log_"):
     startup_message: bool = True
 
 
-class MongoConfig(ConfigModel, env_prefix="view_mongo_"):
+class MongoConfig(ConfigModel, env_prefix="view_mongo_"):  # type: ignore
     host: IPv4Address
     port: int
     username: str
@@ -91,7 +91,7 @@ class MongoConfig(ConfigModel, env_prefix="view_mongo_"):
     database: str
 
 
-class PostgresConfig(ConfigModel, env_prefix="view_postgres_"):
+class PostgresConfig(ConfigModel, env_prefix="view_postgres_"):  # type: ignore
     database: str
     user: str
     password: str
@@ -99,18 +99,18 @@ class PostgresConfig(ConfigModel, env_prefix="view_postgres_"):
     port: int
 
 
-class SQLiteConfig(ConfigModel, env_prefix="view_sqlite_"):
+class SQLiteConfig(ConfigModel, env_prefix="view_sqlite_"):  # type: ignore
     file: Path
 
 
-class MySQLConfig(ConfigModel, env_prefix="view_mysql_"):
+class MySQLConfig(ConfigModel, env_prefix="view_mysql_"):  # type: ignore
     host: IPv4Address
     user: str
     password: str
     database: str
 
 
-class DatabaseConfig(ConfigModel, env_prefix="view_database_"):
+class DatabaseConfig(ConfigModel, env_prefix="view_database_"):  # type: ignore
     type: Literal["sqlite", "mysql", "postgres", "mongo"] = "sqlite"
     mongo: Union[MongoConfig, None] = None
     postgres: Union[PostgresConfig, None] = None
@@ -118,27 +118,27 @@ class DatabaseConfig(ConfigModel, env_prefix="view_database_"):
     mysql: Union[MySQLConfig, None] = None
 
 
-class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):
+class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):  # type: ignore
     directory: Path = Path("./templates")
     locals: bool = True
     globals: bool = True
     engine: TemplateEngine = "view"
 
 
-class BuildStep(ConfigModel):
+class BuildStep(ConfigModel):  # type: ignore
     requires: List[str] = ConfigField(default_factory=list)
     command: Union[str, None, List[str]] = None
     script: Union[Path, None, List[Path]] = None
 
 
-class BuildConfig(ConfigModel, env_prefix="view_build_"):
+class BuildConfig(ConfigModel, env_prefix="view_build_"):  # type: ignore
     path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
     steps: Dict[str, BuildStep] = ConfigField(default_factory=dict)
     parallel: bool = False
 
 
-class Config(ConfigModel):
+class Config(ConfigModel):  # type: ignore
     dev: bool = True
     env: Dict[str, Any] = ConfigField(default_factory=dict)
     app: AppConfig = ConfigField(default_factory=AppConfig)

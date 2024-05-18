@@ -13,7 +13,14 @@ async def test_build_requirements():
 
     @app.get("/")
     async def index():
-        return ""
+        import pip
+
+        return pip.__file__
+
+    @app.get("/foo", steps=("foo",))
+    async def wont_work():
+        raise RuntimeError("shouldn't be here!")
 
     async with app.test() as test:
         assert (await test.get("/")).message != ""
+        assert (await test.get("/foo")).status == 500

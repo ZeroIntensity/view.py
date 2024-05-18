@@ -31,19 +31,12 @@ __all__ = (
 class ViewWarning(UserWarning):
     """Base class for all warnings in view.py"""
 
-    ...
-
-
 class NotLoadedWarning(ViewWarning):
     """load() was never called"""
-
-    ...
 
 
 class LoaderWarning(ViewWarning):
     """A warning from the loader."""
-
-    ...
 
 
 class ViewError(Exception):
@@ -61,33 +54,25 @@ class ViewError(Exception):
 class BadEnvironmentError(ViewError):
     """An environment variable is missing."""
 
-    ...
-
 
 class InvalidBodyError(ViewError):
     """The specified type cannot be used as a view body."""
-
-    ...
 
 
 class MistakeError(ViewError):
     """The user made a mistake."""
 
-    ...
-
 
 class AppNotFoundError(ViewError, FileNotFoundError):
     """Couldn't find the app from the given path."""
 
-    ...
-
 
 class DatabaseError(ViewError):
-    ...
+    """Database error."""
 
 
 class InvalidDatabaseSchemaError(DatabaseError):
-    ...
+    """Database schema is invalid."""
 
 
 class DuplicateRouteError(ViewError):

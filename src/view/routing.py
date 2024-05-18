@@ -315,7 +315,7 @@ def _method_wrapper(
 
         return _method(
             r,
-            path_or_route,
+            path_or_route,  # type: ignore
             doc,
             method,
             cache_rate,

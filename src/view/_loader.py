@@ -31,7 +31,7 @@ from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
                       _NoDefault)
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
-ExtNotRequired = None
+ExtNotRequired: Any = None
 try:
     from typing import NotRequired  # type: ignore
 except ImportError:
@@ -40,7 +40,7 @@ except ImportError:
 
 from typing_extensions import get_origin
 
-_NOT_REQUIRED_TYPES = []
+_NOT_REQUIRED_TYPES: list[Any] = []
 
 if ExtNotRequired:
     _NOT_REQUIRED_TYPES.append(ExtNotRequired)
@@ -120,8 +120,8 @@ def _format_body(
             f"__view_body__ should return a dict, not {type(vbody_types)}",  # noqa
         )
 
-    vbody_final = {}
-    vbody_defaults = {}
+    vbody_final: dict[str, list[Any]] = {}
+    vbody_defaults: dict[str, Any] = {}
 
     for k, raw_v in vbody_types.items():
         if not isinstance(k, str):
@@ -129,7 +129,7 @@ def _format_body(
                 f"all keys returned by __view_body__ should be strings, not {type(k)}"  # noqa
             )
 
-        default = _NoDefault
+        default: type[Any] = _NoDefault
         v = raw_v.types if isinstance(raw_v, BodyParam) else raw_v
 
         if isinstance(v, str):
@@ -154,7 +154,7 @@ def _format_body(
         vbody_defaults[k] = default
 
     return [
-        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])
+        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])  # type: ignore
         for k, v in vbody_final.items()
     ]
 
@@ -192,6 +192,8 @@ def _build_type_codes(
     codes: list[TypeInfo] = []
 
     for tp in inp:
+        tps: dict[str, type[Any] | BodyParam]
+    
         if is_annotated(tp):
             if doc is None:
                 raise InvalidBodyError(f"Annotated is not valid here ({tp})")
@@ -325,7 +327,7 @@ def _build_type_codes(
             for i in attrs_fields:
                 default = i.default
                 if not default:
-                    tps[i.name] = i.type
+                    tps[i.name] = i.type  # type: ignore
                 else:
                     tps[i.name] = BodyParam(
                         i.type,  # type: ignore
@@ -368,8 +370,8 @@ def _build_type_codes(
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
         elif origin is list:
-            tps = get_args(tp)
-            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))
+            tps = get_args(tp)  # type: ignore
+            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))  # type: ignore
         else:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
 

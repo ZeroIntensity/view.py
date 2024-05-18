@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime as DateTime
 from pathlib import Path
-from typing import Any, Dict, Generic, TextIO, TypeVar, Union
+from typing import Any, Dict, Generic, TextIO, TypeVar, Union, TYPE_CHECKING
 
 import ujson
 
-from .components import DOMNode
+if TYPE_CHECKING:
+    from .components import DOMNode
 from .exceptions import InvalidResultError
 from .typing import BodyTranslateStrategy, SameSite, ViewResult
 from .util import timestamp

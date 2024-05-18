@@ -5,7 +5,7 @@ import sys
 from datetime import datetime as DateTime
 from pathlib import Path
 from types import FrameType as Frame
-from typing import TextIO, TypedDict
+from typing import IO, TypedDict
 
 from rich.console import Console
 from typing_extensions import NotRequired, Unpack
@@ -42,8 +42,8 @@ _URGENCY_COLORS: dict[str, str] = {
 def log(
     *messages: object,
     urgency: Urgency = "info",
-    file_out: TextIO | None = _StandardOut,
-    log_file: Path | str | TextIO | None = _NoFile,
+    file_out: IO[str] | None = _StandardOut,
+    log_file: Path | str | IO[str] | None = _NoFile,
     caller_frame: Frame | None = _CurrentFrame,
     time: DateTime | None = _Now,
     show_time: bool = True,
@@ -77,6 +77,7 @@ def log(
         _QUEUE.put_nowait(QueueItem(True, False, urgency, msg + "\n", is_stdout=True))
 
     if (file_write != "never") and log_file:
+        log_f: IO[str]
         if isinstance(log_file, (str, Path)):
             log_path = Path(log_file)
 
@@ -95,8 +96,8 @@ def log(
 
 
 class _LogArgs(TypedDict):
-    file_out: NotRequired[TextIO]
-    log_file: NotRequired[Path | str | TextIO]
+    file_out: NotRequired[IO[str]]
+    log_file: NotRequired[Path | str | IO[str]]
     caller_frame: NotRequired[Frame]
     time: NotRequired[DateTime]
     show_time: NotRequired[bool]

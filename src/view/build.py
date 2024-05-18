@@ -239,7 +239,9 @@ def _handle_result(res: ViewResult) -> str:
 
 
 async def _compile_routes(
-    app: App, *, should_await: bool = False
+    app: App,
+    *,
+    should_await: bool = False,
 ) -> dict[str, str]:
     from .routing import Method
 
@@ -294,7 +296,8 @@ async def build_app(app: App, *, path: Path | None = None) -> None:
 
     Internal.info("Getting routes")
     results = await _compile_routes(
-        app, should_await=not app.config.build.parallel
+        app,
+        should_await=not app.config.build.parallel,
     )
     path = path or app.config.build.path
 

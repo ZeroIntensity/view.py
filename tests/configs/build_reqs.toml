@@ -1,2 +1,8 @@
+[build]
+default_steps = ["test"]
+
 [build.steps.test]
 requires = ["pip"]
+
+[build.steps.foo]
+requires = ["dart"]

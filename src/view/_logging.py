@@ -694,7 +694,7 @@ class Dataset:
         self.name = name
         self.points: dict[float, float] = {}
         self.point_limit = point_limit
-        self.point_order = []
+        self.point_order: list[float] = []
 
     def add_point(self, x: float, y: float) -> None:
         """Add a point to the dataset.

@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, Unpack
+from typing_extensions import ParamSpec, Unpack, TypeAlias
 
 from _view import InvalidStatusError, ViewApp
 
@@ -52,7 +52,7 @@ from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
 from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
 
-get_type_hints = lru_cache(get_type_hints)
+get_type_hints = lru_cache(get_type_hints)  # type: ignore
 
 __all__ = "App", "new_app", "get_app", "Error", "ERROR_CODES"
 
@@ -65,7 +65,6 @@ _ROUTES_WARN_MSG = (
     "routes argument should only be passed when load strategy is manual"
 )
 _ConfigSpecified = None
-_CurrentFrame = None
 
 B = TypeVar("B", bound=BaseException)
 
@@ -141,10 +140,10 @@ class TestingContext:
         app: Callable[[Any, Any, Any], Any],
     ) -> None:
         self.app = app
-        self._lifespan = asyncio.Queue()
+        self._lifespan: asyncio.Queue[str] = asyncio.Queue()
         self._lifespan.put_nowait("lifespan.startup")
 
-    async def start(self):
+    async def start(self) -> None:
         async def receive():
             return await self._lifespan.get()
 
@@ -153,7 +152,7 @@ class TestingContext:
 
         await self.app({"type": "lifespan"}, receive, send)
 
-    async def stop(self):
+    async def stop(self) -> None:
         await self._lifespan.put("lifespan.shutdown")
 
     async def _request(
@@ -165,8 +164,8 @@ class TestingContext:
         query: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        body_q = asyncio.Queue()
-        start = asyncio.Queue()
+        body_q: asyncio.Queue[str] = asyncio.Queue()
+        start: asyncio.Queue[tuple[dict[str, str], int]] = asyncio.Queue()
 
         async def receive():
             return {
@@ -407,7 +406,7 @@ class App(ViewApp):
                     if value.hint:
                         print(value.hint)
 
-            sys.excepthook = _hook
+            sys.excepthook = _hook  # type: ignore
             with suppress(UnsupportedOperation):
                 faulthandler.enable()
         else:
@@ -730,7 +729,7 @@ class App(ViewApp):
 
     def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
         if key not in kwargs:
-            kwargs[key] = getattr(self.config.log.user, key)
+            kwargs[key] = getattr(self.config.log.user, key)  # type: ignore
 
     def _splat_log_args(self, kwargs: _LogArgs) -> _LogArgs:
         self._set_log_arg(kwargs, "log_file")
@@ -782,7 +781,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route = query_impl(name, *tps, doc=doc, default=default)(func)
+            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -805,7 +804,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route = body_impl(name, *tps, doc=doc, default=default)(func)
+            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -820,13 +819,14 @@ class App(ViewApp):
         **parameters: Any,
     ) -> HTML:
         """Render a template with the specified engine. This returns a view.py HTML response."""
+        f: Frame | None
         if frame is _CurrentFrame:
             f = inspect.currentframe()
             assert f
             f = f.f_back
             assert f
         else:
-            f = frame
+            f = frame  # type: ignore
 
         return await template(
             name, directory, engine, f, app=self, **parameters
@@ -894,8 +894,8 @@ class App(ViewApp):
             if not r.path:
                 continue
 
-            body = {}
-            query = {}
+            body: dict[str, InputDoc] = {}
+            query: dict[str, InputDoc] = {}
 
             for i in r.inputs:
                 if not isinstance(i, RouteInput):
@@ -1002,9 +1002,9 @@ class App(ViewApp):
                 loop="uvloop" if uvloop_enabled else "asyncio",
                 **self.config.server.extra_args,
             )
-            server = uvicorn.Server(config)
 
-            return start(self._spawn(server.serve()))
+            uvicorn_server = uvicorn.Server(config)
+            return start(self._spawn(uvicorn_server.serve()))
 
         elif server == "hypercorn":
             try:
@@ -1058,10 +1058,15 @@ class App(ViewApp):
                 format="%(asctime)-15s %(levelname)-8s %(message)s",
             )
 
-            server = Server(
+            daphne_server = Server(
                 self._app, server_name="view.py", endpoints=endpoints
             )
-            return start(self._spawn(asyncio.to_thread(server.run)))
+            # mypy thinks asyncio.to_thread doesn't exist for some reason
+            return start(
+                self._spawn(
+                    asyncio.to_thread(daphne_server.run)  # type: ignore
+                )
+            )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
 
@@ -1190,6 +1195,8 @@ class App(ViewApp):
                 file.write_text(md)
         else:
             file.write(md)
+
+        return None
 
 
 def new_app(

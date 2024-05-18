@@ -239,7 +239,7 @@ def build(path: Path):
     def info_hook(*msg: object, **kwargs):
         info(" ".join([str(i) for i in msg]))
 
-    Internal.info = info_hook
+    Internal.info = info_hook  # type: ignore
 
     try:
         asyncio.run(build_app(app, path=path))

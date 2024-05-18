@@ -80,24 +80,25 @@ def enable_debug():
 
 EnvConv = Union[str, int, bool, dict]
 
+# good god why does mypy suck at the very thing it's designed to do
 
 @overload
-def env(key: str, *, tp: type[str] = str) -> str:
+def env(key: str, *, tp: type[str] = str) -> str:  # type: ignore
     ...
 
 
 @overload
-def env(key: str, *, tp: type[int] = ...) -> int:
+def env(key: str, *, tp: type[int] = int) -> int:  # type: ignore
     ...
 
 
 @overload
-def env(key: str, *, tp: type[bool] = ...) -> bool:
+def env(key: str, *, tp: type[bool] = bool) -> bool:  # type: ignore
     ...
 
 
 @overload
-def env(key: str, *, tp: type[dict] = ...) -> dict:
+def env(key: str, *, tp: type[dict] = dict) -> dict:  # type: ignore
     ...
 
 
@@ -138,18 +139,18 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return int(value)
         except ValueError:
-            raise EnvironmentError(f"{value!r} (key {key!r}) is not int-like") from None
+            raise BadEnvironmentError(f"{value!r} (key {key!r}) is not int-like") from None
 
     if tp is dict:
         try:
             return json.loads(value)
         except ValueError:
-            raise EnvironmentError(f"{value!r} ({key!r}) is not dict-like")
+            raise BadEnvironmentError(f"{value!r} ({key!r}) is not dict-like")
 
     if tp is bool:
         value = value.lower()
         if value not in {"true", "false"}:
-            raise EnvironmentError(f"{value!r} ({key!r}) is not bool-like")
+            raise BadEnvironmentError(f"{value!r} ({key!r}) is not bool-like")
 
         return value == "true"
 
