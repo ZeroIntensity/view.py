@@ -26,8 +26,8 @@ dependencies = [
     "typing_extensions",
     "ujson",
     "configzen",
-    "uvicorn",
     "aiofiles",
+    "prompts.py"
 ]
 dynamic = ["version", "license"]
 

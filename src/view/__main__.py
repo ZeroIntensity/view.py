@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import NoReturn
 
 import click
+from prompts.integration import PrettyOption
 
 from .__about__ import __version__
 from ._logging import VIEW_TEXT
@@ -254,6 +255,7 @@ def build(path: Path):
     type=str,
     default="my_app",
     prompt="Project name",
+    cls=PrettyOption,
 )
 @click.option(
     "--load",
@@ -262,6 +264,7 @@ def build(path: Path):
     default="simple",
     type=click.Choice(("manual", "filesystem", "simple", "patterns")),
     prompt="Loader strategy",
+    cls=PrettyOption,
 )
 @click.option(
     "--repo",
@@ -270,6 +273,7 @@ def build(path: Path):
     default=True,
     is_flag=True,
     prompt="Create repository?",
+    cls=PrettyOption,
 )
 @click.option(
     "--venv",
@@ -277,6 +281,7 @@ def build(path: Path):
     default=True,
     is_flag=True,
     prompt="Create virtual environment?",
+    cls=PrettyOption,
 )
 @click.option(
     "--path",
@@ -331,9 +336,13 @@ def init(
         venv_path = path / ".venv"
         _venv.create(venv_path, with_pip=True)
         success(f"Created virtual environment in {venv_path}")
-        info("Installing view.py...")
+        info("Installing view.py with all dependencies...")
         res = subprocess.call(
-            [(venv_path / "bin" / "pip").absolute(), "install", "view.py"]
+            [
+                (venv_path / "bin" / "pip").absolute(),
+                "install",
+                "view.py[full]",
+            ]
         )
 
         if res != 0:
