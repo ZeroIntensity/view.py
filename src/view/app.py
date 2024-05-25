@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, Unpack, TypeAlias
+from typing_extensions import ParamSpec, TypeAlias, Unpack
 
 from _view import InvalidStatusError, ViewApp
 
@@ -199,9 +199,9 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode()
-                if query
-                else b"",  # noqa
+                "query_string": (
+                    urlencode(query_str).encode() if query else b""
+                ),  # noqa
                 "headers": headers_list,
                 "method": method,
                 "http_version": "view_test",
@@ -781,7 +781,9 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(func)
+            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(
+                func
+            )
             self._push_route(route)
             return route
 
@@ -804,7 +806,9 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(func)
+            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(
+                func
+            )
             self._push_route(route)
             return route
 
@@ -845,15 +849,13 @@ class App(ViewApp):
     def context(
         self,
         r_or_none: RouteOrCallable[P],
-    ) -> Route[P]:
-        ...
+    ) -> Route[P]: ...
 
     @overload
     def context(
         self,
         r_or_none: None = None,
-    ) -> Callable[[RouteOrCallable[P]], Route[P]]:
-        ...
+    ) -> Callable[[RouteOrCallable[P]], Route[P]]: ...
 
     def context(
         self,
@@ -913,15 +915,17 @@ class App(ViewApp):
             else:
                 self._docs[
                     (
-                        tuple([i.name for i in r.method_list])
-                        if r.method_list
-                        else (
-                            "GET",
-                            "POST",
-                            "PUT",
-                            "PATCH",
-                            "DELETE",
-                            "OPTIONS",
+                        (
+                            tuple([i.name for i in r.method_list])
+                            if r.method_list
+                            else (
+                                "GET",
+                                "POST",
+                                "PUT",
+                                "PATCH",
+                                "DELETE",
+                                "OPTIONS",
+                            )
                         ),
                         r.path,
                     )
@@ -1140,12 +1144,10 @@ class App(ViewApp):
             await ctx.stop()
 
     @overload
-    def docs(self, file: None = None) -> str:
-        ...
+    def docs(self, file: None = None) -> str: ...
 
     @overload
-    def docs(self, file: TextIO) -> None:
-        ...
+    def docs(self, file: TextIO) -> None: ...
 
     @overload
     def docs(
@@ -1154,8 +1156,7 @@ class App(ViewApp):
         *,
         encoding: str = "utf-8",
         overwrite: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def docs(
@@ -1164,8 +1165,7 @@ class App(ViewApp):
         *,
         encoding: str = "utf-8",
         overwrite: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def docs(
         self,

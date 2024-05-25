@@ -4,6 +4,7 @@ from datetime import datetime as DateTime
 from pathlib import Path
 from typing import Any, Dict, Generic, TextIO, TypeVar, Union
 
+import aiofiles
 import ujson
 
 from .components import DOMNode
@@ -167,6 +168,11 @@ class HTML(Response[HTMLContent]):
                 ) from None
 
         return parsed_body
+
+    @classmethod
+    async def from_file(cls, path: str | Path) -> HTML:
+        async with aiofiles.open(path) as f:
+            return cls(await f.read())
 
 
 class JSON(Response[Dict[str, Any]]):
