@@ -8,7 +8,15 @@ The View CLI supports automatically creating a project via the `view init` comma
 $ view init
 ```
 
-The loader strategy is related to routing, which you will learn more about later.
+!!! note
+
+    Depending on how or where you installed view.py, `view` might open vim! If that's the case, run `python3 -m view init`, or however your environment works.
+
+Alternatively, you can run `view init` with `pipx`:
+
+```py
+$ pipx run view-py init
+```
 
 ## Manually
 
