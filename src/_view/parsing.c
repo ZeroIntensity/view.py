@@ -153,7 +153,13 @@ int handle_route_query(PyObject* awaitable, char* query) {
 
     const char* method_str;
 
-    if (PyAwaitable_UnpackArbValues(awaitable, NULL, NULL, NULL, &method_str) <
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        NULL,
+        NULL,
+        NULL,
+        &method_str
+        ) <
         0)
         return -1;
 
@@ -294,62 +300,6 @@ int handle_route_query(PyObject* awaitable, char* query) {
     for (int i = 0; i < final_size; i++)
         merged[*size + i] = params[i];
 
-    for (int i = 0; i < r->middleware_size; i++) {
-        PyObject* res = PyObject_Vectorcall(
-            r->middleware[i],
-            merged,
-            *size +
-            final_size,
-            NULL
-        );
-        if (!res) {
-            if (server_err(
-                self,
-                awaitable,
-                500,
-                r,
-                NULL,
-                method_str
-                ) < 0) {
-                for (int x = 0; x < final_size + *size; x++)
-                    Py_XDECREF(merged[x]);
-
-                PyMem_Free(merged);
-                free(params);
-                Py_DECREF(query_obj);
-                return -1;
-            }
-            return 0;
-        }
-
-        if (PyCoro_CheckExact(res)) {
-            if (PyAwaitable_AddAwait(
-                awaitable,
-                res,
-                NULL,
-                route_error
-                ) < 0) {
-                if (server_err(
-                    self,
-                    awaitable,
-                    500,
-                    r,
-                    NULL,
-                    method_str
-                    ) < 0) {
-                    for (int x = 0; x < final_size + *size; x++)
-                        Py_XDECREF(merged[x]);
-
-                    PyMem_Free(merged);
-                    free(params);
-                    Py_DECREF(query_obj);
-                    return -1;
-                }
-                return 0;
-            }
-        }
-    }
-
     PyObject* coro = PyObject_VectorcallDict(
         r->callable,
         merged,
@@ -367,34 +317,14 @@ int handle_route_query(PyObject* awaitable, char* query) {
     if (!coro)
         return -1;
 
-    if (!Py_IS_TYPE(
+    if (PyAwaitable_AddAwait(
+        awaitable,
         coro,
-        &PyCoro_Type
-        )) {
-        if (handle_route_callback(
-            awaitable,
-            coro
-            ) < 0) {
-            if (server_err(
-                self,
-                awaitable,
-                500,
-                r,
-                NULL,
-                method_str
-                ) < 0)
-                return -1;
-        }
-    } else {
-        if (PyAwaitable_AddAwait(
-            awaitable,
-            coro,
-            handle_route_callback,
-            route_error
-            ) < 0) {
-            Py_DECREF(coro);
-            return -1;
-        }
+        handle_route_callback,
+        route_error
+        ) < 0) {
+        Py_DECREF(coro);
+        return -1;
     }
 
     Py_DECREF(coro);

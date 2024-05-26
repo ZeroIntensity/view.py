@@ -6,17 +6,16 @@ If you've used a framework like [Django](https://djangoproject.com) or [FastAPI]
 
 The `Context` instance contains information about the incoming request, including:
 
-- The headers.
-- The cookies.
-- The HTTP version.
-- The request method.
-- The URL path.
-- The client and server address.
+-   The headers.
+-   The cookies.
+-   The HTTP version.
+-   The request method.
+-   The URL path.
+-   The client and server address.
 
 !!! info
 
     `Context` is an [extension type](https://docs.python.org/3/extending/newtypes_tutorial.html), and is defined in the `_view` module. It's Python signatures are defined in the `_view` type stub.
-
 
 ## Context Input
 
@@ -76,7 +75,7 @@ app.run()
 
 !!! info
 
-    `App.test` is a more internal detail, but is available to use publically. It looks like this:
+    `App.test` is a more internal detail, but is available for public use. It looks like this:
 
     ```py
     from view import new_app
@@ -175,11 +174,11 @@ app.run()
 
 `Context` contains eight attributes:
 
-- `headers`, of type `dict[str, str]`.
-- `cookies`, of type `dict[str, str]`.
-- `client`, of type `ipaddress.IPv4Address`, `ipaddress.IPv6Address`, or `None`.
-- `server`, of type `ipaddress.IPv4Address`, `ipaddress.IPv6Address`, or `None`.
-- `method`, of type `StrMethodASGI` (uppercase string containing the method, such as `"GET"`).
-- `path`, of type `str`.
-- `scheme`, which can be the string `"http"`, `"https"`.
-- `http_version`, which can be the string `"1.0"`, `"1.1"`, `"2.0"`, `"view_test"`.
+-   `headers`, of type `dict[str, str]`.
+-   `cookies`, of type `dict[str, str]`.
+-   `client`, of type `ipaddress.IPv4Address`, `ipaddress.IPv6Address`, or `None`.
+-   `server`, of type `ipaddress.IPv4Address`, `ipaddress.IPv6Address`, or `None`.
+-   `method`, of type `StrMethodASGI` (uppercase string containing the method, such as `"GET"`).
+-   `path`, of type `str`.
+-   `scheme`, which can be the string `"http"`, `"https"`.
+-   `http_version`, which can be the string `"1.0"`, `"1.1"`, `"2.0"`, `"view_test"`.

@@ -7,23 +7,19 @@ import random
 import re
 import subprocess
 import venv as _venv
-from inspect import iscoroutine
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn
-
-if TYPE_CHECKING:
-    from .routing import Route
+from typing import NoReturn
 
 import click
+from prompts.integration import PrettyOption
 
 from .__about__ import __version__
 from ._logging import VIEW_TEXT
-from .exceptions import AppNotFoundError
+from .build import build_app
+from .exceptions import AppNotFoundError, BuildError
 
 B_OPEN = "{"
 B_CLOSE = "}"
-
-_GIT_EMAIL = re.compile(r' *email = "(.+)"')
 
 
 def _get_email():
@@ -38,7 +34,8 @@ def _get_email():
         return "your@email.com"
 
     for i in text.split("\n"):
-        match = _GIT_EMAIL.match(i)
+        # don't use re.compile to keep the import lazy
+        match = re.match(r' *email = "(.+)"', i)
         if match:
             return match.group(1)
 
@@ -55,9 +52,9 @@ name = "{name}"
 authors = [
     {B_OPEN}name = "{getpass.getuser()}", email = "{_get_email()}"{B_CLOSE}
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = "MIT"
-dependencies = ["view.py", "uvicorn"]
+dependencies = ["view.py"]
 version = "1.0.0"
 """
 )
@@ -231,70 +228,23 @@ def deploy(target: str):
     default=Path.cwd() / "build",
 )
 def build(path: Path):
+    from ._logging import Internal
     from .config import load_config
-    from .routing import Method
     from .util import extract_path
 
     conf = load_config()
     app = extract_path(conf.app.app_path)
     app.load()
-    results: dict[str, str] = {}
 
-    info("Getting routes")
-    for i in app.loaded_routes:
-        if (not i.method) or (i.method != Method.GET):
-            warn(f"{i} is not a GET route, skipping it")
-            continue
+    def info_hook(*msg: object, **kwargs):
+        info(" ".join([str(i) for i in msg]))
 
-        if not i.path:
-            warn(f"{i} needs path parameters, skipping it")
-            continue
+    Internal.info = info_hook  # type: ignore
 
-        info(f"Getting {i.path or '/???'}")
-
-        if i.inputs:
-            warn(f"{i.path} needs a route input, skipping it")
-            continue
-
-        res = i.func()
-
-        if iscoroutine(res):
-            loop = asyncio.get_event_loop()
-            res = loop.run_until_complete(res)
-
-        text: str
-
-        if hasattr(res, "__view_response__"):
-            res = res.__view_response__()  # type: ignore
-
-        if isinstance(res, tuple):
-            for x in res:
-                if isinstance(x, str):
-                    text = x
-                    break
-            error(f"{i.path} didn't return a response")
-        else:
-            text = res  # type: ignore
-
-        assert i.path
-        results[i.path[1:]] = text
-        success(f"Got response for {i.path}")
-
-    if path.exists():
-        error(f"{path} already exists")
-
-    path.mkdir()
-    success(f"Created directory {path}")
-
-    for file_path, content in results.items():
-        directory = path / file_path
-        file = directory / "index.html"
-        directory.mkdir(exist_ok=True)
-        success(f"Created {directory}")
-        file.write_text(content, encoding="utf-8")
-        success(f"Created {file}")
-
-    success("Successfully built app")
+    try:
+        asyncio.run(build_app(app, path=path))
+    except BuildError as e:
+        error(str(e))
 
 
 @main.command()
@@ -305,6 +255,7 @@ def build(path: Path):
     type=str,
     default="my_app",
     prompt="Project name",
+    cls=PrettyOption,
 )
 @click.option(
     "--load",
@@ -313,6 +264,7 @@ def build(path: Path):
     default="simple",
     type=click.Choice(("manual", "filesystem", "simple", "patterns")),
     prompt="Loader strategy",
+    cls=PrettyOption,
 )
 @click.option(
     "--repo",
@@ -321,6 +273,7 @@ def build(path: Path):
     default=True,
     is_flag=True,
     prompt="Create repository?",
+    cls=PrettyOption,
 )
 @click.option(
     "--venv",
@@ -328,6 +281,7 @@ def build(path: Path):
     default=True,
     is_flag=True,
     prompt="Create virtual environment?",
+    cls=PrettyOption,
 )
 @click.option(
     "--path",
@@ -382,9 +336,13 @@ def init(
         venv_path = path / ".venv"
         _venv.create(venv_path, with_pip=True)
         success(f"Created virtual environment in {venv_path}")
-        info("Installing view.py...")
+        info("Installing view.py with all dependencies...")
         res = subprocess.call(
-            [(venv_path / "bin" / "pip").absolute(), "install", "view.py"]
+            [
+                (venv_path / "bin" / "pip").absolute(),
+                "install",
+                "view.py[full]",
+            ]
         )
 
         if res != 0:
@@ -439,13 +397,15 @@ app.run()
     if load == "patterns":
         urls = path / "urls.py"
         with open(urls, "w") as f:
-            f.write("""from view import path
+            f.write(
+                """from view import path
 from routes.index import index
 
 PATTERNS = (
     path("/", index),
 )
-""")
+"""
+            )
 
     if load != "manual":
         routes = path / "routes"

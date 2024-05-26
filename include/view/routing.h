@@ -24,8 +24,6 @@ struct Route {
     PyObject* exceptions;
     bool has_body;
     bool is_http;
-    PyObject** middleware;
-    Py_ssize_t middleware_size;
 
     // transport attributes
     map* routes;

@@ -1,0 +1,12 @@
+[build]
+default_steps = ["foo"]
+
+[[build.steps.foo]]
+platform = ["linux", "mac"]
+command = "touch linux_build.test"
+
+[[build.steps.foo]]
+command = "type NUL > windows_build.test"
+
+[build.steps.windowsonly]
+platform = "windows"

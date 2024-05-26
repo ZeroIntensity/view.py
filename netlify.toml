@@ -1,5 +1,5 @@
 [build]
-command = "hatch run docs:build && cd site && yarn && yarn build && cd ../"
+command = "hatch run docs:build"
 publish = "site"
 
 [[headers]]

@@ -2,18 +2,8 @@ from __future__ import annotations
 
 from ._util import run_path
 from .exceptions import DuplicateRouteError, InvalidRouteError
-from .routing import (
-    Callable,
-    Method,
-    Route,
-    RouteOrCallable,
-    delete,
-    get,
-    options,
-    patch,
-    post,
-    put,
-)
+from .routing import (Callable, Method, Route, RouteOrCallable, delete, get,
+                      options, patch, post, put)
 from .routing import route as route_impl
 from .typing import StrMethod, ViewRoute
 
@@ -46,7 +36,7 @@ def _get_method_enum(method: StrMethod | None | Method) -> Method:
         method = method.lower()  # type: ignore
 
     if method in _STR_MAPPINGS:
-        method_enum: Method = _STR_MAPPINGS[method]
+        method_enum: Method = _STR_MAPPINGS[method]  # type: ignore
     else:
         method_enum: Method = method or Method.GET  # type: ignore
 
@@ -80,7 +70,7 @@ def path(
     if not isinstance(route, Route):
         method_enum = _get_method_enum(method)
         func = _FUNC_MAPPINGS[method_enum]
-        route_obj = func(target)(route)
+        route_obj: Route = func(target)(route)
     else:
         if not route.method:
             route_obj = route_impl(target)(route)

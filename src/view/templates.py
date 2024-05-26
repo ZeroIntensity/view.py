@@ -28,7 +28,7 @@ __all__ = ("template", "render", "markdown")
 
 
 class _CurrentFrame:  # sentinel
-    ...
+    pass
 
 
 _CurrentFrameType = Type[_CurrentFrame]
@@ -77,13 +77,15 @@ class ViewRenderer:
             nonlocal iterator_name
             iterator_name = item
 
-        result = []
+        result: list[str] = []
 
         for key, value in view.attrs.items():
             if key == "ref":
                 result.append(str(eval(value, self.parameters)))
             elif key == "template":
-                result.append((await template(value)).body)
+                html = await template(value)
+                body = html._custom(html.body)
+                result.append(body)
             elif key == "if":
                 self._last_if = bool(eval(value, self.parameters))
                 if not self._last_if:

@@ -114,9 +114,9 @@ def markdown_docs(docs: DocsType) -> str:
         part.append("| Key | Description | Type | Default |")
         part.append("| - | - | - | - |")
 
-        for k, v in doc.items():
+        for name, loader_doc in doc.items():
             part.append(
-                f"| {k} | {v.desc} | {_format_type((v.tp,), types)} | {_format_default(v.default)} |"
+                f"| {name} | {loader_doc.desc} | {_format_type((loader_doc.tp,), types)} | {_format_default(loader_doc.default)} |"  # noqa
             )
 
     return "# Docs" + "\n".join(part) + "\n".join(final)

@@ -4,7 +4,6 @@ import pytest
 
 from view import delete, get, new_app, options, patch, post, put
 
-
 @pytest.mark.asyncio
 async def test_manual_loader():
     app = new_app()

@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 
 
 def query_parser(data: str) -> ViewBody:
-    parsed = parse_qs(data)
+    parsed: dict[str, list[str]] = parse_qs(data)
 
-    final = {}
+    final: ViewBody = {}
     for k, v in parsed.items():
         if len(v) == 1:
             final[k] = v[0]
@@ -24,5 +24,5 @@ def query_parser(data: str) -> ViewBody:
     return final
 
 
-def supply_parsers(app: App):
+def supply_parsers(app: App) -> None:
     app._supply_parsers(query_parser, ujson.loads)

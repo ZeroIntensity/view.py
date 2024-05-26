@@ -5,15 +5,8 @@ import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    ForwardRef,
-    Iterable,
-    NamedTuple,
-    TypedDict,
-    get_args,
-    get_type_hints,
-)
+from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
+                    get_args, get_type_hints)
 
 from _view import Context
 
@@ -31,16 +24,14 @@ import inspect
 
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
-from .exceptions import (
-    DuplicateRouteError,
-    InvalidBodyError,
-    InvalidRouteError,
-    LoaderWarning,
-)
-from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
+from .exceptions import (DuplicateRouteError, InvalidBodyError,
+                         InvalidRouteError, LoaderWarning,
+                         UnknownBuildStepError)
+from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
+                      _NoDefault)
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
-ExtNotRequired = None
+ExtNotRequired: Any = None
 try:
     from typing import NotRequired  # type: ignore
 except ImportError:
@@ -49,7 +40,7 @@ except ImportError:
 
 from typing_extensions import get_origin
 
-_NOT_REQUIRED_TYPES = []
+_NOT_REQUIRED_TYPES: list[Any] = []
 
 if ExtNotRequired:
     _NOT_REQUIRED_TYPES.append(ExtNotRequired)
@@ -129,8 +120,8 @@ def _format_body(
             f"__view_body__ should return a dict, not {type(vbody_types)}",  # noqa
         )
 
-    vbody_final = {}
-    vbody_defaults = {}
+    vbody_final: dict[str, list[Any]] = {}
+    vbody_defaults: dict[str, Any] = {}
 
     for k, raw_v in vbody_types.items():
         if not isinstance(k, str):
@@ -138,7 +129,7 @@ def _format_body(
                 f"all keys returned by __view_body__ should be strings, not {type(k)}"  # noqa
             )
 
-        default = _NoDefault
+        default: type[Any] = _NoDefault
         v = raw_v.types if isinstance(raw_v, BodyParam) else raw_v
 
         if isinstance(v, str):
@@ -163,7 +154,8 @@ def _format_body(
         vbody_defaults[k] = default
 
     return [
-        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k]) for k, v in vbody_final.items()
+        (TYPECODE_CLASSTYPES, k, v, vbody_defaults[k])  # type: ignore
+        for k, v in vbody_final.items()
     ]
 
 
@@ -200,6 +192,8 @@ def _build_type_codes(
     codes: list[TypeInfo] = []
 
     for tp in inp:
+        tps: dict[str, type[Any] | BodyParam]
+    
         if is_annotated(tp):
             if doc is None:
                 raise InvalidBodyError(f"Annotated is not valid here ({tp})")
@@ -333,7 +327,7 @@ def _build_type_codes(
             for i in attrs_fields:
                 default = i.default
                 if not default:
-                    tps[i.name] = i.type
+                    tps[i.name] = i.type  # type: ignore
                 else:
                     tps[i.name] = BodyParam(
                         i.type,  # type: ignore
@@ -353,7 +347,9 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp)))
+            codes.append(
+                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
+            )
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -367,13 +363,15 @@ def _build_type_codes(
             key, value = get_args(tp)
 
             if key is not str:
-                raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
+                raise InvalidBodyError(
+                    f"dictionary keys must be strings, not {key}"
+                )
 
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
         elif origin is list:
-            tps = get_args(tp)
-            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))
+            tps = get_args(tp)  # type: ignore
+            codes.append((TYPECODE_LIST, None, _build_type_codes(tps)))  # type: ignore
         else:
             raise InvalidBodyError(f"{tp} is not a valid type for routes")
 
@@ -428,6 +426,16 @@ def finalize(routes: list[Route], app: ViewApp):
 
     for route in routes:
         set_load(route)
+        route.app = app
+
+        if route.parallel_build is None:
+            route.parallel_build = app.config.build.parallel
+
+        for step in route.steps or []:
+            if step not in app.config.build.steps:
+                raise UnknownBuildStepError(
+                    f"build step {step!r} is not defined"
+                )
 
         if route.method:
             target = targets[route.method]
@@ -436,6 +444,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if (not route.path) and (not route.parts):
             raise InvalidRouteError(f"{route} did not specify a path")
+
         lst = virtual_routes.get(route.path or "")
 
         if lst:
@@ -466,7 +475,9 @@ def finalize(routes: list[Route], app: ViewApp):
                     route.inputs.insert(index, 1)
                     continue
 
-                default = v.default if v.default is not inspect._empty else _NoDefault
+                default = (
+                    v.default if v.default is not inspect._empty else _NoDefault
+                )
 
                 route.inputs.insert(
                     index,
@@ -493,24 +504,22 @@ def finalize(routes: list[Route], app: ViewApp):
         if target:
             target(
                 route.path,  # type: ignore
-                route.func,
+                route,
                 route.cache_rate,
                 _format_inputs(route.inputs),
                 route.errors or {},
                 route.parts,  # type: ignore
-                [i for i in reversed(route.middleware_funcs)],
             )
         else:
             for i in (route.method_list) or targets.keys():
                 target = targets[i]
                 target(
                     route.path,  # type: ignore
-                    route.func,
+                    route,
                     route.cache_rate,
                     _format_inputs(route.inputs),
                     route.errors or {},
                     route.parts,  # type: ignore
-                    [i for i in reversed(route.middleware_funcs)],
                 )
 
 
@@ -562,7 +571,9 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
+                    stripped = list(
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -615,7 +626,8 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
             for route in mini_routes:
                 if not route.path:
                     raise InvalidRouteError(
-                        "omitting path is only supported" " on filesystem loading",
+                        "omitting path is only supported"
+                        " on filesystem loading",
                     )
 
                 routes.append(route)
@@ -637,7 +649,10 @@ def load_patterns(app: ViewApp, target_path: Path) -> None:
 
     if not patterns:
         raise InvalidRouteError(
-            f"{target_path} did not define a PATTERNS, URL_PATTERNS, URLPATTERNS, urlpatterns, or patterns variable"
+            f"{target_path} did not define a PATTERNS, URL_PATTERNS, URLPATTERNS, urlpatterns, or patterns variable",
+            hint=docs_hint(
+                "https://view.zintensity.dev/building-projects/routing/#url-pattern-routing"
+            ),
         )
 
     finalize(patterns, app)

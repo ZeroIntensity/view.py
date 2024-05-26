@@ -1,6 +1,7 @@
 import pytest
 
 from view import ERROR_CODES, Error, InvalidStatusError, new_app
+from leaks import limit_leaks
 
 STATUS_CODES = (
     200,
@@ -25,6 +26,7 @@ STATUS_CODES = (
 
 
 @pytest.mark.asyncio
+@limit_leaks("1 MB")
 async def test_returning_the_proper_status_code():
     app = new_app()
 

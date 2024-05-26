@@ -94,6 +94,7 @@ def format_warnings():
     warnings.showwarning = _showwarning
     warnings.formatwarning = _warning_no_src_line  # type: ignore
 
+
 LCOLORS = {
     logging.DEBUG: "blue",
     logging.INFO: "green",
@@ -124,7 +125,6 @@ for lg in (svc, internal):
     )
     handler.setFormatter(ViewFormatter())
     lg.addHandler(handler)
-
 
 internal.setLevel(10000)
 
@@ -165,6 +165,7 @@ class _StandardOutProxy(_FileProxyWrapper):
     """Wrap standard out to fancy logging."""
 
     def write(self, text: str) -> int:
+        Internal.debug(f"stole from stdout: {text}")
         self._queue.put(QueueItem(False, False, "info", text, is_stdout=True))
         return super().write(text)
 
@@ -173,6 +174,7 @@ class _StandardErrProxy(_FileProxyWrapper):
     """Wrap standard error to fancy logging."""
 
     def write(self, text: str) -> int:
+        Internal.debug(f"stole from stderr: {text}")
         self._queue.put(QueueItem(False, False, "info", text, is_stderr=True))
         return super().write(text)
 
@@ -692,7 +694,7 @@ class Dataset:
         self.name = name
         self.points: dict[float, float] = {}
         self.point_limit = point_limit
-        self.point_order = []
+        self.point_order: list[float] = []
 
     def add_point(self, x: float, y: float) -> None:
         """Add a point to the dataset.
@@ -701,7 +703,6 @@ class Dataset:
             x: X value.
             y: Y value.
         """
-        Internal.info(f"{self.point_limit} {len(self.point_order)}")
         if self.point_limit and (len(self.point_order) >= self.point_limit):
             to_del = self.point_order.pop(0)
             del self.points[to_del]
@@ -822,7 +823,9 @@ def _server_logger():
             self.y_label = y
             self.datasets: dict[str, Dataset] = {}
 
-        def dataset(self, name: str, *, point_limit: int | None = None) -> Dataset:
+        def dataset(
+            self, name: str, *, point_limit: int | None = None
+        ) -> Dataset:
             """Generate or create a new dataset.
 
             Args:
@@ -860,11 +863,15 @@ def _server_logger():
             plt.theme("pro")
 
         def __rich_console__(
-            self, console: Console, options: ConsoleOptions
+            self,
+            console: Console,
+            options: ConsoleOptions,
         ) -> RenderResult:
             if not plt:
                 return Panel(
-                    shell_hint("pip install plotext", "pip install view.py[fancy]"),
+                    shell_hint(
+                        "pip install plotext", "pip install view.py[fancy]"
+                    ),
                     title="This widget needs an external library!",
                 )
             self._render(options.max_width, options.max_height)
@@ -882,7 +889,9 @@ def _server_logger():
         psutil = None
 
     if psutil:
-        layout["very_corner"].split_column(Panel(system, title="System"), network)
+        layout["very_corner"].split_column(
+            Panel(system, title="System"), network
+        )
     else:
         layout["very_corner"].split_column(
             Panel(
@@ -946,16 +955,18 @@ def _server_logger():
             p = psutil.Process()
             pio = p.io_counters()
             io.dataset("Read").add_point(
-                time.time() - base, pio.read_count - pio_base.read_count
+                time.time() - base,
+                pio.read_count - pio_base.read_count,
             )
             io.dataset("Write").add_point(
-                time.time() - base, pio.write_count - pio_base.write_count
+                time.time() - base,
+                pio.write_count - pio_base.write_count,
             )
 
             pio_base = pio
 
     for thread in (inner, net, io_count):
-        Thread(target=thread).start()
+        Thread(target=thread, daemon=True).start()
 
     with Live(
         Align.center(layout),
@@ -964,7 +975,7 @@ def _server_logger():
         redirect_stdout=False,
         redirect_stderr=False,
         console=console,
-    ):
+    ) as live:
         while True:
             if _CLOSE.is_set():
                 sys.stdout = preserved
@@ -997,6 +1008,8 @@ def _server_logger():
                     f"[bold {_status_color(info.status)}]{info.status}[/]",
                 )
 
+            live.update(Align.center(layout))
+
 
 def _write_route(status: int, route: str, method: str) -> None:
     info = RouteInfo(status, route, method)
@@ -1018,7 +1031,7 @@ def enter_server():
     if _CLOSE.is_set():
         _CLOSE.clear()
 
-    Thread(target=_server_logger).start()
+    Thread(target=_server_logger, daemon=True).start()
 
 
 def exit_server():

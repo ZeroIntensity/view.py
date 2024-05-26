@@ -62,7 +62,7 @@ async def index():
 app.run()
 ```
 
-**Note:** Import from `view` internally *does not* work when using `src.view`. Instead, your imports inside of view.py should look like `from .foo import bar`. For example, if you wanted to import `view.routing.get` from `src/view/app.py`, your import would look like `from .routing import get`
+**Note:** Import from `view` internally _does not_ work when using `src.view`. Instead, your imports inside of view.py should look like `from .foo import bar`. For example, if you wanted to import `view.routing.get` from `src/view/app.py`, your import would look like `from .routing import get`
 
 For debugging purposes, you're also going to want to disable `fancy` and `hijack` in the configuration:
 
@@ -78,13 +78,12 @@ These settings will stop view.py's fancy output from showing, as well as stoppin
 
 **Note:** You do need to `pip install .` to update the tests, as they import from `view` and not `src.view`.
 
-View uses [ward](https://ward.readthedocs.io/en/latest/) for writing tests. If you have any questions regarding test semantics, it's likely on their docs. The only thing you need to understand for writing tests is how to use the `App.test` API.
+View uses [pytest](https://docs.pytest.org/en/8.2.x/) for writing tests, as well as [pytest-asyncio](https://pytest-asyncio.readthedocs.io/en/latest/) and [pytest-memray](https://pytest-memray.readthedocs.io/en/latest/). If you have any questions regarding test semantics, it's likely on their docs. The only thing you need to understand for writing tests is how to use the `App.test` API.
 
 `App.test` is a method that lets you start a virtual server for testing responses. It works like so:
 
 ```py
-@test("my cool feature")
-async def _():
+async def test_my_feature():
     app = new_app()
 
     @app.get("/")
