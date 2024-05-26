@@ -5,6 +5,7 @@ import sys
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union
+from typing_extensions import TypeAlias
 
 from configzen import ConfigField, ConfigModel, field_validator
 
@@ -124,8 +125,10 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):  # type: ignor
     globals: bool = True
     engine: TemplateEngine = "view"
 
+Platform: TypeAlias = Literal["windows", "mac", "linux", "macOS", "Windows", "Linux", "Mac", "MacOS"]
 
 class BuildStep(ConfigModel):  # type: ignore
+    platform: List[Platform] | Platform | None = None
     requires: List[str] = ConfigField(default_factory=list)
     command: Union[str, None, List[str]] = None
     script: Union[Path, None, List[Path]] = None
@@ -134,7 +137,7 @@ class BuildStep(ConfigModel):  # type: ignore
 class BuildConfig(ConfigModel, env_prefix="view_build_"):  # type: ignore
     path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
-    steps: Dict[str, BuildStep] = ConfigField(default_factory=dict)
+    steps: Dict[str, Union[BuildStep, list[BuildStep]]] = ConfigField(default_factory=dict)
     parallel: bool = False
 
 

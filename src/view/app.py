@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, TypeAlias, Unpack
+from typing_extensions import ParamSpec, Unpack
 
 from _view import InvalidStatusError, ViewApp
 
@@ -526,7 +526,7 @@ class App(ViewApp):
         """Add a GET route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -559,7 +559,7 @@ class App(ViewApp):
         """Add a POST route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -597,7 +597,7 @@ class App(ViewApp):
         """Add a DELETE route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -635,7 +635,7 @@ class App(ViewApp):
         """Add a PATCH route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -673,7 +673,7 @@ class App(ViewApp):
         """Add a PUT route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 
@@ -706,7 +706,7 @@ class App(ViewApp):
         """Add an OPTIONS route.
 
         Args:
-            path_or_route: The path to this route, or the route itself.
+            path: The path to this route.
             doc: The description of the route to be used in documentation.
             cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
 

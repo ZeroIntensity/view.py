@@ -27,6 +27,7 @@ nav:
           - Routing: reference/routing.md
           - Responses: reference/responses.md
           - Templates: reference/templates.md
+    - Contributing: contributing.md
 
 theme:
     name: material
@@ -58,6 +59,7 @@ theme:
     features:
         - content.tabs.link
         - content.code.copy
+        - content.action.edit
         - search.highlight
         - search.share
         - search.suggest
@@ -99,6 +101,9 @@ markdown_extensions:
 
 plugins:
     - search
+    - tags
+    - git-revision-date-localized:
+          enable_creation_date: true
     - mkdocstrings:
           handlers:
               python:

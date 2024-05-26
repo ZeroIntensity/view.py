@@ -1,9 +1,12 @@
 [build]
 default_steps = ["test"]
 
-[build.steps.test]
-requires = ["command+python3"]
-command = "python3 -c 'print()'"
+[[build.steps.test]]
+command = "touch build.test"
+
+[[build.steps.test]]
+platform = "windows"
+command = "type NUL > build.test"
 
 [build.steps.fail]
 requires = ["command+fdsafasdjfkhas"]

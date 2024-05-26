@@ -25,11 +25,13 @@ __all__ = (
     "MissingRequirementError",
     "InvalidResultError",
     "UnknownBuildStepError",
+    "PlatformNotSupportedError",
 )
 
 
 class ViewWarning(UserWarning):
     """Base class for all warnings in view.py"""
+
 
 class NotLoadedWarning(ViewWarning):
     """load() was never called"""
@@ -121,3 +123,7 @@ class InvalidResultError(ViewError, TypeError):
 
 class UnknownBuildStepError(BuildError):
     """Undefined build step was used."""
+
+
+class PlatformNotSupportedError(BuildError):
+    """Build step does not support the platform."""

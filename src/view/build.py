@@ -8,7 +8,7 @@ import warnings
 from asyncio import subprocess
 from collections.abc import Coroutine
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, NoReturn, Any
 
 import aiofiles
 import aiofiles.os
@@ -19,9 +19,12 @@ from .typing import ViewResult
 if TYPE_CHECKING:
     from .app import App
 
-from .config import BuildStep
+import platform
+
+from .config import BuildStep, Platform
 from .exceptions import (BuildError, BuildWarning, MissingRequirementError,
-                         UnknownBuildStepError)
+                         PlatformNotSupportedError, UnknownBuildStepError,
+                         ViewInternalError)
 from .response import to_response
 
 __all__ = "build_steps", "build_app"
@@ -45,7 +48,7 @@ async def _call_command(command: str) -> None:
         raise BuildError(f"{command} returned non-zero exit code")
 
 
-async def _call_script(path: Path, *, call_func: str | None = None) -> None:
+async def _call_script(path: Path, *, call_func: str | None = None) -> Any:
     Internal.info(f"Executing Python script at `{path}`")
     globls = runpy.run_path(str(path), run_name="__view_build__")
 
@@ -53,9 +56,10 @@ async def _call_script(path: Path, *, call_func: str | None = None) -> None:
         func = globls.get(call_func)
         if func:
             try:
-                await func()
+                return await func()
             except Exception as e:
                 raise BuildError(f"Script at {path} raised exception!") from e
+
 
 _COMMAND_REQS = [
     # C
@@ -70,6 +74,7 @@ _COMMAND_REQS = [
     "pip",
     "uv",
     "poetry",
+    "pipx",
     # JavaScript
     "node",
     "npm",
@@ -153,7 +158,9 @@ async def _check_requirement(req: str) -> None:
 
         reqfunc = getattr(mod, "__view_requirement__", None)
         if reqfunc:
-            await reqfunc
+            res = await reqfunc()
+            if res is False:
+                raise MissingRequirementError(f"Requirement script in module {target} returned non-True")
     elif prefix == "script":
         path = Path(target)
         if (not path.exists()) or (not path.is_file()):
@@ -161,18 +168,55 @@ async def _check_requirement(req: str) -> None:
                 f"Python script at {target} does not exist or is not a file"
             )
 
-        await _call_script(path)
+        res = await _call_script(path, call_func="__view_requirement__")
+        if res is False:
+            raise MissingRequirementError(f"Requirement script at {path} returned non-True")
     elif prefix == "path":
         if not Path(target).exists():
             raise MissingRequirementError(f"{target} does not exist")
     elif prefix == "command":
-         if not await _check_version_command(target):
+        if not await _check_version_command(target):
             raise MissingRequirementError(f"{target} is not installed")
     else:
         raise BuildError(f"Invalid requirement prefix: {prefix}")
 
+_PLATFORMS: dict[str, list[Platform]] = {
+    "Linux": ["linux", "Linux"],
+    "Darwin": ["mac", "macOS", "Mac", "MacOS"],
+    "Windows": ["windows", "Windows"],
+}
+
+
+def _is_platform_compatible(plat: Platform | list[Platform] | None) -> bool:
+    system = platform.system()
+
+    try:
+        names = _PLATFORMS[system]
+    except KeyError as e:
+        raise ViewInternalError(
+            f"platform.system() returned unknown os: {system}"
+        ) from e
+
+    if isinstance(plat, list):
+        for supported_platform in plat:
+            if supported_platform in names:
+                return True
+
+        return False
+
+    return plat in names
+
+def _invalid_platform(name: str) -> NoReturn:
+    system = platform.system()
+    raise PlatformNotSupportedError(
+        f"build step {name!r} does not support {system.lower()}"
+    )
 
 async def _build_step(step: _BuildStepWithName) -> None:
+    if step.step.platform:
+        if not _is_platform_compatible(step.step.platform):
+            _invalid_platform(step.name)
+
     Internal.info(f"Building step {step.name!r}")
     data = step.step
 
@@ -199,6 +243,28 @@ async def _build_step(step: _BuildStepWithName) -> None:
             await _call_script(data.script, call_func="__view_build__")
 
 
+def _find_step(name: str, steps: list[BuildStep]) -> _BuildStepWithName:
+    platform_step: _BuildStepWithName | None = None
+    null_platform: bool = False
+
+    for i in steps:
+        if (not i.platform) and (not platform_step):
+            if null_platform:
+                raise BuildError(
+                    f"step {name!r} has multiple entries without a platform"
+                )
+            platform_step = _BuildStepWithName(name, i, [])
+            null_platform = True
+        else:
+            if _is_platform_compatible(i.platform):
+                platform_step = _BuildStepWithName(name, i, [])
+
+    if not platform_step:
+        _invalid_platform(name)
+
+    return platform_step
+
+
 async def run_step(app: App, name: str) -> None:
     """Run an individual build step."""
     step_conf = app.config.build.steps.get(name)
@@ -206,7 +272,11 @@ async def run_step(app: App, name: str) -> None:
     if not step_conf:
         raise UnknownBuildStepError(f"no step named {name!r}")
 
-    step = _BuildStepWithName(name, step_conf, [])
+    if isinstance(step_conf, list):
+        step = _find_step(name, step_conf)
+    else:
+        step = _BuildStepWithName(name, step_conf, [])
+
     await _build_step(step)
 
 
@@ -214,19 +284,16 @@ async def build_steps(app: App) -> None:
     """Run the default build steps for a given application."""
     build = app.config.build
     cache: list[str] = []
+    steps: list[_BuildStepWithName] = []
 
-    steps: list[_BuildStepWithName] = (
-        [
-            _BuildStepWithName(name, step, cache)
-            for name, step in build.steps.items()
-        ]
-        if build.default_steps is None
-        else [
-            _BuildStepWithName(name, step, cache)
-            for name, step in build.steps.items()
-            if name in build.default_steps
-        ]
-    )
+    for name, step in build.steps.items():
+        if build.default_steps and (name not in build.default_steps):
+            continue
+
+        if isinstance(step, list):
+            steps.append(_find_step(name, step))
+        else:
+            steps.append(_BuildStepWithName(name, step, cache))
 
     Internal.info("Starting build steps")
 

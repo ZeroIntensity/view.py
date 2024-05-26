@@ -120,6 +120,53 @@ requires = ["php"]
 command = "php -f payment.php"
 ```
 
+## Platform-Dependent Steps
+
+Many commands are different based on the platform used. For example, to read from a file on the Windows shell would be `type`, while on Linux and Mac it would be `cat`. If you add multiple step entries (in the form of an [array of tables](https://toml.io/en/v1.0.0-rc.2#array-of-tables)) with `platform` values, view.py will run the entry based on the platform the app was run on.
+
+For example, using the file reading example from above:
+
+Notice the double brackets next to `[[build.steps.read_from_file]]`, specifying an array of tables.
+
+```toml
+# view.toml
+
+[[build.steps.read_from_file]]
+platform = ["mac", "linux"]
+command = "cat whatever.txt"
+
+[[build.steps.read_from_file]]
+platform = "windows"
+command = "type whatever.txt"
+```
+
+The `platform` value can be one of three things per entry:
+
+-   A list of platforms.
+-   A string containing a single platform.
+-   `None`, meaning to use this entry if no other platforms match.
+
+For example, with a `None` platform set (on multiple entries), the above could be rewritten as:
+
+```toml
+# view.toml
+
+[[build.steps.read_from_file]]
+# Windows ONLY runs this step
+platform = "windows"
+command = "type whatever.txt"
+
+[[build.steps.read_from_file]]
+# All other platforms run this!
+command = "cat whatever.txt"
+```
+
+Note that only one step entry can have a `None` platform value, otherwise view.py will throw an error.
+
+!!! note
+
+    The only recognized operating systems for `platform` are the big three: Windows, Mac, and any Linux based system. If you want more fine-grained control (for example, using `pacman` or `apt` depending on the Linux distro), use a custom build script that knows how to read the Linux distribution.
+
 ## Build Requirements
 
 As you've seen above, build requirements are specified via the `requires` value. Out of the box, view.py supports a number of different build tools, compilers, and interpreters. To specify a requirement for one, simply add the name of their executable (_i.e._, how you access their CLI). For example, since `pip` is accessed via using the `pip` command in your terminal, `pip` is the name of the requirement.
@@ -165,7 +212,7 @@ async def __view_requirement__() -> bool:
 
 The above could actually be used via both `script+check_310.py` and `mod+check_310`.
 
-!!! tip
+!!! note
 
     Don't use the view.py build system to check the Python version or if a Python package is installed. Instead, use the `dependencies` section of a `pyproject.toml` file, or [PEP 723](https://peps.python.org/pep-0723/) script metadata.
 

@@ -6,3 +6,9 @@ requires = ["pip"]
 
 [build.steps.foo]
 requires = ["dart"]
+
+[build.steps.customreq]
+requires = ["script+./tests/buildscripts/req.py"]
+
+[build.steps.failingreq]
+requires = ["mod+buildscripts.failing_req"]

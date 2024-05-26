@@ -1,12 +1,9 @@
 import os
-from contextlib import redirect_stdout
-from io import StringIO
 from pathlib import Path
 
 import pytest
 
 from view import new_app
-
 
 @pytest.mark.asyncio
 async def test_build_requirements():
@@ -23,10 +20,23 @@ async def test_build_requirements():
     @app.get("/foo", steps=("foo",))
     async def wont_work():
         return "shouldn't be here"
+    
+    @app.get("/customreq", steps=("customreq",))
+    async def should_work():
+        assert os.path.exists("customreq.test")
+        return "test"
+
+    @app.get("/failingreq", steps=("failingreq",))
+    async def fail():
+        return "shouldn't be here"
 
     async with app.test() as test:
         assert (await test.get("/")).message != ""
         assert (await test.get("/foo")).status == 500
+        assert (await test.get("/customreq")).message == "test"
+        assert (await test.get("/failingreq")).status == 500
+        assert os.path.exists("failingreq.test")
+
 
 
 @pytest.mark.asyncio
@@ -59,7 +69,25 @@ async def test_build_commands():
     async def fail():
         return "."
 
-    buffer = StringIO()
-    with redirect_stdout(buffer):
-        async with app.test() as test:
+    async with app.test() as test:
+        assert (await test.get("/")).status == 500
+
+    assert os.path.exists("build.test")
+
+@pytest.mark.asyncio
+async def test_build_platform():
+    app = new_app(
+        config_path=Path.cwd() / "tests" / "configs" / "build_platform.toml"
+    )
+    
+    @app.get("/", steps=["windowsonly"])
+    async def index():
+        return "hello world"
+
+    async with app.test() as test:
+        if os.name == "nt":
+            assert (await test.get("/")).message == "hello world"
+        else:
             assert (await test.get("/")).status == 500
+
+    assert os.path.exists("linux_build.test" if os.name != "nt" else "windows_build.test")

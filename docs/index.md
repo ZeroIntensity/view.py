@@ -11,54 +11,119 @@ Here, you can learn how to use view.py and its various features.
 -   [PyPI](https://pypi.org/project/view.py)
 -   [Discord](https://discord.gg/tZAfuWAbm2)
 
-!!! warning
-
-    view.py is in very early stages and not yet considered to be ready for production.
-    If you would like to follow development progress, join [the discord](https://discord.gg/tZAfuWAbm2).
-    For contributing to view.py, please see our [contributors file](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md)
-
-## Quickstart
-
-Install view.py:
-
-```
-$ pip install -U view.py
-```
-
-Initialize your project:
-
-```
-$ view init
-```
-
-**Note:** If this yields unexpected results, you may need to use `py -m view init` instead.
-
-Write your first app:
+## Showcase
 
 ```py
 from view import new_app
 
 app = new_app()
 
-@app.query("greeting", str, default="hello")
-@app.query("name", str, default="world")
 @app.get("/")
-async def index(greeting: str, name: str):
-    return f"{greeting}, {name}!"
+async def index():
+    return await app.template("index.html", engine="jinja")
 
 app.run()
 ```
 
-## Why View?
+```py
+# routes/index.py
+from view import get, HTML
 
-As of now, view.py is still in alpha. Lot's of development progress is being made, but a production-ready stable release is still a bit far off. With that being said, anything mentioned in this documentation has been deemed already stable. In that case, why choose view.py over other frameworks?
+# Build TypeScript Frontend
+@get(steps=["typescript"], cache_rate=1000)
+async def index():
+    return await HTML.from_file("dist/index.html")
+```
 
-If you've used a framework like [Django](https://djangoproject.com), you're likely already familiar with the "batteries included" idea, meaning that it comes with everything you could need right out of the box. View takes a different approach: batteries-detachable. It aims to provide you everything you need, but gives you a choice to use it or not, as well as actively supporting external libraries. This ideology is what makes View special. In batteries detachable, you can use whatever you like right out of the box, but if you don't like View's approach to something or like another library instead, you may easily use it.
+```py
+from dataclasses import dataclass
+from view import body, post
 
-## Should I use it?
+@dataclass
+class User:
+    name: str
+    password: str
 
-For a big project, **not yet**, as View is not currently ideal for working with a big codebase. However, **that doesn't mean you should forget about it**. view.py will soon be stable and production ready, and you should keep it in mind. To support view.py's development, you can either [sponsor me](https://github.com/sponsors/ZeroIntensity) or [star the project](https://github.com/zerointensity/view.py/stargazers).
+@post("/signup")
+@body("data", User)
+def create(data: User):
+    # Use database of your choice...
+    return JSON({"message": "Successfully created your account."}), 201
+```
 
-## Developing View
+```py
+from view import new_app, Context, Error, JSON
 
-As stated earlier, view.py is very new and not yet at a stable 1.0.0 release. Whether you're completely new to GitHub contribution or an experienced developer, view.py has something you could help out with. If you're interested in contributing or helping out with anything, be sure to read [the contributors file](https://github.com/ZeroIntensity/view.py/blob/master/CONTRIBUTING.md) and/or joining the [discord](https://discord.gg/tZAfuWAbm2).
+app = new_app()
+
+@app.get("/")
+@app.context
+async def index(ctx: Context):
+    auth = ctx.headers.get("Authorization")
+    if not auth:
+        raise Error(400)
+
+    return JSON({"data": "..."})
+
+app.run()
+```
+
+```py
+from view import new_app
+
+app = new_app()
+
+@app.post("/login")
+@app.query("username", doc="Username for your account.")
+@app.query("password", doc="Password for your account.")
+async def index():
+    """Log in to your account."""
+    ...
+
+app.run()
+```
+
+```html
+<view if="user.type == 'admin'">
+    <view template="admin_panel" />
+</view>
+<view elif="user.type == 'moderator'">
+    <view template="mod_panel" />
+</view>
+<view else>
+    <p>You must be logged in.</p>
+</view>
+```
+
+```toml
+# view.toml
+[build]
+default_steps = ["nextjs"]
+# Only NextJS will be built on startup
+
+[build.steps.nextjs]
+requires = ["npm"]
+command = "npm run build"
+
+[build.steps.php]
+requires = ["php"]
+command = "php -f payment.php"
+```
+
+## Why did I build it?
+
+!!! warning
+
+    This section may seem boring to some. If you don't like reading, skip to the next page.
+
+This is a question I get a lot when it comes to view.py. I originally got the idea for view.py back in 2021, but it was planned to be a library for _only_ designing UI's in Python (hence the name "view"), since the only way you could do it at the time was pretty much just merging HTML and Python using [Jinja](https://jinja.palletsprojects.com/en/3.1.x/), or some other flavor of template engine. Don't get me wrong, Jinja is a great template engine, but it feels a bit lacking once you've tried [JSX](https://react.dev/learn/writing-markup-with-jsx) in one of the large JavaScript frameworks.
+
+A year later, in 2022, I enrolled in a coding class at my school, which was basically a course for the basics of Python. For most Python developers, including me, it would have felt like sitting down and going over your ABC's. Long story short, my teacher let me do some sort of project instead of the actual class (this was in 8th grade, mind you).
+
+At the time, my [pointers.py](https://github.com/ZeroIntensity/pointers.py) library had gained a lot of traction on GitHub, which was quite cool to me, but I felt like I didn't make any real world contributions (it is a joke library, anyway). I wanted to contribute something to the world, and since I was being allocated school time during the week to work on a project of my choice, I decided that a full web framework was what I wanted to do.
+
+In my eyes, Python's web ecosystem was nowhere near that of JavaScript's. I had grown particularly fond of [NextJS](https://nextjs.org/), which served as an inspiration for a lot of view.py's features. To this day, [FastAPI](https://fastapi.tiangolo.com/) remains as my favorite Python web framework, apart from View. In fact, if you don't like view.py, I highly recommend trying it. Anyways, at the time, FastAPI was somewhat lacking when it comes to batteries-included parts, compared to [Django](https://www.djangoproject.com/), at least.
+
+Now, this opinion is a bit controversial, but I really don't like Django's approach to a lot of things (such as it's way of routing), as well as the massive boilerplate that comes with Django projects. It just doesn't feel [pythonic](https://ifunny.co/picture/other-programmers-python-programmer-that-s-not-the-most-pythonic-EUE0IBzz8) to me. Although, what I do admire about Django (and probably why so many people like it), is it's batteries-included philosophy. So, I wanted to develop a web framework with the speed and elegancy of FastAPI, with the sheer robust-ness of Django. view.py is the result of that idea.
+
+Note that I don't want to replace Django or FastAPI. In fact, if you're already familiar with one of those, learning view.py might not be a good idea! However, I would like to fill the gap that you might feel when using a Python framework after coming from JavaScript. Nowadays, JavaScript web frameworks get rewritten every year (for example, Next's move from `pages` to the `app` router), and are filled with big companies fighting each other to "be the best." In my eyes, development in all fields, especially open source, should be _collaborative_, not competitive, and I'm glad that Python has stayed true to that, but the gap in web development is visible.
