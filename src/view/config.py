@@ -128,7 +128,7 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):  # type: ignor
 Platform: TypeAlias = Literal["windows", "mac", "linux", "macOS", "Windows", "Linux", "Mac", "MacOS"]
 
 class BuildStep(ConfigModel):  # type: ignore
-    platform: List[Platform] | Platform | None = None
+    platform: Union[List[Platform], Platform, None] = None
     requires: List[str] = ConfigField(default_factory=list)
     command: Union[str, None, List[str]] = None
     script: Union[Path, None, List[Path]] = None
