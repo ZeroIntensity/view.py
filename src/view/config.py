@@ -137,7 +137,7 @@ class BuildStep(ConfigModel):  # type: ignore
 class BuildConfig(ConfigModel, env_prefix="view_build_"):  # type: ignore
     path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
-    steps: Dict[str, Union[BuildStep, list[BuildStep]]] = ConfigField(default_factory=dict)
+    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = ConfigField(default_factory=dict)
     parallel: bool = False
 
 
