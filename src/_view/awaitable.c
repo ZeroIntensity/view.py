@@ -362,7 +362,7 @@ awaitable_send(PyObject *self, PyObject *args)
 static PyObject *
 awaitable_close(PyObject *self, PyObject *args)
 {
-    awaitable_cancel_impl(self);
+    PyAwaitable_Cancel(self);
     PyAwaitableObject *aw = (PyAwaitableObject *) self;
     aw->aw_done = true;
     Py_RETURN_NONE;
