@@ -410,7 +410,7 @@ awaitable_throw(PyObject *self, PyObject *args)
     assert(NULL);
 }
 
-#if PY_MINOR_VERSION > 8
+#if PY_MINOR_VERSION > 9
 static PySendResult
 awaitable_am_send(PyObject *self, PyObject *arg, PyObject **presult) {
     PyObject *send_res = awaitable_send_with_arg(self, arg);
@@ -444,7 +444,7 @@ static PyMethodDef awaitable_methods[] = {
 };
 
 static PyAsyncMethods async_methods = {
-    #if PY_MINOR_VERSION == 8
+    #if PY_MINOR_VERSION < 10
     .am_await = awaitable_next
     #else
     .am_await = awaitable_next,
