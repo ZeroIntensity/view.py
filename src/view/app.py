@@ -41,10 +41,9 @@ from .config import Config, load_config
 from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
 from .response import HTML
-from .routing import Route, RouteOrCallable, V, _NoDefault, _NoDefaultType
 from .routing import Path as _RouteDeco
-from .routing import (Route, RouteInput, RouteOrCallable, V, _NoDefault,
-                      _NoDefaultType)
+from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
+                      _NoDefault, _NoDefaultType)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -256,9 +255,9 @@ class TestingContext:
                 "type": "http",
                 "http_version": "1.1",
                 "path": truncated_route,
-                "query_string": urlencode(query_str).encode()
-                if query
-                else b"",  # noqa
+                "query_string": (
+                    urlencode(query_str).encode() if query else b""
+                ),  # noqa
                 "headers": headers_list,
                 "method": method,
                 "http_version": "view_test",
@@ -392,9 +391,9 @@ class TestingContext:
                     {
                         "type": "websocket",
                         "path": truncated_route,
-                        "query_string": urlencode(query_str).encode()
-                        if query
-                        else b"",  # noqa
+                        "query_string": (
+                            urlencode(query_str).encode() if query else b""
+                        ),  # noqa
                         "headers": headers_list,
                     },
                     socket._server_receive,
@@ -622,8 +621,8 @@ class App(ViewApp):
         self,
         path: str,
         doc: str | None = None,
-    ) -> Callable[[RouteOrCallable], Route]:
-        def inner(route: RouteOrCallable) -> Route:
+    ) -> Callable[[RouteOrWebsocket[P]], Route[P]]:
+        def inner(route: RouteOrWebsocket[P]) -> Route[P]:
             new_route = websocket(path, doc)(route)
             self._push_route(new_route)
             return new_route

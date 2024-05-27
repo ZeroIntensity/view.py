@@ -12,7 +12,6 @@ void view_fatal(
 
 extern PyObject* ip_address;
 extern PyObject* invalid_status_error;
-extern PyObject* ws_handshake_error;
 extern PyObject* route_log;
 extern PyObject* ws_cls;
 

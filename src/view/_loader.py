@@ -439,6 +439,12 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if route.method:
             target = targets[route.method]
+
+            if route.method is Method.WEBSOCKET:
+                for i in route.inputs:
+                    if isinstance(i, RouteInput):
+                        if i.is_body:
+                            raise InvalidRouteError(f"websocket routes cannot have body inputs")
         else:
             target = None
 
@@ -459,6 +465,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         sig = inspect.signature(route.func)
         route.inputs = [i for i in reversed(route.inputs)]
+
 
         if len(sig.parameters) != len(route.inputs):
             names = [i.name for i in route.inputs if isinstance(i, RouteInput)]

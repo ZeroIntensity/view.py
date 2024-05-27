@@ -13,7 +13,7 @@ except ModuleNotFoundError as e:
     ) from e
 
 # these are re-exports
-from _view import Context, InvalidStatusError, WebSocketHandshakeError
+from _view import Context, InvalidStatusError
 
 from . import _codec
 from .__about__ import *

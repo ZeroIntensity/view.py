@@ -33,8 +33,6 @@ app.load()  # Call the loader manually, since we aren't calling run()
 build_app(app)
 ```
 
-::: view.build.build_app
-
 ## Build Steps
 
 Instead of exporting static HTML, you might just want to call some build script at runtime for your app to use. For example, this could be something like a [Next.js](https://nextjs.org) app, which you want to use as the UI for your website. Each different build is called a **build step** in View. View's build system does not aim to be a full fledged build system, but instead a bridge to use other package managers or tools to build requirements for your app. It tries to be _extendable_, instead of batteries-included.

@@ -17,6 +17,7 @@ PyObject* build_data_input(
     switch (num) {
     case 1: return context_from_data(scope);
     case 2: return ws_from_data(
+        scope,
         send,
         receive
     );

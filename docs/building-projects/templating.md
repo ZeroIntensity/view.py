@@ -32,8 +32,6 @@ app.run()
 
 The most notable difference about view.py's templating API is that parameters are automatically included from your scope (i.e. you don't have to pass them into the call to `template`). If you're against this behavior, you may disable it in the configuration via the `globals` and `locals` settings.
 
-::: view.templates.template
-
 You can override the template engine and settings via the `engine` and `directory` parameters. For example, if the engine was `view`, the below would use `mako`:
 
 ```py
@@ -64,11 +62,11 @@ app.run()
 
 The following template engines are supported:
 
-- View's built-in engine
-- [Jinja](https://jinja.palletsprojects.com/en/3.1.x/)
-- [Django Templates](https://docs.djangoproject.com/en/5.0/intro/tutorial03/)
-- [Mako](https://www.makotemplates.org/)
-- [Chameleon](https://chameleon.readthedocs.io/en/latest/)
+-   View's built-in engine
+-   [Jinja](https://jinja.palletsprojects.com/en/3.1.x/)
+-   [Django Templates](https://docs.djangoproject.com/en/5.0/intro/tutorial03/)
+-   [Mako](https://www.makotemplates.org/)
+-   [Chameleon](https://chameleon.readthedocs.io/en/latest/)
 
 ## The View Engine
 
@@ -76,14 +74,13 @@ View has it's own built in template engine that is used by default. It's based a
 
 A `<view>` element can have any of the following attributes:
 
-- `ref`: Can be any Python expression (including variable references).
-- `template`: Loads another template in place.
-- `if`: Shows the element if the expression is truthy.
-- `elif`: Shows the element if the expression is truthy and if the previous `if` or `elif` was falsy.
-- `else`: Shows the element if all the previous `if` and `elif`'s were falsy.
-- `iter`: May be any iterable expression. An `item` attribute must be present if this attribute is set.
-- `item`: Specifies the name for the item in each iteration. Always present when `iter` is set.
-
+-   `ref`: Can be any Python expression (including variable references).
+-   `template`: Loads another template in place.
+-   `if`: Shows the element if the expression is truthy.
+-   `elif`: Shows the element if the expression is truthy and if the previous `if` or `elif` was falsy.
+-   `else`: Shows the element if all the previous `if` and `elif`'s were falsy.
+-   `iter`: May be any iterable expression. An `item` attribute must be present if this attribute is set.
+-   `item`: Specifies the name for the item in each iteration. Always present when `iter` is set.
 
 ### Examples
 
@@ -101,6 +98,7 @@ If you had declared `my_list = [1, 2, 3]`, you could iterate through it like so:
     <view ref="i" />
 </view>
 ```
+
 The above would result in `123`
 
 `if`, `elif`, and `else` are only shown if their cases are met. So, for example:
@@ -121,8 +119,8 @@ The above would result in `123`
 
 If you would like to use an unsupported engine (or use extra features of a supported engine), you can do one of two things:
 
-- Make a feature request on [GitHub](https://github.com/ZeroIntensity/view.py) requesting for support.
-- Manually use it's API to return a response from a route.
+-   Make a feature request on [GitHub](https://github.com/ZeroIntensity/view.py) requesting for support.
+-   Manually use it's API to return a response from a route.
 
 For example, if you wanted to customize [Jinja](https://jinja.palletsprojects.com/en/3.1.x/), you shouldn't use View's `template`, but instead just use it manually:
 
@@ -173,16 +171,14 @@ async def index():
 app.run()
 ```
 
-::: view.templates.markdown
-
 ## Review
 
 Template engines are used to mix your Python code and HTML. You can use View's `template` or (`App.template`, if the `App` is available already) function to render a template with one of the supported engines, which are:
 
-- view.py's built-in engine
-- [Jinja](https://jinja.palletsprojects.com/en/3.1.x/)
-- [Django Templates](https://docs.djangoproject.com/en/5.0/intro/tutorial03/)
-- [Mako](https://www.makotemplates.org/)
-- [Chameleon](https://chameleon.readthedocs.io/en/latest/)
+-   view.py's built-in engine
+-   [Jinja](https://jinja.palletsprojects.com/en/3.1.x/)
+-   [Django Templates](https://docs.djangoproject.com/en/5.0/intro/tutorial03/)
+-   [Mako](https://www.makotemplates.org/)
+-   [Chameleon](https://chameleon.readthedocs.io/en/latest/)
 
 If you would like to use an unsupported engine, you can make a feature request on [GitHub](https://github.com/ZeroIntensity/view.py/issues), or use it's API manually.

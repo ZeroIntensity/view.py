@@ -103,8 +103,6 @@ $ view docs
 - Created `docs.md`
 ```
 
-::: view.app.App.docs
-
 ## Review
 
 "Documenting" in terms of View, is the act of writing documentation. Other frameworks use [OpenAPI](https://www.openapis.org/) as a versatile solution to doing this, but [view.py does not yet support this](https://github.com/ZeroIntensity/view.py/issues/103).

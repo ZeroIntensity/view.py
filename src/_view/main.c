@@ -11,7 +11,6 @@
 PyObject* route_log = NULL;
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
-PyObject* ws_handshake_error = NULL;
 PyObject* ws_cls = NULL;
 
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
@@ -199,28 +198,6 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(m);
         Py_DECREF(ip_address);
         Py_DECREF(invalid_status_error);
-        return NULL;
-    }
-
-    ws_handshake_error = PyErr_NewException(
-        "_view.WebSocketHandshakeError",
-        PyExc_RuntimeError,
-        NULL
-    );
-    if (!ws_handshake_error) {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        return NULL;
-    }
-
-    if (PyModule_AddObject(
-        m,
-        "WebSocketHandshakeError",
-        ws_handshake_error
-        ) < 0) {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        Py_DECREF(ws_handshake_error);
         return NULL;
     }
 

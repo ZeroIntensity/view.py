@@ -92,7 +92,7 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         )) {
         // type is probably websocket.receive, so accept() was already called
         PyErr_SetString(
-            ws_handshake_error,
+            PyExc_RuntimeError,
             "received message was not websocket.connect (was accept() already called?)"
         );
         return -1;
@@ -173,7 +173,7 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
         )) {
         // type is probably websocket.connect, so accept() was not called
         PyErr_SetString(
-            ws_handshake_error,
+            PyExc_RuntimeError,
             "received message was not websocket.receive (did you forget to call accept()?)"
         );
         return -1;

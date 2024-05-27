@@ -5,7 +5,8 @@ from typing import Union, overload
 import ujson
 from typing_extensions import Self
 
-from _view import ViewWebSocket, WebSocketHandshakeError, register_ws_cls
+from .exceptions import WebSocketExpectError, WebSocketHandshakeError
+from _view import ViewWebSocket, register_ws_cls
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -73,7 +74,7 @@ class WebSocket:
             if (res not in {"True", "true", "False", "false"}) and (
                 not res.isdigit()
             ):
-                raise TypeError(f"{res!r} is not boolean-like")
+                raise WebSocketExpectError(f"expected boolean-like message, got {res!r}")
 
             if res.isdigit():
                 return bool(int(res))
@@ -97,10 +98,10 @@ class WebSocket:
             await self.socket.send(message)
         elif isinstance(message, dict):
             await self.socket.send(ujson.dumps(message))
-        elif isinstance(message, int):
-            await self.socket.send(str(message))
         elif isinstance(message, bool):
             await self.socket.send("true" if message else "false")
+        elif isinstance(message, int):
+            await self.socket.send(str(message))
         else:
             raise TypeError(
                 f"expected object of type str, bytes, dict, int, or bool, but got {message!r}"
@@ -196,6 +197,11 @@ class WebSocket:
 
         self.open = True
         await self.socket.accept()
+
+    async def expect(self, message: WebSocketSendable) -> None:
+        msg = await self.receive(tp=type(message))
+        if msg != message:
+            raise WebSocketExpectError(f"websocket expected {message!r}, got {msg!r}")
 
     recv = receive
     connect = accept

@@ -29,6 +29,7 @@ nav:
           - Responses: reference/responses.md
           - Templates: reference/templates.md
           - Build: reference/build.md
+          - WebSockets: reference/websockets.md
     - Contributing: contributing.md
 
 theme:

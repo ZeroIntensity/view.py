@@ -59,8 +59,6 @@ app.run()
 
     `Error` can only be used to send back *error* responses. It can **not** be used to return status codes such as `200`.
 
-::: view.app.Error
-
 ## Caching
 
 Sometimes, computing the response for a route can be expensive or unnecessary. For this, view.py, along with many other web frameworks, provide the ability to cache responses.
@@ -144,10 +142,6 @@ View comes with two built in response objects: `Response` and `HTML`.
 -   `HTML` is for returning HTML content.
 -   `JSON` is for returning JSON content.
 
-::: view.response.Response
-::: view.response.HTML
-::: view.response.JSON
-
 A common use case for `Response` is wrapping an object that has a `__view_result__` and changing one of the values. For example:
 
 ```py
@@ -175,8 +169,6 @@ async def index():
     res.cookie("hello", "world")
     return res
 ```
-
-::: view.response.Response.cookie
 
 Note that **all response classes inherit from `Response`**, meaning you can use this functionality anywhere.
 
@@ -279,8 +271,6 @@ async def index_middleware():
 
 app.run()
 ```
-
-::: view.routing.Route.middleware
 
 ## Review
 

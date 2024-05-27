@@ -1,10 +1,10 @@
-from ward import raises, test
+import pytest
+from view import WebSocket, new_app, websocket, WebSocketExpectError, WebSocketHandshakeError, InvalidRouteError
+from leaks import limit_leaks
 
-from view import WebSocket, new_app, websocket
-
-
-@test("websocket echo server")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_websocket_echo_server():
     app = new_app()
 
     @app.websocket("/")
@@ -22,9 +22,9 @@ async def _():
             await ws.send("world")
             assert (await ws.receive()) == "world"
 
-
-@test("websocket message pairs")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_websocket_message_pairs():
     app = new_app()
 
     @websocket("/")
@@ -47,8 +47,9 @@ async def _():
                 await ws.send(num)
 
 
-@test("websocket message pairs receiving first")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_websocket_message_pairs_receiving_first():
     app = new_app()
 
     @app.websocket("/")
@@ -66,8 +67,9 @@ async def _():
             count += 1
 
 
-@test("websocket receiving casts")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_websocket_receiving_casts():
     app = new_app()
 
     @app.websocket("/")
@@ -78,6 +80,14 @@ async def _():
         assert (await ws.receive(tp=dict)) == {"hello": 42}
         assert (await ws.receive(tp=bool)) is True
         assert (await ws.receive(tp=bool)) is False
+        assert (await ws.receive(tp=bytes)) == b"test"
+
+        await ws.send("hi")
+        await ws.expect("foo")
+        await ws.expect(b"foo")
+
+        with pytest.raises(WebSocketExpectError):
+            await ws.expect(1)
 
     async with app.test() as test:
         async with test.websocket("/") as ws:
@@ -85,3 +95,54 @@ async def _():
             await ws.send('{"hello": 42}')
             await ws.send("1")
             await ws.send("false")
+            await ws.send("test")
+
+            assert (await ws.receive()) == "hi"
+            await ws.send("foo")
+            await ws.send("bar")
+            await ws.send("2")
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_websocket_handshake_errors():
+    app = new_app()
+
+    @app.websocket("/")
+    async def casts(ws: WebSocket):
+        with pytest.raises(WebSocketHandshakeError):
+            await ws.send("hi")
+
+        with pytest.raises(WebSocketHandshakeError):
+            await ws.receive()
+
+        async with ws:
+            with pytest.raises(WebSocketHandshakeError):
+                await ws.accept()
+            await ws.send("test")
+
+        with pytest.raises(WebSocketHandshakeError):
+            await ws.accept()
+        
+        with pytest.raises(WebSocketHandshakeError):
+            await ws.close()
+
+        with pytest.raises(WebSocketHandshakeError):
+            await ws.send("hi")
+
+        with pytest.raises(WebSocketHandshakeError):
+            await ws.receive()
+
+    async with app.test() as test:
+        async with test.websocket("/") as ws:
+            assert (await ws.receive()) == "test"
+
+def test_disallow_body_inputs():
+    app = new_app()
+
+    @app.websocket("/")
+    @app.body("foo", str)
+    async def whatever(ws: WebSocket, foo: str):
+        ...
+
+    with pytest.raises(InvalidRouteError):
+        app.load()
