@@ -345,7 +345,7 @@ awaitable_send_with_arg(PyObject *self, PyObject *value)
         Py_RETURN_NONE;
     }
 
-    return genwrapper_next(aw->aw_gen);
+    return gen_next(aw->aw_gen);
 }
 
 static PyObject *
@@ -395,14 +395,14 @@ awaitable_throw(PyObject *self, PyObject *args)
     } else
         PyErr_Restore(Py_NewRef(type), Py_XNewRef(value), Py_XNewRef(traceback));
 
-    PyAwaitableObject *aw = (AwaitableObject *) self;
+    PyAwaitableObject *aw = (PyAwaitableObject *) self;
     if ((aw->aw_gen != NULL) && (aw->aw_state != 0)) {
         GenWrapperObject *gw = (GenWrapperObject *) aw->aw_gen;
         awaitable_callback* cb = aw->aw_callbacks[aw->aw_state - 1];
         if (cb == NULL)
             return NULL;
 
-        if (genwrapper_fire_err_callback(self, gw->gw_current_await, cb) < 0)
+        if (fire_err_callback(self, gw->gw_current_await, cb) < 0)
             return NULL;
     } else
         return NULL;
@@ -503,7 +503,7 @@ PyTypeObject PyAwaitable_Type = {
     0,                                          /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    &async_methods,                             /* tp_as_async */
+    &awaitable_async_methods,                   /* tp_as_async */
     awaitable_repr,                             /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */
