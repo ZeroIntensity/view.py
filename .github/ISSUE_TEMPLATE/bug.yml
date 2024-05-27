@@ -1,0 +1,36 @@
+name: Bug report
+description: Submit a bug report
+labels: ["bug"]
+body:
+    - type: textarea
+      attributes:
+          label: "Problem:"
+          description: >
+              Give a clear description on what's going wrong and how to reproduce it, if possible.
+
+              This should only be for *bugs*, not crashes. For that, use the crash template.
+
+          value: |
+              ```py
+              # Add your code here, if needed
+              ```
+      validations:
+          required: true
+    - type: input
+      attributes:
+          label: "Version:"
+          value: |
+              What version(s) of view.py are you using?
+      validations:
+          required: true
+    - type: dropdown
+      attributes:
+          label: "Operating system(s) tested on:"
+          multiple: true
+          options:
+              - Linux
+              - macOS
+              - Windows
+              - Other
+      validations:
+          required: false

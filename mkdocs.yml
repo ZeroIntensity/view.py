@@ -4,19 +4,19 @@ repo_url: https://github.com/ZeroIntensity/view.py
 repo_name: ZeroIntensity/view.py
 
 nav:
-    - index.md
-    - Welcome: welcome.md
+    - Home: index.md
     - Getting Started:
           - Installation: getting-started/installation.md
           - Configuration: getting-started/configuration.md
           - Project Creation: getting-started/creating_a_project.md
     - Building Projects:
           - App Basics: building-projects/app_basics.md
-          - Routing: building-projects/routing.md
+          - URL Routing: building-projects/routing.md
           - Returning Responses: building-projects/responses.md
           - Taking Parameters: building-projects/parameters.md
           - Getting Request Data: building-projects/request_data.md
           - HTML Templating: building-projects/templating.md
+          - Runtime Builds: building-projects/build_steps.md
           - Writing Documentation: building-projects/documenting.md
           - Using WebSockets: building-projects/websockets.md
     - API Reference:
@@ -28,10 +28,65 @@ nav:
           - Routing: reference/routing.md
           - Responses: reference/responses.md
           - Templates: reference/templates.md
+          - Build: reference/build.md
+    - Contributing: contributing.md
 
 theme:
-    name: null
-    custom_dir: "html/"
+    name: material
+    palette:
+        - media: "(prefers-color-scheme)"
+          primary: red
+          accent: red
+          toggle:
+              icon: material/brightness-auto
+              name: Switch to light mode
+
+        # Palette toggle for light mode
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          primary: red
+          accent: red
+          toggle:
+              icon: material/brightness-7
+              name: Switch to dark mode
+
+        # Palette toggle for dark mode
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          primary: red
+          accent: red
+          toggle:
+              icon: material/brightness-4
+              name: Switch to system preference
+    features:
+        - content.tabs.link
+        - content.code.copy
+        - content.action.edit
+        - search.highlight
+        - search.share
+        - search.suggest
+        - navigation.footer
+        - navigation.indexes
+        - navigation.sections
+        - navigation.tabs
+        - navigation.tabs.sticky
+        - navigation.top
+        - toc.follow
+
+    icon:
+        repo: fontawesome/brands/github
+
+extra:
+    social:
+        - icon: fontawesome/brands/discord
+          link: https://discord.gg/tZAfuWAbm2
+          name: view.py discord
+        - icon: fontawesome/brands/github
+          link: https://github.com/ZeroIntensity/view.py
+          name: view.py repository
+        - icon: material/heart
+          link: https://github.com/sponsors/ZeroIntensity/
+          name: support view.py
 
 markdown_extensions:
     - toc:
@@ -48,6 +103,9 @@ markdown_extensions:
 
 plugins:
     - search
+    - tags
+    - git-revision-date-localized:
+          enable_creation_date: true
     - mkdocstrings:
           handlers:
               python:

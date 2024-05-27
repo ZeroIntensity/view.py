@@ -4,40 +4,43 @@ from typing import Dict, List, NamedTuple, TypedDict, Union
 import attrs
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
-from ward import test
+import pytest
 
-from view import JSON, BodyParam, Context, Response, body, context, get, new_app, query
+from view import (JSON, BodyParam, Context, Response, body, context, get,
+                  new_app, query)
 from view import route as route_impl
+from view.typing import CallNext
+from leaks import limit_leaks
 
-
-@test("responses")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_reponses():
     app = new_app()
 
     @app.get("/")
     async def index():
         return "hello"
-
+    
     async with app.test() as test:
         assert (await test.get("/")).message == "hello"
 
-
-@test("status codes")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_status_codes():
     app = new_app()
 
     @app.get("/")
     async def index():
         return "error", 400
-
+    
     async with app.test() as test:
         res = await test.get("/")
         assert res.status == 400
         assert res.message == "error"
 
-
-@test("headers")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_headers():
     app = new_app()
 
     @app.get("/")
@@ -49,9 +52,9 @@ async def _():
         assert res.headers["a"] == "b"
         assert res.message == "hello"
 
-
-@test("combination of headers, responses, and status codes")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_combination_of_headers_responses_and_status_codes():
     app = new_app()
 
     @app.get("/")
@@ -64,9 +67,9 @@ async def _():
         assert res.message == "123"
         assert res.headers["a"] == "b"
 
-
-@test("result protocol")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_result_protocol():
     app = new_app()
 
     class MyObject:
@@ -87,9 +90,9 @@ async def _():
         assert res.message == "hello"
         assert res.status == 201
 
-
-@test("body type validation")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_body_type_validation():
     app = new_app()
 
     @app.get("/")
@@ -121,17 +124,21 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/", body={"name": "hi"})).message == "hi"
         assert (await test.get("/status", body={"status": 404})).status == 404
-        assert (await test.get("/status", body={"status": "hi"})).status == 400  # noqa
+        assert (
+            await test.get("/status", body={"status": "hi"})
+        ).status == 400  # noqa
         assert (await test.get("/union", body={"test": "a"})).status == 400
-        assert (await test.get("/union", body={"test": "true"})).message == "1"  # noqa
+        assert (
+            await test.get("/union", body={"test": "true"})
+        ).message == "1"  # noqa
         assert (await test.get("/union", body={"test": "2"})).message == "2"
         res = await test.get("/multi", body={"status": 404, "name": "test"})
         assert res.status == 404
         assert res.message == "test"
 
-
-@test("query type validation")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_query_type_validation():
     app = new_app()
 
     @app.get("/")
@@ -163,17 +170,21 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/", query={"name": "hi"})).message == "hi"
         assert (await test.get("/status", query={"status": 404})).status == 404
-        assert (await test.get("/status", query={"status": "hi"})).status == 400  # noqa
+        assert (
+            await test.get("/status", query={"status": "hi"})
+        ).status == 400  # noqa
         assert (await test.get("/union", query={"test": "a"})).status == 400
-        assert (await test.get("/union", query={"test": "true"})).message == "1"  # noqa
+        assert (
+            await test.get("/union", query={"test": "true"})
+        ).message == "1"  # noqa
         assert (await test.get("/union", query={"test": "2"})).message == "2"
         res = await test.get("/multi", query={"status": 404, "name": "test"})
         assert res.status == 404
         assert res.message == "test"
 
-
-@test("queries directly from app and body")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_queries_directly_from_app_and_body():
     app = new_app()
 
     @app.query("name", str)
@@ -188,11 +199,14 @@ async def _():
 
     async with app.test() as test:
         assert (await test.get("/", query={"name": "test"})).message == "test"
+        assert (
+            await test.get("/body", body={"name": "test"})
+        ).message == "test"
         assert (await test.get("/body", body={"name": "test"})).message == "test"
-
-
-@test("response type")
-async def _():
+  
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_response_type():
     app = new_app()
 
     @app.get("/")
@@ -206,9 +220,9 @@ async def _():
         assert res.status == 201
         assert res.headers["hello"] == "world"
 
-
-@test("object validation")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_object_validation():
     app = new_app()
 
     @dataclass
@@ -302,40 +316,59 @@ async def _():
 
     async with app.test() as test:
         assert (
-            await test.get("/td", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
+            await test.get(
+                "/td", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
         ).message == "hello"
         assert (
-            await test.get("/dc", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
+            await test.get(
+                "/dc", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
         ).message == "hello"
         assert (
-            await test.get("/pd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
+            await test.get(
+                "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
         ).message == "world"
         assert (
-            await test.get("/nd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
+            await test.get(
+                "/nd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
+            )
         ).message == "foo"
         assert (
-            await test.get("/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}})
+            await test.get(
+                "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}}
+            )
         ).status == 200
         assert (
             await test.get("/vb", query={"data": {"hello": "world"}})
         ).message == "yay"
-        assert (await test.get("/vb", query={"data": {"hello": 2}})).status == 400
         assert (
-            await test.get("/vb", query={"data": {"hello": "world", "world": {}}})
+            await test.get("/vb", query={"data": {"hello": 2}})
         ).status == 400
         assert (
-            await test.get("/nested", query={"data": {"a": {"b": {"c": "hello"}}}})
+            await test.get(
+                "/vb", query={"data": {"hello": "world", "world": {}}}
+            )
+        ).status == 400
+        assert (
+            await test.get(
+                "/nested", query={"data": {"a": {"b": {"c": "hello"}}}}
+            )
         ).message == "hello"
         assert (
             await test.get("/nested", query={"data": {"a": {"b": {"c": 1}}}})
         ).message == "hello"
         assert (
-            await test.get("/dc", query={"data": {"a": "1", "b": True, "c": {"3": 4}}})
+            await test.get(
+                "/dc", query={"data": {"a": "1", "b": True, "c": {"3": 4}}}
+            )
         ).status == 400
 
 
-@test("dict validation")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_dict_validation():
     app = new_app()
 
     class Object(NamedTuple):
@@ -358,14 +391,15 @@ async def _():
         ).message
 
 
-@test("non async routes")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_non_async_routes():
     app = new_app()
 
     @app.get("/")
     def index():
-        return "hello world", 201, {"a": "b"}
-
+        return "hello world", 201, {"a":"b"}
+    
     async with app.test() as test:
         res = await test.get("/")
 
@@ -374,8 +408,9 @@ async def _():
         assert res.headers["a"] == "b"
 
 
-@test("list validation")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_list_validation():
     app = new_app()
 
     @app.get("/")
@@ -418,8 +453,12 @@ async def _():
 
     async with app.test() as test:
         assert (await test.get("/", query={"test": [1, 2, 3]})).message == "1"
-        assert (await test.get("/union", query={"test": [1, "2", 3]})).message == "1"
-        assert (await test.get("/", query={"test": [1, "2", True]})).status == 400
+        assert (
+            await test.get("/union", query={"test": [1, "2", 3]})
+        ).message == "1"
+        assert (
+            await test.get("/", query={"test": [1, "2", True]})
+        ).status == 400
         assert (
             await test.get("/dict", query={"test": {"a": ["1", "2", "3"]}})
         ).message == "1"
@@ -452,8 +491,9 @@ async def _():
         ).status == 400
 
 
-@test("auto route inputs")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_auto_route_inputs():
     @dataclass()
     class Data:
         a: str
@@ -488,8 +528,9 @@ async def _():
         assert res3.status == 201
 
 
-@test("attrs validation")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_attrs_validation():
     app = new_app()
 
     @attrs.define
@@ -519,7 +560,8 @@ async def _():
         ).status == 400
         assert (
             await test.get(
-                "/", query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": "b"}}}
+                "/",
+                query={"test": {"a": "b", "b": 0, "c": [], "d": {"a": "b"}}},
             )
         ).status == 400
         assert (
@@ -529,8 +571,9 @@ async def _():
         ).message == "b"
 
 
-@test("caching")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_caching():
     app = new_app()
     count = 0
 
@@ -553,9 +596,10 @@ async def _():
         results = [(await test.get("/param_std")).message for _ in range(10)]
         assert all(i == results[0] for i in results)
 
-
-@test("synchronous route inputs")
-async def _():
+    
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_synchronous_route_inputs():
     app = new_app()
 
     @app.get("/")
@@ -582,8 +626,9 @@ async def _():
         ).message == "ab"
 
 
-@test("request data")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_request_data():
     app = new_app()
 
     @app.get("/")
@@ -616,7 +661,9 @@ async def _():
         return ctx.cookies["hello"]
 
     async with app.test() as test:
-        assert (await test.get("/", headers={"hello": "world"})).message == "world"
+        assert (
+            await test.get("/", headers={"hello": "world"})
+        ).message == "world"
         assert (await test.get("/scheme")).message == "http"
         assert (await test.get("/method")).message == "GET"
         assert (await test.post("/method")).message == "POST"
@@ -626,8 +673,9 @@ async def _():
         ).message == "world"
 
 
-@test("context alongside other inputs")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_context_alongside_other_inputs():
     app = new_app()
 
     @app.get("/")
@@ -639,12 +687,15 @@ async def _():
 
     async with app.test() as test:
         assert (
-            await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})
+            await test.get(
+                "/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"}
+            )
         ).message == "abc"
 
 
-@test("middleware")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_middleware():
     app = new_app()
     value: bool = False
 
@@ -653,16 +704,18 @@ async def _():
         return str(value)
 
     @index.middleware
-    async def index_middleware():
+    async def index_middleware(call_next: CallNext):
         nonlocal value
         value = True
+        return await call_next()
 
     async with app.test() as test:
         assert (await test.get("/")).message == "True"
 
 
-@test("middleware with parameters")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_middleware_with_parameters():
     app = new_app()
 
     @app.get("/")
@@ -671,8 +724,9 @@ async def _():
         return "hello"
 
     @index.middleware
-    async def index_middleware(a: str):
+    async def index_middleware(call_next: CallNext, a: str):
         assert a == "a"
+        return await call_next()
 
     @app.get("/both")
     @app.query("a", str)
@@ -682,17 +736,21 @@ async def _():
         return "hello"
 
     @both.middleware
-    async def both_middleware(a: str, ctx: Context, b: str):
+    async def both_middleware(
+        call_next: CallNext, a: str, ctx: Context, b: str
+    ):
         assert a + b == "ab"
         assert ctx.http_version == "view_test"
+        return await call_next()
 
     async with app.test() as test:
         await test.get("/", query={"a": "a"})
         await test.get("/both", query={"a": "a"}, body={"b": "b"})
 
 
-@test("methodless routes")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_methodless_routes():
     app = new_app()
 
     @app.route("/")
@@ -726,8 +784,9 @@ async def _():
         assert (await test.put("/methods")).status == 405
 
 
-@test("method not allowed errors")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_method_not_allowed_errors():
     app = new_app()
 
     @app.get("/")
@@ -741,8 +800,9 @@ async def _():
         assert res.message == "Method Not Allowed"
 
 
-@test("json response class")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_json_response_class():
     app = new_app()
 
     @app.get("/")
@@ -753,8 +813,9 @@ async def _():
         assert (await test.get("/")).message == '{"hello":"world"}'
 
 
-@test("body translate strategies")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_body_translate_strategies():
     app = new_app()
 
     @app.get("/")
@@ -779,4 +840,4 @@ async def _():
     async with app.test() as test:
         assert (await test.get("/")).message == repr("a")
         assert (await test.get("/result")).message == "{}"
-        assert (await test.get("/custom")).message == "1 2 3"
+        assert (await test.get("/custom")).message == "1 2 3" 

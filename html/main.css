@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    color-scheme: dark;
+}
+
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap");
 
 @media (prefers-color-scheme: dark) {
@@ -12,12 +16,17 @@
     src: url("/modern_deco.ttf");
 }
 
+@font-face {
+    font-family: "Geist";
+    src: url("/geist.ttf");
+}
+
 body {
-    font-family: "Inter", sans-serif;
+    font-family: "Geist", sans-serif;
 }
 
 .modern-deco {
-    font-family: "Modern Deco", "Inter", sans-serif;
+    font-family: "Modern Deco", "Geist", sans-serif;
 }
 
 .hljs {
@@ -25,7 +34,7 @@ body {
 }
 
 a {
-    @apply text-rose-600 hover:text-rose-500 transition-all dark:text-rose-600 dark:hover:text-rose-700;
+    @apply text-rose-600 hover:text-rose-500 transition-all dark:text-rose-600 dark:hover:text-rose-500;
 }
 
 .custom-shape-divider-bottom-1706484168 {
@@ -50,20 +59,25 @@ a {
     fill: #18181b;
 }
 
+hr {
+    @apply border-t border-zinc-100 dark:border-zinc-900;
+}
+
 h1 {
-    @apply pt-6 pb-12 dark:text-5xl text-5xl dark:font-extrabold font-extrabold dark:text-center text-center dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
+    font-family: "Geist", "Inter", sans-serif;
+    @apply py-6 dark:text-5xl text-5xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
 }
 
 .headerlink {
-    @apply pl-2;
+    @apply pl-2 text-zinc-400 hover:text-rose-500 dark:text-zinc-400 dark:hover:text-rose-500;
 }
 
 h2 {
-    @apply pt-2 pb-2 dark:text-3xl text-3xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
+    @apply pt-2 pb-2 dark:text-4xl text-4xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
 }
 
 h3 {
-    @apply pt-2 pb-2 dark:text-xl text-xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
+    @apply pt-2 pb-2 dark:text-2xl text-2xl dark:font-extrabold font-extrabold dark:bg-gradient-to-t bg-gradient-to-t from-zinc-400 to-black inline-block dark:inline-block dark:text-transparent dark:bg-clip-text text-transparent bg-clip-text dark:from-zinc-500 dark:to-zinc-50;
 }
 
 .gradient {
@@ -71,11 +85,11 @@ h3 {
 }
 
 pre {
-    @apply py-2 dark:py-2;
+    @apply py-1 dark:py-1;
 }
 
 p {
-    @apply py-1 leading-loose dark:py-1 dark:leading-loose dark:text-zinc-200;
+    @apply py-1 leading-normal dark:py-1 dark:leading-normal dark:text-zinc-200 text-lg;
 }
 
 code {
@@ -131,21 +145,26 @@ td {
 }
 
 .admonition {
+<<<<<<< HEAD
     @apply border-zinc-100 border-[3px] rounded-lg dark:border-zinc-900;
+=======
+    @apply border-zinc-100 border rounded-lg dark:border-zinc-900 py-2 bg-black w-1/3;
+>>>>>>> 2732cf7344a5c028353852ec0c019f1525467a76
 }
 
 .admonition-title {
-    @apply text-xl font-bold;
+    @apply !text-lg !text-white;
 }
 
 .admonition p {
-    @apply px-4;
+    @apply px-4 text-zinc-400 text-sm;
 }
 
 .admonition pre {
     @apply text-xs p-2;
 }
 
+<<<<<<< HEAD
 .admonition.question {
     @apply border-emerald-300 dark:border-emerald-700;
 }
@@ -178,6 +197,8 @@ td {
 }
 
 
+=======
+>>>>>>> 2732cf7344a5c028353852ec0c019f1525467a76
 .doc-label-async code {
     @apply bg-indigo-100 text-indigo-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-indigo-500;
 }
@@ -195,7 +216,7 @@ td {
 }
 
 .doc-label-classmethod code {
-    @apply bg-violet-100 text-violet-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-violet-500 ;
+    @apply bg-violet-100 text-violet-500 rounded-lg p-1 font-bold border-0 dark:bg-black dark:border dark:border-zinc-900 dark:text-violet-500;
 }
 
 .doc-contents p {
@@ -271,7 +292,7 @@ td {
 }
 
 .doc-symbol-function::before {
-    content: "function";
+    content: "func";
 }
 
 .doc-symbol-class {

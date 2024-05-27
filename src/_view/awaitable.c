@@ -662,7 +662,7 @@ PyAwaitable_SaveValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
 
     va_list vargs;
     va_start(vargs, nargs);
-    int offset = aw->aw_values_size;
+    Py_ssize_t offset = aw->aw_values_size;
 
     if (aw->aw_values == NULL)
         aw->aw_values = PyMem_Calloc(
@@ -683,7 +683,7 @@ PyAwaitable_SaveValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
 
     aw->aw_values_size += nargs;
 
-    for (int i = offset; i < aw->aw_values_size; i++)
+    for (Py_ssize_t i = offset; i < aw->aw_values_size; i++)
         aw->aw_values[i] = Py_NewRef(va_arg(vargs, PyObject*));
 
     va_end(vargs);
@@ -738,7 +738,7 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
 
     va_list vargs;
     va_start(vargs, nargs);
-    int offset = aw->aw_arb_values_size;
+    Py_ssize_t offset = aw->aw_arb_values_size;
 
     if (aw->aw_arb_values == NULL)
         aw->aw_arb_values = PyMem_Calloc(
@@ -759,7 +759,7 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
 
     aw->aw_arb_values_size += nargs;
 
-    for (int i = offset; i < aw->aw_arb_values_size; i++)
+    for (Py_ssize_t i = offset; i < aw->aw_arb_values_size; i++)
         aw->aw_arb_values[i] = va_arg(vargs, void *);
 
     va_end(vargs);

@@ -1,3 +1,9 @@
 [build]
-command = "hatch run docs:build && cd site && yarn && yarn build && cd ../"
+command = "hatch run docs:build"
 publish = "site"
+
+[[headers]]
+  # Define which paths this specific [[headers]] block will cover.
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"

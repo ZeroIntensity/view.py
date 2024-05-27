@@ -2,20 +2,35 @@
 #define VIEW_APP_H
 
 #include <Python.h>
-#include <stdbool.h>
-#include <view/backport.h>
+#include <stdbool.h> // bool
+
+#include <view/parsers.h> // app_parsers
+#include <view/map.h> // map
 
 extern PyTypeObject ViewAppType;
 int PyErr_BadASGI(void);
-typedef struct _type_info type_info;
-PyObject* cast_from_typecodes(
-    type_info** codes,
-    Py_ssize_t len,
-    PyObject* item,
-    PyObject* json_parser,
-    bool allow_casting
-);
-type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len);
-void free_type_codes(type_info** codes, Py_ssize_t len);
+
+typedef struct _ViewApp {
+    PyObject_HEAD
+    PyObject* startup;
+    PyObject* cleanup;
+    map* get;
+    map* post;
+    map* put;
+    map* patch;
+    map* delete;
+    map* options;
+    map* websocket;
+    map* all_routes;
+    PyObject* client_errors[28];
+    PyObject* server_errors[11];
+    bool dev;
+    PyObject* exceptions;
+    app_parsers parsers;
+    bool has_path_params;
+    PyObject* error_type;
+} ViewApp;
+
+int PyErr_BadASGI(void);
 
 #endif

@@ -1,7 +1,12 @@
-#include <view/view.h>
 #include <Python.h>
-#include <structmember.h>
+#include <structmember.h> // PyMemberDef
+
 #include <stddef.h> // offsetof
+
+#include <view/app.h> // PyErr_BadASGI
+#include <view/backport.h>
+#include <view/context.h>
+#include <view/view.h> // ip_address
 
 typedef struct {
     PyObject_HEAD
@@ -145,11 +150,11 @@ PyObject* context_from_data(PyObject* scope) {
     PyObject* client = PyDict_GetItemString(
         scope,
         "client"
-    );                                                        // [host, port]
+    ); // [host, port]
     PyObject* server = PyDict_GetItemString(
         scope,
         "server"
-    );                                                        // [host, port/None]
+    ); // [host, port/None]
 
     if (!scheme || !header_list || !http_version || !client || !server ||
         !path || !method) {
@@ -190,7 +195,7 @@ PyObject* context_from_data(PyObject* scope) {
             (PyObject*[]) { PyTuple_GET_ITEM(
                 client,
                 0
-                            ) },
+            ) },
             1,
             NULL
         );
@@ -220,7 +225,7 @@ PyObject* context_from_data(PyObject* scope) {
             (PyObject*[]) { PyTuple_GET_ITEM(
                 server,
                 0
-                            ) },
+            ) },
             1,
             NULL
         );

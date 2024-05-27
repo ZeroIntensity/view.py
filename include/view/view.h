@@ -1,13 +1,7 @@
 #ifndef VIEW_H
 #define VIEW_H
 
-#include <view/backport.h>
-#include <view/app.h>
-#include <view/awaitable.h>
-#include <view/map.h>
-#include <view/context.h>
-#include <view/tcpublic.h>
-#include <view/ws.h>
+#include <Python.h> // PyObject
 
 void view_fatal(
     const char* message,

@@ -20,25 +20,25 @@ __all__ = (
     "NeedsDependencyError",
     "InvalidTemplateError",
     "TypeValidationError",
+    "BuildWarning",
+    "BuildError",
+    "MissingRequirementError",
+    "InvalidResultError",
+    "UnknownBuildStepError",
+    "PlatformNotSupportedError",
 )
 
 
 class ViewWarning(UserWarning):
     """Base class for all warnings in view.py"""
 
-    ...
-
 
 class NotLoadedWarning(ViewWarning):
     """load() was never called"""
 
-    ...
-
 
 class LoaderWarning(ViewWarning):
     """A warning from the loader."""
-
-    ...
 
 
 class ViewError(Exception):
@@ -56,33 +56,25 @@ class ViewError(Exception):
 class BadEnvironmentError(ViewError):
     """An environment variable is missing."""
 
-    ...
-
 
 class InvalidBodyError(ViewError):
     """The specified type cannot be used as a view body."""
-
-    ...
 
 
 class MistakeError(ViewError):
     """The user made a mistake."""
 
-    ...
-
 
 class AppNotFoundError(ViewError, FileNotFoundError):
     """Couldn't find the app from the given path."""
 
-    ...
-
 
 class DatabaseError(ViewError):
-    ...
+    """Database error."""
 
 
 class InvalidDatabaseSchemaError(DatabaseError):
-    ...
+    """Database schema is invalid."""
 
 
 class DuplicateRouteError(ViewError):
@@ -111,3 +103,27 @@ class InvalidTemplateError(ViewError):
 
 class TypeValidationError(TypeError, ViewError):
     """Could not assign the object to the target type."""
+
+
+class BuildWarning(ViewWarning):
+    """Warning issued during building."""
+
+
+class BuildError(ViewError):
+    """Build failed."""
+
+
+class MissingRequirementError(BuildError):
+    """Build requirement is missing."""
+
+
+class InvalidResultError(ViewError, TypeError):
+    """Invalid route result."""
+
+
+class UnknownBuildStepError(BuildError):
+    """Undefined build step was used."""
+
+
+class PlatformNotSupportedError(BuildError):
+    """Build step does not support the platform."""

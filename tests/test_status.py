@@ -1,6 +1,7 @@
-from ward import raises, test
+import pytest
 
 from view import ERROR_CODES, Error, InvalidStatusError, new_app
+from leaks import limit_leaks
 
 STATUS_CODES = (
     200,
@@ -24,8 +25,9 @@ STATUS_CODES = (
 )
 
 
-@test("returning the proper status code")
-async def _():
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_returning_the_proper_status_code():
     app = new_app()
 
     @app.get("/")
@@ -38,10 +40,10 @@ async def _():
 
     @app.get("/fail")
     async def fail():
-        with raises(InvalidStatusError):
+        with pytest.raises(InvalidStatusError):
             raise Error(200)
 
-        with raises(InvalidStatusError):
+        with pytest.raises(InvalidStatusError):
             raise Error(600)
 
         return ""

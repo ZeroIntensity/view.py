@@ -15,7 +15,7 @@ from typing import (
     Union,
 )
 
-from typing_extensions import ParamSpec, Protocol, TypedDict
+from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
 
 if TYPE_CHECKING:
     from .app import RouteDoc
@@ -37,7 +37,12 @@ AsgiDict = Dict[str, AsgiSerial]
 AsgiReceive = Callable[[], Awaitable[AsgiDict]]
 AsgiSend = Callable[[AsgiDict], Awaitable[None]]
 
-ResponseHeaders = Dict[str, str]
+RawResponseHeader = Tuple[bytes, bytes]
+ResponseHeaders = Union[
+    Dict[str, str],
+    List[RawResponseHeader],
+    Tuple[RawResponseHeader, ...],
+]
 
 _ViewResponseTupleA = Tuple[str, int, ResponseHeaders]
 _ViewResponseTupleB = Tuple[int, str, ResponseHeaders]
@@ -49,6 +54,12 @@ _ViewResponseTupleG = Tuple[str, ResponseHeaders]
 _ViewResponseTupleH = Tuple[ResponseHeaders, str]
 _ViewResponseTupleI = Tuple[str, int]
 _ViewResponseTupleJ = Tuple[int, str]
+
+
+class SupportsViewResult(Protocol):
+    def __view_result__(self) -> ViewResult:
+        ...
+
 
 ViewResult = Union[
     _ViewResponseTupleA,
@@ -62,6 +73,7 @@ ViewResult = Union[
     _ViewResponseTupleI,
     _ViewResponseTupleJ,
     str,
+    SupportsViewResult,
 ]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")
@@ -69,7 +81,7 @@ V = TypeVar("V", bound="ValueType")
 
 ViewResponse = Awaitable[ViewResult]
 R = TypeVar("R", bound="ViewResponse")
-ViewRoute = Callable[P, R]
+ViewRoute = Callable[P, Union[ViewResponse, ViewResult]]
 
 ValidatorResult = Union[bool, Tuple[bool, str]]
 Validator = Callable[[V], ValidatorResult]
@@ -152,4 +164,5 @@ StrMethodASGI = Literal[
     "DELETE",
     "OPTIONS",
 ]
-Middleware = Callable[P, Union[Awaitable[None], None]]
+CallNext = Callable[[], ViewResponse]
+Middleware = Callable[Concatenate[CallNext, P], ViewResponse]

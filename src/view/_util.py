@@ -12,7 +12,7 @@ import weakref
 from collections.abc import Iterable
 from pathlib import Path
 from types import FrameType as Frame
-from types import FunctionType as Function
+from types import FunctionType as Function, CodeType as Code
 from typing import Any, NoReturn, Union
 
 from rich.markup import escape
@@ -23,7 +23,7 @@ from typing_extensions import Annotated, TypeGuard
 from .exceptions import NeedsDependencyError, NotLoadedWarning
 
 try:
-    from types import UnionType
+    from types import UnionType  # type: ignore
 except ImportError:
     UnionType = None
 
@@ -45,10 +45,10 @@ def is_union(tp: type[Any]) -> bool:
     return tp in {UnionType, TypingUnionType}
 
 
-AnnotatedType = type(Annotated[str, ""])
+AnnotatedType: type[Annotated] = type(Annotated[str, ""])  # type: ignore
 
 
-def is_annotated(hint: Any) -> TypeGuard[AnnotatedType]:
+def is_annotated(hint: Any) -> TypeGuard[Any]:
     return (type(hint) is AnnotatedType) and hasattr(hint, "__metadata__")
 
 
@@ -56,7 +56,9 @@ class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
+        if (not self._view_loaded) and (
+            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
+        ):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -73,9 +75,11 @@ def shell_hint(*commands: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
+        shell_prefix = (
+            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
+        )
 
-    formatted = [f"{shell_prefix} {command}" for command in commands]
+    formatted = [f"{shell_prefix} {escape(command)}" for command in commands]
     return Panel.fit(
         "\n[gray46]// OR[/]\n".join(formatted),
         title="[bold green]Terminal[/]",
@@ -88,7 +92,7 @@ def docs_hint(url: str) -> str:
 
 def make_hint(
     comment: str | None = None,
-    caller: Function | None | Iterable[Function] | str = None,
+    caller: Function | None | Iterable[Code] | str = None,
     *,
     line: int | None = None,
     prepend: str = "",
@@ -102,11 +106,11 @@ def make_hint(
         back: Frame | None = frame.f_back
         assert back, "failed to get f_back"
 
-        code_list = []
+        code_list: list[Code] = []
 
         if caller:
             if isinstance(caller, Iterable):
-                code_list.extend(caller)
+                code_list.extend(caller)  # type: ignore
             else:
                 code_list.append(caller.__code__)
         else:

@@ -1,0 +1,21 @@
+name: Improvement
+description: Suggest an improvement to an existing feature.
+labels: ["improvement"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              # Improvement
+
+              An improvement proposal should be related to an *existing* feature.
+    - type: textarea
+      attributes:
+          label: "Description:"
+          description: >
+              Outline what needs to be improved and why? Be sure to include an example API if necessary.
+          value: |
+              ```py
+              # Example API
+              ```
+      validations:
+          required: true

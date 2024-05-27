@@ -140,6 +140,41 @@ async def index():
 app.run()
 ```
 
+However, if you would like to access the engine instance (such as Jinja's `Environment`), you can get it from `app.templaters`, or set the value yourself. For example:
+
+```py
+from view import new_app
+from jinja2 import Environment
+
+app = new_app()
+env = Environment()
+app.templaters["jinja"] = env
+
+@app.get('/')
+async def index():
+    return await app.template("index.html")
+
+app.run()
+```
+
+## Markdown Rendering
+
+Many find writing raw HTML to be a hassle in many cases. For this, view.py provides the `markdown` function, which can turn markdown content into HTML, similar to how [MkDocs](https://mkdocs.org) does:
+
+```py
+from view import new_app, markdown
+
+app = new_app()
+
+@app.get("/blog")
+async def index():
+    return await markdown("blog.md")
+
+app.run()
+```
+
+::: view.templates.markdown
+
 ## Review
 
 Template engines are used to mix your Python code and HTML. You can use View's `template` or (`App.template`, if the `App` is available already) function to render a template with one of the supported engines, which are:
