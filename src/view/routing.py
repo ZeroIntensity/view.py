@@ -18,7 +18,7 @@ from ._util import LoadChecker, make_hint
 from .build import run_step
 from .exceptions import InvalidRouteError, MistakeError
 from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
-                     ValueType, ViewResult, ViewRoute)
+                     ValueType, ViewResult, ViewRoute, WebSocketRoute)
 
 if TYPE_CHECKING:
     from .app import App
@@ -179,6 +179,7 @@ class Route(Generic[P], LoadChecker):
         return result  # type: ignore
 
 
+RouteOrWebsocket: TypeAlias = Union[Route[P], WebSocketRoute[P]]
 RouteOrCallable: TypeAlias = Union[Route[P], ViewRoute[P]]
 
 
@@ -557,9 +558,9 @@ def websocket(
     *,
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
-) -> Path[P]:
+) -> Callable[[RouteOrWebsocket[P]], Route[P]]:
     """Add a websocket route."""
-    return _method_wrapper(
+    return _method_wrapper(  # type: ignore
         path_or_route,
         doc,
         Method.WEBSOCKET,

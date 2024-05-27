@@ -707,6 +707,7 @@ static PyObject* app(
         return awaitable;
     } else {
         if (!is_http) VIEW_FATAL("got a websocket without an input!");
+
         PyObject* res_coro;
         if (size) {
             res_coro = PyObject_Vectorcall(

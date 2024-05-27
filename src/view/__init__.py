@@ -13,11 +13,13 @@ except ModuleNotFoundError as e:
     ) from e
 
 # these are re-exports
-from _view import Context, InvalidStatusError, WebSocketHandshakeError
+from _view import Context, InvalidStatusError
 
 from . import _codec
 from .__about__ import *
 from .app import *
+from .components import *
+from .default_page import *
 from .build import *
 from .exceptions import *
 from .logging import *
@@ -27,3 +29,4 @@ from .routing import *
 from .templates import *
 from .typecodes import *
 from .util import *
+from .ws import *

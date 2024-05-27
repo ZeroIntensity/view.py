@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+-   Added the `default_page` function
+-   Made `default_page` the example response in `view init`
+-   Added `.gitignore` generation to `view init`
+-   Added support for coroutines in `PyAwaitable` (vendored)
+-   Finished websocket implementation
+-   **Breaking Change:** Removed the `hijack` configuration setting
+
 ## [1.0.0-alpha10] - 2024-5-26
 
 -   Added the `view docs` command
 -   Reworked internal logging API and changed default logger format
--   Added the `websocket` router
+-   Added the `websocket` and `app.websocket` router
 -   Made hijack optional in fancy mode
 -   Added a startup message
 -   Added support for `daphne` and `hypercorn` as servers
@@ -26,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed fancy logging not exiting after a `KeyboardInterrupt`
 -   Added prettier input prompts to `view init`
 -   Added `HTML.from_file`
--   **Breaking Change:**  Middleware functions must now take `call_next`
+-   **Breaking Change:** Middleware functions must now take `call_next`
 
 ## [1.0.0-alpha9] - 2024-2-4
 

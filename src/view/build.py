@@ -339,7 +339,7 @@ async def _compile_routes(
             )
             continue
 
-        res = i.func()
+        res = i.func()  # type: ignore
 
         if isinstance(res, Coroutine):
             if should_await:

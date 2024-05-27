@@ -26,7 +26,7 @@ from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
 from .exceptions import (DuplicateRouteError, InvalidBodyError,
                          InvalidRouteError, LoaderWarning,
-                         UnknownBuildStepError)
+                         UnknownBuildStepError, ViewInternalError)
 from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
                       _NoDefault)
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
@@ -199,20 +199,20 @@ def _build_type_codes(
                 raise InvalidBodyError(f"Annotated is not valid here ({tp})")
 
             if not key_name:
-                raise RuntimeError("internal error: key_name is None")
+                raise ViewInternalError("key_name is None")
 
             if default is _NotSet:
-                raise RuntimeError("internal error: default is _NotSet")
+                raise ViewInternalError("default is _NotSet")
 
             tmp = tp.__origin__
             doc[key_name] = LoaderDoc(tp.__metadata__[0], tmp, default)
             tp = tmp
         elif doc is not None:
             if not key_name:
-                raise RuntimeError("internal error: key_name is None")
+                raise ViewInternalError("key_name is None")
 
             if default is _NotSet:
-                raise RuntimeError("internal error: default is _NotSet")
+                raise ViewInternalError("internal error: default is _NotSet")
 
             doc[key_name] = LoaderDoc("No description provided.", tp, default)
 
@@ -439,6 +439,12 @@ def finalize(routes: list[Route], app: ViewApp):
 
         if route.method:
             target = targets[route.method]
+
+            if route.method is Method.WEBSOCKET:
+                for i in route.inputs:
+                    if isinstance(i, RouteInput):
+                        if i.is_body:
+                            raise InvalidRouteError(f"websocket routes cannot have body inputs")
         else:
             target = None
 
@@ -459,6 +465,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         sig = inspect.signature(route.func)
         route.inputs = [i for i in reversed(route.inputs)]
+
 
         if len(sig.parameters) != len(route.inputs):
             names = [i.name for i in route.inputs if isinstance(i, RouteInput)]

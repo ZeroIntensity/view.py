@@ -8,7 +8,7 @@ Every view project will have a `new_app` call. The simplest app looks like this:
 from view import new_app
 
 app = new_app()
-app.run()  # you'll learn about this later
+app.run()  # You'll learn about this later
 ```
 
 `new_app` does a few important things:
@@ -20,8 +20,6 @@ app.run()  # you'll learn about this later
 While it's not required for every app, naming your app variable `app` is the proper convention for view, as that's the default variable searched for when using the `view serve` command, but more on that in a moment.
 
 For now, just try to stick with naming your app file `app.py` and your `view.App` instance `app`.
-
-::: view.app.new_app
 
 ## Launching Apps
 
@@ -52,7 +50,7 @@ from view import new_app
 
 app = new_app()
 app.run()
-print("you called the app with view serve")  # this only runs when `view serve` is used
+print("You called the app with `view serve`!")  # This only runs when `view serve` is used
 ```
 
 ### Fancy Mode
@@ -63,8 +61,6 @@ View comes with something called "fancy mode", which is a fancy UI that shows wh
 -   Pass `fancy=False` to `run()`.
 
 You should disable it in the configuration if you completely despise fancy mode and don't want to use it at all, but if you only want to temporarily turn it off (for example, if you're a view.py developer and need to see proper output) then pass `fancy=False`.
-
-::: view.app.App.run
 
 ## Getting the App
 
@@ -111,8 +107,6 @@ app = get_app()
 def index():
     return "..."
 ```
-
-::: view.app.get_app
 
 ## Review
 

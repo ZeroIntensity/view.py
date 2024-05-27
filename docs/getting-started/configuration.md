@@ -24,8 +24,6 @@ app = new_app()
 app.config.foo.bar = "..."
 ```
 
-::: view.config.Config
-
 Configurations are loaded at runtime by the `load_config` function. If you would like to use View's configuration file without creating an `App`, you may use it like so:
 
 ```py
@@ -33,8 +31,6 @@ from view import load_config
 
 config = load_config()
 ```
-
-::: view.config.load_config
 
 ## Settings
 
@@ -74,8 +70,6 @@ test = env("TEST", tp=int)
 # test will be an integer. if environment variable "TEST" does not  exist, an exception is thrown.
 # if environment variable "TEST" is not an integer, an exception is thrown.
 ```
-
-::: view.util.env
 
 ### App Settings
 

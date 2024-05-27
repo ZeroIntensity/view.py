@@ -19,8 +19,7 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
-                           TextColumn)
+from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -130,7 +129,7 @@ internal.setLevel(10000)
 
 
 class RouteInfo(NamedTuple):
-    status: int
+    status: int | str  # str for websocket states
     route: str
     method: str
 
@@ -279,7 +278,10 @@ class Internal(_Logger):
 svc.addFilter(ServiceIntercept())
 
 
-def _status_color(status: int) -> str:
+def _status_color(status: int | str) -> str:
+    if isinstance(status, str):
+        return "bold green"
+
     if status >= 500:
         return "bold red"
     if status >= 400:
@@ -295,6 +297,7 @@ def _status_color(status: int) -> str:
 
 
 _METHOD_COLORS: dict[str, str] = {
+    "websocket": "bold dim magenta",
     "HEAD": "bold green",
     "GET": "bold dim green",
     "POST": "bold blue",
@@ -1011,7 +1014,8 @@ def _server_logger():
             live.update(Align.center(layout))
 
 
-def _write_route(status: int, route: str, method: str) -> None:
+def _write_route(status: int | str, route: str, method_raw: str) -> None:
+    method = method_raw or "websocket"
     info = RouteInfo(status, route, method)
 
     if _LIVE:

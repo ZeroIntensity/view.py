@@ -11,7 +11,7 @@
 PyObject* route_log = NULL;
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
-PyObject* ws_handshake_error = NULL;
+PyObject* ws_cls = NULL;
 
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     PyObject* func;
@@ -36,8 +36,25 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
+    PyObject* cls;
+
+    if (!PyArg_ParseTuple(args, "O", &cls))
+        return NULL;
+
+    if (!PyType_Check(cls)) {
+        PyErr_Format(PyExc_RuntimeError,
+            "register_ws_cls got non-function object: %R", cls);
+        return NULL;
+    }
+
+    ws_cls = Py_NewRef(cls);
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef methods[] = {
     {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
+    {"register_ws_cls", register_ws_cls, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
@@ -181,28 +198,6 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(m);
         Py_DECREF(ip_address);
         Py_DECREF(invalid_status_error);
-        return NULL;
-    }
-
-    ws_handshake_error = PyErr_NewException(
-        "_view.WebSocketHandshakeError",
-        PyExc_RuntimeError,
-        NULL
-    );
-    if (!ws_handshake_error) {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        return NULL;
-    }
-
-    if (PyModule_AddObject(
-        m,
-        "WebSocketHandshakeError",
-        ws_handshake_error
-        ) < 0) {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        Py_DECREF(ws_handshake_error);
         return NULL;
     }
 

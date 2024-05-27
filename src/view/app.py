@@ -14,11 +14,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from io import UnsupportedOperation
 from pathlib import Path
+from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, Callable, Coroutine, Generic, Iterable, TextIO,
-                    TypeVar, get_type_hints, overload)
+from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
+                    TextIO, TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -41,13 +42,14 @@ from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
-from .routing import (Route, RouteInput, RouteOrCallable, V, _NoDefault,
-                      _NoDefaultType)
+from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
+                      _NoDefault, _NoDefaultType)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
 from .routing import query as query_impl
 from .routing import route as route_impl
+from .routing import websocket
 from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
 from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
@@ -134,6 +136,52 @@ def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
     return query_str
 
 
+async def _to_thread(func: Callable[[], T]) -> T:
+    if hasattr(asyncio, "to_thread"):
+        return await asyncio.to_thread(func)
+    else:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func)
+
+
+class VirtualWebSocket:
+    def __init__(self) -> None:
+        self.recv_queue = Queue()
+        self.send_queue = Queue()
+        self.recv_queue.put_nowait({"type": "websocket.connect"})
+
+    async def close(self):
+        self.recv_queue.put_nowait({"type": "websocket.disconnect"})
+
+    async def _server_receive(self):
+        return await _to_thread(self.recv_queue.get)
+
+    async def _server_send(self, data: dict):
+        self.send_queue.put_nowait(data)
+
+    async def send(self, message: str) -> None:
+        self.recv_queue.put_nowait(
+            {"type": "websocket.receive", "text": message}
+        )
+
+    async def receive(self) -> str:
+        data = await _to_thread(self.send_queue.get)
+        msg = data.get("text") or data.get("bytes")
+
+        if not msg:
+            reason = data.get("reason")
+            if reason:
+                raise RuntimeError(reason)
+            raise ViewInternalError(f"{data!r} has no text or bytes key")
+
+        return msg
+
+    async def handshake(self) -> None:
+        assert (await _to_thread(self.send_queue.get))[
+            "type"
+        ] == "websocket.accept"
+
+
 class TestingContext:
     def __init__(
         self,
@@ -154,6 +202,17 @@ class TestingContext:
 
     async def stop(self) -> None:
         await self._lifespan.put("lifespan.shutdown")
+
+    def _gen_headers(
+        self, headers: dict[str, str]
+    ) -> list[tuple[bytes, bytes]]:
+        return [
+            (key.encode(), value.encode())
+            for key, value in (headers or {}).items()
+        ]
+
+    def _truncate(self, route: str) -> str:
+        return route[: route.find("?")] if "?" in route else route
 
     async def _request(
         self,
@@ -187,12 +246,9 @@ class TestingContext:
             else:
                 raise ViewInternalError(f"bad type: {obj['type']}")
 
-        truncated_route = route[: route.find("?")] if "?" in route else route
+        truncated_route = self._truncate(route)
         query_str = _format_qs(query or {})
-        headers_list = [
-            (key.encode(), value.encode())
-            for key, value in (headers or {}).items()
-        ]
+        headers_list = self._gen_headers(headers or {})
 
         await self.app(
             {
@@ -314,6 +370,45 @@ class TestingContext:
             headers=headers,
         )
 
+    @asynccontextmanager
+    async def websocket(
+        self,
+        route: str,
+        *,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> AsyncIterator[VirtualWebSocket]:
+        query_str = _format_qs(query or {})
+        headers_list = self._gen_headers(headers or {})
+        truncated_route = self._truncate(route)
+
+        socket = VirtualWebSocket()
+
+        def _wrapper():
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(
+                self.app(
+                    {
+                        "type": "websocket",
+                        "path": truncated_route,
+                        "query_string": (
+                            urlencode(query_str).encode() if query else b""
+                        ),  # noqa
+                        "headers": headers_list,
+                    },
+                    socket._server_receive,
+                    socket._server_send,
+                )
+            )
+
+        Thread(target=_wrapper).start()
+
+        await socket.handshake()
+        try:
+            yield socket
+        finally:
+            await socket.close()
+
 
 @dataclass
 class InputDoc(Generic[T]):
@@ -405,6 +500,14 @@ class App(ViewApp):
                 if isinstance(value, ViewError):
                     if value.hint:
                         print(value.hint)
+
+                if isinstance(value, ViewInternalError):
+                    print(
+                        "[bold dim red]This is an internal error, not your fault![/]"
+                    )
+                    print(
+                        "[bold dim red]Please report this at https://github.com/ZeroIntensity/view.py/issues[/]"
+                    )
 
             sys.excepthook = _hook  # type: ignore
             with suppress(UnsupportedOperation):
@@ -509,6 +612,18 @@ class App(ViewApp):
                 steps=steps,
                 parallel_build=parallel_build,
             )(route)
+            self._push_route(new_route)
+            return new_route
+
+        return inner
+
+    def websocket(
+        self,
+        path: str,
+        doc: str | None = None,
+    ) -> Callable[[RouteOrWebsocket[P]], Route[P]]:
+        def inner(route: RouteOrWebsocket[P]) -> Route[P]:
+            new_route = websocket(path, doc)(route)
             self._push_route(new_route)
             return new_route
 

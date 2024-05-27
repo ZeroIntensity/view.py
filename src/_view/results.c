@@ -243,6 +243,8 @@ int handle_result(
         status_target,
         headers_target
     );
+    if (res < 0)
+        return -1;
     if (!route_log) return res;
 
     PyObject* args = Py_BuildValue(

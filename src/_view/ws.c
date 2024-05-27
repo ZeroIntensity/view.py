@@ -11,6 +11,7 @@ typedef struct {
     PyObject_HEAD
     PyObject* send;
     PyObject* receive;
+    PyObject* raw_path;
 } WebSocket;
 
 static PyObject* repr(PyObject* self) {
@@ -39,7 +40,7 @@ static PyObject* WebSocket_new(
     return (PyObject*) self;
 }
 
-PyObject* ws_from_data(PyObject* send, PyObject* receive) {
+PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
     WebSocket* ws = (WebSocket*) WebSocket_new(
         &WebSocketType,
         NULL,
@@ -48,7 +49,21 @@ PyObject* ws_from_data(PyObject* send, PyObject* receive) {
 
     ws->send = Py_NewRef(send);
     ws->receive = Py_NewRef(receive);
-    return (PyObject*) ws;
+    ws->raw_path = Py_XNewRef(PyDict_GetItemString(scope, "path"));
+
+    if (!ws->raw_path) {
+        PyErr_BadASGI();
+        return NULL;
+    }
+
+    PyObject* py_ws = PyObject_Vectorcall(
+        ws_cls,
+        (PyObject*[]) { (PyObject*) ws },
+        1,
+        NULL
+    );
+
+    return py_ws;
 }
 
 static int run_ws_accept(PyObject* awaitable, PyObject* result) {
@@ -77,7 +92,7 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         )) {
         // type is probably websocket.receive, so accept() was already called
         PyErr_SetString(
-            ws_handshake_error,
+            PyExc_RuntimeError,
             "received message was not websocket.connect (was accept() already called?)"
         );
         return -1;
@@ -116,6 +131,19 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         Py_DECREF(coro);
         return -1;
     }
+    PyObject* args = Py_BuildValue(
+        "(zOz)",
+        "N/A",
+        ws->raw_path,
+        "websocket"
+    );
+
+    if (!PyObject_Call(route_log, args, NULL)) {
+        Py_DECREF(args);
+        Py_DECREF(awaitable);
+        return -1;
+    }
+    Py_DECREF(args);
 
     return 0;
 }
@@ -145,7 +173,7 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
         )) {
         // type is probably websocket.connect, so accept() was not called
         PyErr_SetString(
-            ws_handshake_error,
+            PyExc_RuntimeError,
             "received message was not websocket.receive (did you forget to call accept()?)"
         );
         return -1;
@@ -341,13 +369,28 @@ static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
     if (!awaitable)
         return NULL;
 
-    PyObject* send_dict = Py_BuildValue(
-        "{s:s,s:S}",
-        "type",
-        "websocket.send",
-        "text",
-        data
-    );
+    PyObject* send_dict;
+    if (PyUnicode_Check(data)) {
+        send_dict = Py_BuildValue(
+            "{s:s,s:S}",
+            "type",
+            "websocket.send",
+            "text",
+            data
+        );
+    } else if (PyBytes_Check(data)) {
+        send_dict = Py_BuildValue(
+            "{s:s,s:S}",
+            "type",
+            "websocket.send",
+            "bytes",
+            data
+        );
+    } else {
+        PyErr_Format(PyExc_TypeError, "expected string or bytes, got %R",
+            Py_TYPE(data));
+        return NULL;
+    }
 
     if (!send_dict) {
         Py_DECREF(awaitable);

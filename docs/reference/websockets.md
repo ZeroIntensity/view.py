@@ -1,0 +1,3 @@
+# WebSockets Reference
+
+::: view.ws
