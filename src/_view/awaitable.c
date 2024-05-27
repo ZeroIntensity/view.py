@@ -444,7 +444,7 @@ static PyMethodDef awaitable_methods[] = {
 };
 
 static PyAsyncMethods async_methods = {
-    #if PY_MINOR_VERSION < 10
+    #if PY_MINOR_VERSION > 9
     .am_await = awaitable_next
     #else
     .am_await = awaitable_next,
