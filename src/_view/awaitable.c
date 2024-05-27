@@ -345,7 +345,7 @@ awaitable_send_with_arg(PyObject *self, PyObject *value)
         Py_RETURN_NONE;
     }
 
-    return gen_next(aw->aw_gen);
+    return genwrapper_next(aw->aw_gen);
 }
 
 static PyObject *
@@ -362,7 +362,7 @@ awaitable_send(PyObject *self, PyObject *args)
 static PyObject *
 awaitable_close(PyObject *self, PyObject *args)
 {
-    PyAwaitable_Cancel(self);
+    awaitable_cancel_impl(self);
     PyAwaitableObject *aw = (PyAwaitableObject *) self;
     aw->aw_done = true;
     Py_RETURN_NONE;
@@ -395,14 +395,14 @@ awaitable_throw(PyObject *self, PyObject *args)
     } else
         PyErr_Restore(Py_NewRef(type), Py_XNewRef(value), Py_XNewRef(traceback));
 
-    PyAwaitableObject *aw = (PyAwaitableObject *) self;
+    PyAwaitableObject *aw = (AwaitableObject *) self;
     if ((aw->aw_gen != NULL) && (aw->aw_state != 0)) {
         GenWrapperObject *gw = (GenWrapperObject *) aw->aw_gen;
         awaitable_callback* cb = aw->aw_callbacks[aw->aw_state - 1];
         if (cb == NULL)
             return NULL;
 
-        if (fire_err_callback(self, gw->gw_current_await, cb) < 0)
+        if (genwrapper_fire_err_callback(self, gw->gw_current_await, cb) < 0)
             return NULL;
     } else
         return NULL;
@@ -436,14 +436,14 @@ awaitable_am_send(PyObject *self, PyObject *arg, PyObject **presult) {
 }
 #endif
 
-static PyMethodDef awaitable_methods[] = {
+PyMethodDef awaitable_methods[] = {
     {"send", awaitable_send, METH_VARARGS, NULL},
     {"close", awaitable_close, METH_VARARGS, NULL},
     {"throw", awaitable_throw, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
-static PyAsyncMethods async_methods = {
+PyAsyncMethods awaitable_async_methods = {
     #if PY_MINOR_VERSION > 9
     .am_await = awaitable_next,
     .am_send = awaitable_am_send
