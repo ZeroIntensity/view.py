@@ -27,6 +27,7 @@ nav:
           - Routing: reference/routing.md
           - Responses: reference/responses.md
           - Templates: reference/templates.md
+          - Build: reference/build.md
     - Contributing: contributing.md
 
 theme:
