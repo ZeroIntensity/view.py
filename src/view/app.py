@@ -1371,15 +1371,28 @@ def new_app(
 
     weakref.finalize(app, finalizer)
 
-    if store:
-        _last_app = app
+    if store_address:
+        os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
+        # id() on cpython returns the address, but it is
+        # implementation dependent however, view.py
+        # only supports cpython anyway
 
     return app
 
 
-def get_app() -> App:
-    """Get the last app created by `new_app`."""
-    if not _last_app:
-        raise RuntimeError("no app has been set")
+# this is forbidden pointers.py technology
 
-    return _last_app
+ctypes.pythonapi.Py_IncRef.argtypes = (ctypes.py_object,)
+
+
+def get_app(*, address: int | None = None) -> App:
+    """Get the last app created by `new_app`."""
+    env = os.environ.get("_VIEW_APP_ADDRESS")
+    addr = address or env
+
+    if (not addr) and (not env):
+        raise BadEnvironmentError("no view app registered")
+
+    app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
+    ctypes.pythonapi.Py_IncRef(app)
+    return app
