@@ -84,6 +84,7 @@ async def test_patterns_loader():
         assert (await test.options("/any")).message == "any"
         assert (await test.post("/inputs", query={"a": "a"})).message == "a"
 
+
 @pytest.mark.asyncio
 async def test_custom_loader():
     app = new_app()
@@ -99,6 +100,7 @@ async def test_custom_loader():
 
     async with app.test() as test:
         assert (await test.get("/")).message == "test"
+
 
 @pytest.mark.asyncio
 def test_custom_loader_errors():
