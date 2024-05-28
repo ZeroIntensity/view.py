@@ -18,6 +18,10 @@ static int find_result_for(
         const char* tmp = PyUnicode_AsUTF8(target);
         if (!tmp) return -1;
         *res_str = strdup(tmp);
+    } else if (Py_IS_TYPE(target, &PyBytes_Type)) {
+        const char* tmp = PyBytes_AsString(target);
+        if (!tmp) return -1;
+        *res_str = strdup(tmp);
     } else if (Py_IS_TYPE(
         target,
         &PyDict_Type
@@ -128,10 +132,6 @@ static int find_result_for(
         if (PyErr_Occurred()) {
             return -1;
         }
-    } if (Py_IS_TYPE(target, &PyBytes_Type)) {
-        const char* tmp = PyBytes_AsString(target);
-        if (!tmp) return -1;
-        *res_str = strdup(tmp);
     } else {
         PyErr_SetString(
             PyExc_TypeError,
