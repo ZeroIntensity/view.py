@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-
+from typing import List
 from view import delete, get, new_app, options, patch, post, put, App, Route, InvalidCustomLoaderError
 
 @pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_custom_loader():
     app.config.app.loader = "custom"
 
     @app.custom_loader
-    def my_loader(app: App, path: Path) -> list[Route]:
+    def my_loader(app: App, path: Path) -> List[Route]:
         @get("/")
         async def index():
             return "test"
@@ -111,7 +111,7 @@ def test_custom_loader_errors():
         app.load()
 
     @app.custom_loader
-    def my_loader(app: App, path: Path) -> list[Route]:
+    def my_loader(app: App, path: Path) -> List[Route]:
         return 123
 
     with pytest.raises(InvalidCustomLoaderError):
