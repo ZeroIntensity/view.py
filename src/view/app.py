@@ -18,9 +18,10 @@ from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
-                    TextIO, TypeVar, get_type_hints, overload)
+from typing import (Any, AsyncIterator, Callable, Coroutine, Generic,
+                    TextIO, TypeVar, get_type_hints, overload, Iterable)
 from urllib.parse import urlencode
+from collections.abc import Iterable as CollectionsIterable
 
 import ujson
 from rich import print
@@ -38,7 +39,7 @@ from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .build import build_app, build_steps
 from .config import Config, load_config
-from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
+from .exceptions import BadEnvironmentError, ViewError, ViewInternalError, InvalidCustomLoaderError
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
@@ -69,6 +70,7 @@ _ROUTES_WARN_MSG = (
 _ConfigSpecified = None
 
 B = TypeVar("B", bound=BaseException)
+CustomLoader: TypeAlias = Callable[["App", Path], Iterable[Route]]
 
 ERROR_CODES: tuple[int, ...] = (
     400,
@@ -472,6 +474,7 @@ class App(ViewApp):
         self.loaded_routes: list[Route] = []
         self.templaters: dict[str, Any] = {}
         self._register_error(error_class)
+        self._user_loader: CustomLoader | None = None
 
         os.environ.update({k: str(v) for k, v in config.env.items()})
 
@@ -594,6 +597,9 @@ class App(ViewApp):
 
         return inner
 
+    def custom_loader(self, loader: CustomLoader):
+        self._user_loader = loader
+  
     def _method_wrapper(
         self,
         path: str,
@@ -1002,6 +1008,16 @@ class App(ViewApp):
             load_simple(self, self.config.app.loader_path)
         elif self.config.app.loader == "patterns":
             load_patterns(self, self.config.app.loader_path)
+        elif self.config.app.loader == "custom":
+            if not self._user_loader:
+                raise InvalidCustomLoaderError("custom loader was not set")
+    
+            routes = self._user_loader(self, self.config.app.loader_path)
+            if not isinstance(routes, CollectionsIterable):
+                raise InvalidCustomLoaderError(
+                    f"expected custom loader to return a list of routes, got {routes!r}"
+                )
+            finalize([i for i in routes], self)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
@@ -1313,15 +1329,15 @@ class App(ViewApp):
 
         return None
 
+_last_app: App | None = None
 
 def new_app(
     *,
     start: bool = False,
     config_path: Path | str | None = None,
     config_directory: Path | str | None = None,
-    post_init: Callback | None = None,
     app_dealloc: Callback | None = None,
-    store_address: bool = True,
+    store: bool = True,
     config: Config | None = None,
     error_class: type[Error] = Error,
 ) -> App:
@@ -1331,9 +1347,8 @@ def new_app(
         start: Should the app be started automatically? (In a new thread)
         config_path: Path of the target configuration file
         config_directory: Directory path to search for a configuration
-        post_init: Callback to run after the App instance has been created
         app_dealloc: Callback to run when the App instance is freed from memory
-        store_address: Whether to store the address of the instance to allow use from get_app
+        store: Whether to store the app, to allow use from get_app()
         config: Raw `Config` object to use instead of loading the config.
         error_class: Class to be recognized as the view.py HTTP error object.
     """
@@ -1343,9 +1358,6 @@ def new_app(
     )
 
     app = App(config, error_class=error_class)
-
-    if post_init:
-        post_init()
 
     if start:
         app.run_threaded()
@@ -1359,7 +1371,7 @@ def new_app(
 
     weakref.finalize(app, finalizer)
 
-    if store_address:
+    if store:
         os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
         # id() on cpython returns the address, but it is
         # implementation dependent however, view.py

@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added `.gitignore` generation to `view init`
 -   Added support for coroutines in `PyAwaitable` (vendored)
 -   Finished websocket implementation
+-   Added the `custom` loader
 -   **Breaking Change:** Removed the `hijack` configuration setting
+-   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
 
 ## [1.0.0-alpha10] - 2024-5-26
 

@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
-
-from view import delete, get, new_app, options, patch, post, put
+from typing import List
+from view import delete, get, new_app, options, patch, post, put, App, Route, InvalidCustomLoaderError
 
 @pytest.mark.asyncio
 async def test_manual_loader():
@@ -83,3 +83,36 @@ async def test_patterns_loader():
         assert (await test.options("/options")).message == "options"
         assert (await test.options("/any")).message == "any"
         assert (await test.post("/inputs", query={"a": "a"})).message == "a"
+
+
+@pytest.mark.asyncio
+async def test_custom_loader():
+    app = new_app()
+    app.config.app.loader = "custom"
+
+    @app.custom_loader
+    def my_loader(app: App, path: Path) -> List[Route]:
+        @get("/")
+        async def index():
+            return "test"
+
+        return [index]
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "test"
+
+
+@pytest.mark.asyncio
+def test_custom_loader_errors():
+    app = new_app()
+    app.config.app.loader = "custom"
+
+    with pytest.raises(InvalidCustomLoaderError):
+        app.load()
+
+    @app.custom_loader
+    def my_loader(app: App, path: Path) -> List[Route]:
+        return 123
+
+    with pytest.raises(InvalidCustomLoaderError):
+        app.load()
