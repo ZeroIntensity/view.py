@@ -2,12 +2,13 @@
 
 ## Loaders
 
-Routing is a big part of any web library, and there are many ways to do it. View does it's best to support as many methods as possible to give you a well-rounded approach to routing. In view, your choice of routing is called the loader/loader strategy, and there are four of them:
+Routing is a big part of any web library, and there are many ways to do it. View does it's best to support as many methods as possible to give you a well-rounded approach to routing. In view, your choice of routing is called the loader/loader strategy, and there are five of them:
 
 -   `manual`
 -   `simple`
 -   `filesystem`
 -   `patterns`
+-   `custom`
 
 ## Manually Routing
 
@@ -198,6 +199,56 @@ def index():
     return "Hello, view.py!"
 ```
 
+## Custom Routing
+
+The `custom` loader is, you guessed it, a user-defined loader. To start, decorate a function with `custom_loader`:
+
+```py
+from pathlib import Path
+from typing import Iterable
+from view import Route, new_app
+
+app = new_app()
+
+@app.custom_loader
+def my_loader(app: App, path: Path) -> Iterable[Route]:
+    return [...]
+
+app.run()
+```
+
+As shown above, there are two parameters to the `custom_loader` callback:
+
+- The `App` instance.
+- The `Path` set by the `loader_path` config setting.
+
+The `custom_loader` callback is expected to return a list (or any iterable) of collected routes.
+
+!!! tip "Don't reimplement router functions!"
+
+    You might be confused about the `Route` constructor. That's because it's undocumented, and still technically a private API (meaning it can change at any time, for no reason). Don't try and instantiate a route yourself! Instead, let router functions do it (e.g. `get` or `query`), and collect the functions (or really, `Route` instances)
+
+For example, if you wanted to implement a loader that added one route:
+
+```py
+from pathlib import Path
+from typing import Iterable
+from view import Route, new_app, get
+
+app = new_app()
+
+@app.custom_loader
+def my_loader(app: App, path: Path) -> Iterable[Route]:
+    # Disregarding the app and path here! Don't do that!
+    @get("/my_route")
+    def my_route():
+        return "Hello from my loader!"
+
+    return [my_route]
+
+app.run()
+```
+
 ## Review
 
 In view, a loader is defined as the method of routing used. There are three loaders in view.py: `manual`, `simple`, and `filesystem`.
@@ -205,3 +256,5 @@ In view, a loader is defined as the method of routing used. There are three load
 -   `manual` is good for small projects that are similar to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com).
 -   `simple` routing is the recommended loader for full-scale view.py applications.
 -   `filesystem` routing is similar to how JavaScript frameworks like [NextJS](https://nextjs.org) handle routing.
+-   `patterns` is similar to [Django](https://djangoproject.com/) routing.
+-   `custom` let's you decide - you can make your own loader and figure it out as you please.
