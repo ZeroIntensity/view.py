@@ -9,7 +9,7 @@ import ujson
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import BodyTranslateStrategy, SameSite, ViewResult, ResponseBody
+from .typing import BodyTranslateStrategy, ResponseBody, SameSite, ViewResult
 from .util import timestamp
 
 T = TypeVar("T")

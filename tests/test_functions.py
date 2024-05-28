@@ -6,16 +6,8 @@ import pytest
 from leaks import limit_leaks
 from typing_extensions import Annotated
 
-from view import (
-    App,
-    BadEnvironmentError,
-    TypeValidationError,
-    compile_type,
-    env,
-    get_app,
-    new_app,
-    to_response,
-)
+from view import (App, BadEnvironmentError, TypeValidationError, compile_type,
+                  env, get_app, new_app, to_response)
 from view.typing import CallNext
 
 

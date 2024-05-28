@@ -5,8 +5,9 @@ from typing import Union, overload
 import ujson
 from typing_extensions import Self
 
-from .exceptions import WebSocketExpectError, WebSocketHandshakeError
 from _view import ViewWebSocket, register_ws_cls
+
+from .exceptions import WebSocketExpectError, WebSocketHandshakeError
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 

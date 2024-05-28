@@ -1,19 +1,10 @@
 from pathlib import Path
+from typing import List
 
 import pytest
-from typing import List
-from view import (
-    delete,
-    get,
-    new_app,
-    options,
-    patch,
-    post,
-    put,
-    App,
-    Route,
-    InvalidCustomLoaderError,
-)
+
+from view import (App, InvalidCustomLoaderError, Route, delete, get, new_app,
+                  options, patch, post, put)
 
 
 @pytest.mark.asyncio

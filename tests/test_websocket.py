@@ -1,13 +1,8 @@
 import pytest
-from view import (
-    WebSocket,
-    new_app,
-    websocket,
-    WebSocketExpectError,
-    WebSocketHandshakeError,
-    InvalidRouteError,
-)
 from leaks import limit_leaks
+
+from view import (InvalidRouteError, WebSocket, WebSocketExpectError,
+                  WebSocketHandshakeError, new_app, websocket)
 
 
 @pytest.mark.asyncio

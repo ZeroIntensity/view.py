@@ -19,7 +19,8 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
+from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
+                           TextColumn)
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text

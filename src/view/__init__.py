@@ -16,9 +16,9 @@ from _view import Context, InvalidStatusError
 from . import _codec
 from .__about__ import *
 from .app import *
+from .build import *
 from .components import *
 from .default_page import *
-from .build import *
 from .exceptions import *
 from .logging import *
 from .patterns import *

@@ -4,7 +4,8 @@ import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any, ClassVar, Set, TypeVar, Union, get_origin, get_type_hints
+from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
+                    get_type_hints)
 
 from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
@@ -128,7 +129,9 @@ class _PostgresConnection(_Connection):
 
     async def connect(self) -> None:
         try:
-            self.connection = await asyncio.to_thread(self.create_database_connection)
+            self.connection = await asyncio.to_thread(
+                self.create_database_connection
+            )
             self.cursor = await asyncio.to_thread(self.connection.cursor)  # type: ignore
         except psycopg2.Error as e:
             raise ValueError(
@@ -279,11 +282,14 @@ class Model:
                 setattr(self, k, args[index])
 
     def __init_subclass__(cls, **kwargs: Any):
-        cls.__view_table__ = kwargs.get("table") or ("vpy_" + cls.__name__.lower())
+        cls.__view_table__ = kwargs.get("table") or (
+            "vpy_" + cls.__name__.lower()
+        )
         model_hints = get_type_hints(Model)
         actual_hints = get_type_hints(cls)
         params = {
-            k: actual_hints[k] for k in (model_hints.keys() ^ actual_hints.keys())
+            k: actual_hints[k]
+            for k in (model_hints.keys() ^ actual_hints.keys())
         }
 
         for k, v in params.items():

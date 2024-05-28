@@ -11,8 +11,9 @@ import warnings
 import weakref
 from collections.abc import Iterable
 from pathlib import Path
+from types import CodeType as Code
 from types import FrameType as Frame
-from types import FunctionType as Function, CodeType as Code
+from types import FunctionType as Function
 from typing import Any, NoReturn, Union
 
 from rich.markup import escape

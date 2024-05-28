@@ -8,17 +8,8 @@ from collections.abc import Awaitable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Generic,
-    Iterable,
-    Literal,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
+                    Union, overload)
 
 from typing_extensions import ParamSpec, TypeAlias
 
@@ -26,16 +17,8 @@ from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .build import run_step
 from .exceptions import InvalidRouteError, MistakeError
-from .typing import (
-    TYPE_CHECKING,
-    Middleware,
-    StrMethod,
-    Validator,
-    ValueType,
-    ViewResult,
-    ViewRoute,
-    WebSocketRoute,
-)
+from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
+                     ValueType, ViewResult, ViewRoute, WebSocketRoute)
 
 if TYPE_CHECKING:
     from .app import App
