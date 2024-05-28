@@ -1329,15 +1329,15 @@ class App(ViewApp):
 
         return None
 
+_last_app: App | None = None
 
 def new_app(
     *,
     start: bool = False,
     config_path: Path | str | None = None,
     config_directory: Path | str | None = None,
-    post_init: Callback | None = None,
     app_dealloc: Callback | None = None,
-    store_address: bool = True,
+    store: bool = True,
     config: Config | None = None,
     error_class: type[Error] = Error,
 ) -> App:
@@ -1347,9 +1347,8 @@ def new_app(
         start: Should the app be started automatically? (In a new thread)
         config_path: Path of the target configuration file
         config_directory: Directory path to search for a configuration
-        post_init: Callback to run after the App instance has been created
         app_dealloc: Callback to run when the App instance is freed from memory
-        store_address: Whether to store the address of the instance to allow use from get_app
+        store: Whether to store the app, to allow use from get_app()
         config: Raw `Config` object to use instead of loading the config.
         error_class: Class to be recognized as the view.py HTTP error object.
     """
@@ -1359,9 +1358,6 @@ def new_app(
     )
 
     app = App(config, error_class=error_class)
-
-    if post_init:
-        post_init()
 
     if start:
         app.run_threaded()
@@ -1376,27 +1372,14 @@ def new_app(
     weakref.finalize(app, finalizer)
 
     if store_address:
-        os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
-        # id() on cpython returns the address, but it is
-        # implementation dependent however, view.py
-        # only supports cpython anyway
+        _last_app = app
 
     return app
 
 
-# this is forbidden pointers.py technology
-
-ctypes.pythonapi.Py_IncRef.argtypes = (ctypes.py_object,)
-
-
-def get_app(*, address: int | None = None) -> App:
+def get_app() -> App:
     """Get the last app created by `new_app`."""
-    env = os.environ.get("_VIEW_APP_ADDRESS")
-    addr = address or env
+    if not _last_app:
+        raise RuntimeError("no app has been set")
 
-    if (not addr) and (not env):
-        raise BadEnvironmentError("no view app registered")
-
-    app: App = ctypes.cast(int(addr), ctypes.py_object).value  # type: ignore
-    ctypes.pythonapi.Py_IncRef(app)
-    return app
+    return _last_app
