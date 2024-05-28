@@ -102,7 +102,6 @@ async def test_custom_loader():
         assert (await test.get("/")).message == "test"
 
 
-@pytest.mark.asyncio
 def test_custom_loader_errors():
     app = new_app()
     app.config.app.loader = "custom"
