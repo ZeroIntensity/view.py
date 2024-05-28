@@ -850,12 +850,12 @@ async def test_bytes_response():
 
     @app.get("/")
     async def index():
-        return b"\t \e \s \t"
+        return b"\t \t"
 
     @app.get("/hi")
     async def hi():
         return b"hi", 201, {"test": "test"}
   
     async with app.test() as test:
-        assert (await test.get("/")).content == b"\t \e \s \t"
+        assert (await test.get("/")).content == b"\t \t"
         assert (await test.get("/hi")).content == b"hi"
