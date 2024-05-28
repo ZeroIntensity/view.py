@@ -19,7 +19,7 @@ from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
 from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
-                    TextIO, TypeVar, get_type_hints, overload)
+                    TextIO, TypeVar, get_type_hints, overload, List)
 from urllib.parse import urlencode
 
 import ujson
@@ -69,6 +69,7 @@ _ROUTES_WARN_MSG = (
 _ConfigSpecified = None
 
 B = TypeVar("B", bound=BaseException)
+CustomLoader: TypeAlias = Callable[["App", Path], List[Route]]
 
 ERROR_CODES: tuple[int, ...] = (
     400,
@@ -472,6 +473,7 @@ class App(ViewApp):
         self.loaded_routes: list[Route] = []
         self.templaters: dict[str, Any] = {}
         self._register_error(error_class)
+        self._user_loader: CustomLoader | None = None
 
         os.environ.update({k: str(v) for k, v in config.env.items()})
 
@@ -594,6 +596,9 @@ class App(ViewApp):
 
         return inner
 
+    def custom_loader(self, loader: CustomLoader):
+        self._user_loader = loader
+  
     def _method_wrapper(
         self,
         path: str,
