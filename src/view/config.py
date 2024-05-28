@@ -32,7 +32,7 @@ __all__ = (
 
 # https://github.com/python/mypy/issues/11036
 class AppConfig(ConfigModel, env_prefix="view_app_"):  # type: ignore
-    loader: Literal["manual", "simple", "filesystem", "patterns"] = "manual"
+    loader: Literal["manual", "simple", "filesystem", "patterns", "custom"] = "manual"
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
