@@ -88,8 +88,6 @@ static int find_result_for(
                 return -1;
             };
 
-            Py_DECREF(v_bytes);
-
             if (PyList_Append(
                 headers,
                 header_list

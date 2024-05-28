@@ -779,7 +779,7 @@ async def test_methodless_routes():
     async def m(context: Context):
         return context.method
 
-    app.load([m])
+    app.load(m)
 
     async with app.test() as test:
         assert (await test.get("/")).message == "a"

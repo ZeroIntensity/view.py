@@ -41,7 +41,7 @@ async def test_websocket_message_pairs():
             assert message == count
             count += 1
 
-    app.load([back_and_forth])
+    app.load(back_and_forth)
 
     async with app.test() as test:
         async with test.websocket("/") as ws:

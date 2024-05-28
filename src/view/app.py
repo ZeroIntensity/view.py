@@ -1022,6 +1022,12 @@ class App(ViewApp):
         if routes and (self.config.app.loader != "manual"):
             warnings.warn(_ROUTES_WARN_MSG)
 
+        for index, i in enumerate(routes):
+            if not isinstance(i, Route):
+                raise TypeError(
+                    f"(index {index}) expected Route object, got {i}"
+                )
+
         if self.config.app.loader == "filesystem":
             load_fs(self, self.config.app.loader_path)
         elif self.config.app.loader == "simple":
@@ -1033,7 +1039,7 @@ class App(ViewApp):
                 raise InvalidCustomLoaderError("custom loader was not set")
 
             collected = self._user_loader(self, self.config.app.loader_path)
-            if not isinstance(routes, CollectionsIterable):
+            if not isinstance(collected, CollectionsIterable):
                 raise InvalidCustomLoaderError(
                     f"expected custom loader to return a list of routes, got {collected!r}"
                 )
