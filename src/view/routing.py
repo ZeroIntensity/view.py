@@ -37,6 +37,7 @@ __all__ = (
     "context",
     "route",
     "websocket",
+    "Route",
 )
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
