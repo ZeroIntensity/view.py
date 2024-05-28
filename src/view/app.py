@@ -38,7 +38,7 @@ from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .build import build_app, build_steps
 from .config import Config, load_config
-from .exceptions import BadEnvironmentError, ViewError, ViewInternalError
+from .exceptions import BadEnvironmentError, ViewError, ViewInternalError, InvalidCustomLoaderError
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
@@ -1002,6 +1002,16 @@ class App(ViewApp):
             load_simple(self, self.config.app.loader_path)
         elif self.config.app.loader == "patterns":
             load_patterns(self, self.config.app.loader_path)
+        elif self.config.app.loader == "custom":
+            if not self._user_loader:
+                raise InvalidCustomLoaderError("custom loader was not set")
+    
+            routes = self._user_loader(self, self.config.app.loader_path)
+            if not isinstance(routes, list):
+                raise InvalidCustomLoaderError(
+                    f"expected custom loader to return a list of routes, got {routes!r}"
+                )
+            finalize(routes, self)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
