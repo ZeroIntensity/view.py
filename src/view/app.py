@@ -131,7 +131,7 @@ class TestingResponse:
   
     @property
     def message(self) -> str:
-        if not self._message:
+        if self._message is None:
             raise RuntimeError("cannot decode content into string")
 
         return self._message
