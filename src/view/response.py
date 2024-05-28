@@ -116,7 +116,10 @@ class Response(Generic[T]):
     def __view_result__(self) -> ViewResult:
         body: str = ""
         if self.translate == "str":
-            body = str(self.body)
+            if isinstance(self.body, bytes):
+                body = self.body.decode()
+            else:
+                body = str(self.body)
         elif self.translate == "repr":
             body = repr(self.body)
         elif self.translate == "custom":
@@ -225,5 +228,5 @@ def to_response(result: ViewResult) -> Response[ResponseBody]:
         res._raw_headers = raw_headers
         return res
 
-    assert isinstance(result, str)
+    assert isinstance(result, (str, bytes))
     return Response(result)
