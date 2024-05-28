@@ -9,7 +9,7 @@ import ujson
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import BodyTranslateStrategy, SameSite, ViewResult
+from .typing import BodyTranslateStrategy, ResponseBody, SameSite, ViewResult
 from .util import timestamp
 
 T = TypeVar("T")
@@ -39,9 +39,7 @@ class Response(Generic[T]):
         if body_translate:
             self.translate = body_translate
         else:
-            self.translate = (
-                "str" if not hasattr(body, "__view_result__") else "result"
-            )
+            self.translate = "str" if not hasattr(body, "__view_result__") else "result"
 
     def _custom(self, body: T) -> str:
         raise NotImplementedError(
@@ -116,7 +114,10 @@ class Response(Generic[T]):
     def __view_result__(self) -> ViewResult:
         body: str = ""
         if self.translate == "str":
-            body = str(self.body)
+            if isinstance(self.body, bytes):
+                body = self.body.decode()
+            else:
+                body = str(self.body)
         elif self.translate == "repr":
             body = repr(self.body)
         elif self.translate == "custom":
@@ -191,7 +192,7 @@ class JSON(Response[Dict[str, Any]]):
         return ujson.dumps(body)
 
 
-def to_response(result: ViewResult) -> Response[str]:
+def to_response(result: ViewResult) -> Response[ResponseBody]:
     """Cast a result from a route function to a `Response` object."""
 
     if hasattr(result, "__view_result__"):
@@ -202,12 +203,12 @@ def to_response(result: ViewResult) -> Response[str]:
         status: int = 200
         headers: dict[str, str] = {}
         raw_headers: list[tuple[bytes, bytes]] = []
-        body: str | None = None
+        body: ResponseBody | None = None
 
         for value in result:
             if isinstance(value, int):
                 status = value
-            elif isinstance(value, str):
+            elif isinstance(value, (str, bytes)):
                 body = value
             elif isinstance(value, dict):
                 headers = value
@@ -225,5 +226,5 @@ def to_response(result: ViewResult) -> Response[str]:
         res._raw_headers = raw_headers
         return res
 
-    assert isinstance(result, str)
+    assert isinstance(result, (str, bytes))
     return Response(result)

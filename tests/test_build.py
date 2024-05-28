@@ -5,11 +5,10 @@ import pytest
 
 from view import new_app
 
+
 @pytest.mark.asyncio
 async def test_build_requirements():
-    app = new_app(
-        config_path=Path.cwd() / "tests" / "configs" / "build_reqs.toml"
-    )
+    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "build_reqs.toml")
 
     @app.get("/")
     async def index():
@@ -20,7 +19,7 @@ async def test_build_requirements():
     @app.get("/foo", steps=("foo",))
     async def wont_work():
         return "shouldn't be here"
-    
+
     @app.get("/customreq", steps=("customreq",))
     async def should_work():
         assert os.path.exists("customreq.test")
@@ -38,12 +37,9 @@ async def test_build_requirements():
         assert os.path.exists("failingreq.test")
 
 
-
 @pytest.mark.asyncio
 async def test_build_scripts():
-    app = new_app(
-        config_path=Path.cwd() / "tests" / "configs" / "build_scripts.toml"
-    )
+    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "build_scripts.toml")
 
     called = False
 
@@ -61,9 +57,7 @@ async def test_build_scripts():
 
 @pytest.mark.asyncio
 async def test_build_commands():
-    app = new_app(
-        config_path=Path.cwd() / "tests" / "configs" / "build_commands.toml"
-    )
+    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "build_commands.toml")
 
     @app.get("/", steps=["fail"])
     async def fail():
@@ -74,12 +68,11 @@ async def test_build_commands():
 
     assert os.path.exists("build.test")
 
+
 @pytest.mark.asyncio
 async def test_build_platform():
-    app = new_app(
-        config_path=Path.cwd() / "tests" / "configs" / "build_platform.toml"
-    )
-    
+    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "build_platform.toml")
+
     @app.get("/", steps=["windowsonly"])
     async def index():
         return "hello world"
@@ -90,4 +83,6 @@ async def test_build_platform():
         else:
             assert (await test.get("/")).status == 500
 
-    assert os.path.exists("linux_build.test" if os.name != "nt" else "windows_build.test")
+    assert os.path.exists(
+        "linux_build.test" if os.name != "nt" else "windows_build.test"
+    )

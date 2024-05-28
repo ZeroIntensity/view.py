@@ -2,7 +2,7 @@
 
 ## Basic Responses
 
-In any web framework, returning a response can be as simple as returning a string of text or quite complex with all sorts of things like server-side rendering. Right out of the box, View supports returning status codes, headers, and a response without any fancy tooling. A response **must** contain a body (this is a `str`), but may also contain a status (`int`) or headers (`dict[str, str]`). These may be in any order.
+In any web framework, returning a response can be as simple as returning a string of text or quite complex with all sorts of things like server-side rendering. Right out of the box, View supports returning status codes, headers, and a response without any fancy tooling. A response **must** contain a body (this is a `str` or `bytes`), but may also contain a status (`int`) or headers (`dict[str, str]`). These may be in any order.
 
 ```py
 from view import new_app
@@ -242,32 +242,50 @@ class ListResponse(Response[list]):
 
 ## Middleware
 
-### What is middleware?
-
-In view.py, middleware is called right before the route is executed, but **not necessarily in the middle.** However, for tradition, View calls it middleware.
-
-The main difference between middleware in view.py and other frameworks is that in view.py, there is no `call_next` function in middleware, and instead just the arguments that would go to the route.
-
-!!! question "Why no `call_next`?"
-
-    view.py doesn't use the `call_next` function because of the nature of it's routing system.
-
 ### The Middleware API
 
-`Route.middleware` is used to define a middleware function for a route.
+`Route.middleware` is used to define a middleware function for a route. Like other web frameworks, middleware functions are given a `call_next`. Note that `call_next` is always asynchronous regardless of whether the route is asynchronous.
 
 ```py
-from view import new_app
+from view import new_app, CallNext
 
 app = new_app()
 
 @app.get("/")
-async def index():
-    ...
+def index():
+    return "my response!"
 
 @index.middleware
-async def index_middleware():
+async def index_middleware(call_next: CallNext):
     print("this is called before index()!")
+    res = await call_next()
+    print("this is called after index()!")
+    return res
+
+app.run()
+```
+
+### Response Parsing
+
+As shown above, `call_next` returns the result of the route. However, dealing with the raw response tuple might be a bit of a hassle. Instead, you can convert the response to a `Response` object using the `to_response` function:
+
+```py
+from view import new_app, CallNext, to_response
+from time import perf_counter
+
+app = new_app()
+
+@app.get("/")
+def index():
+    return "my response!"
+
+@index.middleware
+async def took_time_middleware(call_next: CallNext):
+    a = perf_counter()
+    res = to_response(await call_next())
+    b = perf_counter()
+    res.headers["X-Time-Elapsed"] = str(b - a)
+    return res
 
 app.run()
 ```
@@ -276,7 +294,7 @@ app.run()
 
 Responses can be returned with a string, integer, and/or dictionary in any order.
 
--   The string represents the body of the response (e.g. the HTML or JSON)
+-   The string represents the body of the response (e.g. HTML or JSON)
 -   The integer represents the status code (200 by default)
 -   The dictionary represents the headers (e.g. `{"x-www-my-header": "some value"}`)
 

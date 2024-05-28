@@ -5,8 +5,9 @@ from typing import Union, overload
 import ujson
 from typing_extensions import Self
 
-from .exceptions import WebSocketExpectError, WebSocketHandshakeError
 from _view import ViewWebSocket, register_ws_cls
+
+from .exceptions import WebSocketExpectError, WebSocketHandshakeError
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -23,28 +24,21 @@ class WebSocket:
         self.done: bool = False
 
     @overload
-    async def receive(self, tp: type[str] = str) -> str:
-        ...
+    async def receive(self, tp: type[str] = str) -> str: ...
 
     @overload
-    async def receive(self, tp: type[bytes] = bytes) -> bytes:
-        ...
+    async def receive(self, tp: type[bytes] = bytes) -> bytes: ...
 
     @overload
-    async def receive(self, tp: type[dict] = dict) -> dict:
-        ...
+    async def receive(self, tp: type[dict] = dict) -> dict: ...
 
     @overload
-    async def receive(self, tp: type[int] = int) -> int:
-        ...
+    async def receive(self, tp: type[int] = int) -> int: ...
 
     @overload
-    async def receive(self, tp: type[bool] = bool) -> bool:
-        ...
+    async def receive(self, tp: type[bool] = bool) -> bool: ...
 
-    async def receive(
-        self, tp: type[WebSocketReceivable] = str
-    ) -> WebSocketReceivable:
+    async def receive(self, tp: type[WebSocketReceivable] = str) -> WebSocketReceivable:
         """Receive a message from the WebSocket.
 
         Args:
@@ -71,19 +65,17 @@ class WebSocket:
             return res.encode()
 
         if tp is bool:
-            if (res not in {"True", "true", "False", "false"}) and (
-                not res.isdigit()
-            ):
-                raise WebSocketExpectError(f"expected boolean-like message, got {res!r}")
+            if (res not in {"True", "true", "False", "false"}) and (not res.isdigit()):
+                raise WebSocketExpectError(
+                    f"expected boolean-like message, got {res!r}"
+                )
 
             if res.isdigit():
                 return bool(int(res))
 
             return res in {"True", "true"}
 
-        raise TypeError(
-            f"expected type str, bytes, dict, int, or bool, but got {tp!r}"
-        )
+        raise TypeError(f"expected type str, bytes, dict, int, or bool, but got {tp!r}")
 
     async def send(self, message: WebSocketSendable) -> None:
         """Send a message to the client.
@@ -91,9 +83,7 @@ class WebSocket:
         Args:
             message: Message to send."""
         if not self.open:
-            raise WebSocketHandshakeError(
-                "cannot send to connection that is not open"
-            )
+            raise WebSocketHandshakeError("cannot send to connection that is not open")
         if isinstance(message, (str, bytes)):
             await self.socket.send(message)
         elif isinstance(message, dict):
@@ -114,8 +104,7 @@ class WebSocket:
         *,
         tp: type[str] = str,
         recv_first: bool = False,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     async def pair(
@@ -124,8 +113,7 @@ class WebSocket:
         *,
         tp: type[bytes] = bytes,
         recv_first: bool = False,
-    ) -> bytes:
-        ...
+    ) -> bytes: ...
 
     @overload
     async def pair(
@@ -134,8 +122,7 @@ class WebSocket:
         *,
         tp: type[int] = int,
         recv_first: bool = False,
-    ) -> int:
-        ...
+    ) -> int: ...
 
     @overload
     async def pair(
@@ -144,8 +131,7 @@ class WebSocket:
         *,
         tp: type[dict] = dict,
         recv_first: bool = False,
-    ) -> dict:
-        ...
+    ) -> dict: ...
 
     @overload
     async def pair(
@@ -154,8 +140,7 @@ class WebSocket:
         *,
         tp: type[bool] = bool,
         recv_first: bool = False,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     async def pair(
         self,
@@ -182,9 +167,7 @@ class WebSocket:
     async def close(self) -> None:
         """Close the connection."""
         if not self.open:
-            raise WebSocketHandshakeError(
-                "cannot close connection that isn't open"
-            )
+            raise WebSocketHandshakeError("cannot close connection that isn't open")
 
         self.open = False
         self.done = True

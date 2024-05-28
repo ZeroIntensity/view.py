@@ -2,15 +2,16 @@ from dataclasses import dataclass, field
 from typing import Dict, List, NamedTuple, TypedDict, Union
 
 import attrs
+import pytest
+from leaks import limit_leaks
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
-import pytest
 
 from view import (JSON, BodyParam, Context, Response, body, context, get,
                   new_app, query)
 from view import route as route_impl
 from view.typing import CallNext
-from leaks import limit_leaks
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -20,9 +21,10 @@ async def test_reponses():
     @app.get("/")
     async def index():
         return "hello"
-    
+
     async with app.test() as test:
         assert (await test.get("/")).message == "hello"
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -32,11 +34,12 @@ async def test_status_codes():
     @app.get("/")
     async def index():
         return "error", 400
-    
+
     async with app.test() as test:
         res = await test.get("/")
         assert res.status == 400
         assert res.message == "error"
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -52,6 +55,7 @@ async def test_headers():
         assert res.headers["a"] == "b"
         assert res.message == "hello"
 
+
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
 async def test_combination_of_headers_responses_and_status_codes():
@@ -66,6 +70,7 @@ async def test_combination_of_headers_responses_and_status_codes():
         assert res.status == 201
         assert res.message == "123"
         assert res.headers["a"] == "b"
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -89,6 +94,7 @@ async def test_result_protocol():
         res = await test.get("/multi")
         assert res.message == "hello"
         assert res.status == 201
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -136,6 +142,7 @@ async def test_body_type_validation():
         assert res.status == 404
         assert res.message == "test"
 
+
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
 async def test_query_type_validation():
@@ -182,6 +189,7 @@ async def test_query_type_validation():
         assert res.status == 404
         assert res.message == "test"
 
+
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
 async def test_queries_directly_from_app_and_body():
@@ -202,8 +210,11 @@ async def test_queries_directly_from_app_and_body():
         assert (
             await test.get("/body", body={"name": "test"})
         ).message == "test"
-        assert (await test.get("/body", body={"name": "test"})).message == "test"
-  
+        assert (
+            await test.get("/body", body={"name": "test"})
+        ).message == "test"
+
+
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
 async def test_response_type():
@@ -219,6 +230,7 @@ async def test_response_type():
         assert res.message == "hello world"
         assert res.status == 201
         assert res.headers["hello"] == "world"
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -398,8 +410,8 @@ async def test_non_async_routes():
 
     @app.get("/")
     def index():
-        return "hello world", 201, {"a":"b"}
-    
+        return "hello world", 201, {"a": "b"}
+
     async with app.test() as test:
         res = await test.get("/")
 
@@ -596,7 +608,7 @@ async def test_caching():
         results = [(await test.get("/param_std")).message for _ in range(10)]
         assert all(i == results[0] for i in results)
 
-    
+
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
 async def test_synchronous_route_inputs():
@@ -767,7 +779,7 @@ async def test_methodless_routes():
     async def m(context: Context):
         return context.method
 
-    app.load([m])
+    app.load(m)
 
     async with app.test() as test:
         assert (await test.get("/")).message == "a"
@@ -840,4 +852,22 @@ async def test_body_translate_strategies():
     async with app.test() as test:
         assert (await test.get("/")).message == repr("a")
         assert (await test.get("/result")).message == "{}"
-        assert (await test.get("/custom")).message == "1 2 3" 
+        assert (await test.get("/custom")).message == "1 2 3"
+
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_bytes_response():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return b"\x09 \x09"
+
+    @app.get("/hi")
+    async def hi():
+        return b"hi", 201, {"test": "test"}
+
+    async with app.test() as test:
+        assert (await test.get("/")).content == b"\x09 \x09"
+        assert (await test.get("/hi")).content == b"hi"

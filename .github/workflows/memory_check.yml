@@ -1,0 +1,41 @@
+name: Memory Check
+
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+
+env:
+    PYTHONUNBUFFERED: "1"
+    FORCE_COLOR: "1"
+    PYTHONIOENCODING: "utf8"
+
+jobs:
+    run:
+        name: Valgrind on Ubuntu
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Set up Python 3.12
+              uses: actions/setup-python@v2
+              with:
+                  python-version: 3.12
+
+            - name: Install PyTest
+              run: |
+                  pip install pytest pytest-asyncio
+              shell: bash
+
+            - name: Build project
+              run: pip install .[full]
+
+            - name: Install Valgrind
+              run: sudo apt-get -y install valgrind
+
+            - name: Run tests with Valgrind
+              run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x

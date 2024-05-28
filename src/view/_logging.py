@@ -19,7 +19,8 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
+from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
+                           TextColumn)
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -826,9 +827,7 @@ def _server_logger():
             self.y_label = y
             self.datasets: dict[str, Dataset] = {}
 
-        def dataset(
-            self, name: str, *, point_limit: int | None = None
-        ) -> Dataset:
+        def dataset(self, name: str, *, point_limit: int | None = None) -> Dataset:
             """Generate or create a new dataset.
 
             Args:
@@ -872,9 +871,7 @@ def _server_logger():
         ) -> RenderResult:
             if not plt:
                 return Panel(
-                    shell_hint(
-                        "pip install plotext", "pip install view.py[fancy]"
-                    ),
+                    shell_hint("pip install plotext", "pip install view.py[fancy]"),
                     title="This widget needs an external library!",
                 )
             self._render(options.max_width, options.max_height)
@@ -892,9 +889,7 @@ def _server_logger():
         psutil = None
 
     if psutil:
-        layout["very_corner"].split_column(
-            Panel(system, title="System"), network
-        )
+        layout["very_corner"].split_column(Panel(system, title="System"), network)
     else:
         layout["very_corner"].split_column(
             Panel(

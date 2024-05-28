@@ -11,8 +11,9 @@ import warnings
 import weakref
 from collections.abc import Iterable
 from pathlib import Path
+from types import CodeType as Code
 from types import FrameType as Frame
-from types import FunctionType as Function, CodeType as Code
+from types import FunctionType as Function
 from typing import Any, NoReturn, Union
 
 from rich.markup import escape
@@ -56,9 +57,7 @@ class LoadChecker:
     _view_loaded: bool
 
     def _view_load_check(self) -> None:
-        if (not self._view_loaded) and (
-            not os.environ.get("_VIEW_CANCEL_FINALIZERS")
-        ):
+        if (not self._view_loaded) and (not os.environ.get("_VIEW_CANCEL_FINALIZERS")):
             warnings.warn(f"{self} was never loaded", NotLoadedWarning)
 
     def __post_init__(self) -> None:
@@ -75,9 +74,7 @@ def shell_hint(*commands: str) -> Panel:
     if os.name == "nt":
         shell_prefix = f"{os.getcwd()}>"
     else:
-        shell_prefix = (
-            f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
-        )
+        shell_prefix = f"{getpass.getuser()}@{socket.gethostname()}[bold green]$[/]"
 
     formatted = [f"{shell_prefix} {escape(command)}" for command in commands]
     return Panel.fit(

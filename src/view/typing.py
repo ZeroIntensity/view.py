@@ -1,19 +1,7 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
+                    List, Literal, Tuple, Type, TypeVar, Union)
 
 from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
 
@@ -44,22 +32,22 @@ ResponseHeaders = Union[
     List[RawResponseHeader],
     Tuple[RawResponseHeader, ...],
 ]
+ResponseBody = Union[str, bytes]
 
-_ViewResponseTupleA = Tuple[str, int, ResponseHeaders]
-_ViewResponseTupleB = Tuple[int, str, ResponseHeaders]
-_ViewResponseTupleC = Tuple[str, ResponseHeaders, int]
-_ViewResponseTupleD = Tuple[int, ResponseHeaders, str]
-_ViewResponseTupleE = Tuple[ResponseHeaders, str, int]
-_ViewResponseTupleF = Tuple[ResponseHeaders, int, str]
-_ViewResponseTupleG = Tuple[str, ResponseHeaders]
-_ViewResponseTupleH = Tuple[ResponseHeaders, str]
-_ViewResponseTupleI = Tuple[str, int]
-_ViewResponseTupleJ = Tuple[int, str]
+_ViewResponseTupleA = Tuple[ResponseBody, int, ResponseHeaders]
+_ViewResponseTupleB = Tuple[int, ResponseBody, ResponseHeaders]
+_ViewResponseTupleC = Tuple[ResponseBody, ResponseHeaders, int]
+_ViewResponseTupleD = Tuple[int, ResponseHeaders, ResponseBody]
+_ViewResponseTupleE = Tuple[ResponseHeaders, ResponseBody, int]
+_ViewResponseTupleF = Tuple[ResponseHeaders, int, ResponseBody]
+_ViewResponseTupleG = Tuple[ResponseBody, ResponseHeaders]
+_ViewResponseTupleH = Tuple[ResponseHeaders, ResponseBody]
+_ViewResponseTupleI = Tuple[ResponseBody, int]
+_ViewResponseTupleJ = Tuple[int, ResponseBody]
 
 
 class SupportsViewResult(Protocol):
-    def __view_result__(self) -> ViewResult:
-        ...
+    def __view_result__(self) -> ViewResult: ...
 
 
 ViewResult = Union[
@@ -73,9 +61,9 @@ ViewResult = Union[
     _ViewResponseTupleH,
     _ViewResponseTupleI,
     _ViewResponseTupleJ,
-    str,
+    ResponseBody,
     SupportsViewResult,
-    None
+    None,
 ]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")
@@ -115,8 +103,7 @@ class _SupportsViewBodyCV(Protocol):
 
 class _SupportsViewBodyF(Protocol):
     @staticmethod
-    def __view_body__() -> ViewBody:
-        ...
+    def __view_body__() -> ViewBody: ...
 
 
 ViewBodyLike = Union[_SupportsViewBodyCV, _SupportsViewBodyF]

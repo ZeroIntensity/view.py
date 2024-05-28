@@ -20,6 +20,13 @@ static int find_result_for(
         *res_str = strdup(tmp);
     } else if (Py_IS_TYPE(
         target,
+        &PyBytes_Type
+               )) {
+        const char* tmp = PyBytes_AsString(target);
+        if (!tmp) return -1;
+        *res_str = strdup(tmp);
+    } else if (Py_IS_TYPE(
+        target,
         &PyDict_Type
                )) {
         PyObject* item;
@@ -63,8 +70,6 @@ static int find_result_for(
                 return -1;
             };
 
-            Py_DECREF(item_bytes);
-
             PyObject* v_bytes = PyBytes_FromString(v_str);
 
             if (!v_bytes) {
@@ -80,8 +85,6 @@ static int find_result_for(
                 Py_DECREF(header_list);
                 return -1;
             };
-
-            Py_DECREF(v_bytes);
 
             if (PyList_Append(
                 headers,
@@ -131,7 +134,7 @@ static int find_result_for(
     } else {
         PyErr_SetString(
             PyExc_TypeError,
-            "returned tuple should only contain a str, int, or dict"
+            "returned tuple should only contain a str, bytes, int, or dict"
         );
         return -1;
     }
@@ -166,6 +169,10 @@ static int handle_result_impl(
         result
         )) {
         const char* tmp = PyUnicode_AsUTF8(result);
+        if (!tmp) return -1;
+        res_str = strdup(tmp);
+    } else if (PyBytes_CheckExact(result)) {
+        const char* tmp = PyBytes_AsString(result);
         if (!tmp) return -1;
         res_str = strdup(tmp);
     } else if (PyTuple_CheckExact(
@@ -254,7 +261,11 @@ int handle_result(
         method
     );
 
-    if (!PyObject_Call(route_log, args, NULL)) {
+    if (!PyObject_Call(
+        route_log,
+        args,
+        NULL
+        )) {
         Py_DECREF(args);
         return -1;
     }

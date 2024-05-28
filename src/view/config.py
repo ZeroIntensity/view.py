@@ -5,9 +5,9 @@ import sys
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union
-from typing_extensions import TypeAlias
 
 from configzen import ConfigField, ConfigModel, field_validator
+from typing_extensions import TypeAlias
 
 from .exceptions import ViewInternalError
 from .logging import FileWriteMethod, Urgency
@@ -29,6 +29,7 @@ __all__ = (
     "make_preset",
     "load_config",
 )
+
 
 # https://github.com/python/mypy/issues/11036
 class AppConfig(ConfigModel, env_prefix="view_app_"):  # type: ignore
@@ -74,9 +75,7 @@ class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):  # type: ignore
 
 
 class LogConfig(ConfigModel, env_prefix="view_log_"):  # type: ignore
-    level: Union[
-        Literal["debug", "info", "warning", "error", "critical"], int
-    ] = "info"
+    level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
     fancy: bool = True
     server_logger: bool = False
     pretty_tracebacks: bool = True
@@ -125,7 +124,11 @@ class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):  # type: ignor
     globals: bool = True
     engine: TemplateEngine = "view"
 
-Platform: TypeAlias = Literal["windows", "mac", "linux", "macOS", "Windows", "Linux", "Mac", "MacOS"]
+
+Platform: TypeAlias = Literal[
+    "windows", "mac", "linux", "macOS", "Windows", "Linux", "Mac", "MacOS"
+]
+
 
 class BuildStep(ConfigModel):  # type: ignore
     platform: Union[List[Platform], Platform, None] = None
@@ -137,7 +140,9 @@ class BuildStep(ConfigModel):  # type: ignore
 class BuildConfig(ConfigModel, env_prefix="view_build_"):  # type: ignore
     path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
-    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = ConfigField(default_factory=dict)
+    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = ConfigField(
+        default_factory=dict
+    )
     parallel: bool = False
 
 

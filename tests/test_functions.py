@@ -2,11 +2,14 @@ import os
 from dataclasses import dataclass
 from typing import Dict
 
+import pytest
+from leaks import limit_leaks
 from typing_extensions import Annotated
 
-import pytest
-from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app
-from leaks import limit_leaks
+from view import (App, BadEnvironmentError, TypeValidationError, compile_type,
+                  env, get_app, new_app, to_response)
+from view.typing import CallNext
+
 
 @limit_leaks("1 MB")
 def test_app_creation():
@@ -118,7 +121,7 @@ async def test_environment_variables():
     assert env("_TEST") == "1"
     assert env("_TEST", tp=int) == 1
     os.environ["_TEST2"] = '{"hello": "world"}'
-    
+
     test2 = env("_TEST2", tp=dict)
     assert isinstance(test2, dict)
     assert test2["hello"] == "world"
@@ -126,4 +129,35 @@ async def test_environment_variables():
     os.environ["_TEST3"] = "false"
     assert env("_TEST3", tp=bool) is False
 
-    
+
+@pytest.mark.asyncio
+async def test_to_response():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return "hello", 201, {"a": "b"}
+
+    @app.get("/bytes")
+    async def other():
+        return b"test", {"hello": "world"}
+
+    @index.middleware
+    async def middleware(call_next: CallNext):
+        res = to_response(await call_next())
+        assert res.body == "hello"
+        assert res.status == 201
+        assert res.headers == {"a": "b"}
+        res.body = "goodbye"
+        return res
+
+    @other.middleware
+    async def other_middleware(call_next: CallNext):
+        res = to_response(await call_next())
+        assert res.body == b"test"
+        assert res.headers == {"hello": "world"}
+        return res
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "goodbye"
+        assert (await test.get("/bytes")).message == "test"

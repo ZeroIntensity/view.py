@@ -40,24 +40,19 @@ NoneType = type(None)
 
 class _Connection(ABC):
     @abstractmethod
-    async def connect(self) -> None:
-        ...
+    async def connect(self) -> None: ...
 
     @abstractmethod
-    async def close(self) -> None:
-        ...
+    async def close(self) -> None: ...
 
     @abstractmethod
-    async def insert(self, table: str, json: dict) -> None:
-        ...
+    async def insert(self, table: str, json: dict) -> None: ...
 
     @abstractmethod
-    async def find(self, table: str, json: dict) -> None:
-        ...
+    async def find(self, table: str, json: dict) -> None: ...
 
     @abstractmethod
-    async def migrate(self, table: str, vbody: dict) -> None:
-        ...
+    async def migrate(self, table: str, vbody: dict) -> None: ...
 
 
 _SQL_TYPES: dict[type, str] = {
@@ -134,7 +129,9 @@ class _PostgresConnection(_Connection):
 
     async def connect(self) -> None:
         try:
-            self.connection = await asyncio.to_thread(self.create_database_connection)
+            self.connection = await asyncio.to_thread(
+                self.create_database_connection
+            )
             self.cursor = await asyncio.to_thread(self.connection.cursor)  # type: ignore
         except psycopg2.Error as e:
             raise ValueError(
@@ -166,11 +163,9 @@ class _SQLiteConnection(_Connection):
             self.connection = None
             self.cursor = None
 
-    async def insert(self, table: str, json: dict) -> None:
-        ...
+    async def insert(self, table: str, json: dict) -> None: ...
 
-    async def find(self, table: str, json: dict) -> None:
-        ...
+    async def find(self, table: str, json: dict) -> None: ...
 
     async def migrate(self, table: str, vbody: dict):
         assert self.cursor is not None
@@ -287,11 +282,14 @@ class Model:
                 setattr(self, k, args[index])
 
     def __init_subclass__(cls, **kwargs: Any):
-        cls.__view_table__ = kwargs.get("table") or ("vpy_" + cls.__name__.lower())
+        cls.__view_table__ = kwargs.get("table") or (
+            "vpy_" + cls.__name__.lower()
+        )
         model_hints = get_type_hints(Model)
         actual_hints = get_type_hints(cls)
         params = {
-            k: actual_hints[k] for k in (model_hints.keys() ^ actual_hints.keys())
+            k: actual_hints[k]
+            for k in (model_hints.keys() ^ actual_hints.keys())
         }
 
         for k, v in params.items():
@@ -308,30 +306,24 @@ class Model:
     __str__ = __repr__
 
     @classmethod
-    def find(cls) -> list[Self]:
-        ...
+    def find(cls) -> list[Self]: ...
 
     @classmethod
-    def unique(cls) -> Self:
-        ...
+    def unique(cls) -> Self: ...
 
-    def exists(self) -> bool:
-        ...
+    def exists(self) -> bool: ...
 
     def save(self) -> None:
         conn = self._assert_conn()
 
         conn.insert(self.__view_table__, self._json())
 
-    def _json(self) -> dict[str, Any]:
-        ...
+    def _json(self) -> dict[str, Any]: ...
 
-    def json(self) -> dict[str, Any]:
-        ...
+    def json(self) -> dict[str, Any]: ...
 
     @classmethod
-    def from_json(cls, json: dict[str, Any]) -> Self:
-        ...
+    def from_json(cls, json: dict[str, Any]) -> Self: ...
 
     @classmethod
     def _assert_conn(cls) -> _Connection:

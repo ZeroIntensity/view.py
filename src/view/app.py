@@ -9,6 +9,7 @@ import os
 import sys
 import warnings
 import weakref
+from collections.abc import Iterable as CollectionsIterable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from functools import lru_cache
@@ -18,15 +19,14 @@ from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, AsyncIterator, Callable, Coroutine, Generic,
-                    TextIO, TypeVar, get_type_hints, overload, Iterable)
+from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
+                    TextIO, TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
-from collections.abc import Iterable as CollectionsIterable
 
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, Unpack
+from typing_extensions import ParamSpec, TypeAlias, Unpack
 
 from _view import InvalidStatusError, ViewApp
 
@@ -39,7 +39,8 @@ from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .build import build_app, build_steps
 from .config import Config, load_config
-from .exceptions import BadEnvironmentError, ViewError, ViewInternalError, InvalidCustomLoaderError
+from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
+                         ViewError, ViewInternalError)
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
@@ -116,11 +117,25 @@ ERROR_CODES: tuple[int, ...] = (
 )
 
 
-@dataclass()
 class TestingResponse:
-    message: str
-    headers: dict[str, str]
-    status: int
+    def __init__(
+        self,
+        message: str | None,
+        headers: dict[str, str],
+        status: int,
+        content: bytes,
+    ) -> None:
+        self._message = message
+        self.headers = headers
+        self.status = status
+        self.content = content
+
+    @property
+    def message(self) -> str:
+        if self._message is None:
+            raise RuntimeError("cannot decode content into string")
+
+        return self._message
 
 
 def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
@@ -197,7 +212,7 @@ class TestingContext:
         async def receive():
             return await self._lifespan.get()
 
-        async def send(obj: dict[str, Any]):
+        async def send(_: dict[str, Any]):
             pass
 
         await self.app({"type": "lifespan"}, receive, send)
@@ -225,7 +240,7 @@ class TestingContext:
         query: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        body_q: asyncio.Queue[str] = asyncio.Queue()
+        body_q: asyncio.Queue[bytes] = asyncio.Queue()
         start: asyncio.Queue[tuple[dict[str, str], int]] = asyncio.Queue()
 
         async def receive():
@@ -244,7 +259,8 @@ class TestingContext:
                     )
                 )
             elif obj["type"] == "http.response.body":
-                await body_q.put(obj["body"].decode())
+                assert isinstance(obj["body"], bytes)
+                await body_q.put(obj["body"])
             else:
                 raise ViewInternalError(f"bad type: {obj['type']}")
 
@@ -255,7 +271,6 @@ class TestingContext:
         await self.app(
             {
                 "type": "http",
-                "http_version": "1.1",
                 "path": truncated_route,
                 "query_string": (
                     urlencode(query_str).encode() if query else b""
@@ -272,9 +287,14 @@ class TestingContext:
         )
 
         res_headers, status = await start.get()
-        body_s = await body_q.get()
+        body_b = await body_q.get()
 
-        return TestingResponse(body_s, res_headers, status)
+        try:
+            body_s: str | None = body_b.decode()
+        except UnicodeError:
+            body_s = None
+
+        return TestingResponse(body_s, res_headers, status, body_b)
 
     async def get(
         self,
@@ -599,7 +619,7 @@ class App(ViewApp):
 
     def custom_loader(self, loader: CustomLoader):
         self._user_loader = loader
-  
+
     def _method_wrapper(
         self,
         path: str,
@@ -987,7 +1007,7 @@ class App(ViewApp):
     async def _app(self, scope, receive, send) -> None:
         return await self.asgi_app_entry(scope, receive, send)
 
-    def load(self, routes: list[Route] | None = None) -> None:
+    def load(self, *routes: Route) -> None:
         """Load the app. This is automatically called most of the time and should only be called manually during manual loading.
 
         Args:
@@ -1002,6 +1022,12 @@ class App(ViewApp):
         if routes and (self.config.app.loader != "manual"):
             warnings.warn(_ROUTES_WARN_MSG)
 
+        for index, i in enumerate(routes):
+            if not isinstance(i, Route):
+                raise TypeError(
+                    f"(index {index}) expected Route object, got {i}"
+                )
+
         if self.config.app.loader == "filesystem":
             load_fs(self, self.config.app.loader_path)
         elif self.config.app.loader == "simple":
@@ -1011,13 +1037,13 @@ class App(ViewApp):
         elif self.config.app.loader == "custom":
             if not self._user_loader:
                 raise InvalidCustomLoaderError("custom loader was not set")
-    
-            routes = self._user_loader(self, self.config.app.loader_path)
-            if not isinstance(routes, CollectionsIterable):
+
+            collected = self._user_loader(self, self.config.app.loader_path)
+            if not isinstance(collected, CollectionsIterable):
                 raise InvalidCustomLoaderError(
-                    f"expected custom loader to return a list of routes, got {routes!r}"
+                    f"expected custom loader to return a list of routes, got {collected!r}"
                 )
-            finalize([i for i in routes], self)
+            finalize(collected, self)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
@@ -1198,9 +1224,7 @@ class App(ViewApp):
             )
             # mypy thinks asyncio.to_thread doesn't exist for some reason
             return start(
-                self._spawn(
-                    asyncio.to_thread(daphne_server.run)  # type: ignore
-                )
+                self._spawn(asyncio.to_thread(daphne_server.run))  # type: ignore
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -1329,7 +1353,9 @@ class App(ViewApp):
 
         return None
 
+
 _last_app: App | None = None
+
 
 def new_app(
     *,

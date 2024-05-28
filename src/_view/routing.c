@@ -443,7 +443,6 @@ int handle_route_callback(
     if (!dct)
         return -1;
 
-
     coro = PyObject_Vectorcall(
         send,
         (PyObject*[]) { dct },

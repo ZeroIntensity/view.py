@@ -1,7 +1,7 @@
 import pytest
+from leaks import limit_leaks
 
 from view import ERROR_CODES, Error, InvalidStatusError, new_app
-from leaks import limit_leaks
 
 STATUS_CODES = (
     200,
