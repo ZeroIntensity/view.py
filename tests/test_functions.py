@@ -137,7 +137,7 @@ async def test_to_response():
 
     @app.get("/bytes")
     async def other():
-        return b"hello", {"hello": "world"}
+        return b"test", {"hello": "world"}
 
     @index.middleware
     async def middleware(call_next: CallNext):
@@ -151,10 +151,10 @@ async def test_to_response():
     @other.middleware
     async def other_middleware(call_next: CallNext):
         res = to_response(await call_next())
-        assert res.body == b"hello"
+        assert res.body == b"test"
         assert res.headers == {"hello": "world"}
         return res
     
     async with app.test() as test:
         assert (await test.get("/")).message == "goodbye"
-        assert (await test.get("/bytes")).message == "hello"
+        assert (await test.get("/bytes")).message == "test"
