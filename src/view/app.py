@@ -1371,7 +1371,7 @@ def new_app(
 
     weakref.finalize(app, finalizer)
 
-    if store_address:
+    if store:
         _last_app = app
 
     return app
