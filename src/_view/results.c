@@ -70,8 +70,6 @@ static int find_result_for(
                 return -1;
             };
 
-            Py_DECREF(item_bytes);
-
             PyObject* v_bytes = PyBytes_FromString(v_str);
 
             if (!v_bytes) {
