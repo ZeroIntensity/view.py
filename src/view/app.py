@@ -1371,7 +1371,7 @@ def new_app(
 
     weakref.finalize(app, finalizer)
 
-    if store_address:
+    if store:
         os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
         # id() on cpython returns the address, but it is
         # implementation dependent however, view.py
