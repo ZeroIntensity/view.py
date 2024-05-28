@@ -8,7 +8,7 @@ import warnings
 from asyncio import subprocess
 from collections.abc import Coroutine
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple, NoReturn, Any
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
 import aiofiles
 import aiofiles.os
@@ -22,9 +22,14 @@ if TYPE_CHECKING:
 import platform
 
 from .config import BuildStep, Platform
-from .exceptions import (BuildError, BuildWarning, MissingRequirementError,
-                         PlatformNotSupportedError, UnknownBuildStepError,
-                         ViewInternalError)
+from .exceptions import (
+    BuildError,
+    BuildWarning,
+    MissingRequirementError,
+    PlatformNotSupportedError,
+    UnknownBuildStepError,
+    ViewInternalError,
+)
 from .response import to_response
 
 __all__ = "build_steps", "build_app"
@@ -160,7 +165,9 @@ async def _check_requirement(req: str) -> None:
         if reqfunc:
             res = await reqfunc()
             if res is False:
-                raise MissingRequirementError(f"Requirement script in module {target} returned non-True")
+                raise MissingRequirementError(
+                    f"Requirement script in module {target} returned non-True"
+                )
     elif prefix == "script":
         path = Path(target)
         if (not path.exists()) or (not path.is_file()):
@@ -170,7 +177,9 @@ async def _check_requirement(req: str) -> None:
 
         res = await _call_script(path, call_func="__view_requirement__")
         if res is False:
-            raise MissingRequirementError(f"Requirement script at {path} returned non-True")
+            raise MissingRequirementError(
+                f"Requirement script at {path} returned non-True"
+            )
     elif prefix == "path":
         if not Path(target).exists():
             raise MissingRequirementError(f"{target} does not exist")
@@ -179,6 +188,7 @@ async def _check_requirement(req: str) -> None:
             raise MissingRequirementError(f"{target} is not installed")
     else:
         raise BuildError(f"Invalid requirement prefix: {prefix}")
+
 
 _PLATFORMS: dict[str, list[Platform]] = {
     "Linux": ["linux", "Linux"],
@@ -206,11 +216,13 @@ def _is_platform_compatible(plat: Platform | list[Platform] | None) -> bool:
 
     return plat in names
 
+
 def _invalid_platform(name: str) -> NoReturn:
     system = platform.system()
     raise PlatformNotSupportedError(
         f"build step {name!r} does not support {system.lower()}"
     )
+
 
 async def _build_step(step: _BuildStepWithName) -> None:
     if step.step.platform:
@@ -305,7 +317,7 @@ async def build_steps(app: App) -> None:
             await _build_step(step)
 
 
-def _handle_result(res: ViewResult) -> str:
+def _handle_result(res: ViewResult) -> str | bytes:
     response = to_response(res)
     return response.body
 
@@ -314,10 +326,10 @@ async def _compile_routes(
     app: App,
     *,
     should_await: bool = False,
-) -> dict[str, str]:
+) -> dict[str, str | bytes]:
     from .routing import Method
 
-    results: dict[str, str] = {}
+    results: dict[str, str | bytes] = {}
     coros: list[Coroutine] = []
 
     for i in app.loaded_routes:
@@ -326,17 +338,13 @@ async def _compile_routes(
             continue
 
         if not i.path:
-            warnings.warn(
-                f"{i} needs path parameters, skipping it", BuildWarning
-            )
+            warnings.warn(f"{i} needs path parameters, skipping it", BuildWarning)
             continue
 
         Internal.info(f"Calling GET {i.path}")
 
         if i.inputs:
-            warnings.warn(
-                f"{i.path} needs a route input, skipping it", BuildWarning
-            )
+            warnings.warn(f"{i.path} needs a route input, skipping it", BuildWarning)
             continue
 
         res = i.func()  # type: ignore
@@ -387,8 +395,12 @@ async def build_app(app: App, *, path: Path | None = None) -> None:
             await aiofiles.os.mkdir(directory)
             Internal.info(f"Created {directory}")
 
-        async with aiofiles.open(file, "w", encoding="utf-8") as f:
-            await f.write(content)
+        if isinstance(content, str):
+            async with aiofiles.open(file, "w", encoding="utf-8") as f:
+                await f.write(content)
+        else:
+            async with aiofiles.open(file, "wb") as f:
+                await f.write(content)
         Internal.info(f"Created {file}")
 
     Internal.info("Successfully built app")

@@ -8,9 +8,7 @@ GitHub: https://github.com/zerointensity/view.py
 try:
     import _view
 except ModuleNotFoundError as e:
-    raise ImportError(
-        "_view has not been built, did you forget to compile it?"
-    ) from e
+    raise ImportError("_view has not been built, did you forget to compile it?") from e
 
 # these are re-exports
 from _view import Context, InvalidStatusError

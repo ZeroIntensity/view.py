@@ -8,8 +8,17 @@ from collections.abc import Awaitable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
-                    Union, overload)
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    Literal,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from typing_extensions import ParamSpec, TypeAlias
 
@@ -17,8 +26,16 @@ from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .build import run_step
 from .exceptions import InvalidRouteError, MistakeError
-from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
-                     ValueType, ViewResult, ViewRoute, WebSocketRoute)
+from .typing import (
+    TYPE_CHECKING,
+    Middleware,
+    StrMethod,
+    Validator,
+    ValueType,
+    ViewResult,
+    ViewRoute,
+    WebSocketRoute,
+)
 
 if TYPE_CHECKING:
     from .app import App
@@ -205,8 +222,7 @@ def route_types(
         route.extra_types[data.__name__] = data
     else:
         raise InvalidRouteError(
-            "expected type, tuple of tuples,"
-            f" or a dict, got {type(data).__name__}"
+            "expected type, tuple of tuples," f" or a dict, got {type(data).__name__}"
         )
 
     return route
@@ -238,17 +254,13 @@ def _method(
     if not util_path.startswith("/"):
         raise MistakeError(
             "paths must started with a slash",
-            hint=make_hint(
-                f'This should be "/{util_path}" instead', back_lines=2
-            ),
+            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2),
         )
 
     if util_path.endswith("/") and (len(util_path) != 1):
         raise MistakeError(
             "paths must not end with a slash",
-            hint=make_hint(
-                f'This should be "{util_path[:-1]}" instead', back_lines=2
-            ),
+            hint=make_hint(f'This should be "{util_path[:-1]}" instead', back_lines=2),
         )
 
     if "{" in util_path:
@@ -614,9 +626,7 @@ def route(
         doc,
         None,
         cache_rate,
-        method_list=[_STR_METHOD_MAPPING[i] for i in methods]
-        if methods
-        else None,
+        method_list=[_STR_METHOD_MAPPING[i] for i in methods] if methods else None,
         steps=steps,
         parallel_build=parallel_build,
     )
@@ -720,15 +730,13 @@ def body(
 @overload
 def context(
     r_or_none: RouteOrCallable[P],
-) -> Route[P]:
-    ...
+) -> Route[P]: ...
 
 
 @overload
 def context(
     r_or_none: None = None,
-) -> Callable[[RouteOrCallable[P]], Route[P]]:
-    ...
+) -> Callable[[RouteOrCallable[P]], Route[P]]: ...
 
 
 def context(

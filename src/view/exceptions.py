@@ -132,14 +132,18 @@ class UnknownBuildStepError(BuildError):
 class PlatformNotSupportedError(BuildError):
     """Build step does not support the platform."""
 
+
 class WebSocketError(ViewError):
     """Something related to a WebSocket failed."""
+
 
 class WebSocketHandshakeError(WebSocketError):
     """WebSocket handshake went wrong somehow."""
 
+
 class WebSocketExpectError(WebSocketError, AssertionError, TypeError):
     """WebSocket received unexpected message."""
+
 
 class InvalidCustomLoaderError(ViewError):
     """Custom loader is invalid."""

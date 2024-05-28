@@ -1,6 +1,14 @@
 import pytest
-from view import WebSocket, new_app, websocket, WebSocketExpectError, WebSocketHandshakeError, InvalidRouteError
+from view import (
+    WebSocket,
+    new_app,
+    websocket,
+    WebSocketExpectError,
+    WebSocketHandshakeError,
+    InvalidRouteError,
+)
 from leaks import limit_leaks
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -21,6 +29,7 @@ async def test_websocket_echo_server():
             assert (await ws.receive()) == "hello"
             await ws.send("world")
             assert (await ws.receive()) == "world"
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -102,6 +111,7 @@ async def test_websocket_receiving_casts():
             await ws.send("bar")
             await ws.send("2")
 
+
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
 async def test_websocket_handshake_errors():
@@ -122,7 +132,7 @@ async def test_websocket_handshake_errors():
 
         with pytest.raises(WebSocketHandshakeError):
             await ws.accept()
-        
+
         with pytest.raises(WebSocketHandshakeError):
             await ws.close()
 
@@ -136,13 +146,13 @@ async def test_websocket_handshake_errors():
         async with test.websocket("/") as ws:
             assert (await ws.receive()) == "test"
 
+
 def test_disallow_body_inputs():
     app = new_app()
 
     @app.websocket("/")
     @app.body("foo", str)
-    async def whatever(ws: WebSocket, foo: str):
-        ...
+    async def whatever(ws: WebSocket, foo: str): ...
 
     with pytest.raises(InvalidRouteError):
         app.load()

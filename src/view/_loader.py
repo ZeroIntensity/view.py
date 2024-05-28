@@ -5,8 +5,15 @@ import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
-                    get_args, get_type_hints)
+from typing import (
+    TYPE_CHECKING,
+    ForwardRef,
+    Iterable,
+    NamedTuple,
+    TypedDict,
+    get_args,
+    get_type_hints,
+)
 
 from _view import Context
 
@@ -16,19 +23,24 @@ if not TYPE_CHECKING:
     from typing import _eval_type
 else:
 
-    def _eval_type(*args) -> Any:
-        ...
+    def _eval_type(*args) -> Any: ...
 
 
 import inspect
 
+from typing_extensions import get_origin
+
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
-from .exceptions import (DuplicateRouteError, InvalidBodyError,
-                         InvalidRouteError, LoaderWarning,
-                         UnknownBuildStepError, ViewInternalError)
-from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
-                      _NoDefault)
+from .exceptions import (
+    DuplicateRouteError,
+    InvalidBodyError,
+    InvalidRouteError,
+    LoaderWarning,
+    UnknownBuildStepError,
+    ViewInternalError,
+)
+from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired: Any = None
@@ -38,7 +50,6 @@ except ImportError:
     NotRequired = None
     from typing_extensions import NotRequired as ExtNotRequired
 
-from typing_extensions import get_origin
 
 _NOT_REQUIRED_TYPES: list[Any] = []
 
@@ -193,7 +204,7 @@ def _build_type_codes(
 
     for tp in inp:
         tps: dict[str, type[Any] | BodyParam]
-    
+
         if is_annotated(tp):
             if doc is None:
                 raise InvalidBodyError(f"Annotated is not valid here ({tp})")
@@ -222,7 +233,7 @@ def _build_type_codes(
             codes.append((type_code, None, []))
             continue
 
-        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (
+        if (TypedDict in getattr(tp, "__orig_bases__", [])) or (  # type: ignore
             type(tp) == _TypedDictMeta
         ):
             try:
@@ -347,9 +358,7 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append(
-                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
-            )
+            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -363,9 +372,7 @@ def _build_type_codes(
             key, value = get_args(tp)
 
             if key is not str:
-                raise InvalidBodyError(
-                    f"dictionary keys must be strings, not {key}"
-                )
+                raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
 
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
@@ -405,7 +412,7 @@ def _format_inputs(
     return result
 
 
-def finalize(routes: list[Route], app: ViewApp):
+def finalize(routes: Iterable[Route], app: ViewApp):
     """Attach list of routes to an app and validate all parameters.
 
     Args:
@@ -433,9 +440,7 @@ def finalize(routes: list[Route], app: ViewApp):
 
         for step in route.steps or []:
             if step not in app.config.build.steps:
-                raise UnknownBuildStepError(
-                    f"build step {step!r} is not defined"
-                )
+                raise UnknownBuildStepError(f"build step {step!r} is not defined")
 
         if route.method:
             target = targets[route.method]
@@ -444,7 +449,9 @@ def finalize(routes: list[Route], app: ViewApp):
                 for i in route.inputs:
                     if isinstance(i, RouteInput):
                         if i.is_body:
-                            raise InvalidRouteError(f"websocket routes cannot have body inputs")
+                            raise InvalidRouteError(
+                                f"websocket routes cannot have body inputs"
+                            )
         else:
             target = None
 
@@ -466,7 +473,6 @@ def finalize(routes: list[Route], app: ViewApp):
         sig = inspect.signature(route.func)
         route.inputs = [i for i in reversed(route.inputs)]
 
-
         if len(sig.parameters) != len(route.inputs):
             names = [i.name for i in route.inputs if isinstance(i, RouteInput)]
             index = 0
@@ -482,9 +488,7 @@ def finalize(routes: list[Route], app: ViewApp):
                     route.inputs.insert(index, 1)
                     continue
 
-                default = (
-                    v.default if v.default is not inspect._empty else _NoDefault
-                )
+                default = v.default if v.default is not inspect._empty else _NoDefault
 
                 route.inputs.insert(
                     index,
@@ -578,9 +582,7 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(
-                        path_obj.parts[len(target_dir.parts) :]
-                    )  # noqa
+                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -633,8 +635,7 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
             for route in mini_routes:
                 if not route.path:
                     raise InvalidRouteError(
-                        "omitting path is only supported"
-                        " on filesystem loading",
+                        "omitting path is only supported" " on filesystem loading",
                     )
 
                 routes.append(route)

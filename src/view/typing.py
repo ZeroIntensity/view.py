@@ -59,8 +59,7 @@ _ViewResponseTupleJ = Tuple[int, ResponseBody]
 
 
 class SupportsViewResult(Protocol):
-    def __view_result__(self) -> ViewResult:
-        ...
+    def __view_result__(self) -> ViewResult: ...
 
 
 ViewResult = Union[
@@ -76,7 +75,7 @@ ViewResult = Union[
     _ViewResponseTupleJ,
     str,
     SupportsViewResult,
-    None
+    None,
 ]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")
@@ -116,8 +115,7 @@ class _SupportsViewBodyCV(Protocol):
 
 class _SupportsViewBodyF(Protocol):
     @staticmethod
-    def __view_body__() -> ViewBody:
-        ...
+    def __view_body__() -> ViewBody: ...
 
 
 ViewBodyLike = Union[_SupportsViewBodyCV, _SupportsViewBodyF]

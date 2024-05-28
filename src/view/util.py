@@ -82,6 +82,7 @@ EnvConv = Union[str, int, bool, dict]
 
 # good god why does mypy suck at the very thing it's designed to do
 
+
 @overload
 def env(key: str, *, tp: type[str] = str) -> str:  # type: ignore
     ...
@@ -139,7 +140,9 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
         try:
             return int(value)
         except ValueError:
-            raise BadEnvironmentError(f"{value!r} (key {key!r}) is not int-like") from None
+            raise BadEnvironmentError(
+                f"{value!r} (key {key!r}) is not int-like"
+            ) from None
 
     if tp is dict:
         try:

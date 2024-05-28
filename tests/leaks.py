@@ -2,6 +2,7 @@ import platform
 from typing import Callable
 import pytest
 
+
 def limit_leaks(memstring: str):
     def decorator(func: Callable):
         if platform.system() != "Windows":
@@ -9,4 +10,5 @@ def limit_leaks(memstring: str):
             return func
         else:
             return func
+
     return decorator

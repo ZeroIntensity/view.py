@@ -2,7 +2,19 @@ from pathlib import Path
 
 import pytest
 from typing import List
-from view import delete, get, new_app, options, patch, post, put, App, Route, InvalidCustomLoaderError
+from view import (
+    delete,
+    get,
+    new_app,
+    options,
+    patch,
+    post,
+    put,
+    App,
+    Route,
+    InvalidCustomLoaderError,
+)
+
 
 @pytest.mark.asyncio
 async def test_manual_loader():

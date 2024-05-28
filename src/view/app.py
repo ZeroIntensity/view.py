@@ -9,6 +9,7 @@ import os
 import sys
 import warnings
 import weakref
+from collections.abc import Iterable as CollectionsIterable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from functools import lru_cache
@@ -18,33 +19,60 @@ from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, AsyncIterator, Callable, Coroutine, Generic,
-                    TextIO, TypeVar, get_type_hints, overload, Iterable)
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Generic,
+    Iterable,
+    TextIO,
+    TypeVar,
+    get_type_hints,
+    overload,
+)
 from urllib.parse import urlencode
-from collections.abc import Iterable as CollectionsIterable
 
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, Unpack
+from typing_extensions import ParamSpec, TypeAlias, Unpack
 
 from _view import InvalidStatusError, ViewApp
 
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
-                       format_warnings)
+from ._logging import (
+    LOGS,
+    Internal,
+    Service,
+    enter_server,
+    exit_server,
+    format_warnings,
+)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .build import build_app, build_steps
 from .config import Config, load_config
-from .exceptions import BadEnvironmentError, ViewError, ViewInternalError, InvalidCustomLoaderError
+from .exceptions import (
+    BadEnvironmentError,
+    InvalidCustomLoaderError,
+    ViewError,
+    ViewInternalError,
+)
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
-from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
-                      _NoDefault, _NoDefaultType)
+from .routing import (
+    Route,
+    RouteInput,
+    RouteOrCallable,
+    RouteOrWebsocket,
+    V,
+    _NoDefault,
+    _NoDefaultType,
+)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -64,9 +92,7 @@ A = TypeVar("A")
 T = TypeVar("T")
 P = ParamSpec("P")
 
-_ROUTES_WARN_MSG = (
-    "routes argument should only be passed when load strategy is manual"
-)
+_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
 _ConfigSpecified = None
 
 B = TypeVar("B", bound=BaseException)
@@ -122,13 +148,13 @@ class TestingResponse:
         message: str | None,
         headers: dict[str, str],
         status: int,
-        content: bytes
+        content: bytes,
     ) -> None:
         self._message = message
         self.headers = headers
         self.status = status
-        self.content = bytes
-  
+        self.content = content
+
     @property
     def message(self) -> str:
         if self._message is None:
@@ -176,9 +202,7 @@ class VirtualWebSocket:
         self.send_queue.put_nowait(data)
 
     async def send(self, message: str) -> None:
-        self.recv_queue.put_nowait(
-            {"type": "websocket.receive", "text": message}
-        )
+        self.recv_queue.put_nowait({"type": "websocket.receive", "text": message})
 
     async def receive(self) -> str:
         data = await _to_thread(self.send_queue.get)
@@ -193,9 +217,7 @@ class VirtualWebSocket:
         return msg
 
     async def handshake(self) -> None:
-        assert (await _to_thread(self.send_queue.get))[
-            "type"
-        ] == "websocket.accept"
+        assert (await _to_thread(self.send_queue.get))["type"] == "websocket.accept"
 
 
 class TestingContext:
@@ -211,7 +233,7 @@ class TestingContext:
         async def receive():
             return await self._lifespan.get()
 
-        async def send(obj: dict[str, Any]):
+        async def send(_: dict[str, Any]):
             pass
 
         await self.app({"type": "lifespan"}, receive, send)
@@ -219,12 +241,9 @@ class TestingContext:
     async def stop(self) -> None:
         await self._lifespan.put("lifespan.shutdown")
 
-    def _gen_headers(
-        self, headers: dict[str, str]
-    ) -> list[tuple[bytes, bytes]]:
+    def _gen_headers(self, headers: dict[str, str]) -> list[tuple[bytes, bytes]]:
         return [
-            (key.encode(), value.encode())
-            for key, value in (headers or {}).items()
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
         ]
 
     def _truncate(self, route: str) -> str:
@@ -270,7 +289,6 @@ class TestingContext:
         await self.app(
             {
                 "type": "http",
-                "http_version": "1.1",
                 "path": truncated_route,
                 "query_string": (
                     urlencode(query_str).encode() if query else b""
@@ -459,9 +477,7 @@ class Error(BaseException):
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError(
-                "status code can only be a client or server error"
-            )
+            raise InvalidStatusError("status code can only be a client or server error")
 
         self.status = status
         self.message = message
@@ -525,9 +541,7 @@ class App(ViewApp):
                         print(value.hint)
 
                 if isinstance(value, ViewInternalError):
-                    print(
-                        "[bold dim red]This is an internal error, not your fault![/]"
-                    )
+                    print("[bold dim red]This is an internal error, not your fault![/]")
                     print(
                         "[bold dim red]Please report this at https://github.com/ZeroIntensity/view.py/issues[/]"
                     )
@@ -550,9 +564,7 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -619,7 +631,7 @@ class App(ViewApp):
 
     def custom_loader(self, loader: CustomLoader):
         self._user_loader = loader
-  
+
     def _method_wrapper(
         self,
         path: str,
@@ -684,9 +696,7 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(
-            path, doc, cache_rate, get, steps, parallel_build
-        )
+        return self._method_wrapper(path, doc, cache_rate, get, steps, parallel_build)
 
     def post(
         self,
@@ -831,9 +841,7 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(
-            path, doc, cache_rate, put, steps, parallel_build
-        )
+        return self._method_wrapper(path, doc, cache_rate, put, steps, parallel_build)
 
     def options(
         self,
@@ -922,9 +930,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(
-                func
-            )
+            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -947,9 +953,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(
-                func
-            )
+            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -973,9 +977,7 @@ class App(ViewApp):
         else:
             f = frame  # type: ignore
 
-        return await template(
-            name, directory, engine, f, app=self, **parameters
-        )
+        return await template(name, directory, engine, f, app=self, **parameters)
 
     async def markdown(
         self,
@@ -1007,7 +1009,7 @@ class App(ViewApp):
     async def _app(self, scope, receive, send) -> None:
         return await self.asgi_app_entry(scope, receive, send)
 
-    def load(self, routes: list[Route] | None = None) -> None:
+    def load(self, *routes: Route) -> None:
         """Load the app. This is automatically called most of the time and should only be called manually during manual loading.
 
         Args:
@@ -1031,13 +1033,13 @@ class App(ViewApp):
         elif self.config.app.loader == "custom":
             if not self._user_loader:
                 raise InvalidCustomLoaderError("custom loader was not set")
-    
-            routes = self._user_loader(self, self.config.app.loader_path)
+
+            collected = self._user_loader(self, self.config.app.loader_path)
             if not isinstance(routes, CollectionsIterable):
                 raise InvalidCustomLoaderError(
-                    f"expected custom loader to return a list of routes, got {routes!r}"
+                    f"expected custom loader to return a list of routes, got {collected!r}"
                 )
-            finalize([i for i in routes], self)
+            finalize(collected, self)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
@@ -1218,9 +1220,7 @@ class App(ViewApp):
             )
             # mypy thinks asyncio.to_thread doesn't exist for some reason
             return start(
-                self._spawn(
-                    asyncio.to_thread(daphne_server.run)  # type: ignore
-                )
+                self._spawn(asyncio.to_thread(daphne_server.run))  # type: ignore
             )
         else:
             raise NotImplementedError("viewserver is not implemented yet")
@@ -1349,7 +1349,9 @@ class App(ViewApp):
 
         return None
 
+
 _last_app: App | None = None
+
 
 def new_app(
     *,

@@ -4,8 +4,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import (Any, ClassVar, Set, TypeVar, Union, get_origin,
-                    get_type_hints)
+from typing import Any, ClassVar, Set, TypeVar, Union, get_origin, get_type_hints
 
 from typing_extensions import Annotated, Self, dataclass_transform, get_args
 
@@ -40,24 +39,19 @@ NoneType = type(None)
 
 class _Connection(ABC):
     @abstractmethod
-    async def connect(self) -> None:
-        ...
+    async def connect(self) -> None: ...
 
     @abstractmethod
-    async def close(self) -> None:
-        ...
+    async def close(self) -> None: ...
 
     @abstractmethod
-    async def insert(self, table: str, json: dict) -> None:
-        ...
+    async def insert(self, table: str, json: dict) -> None: ...
 
     @abstractmethod
-    async def find(self, table: str, json: dict) -> None:
-        ...
+    async def find(self, table: str, json: dict) -> None: ...
 
     @abstractmethod
-    async def migrate(self, table: str, vbody: dict) -> None:
-        ...
+    async def migrate(self, table: str, vbody: dict) -> None: ...
 
 
 _SQL_TYPES: dict[type, str] = {
@@ -166,11 +160,9 @@ class _SQLiteConnection(_Connection):
             self.connection = None
             self.cursor = None
 
-    async def insert(self, table: str, json: dict) -> None:
-        ...
+    async def insert(self, table: str, json: dict) -> None: ...
 
-    async def find(self, table: str, json: dict) -> None:
-        ...
+    async def find(self, table: str, json: dict) -> None: ...
 
     async def migrate(self, table: str, vbody: dict):
         assert self.cursor is not None
@@ -308,30 +300,24 @@ class Model:
     __str__ = __repr__
 
     @classmethod
-    def find(cls) -> list[Self]:
-        ...
+    def find(cls) -> list[Self]: ...
 
     @classmethod
-    def unique(cls) -> Self:
-        ...
+    def unique(cls) -> Self: ...
 
-    def exists(self) -> bool:
-        ...
+    def exists(self) -> bool: ...
 
     def save(self) -> None:
         conn = self._assert_conn()
 
         conn.insert(self.__view_table__, self._json())
 
-    def _json(self) -> dict[str, Any]:
-        ...
+    def _json(self) -> dict[str, Any]: ...
 
-    def json(self) -> dict[str, Any]:
-        ...
+    def json(self) -> dict[str, Any]: ...
 
     @classmethod
-    def from_json(cls, json: dict[str, Any]) -> Self:
-        ...
+    def from_json(cls, json: dict[str, Any]) -> Self: ...
 
     @classmethod
     def _assert_conn(cls) -> _Connection:
