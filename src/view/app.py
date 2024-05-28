@@ -19,9 +19,9 @@ from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
 from typing import (Any, AsyncIterator, Callable, Coroutine, Generic,
-                    TextIO, TypeVar, get_type_hints, overload)
+                    TextIO, TypeVar, get_type_hints, overload, Iterable)
 from urllib.parse import urlencode
-from collections.abc import Iterable
+from collections.abc import Iterable as CollectionsIterable
 
 import ujson
 from rich import print
@@ -1013,7 +1013,7 @@ class App(ViewApp):
                 raise InvalidCustomLoaderError("custom loader was not set")
     
             routes = self._user_loader(self, self.config.app.loader_path)
-            if not isinstance(routes, Iterable):
+            if not isinstance(routes, CollectionsIterable):
                 raise InvalidCustomLoaderError(
                     f"expected custom loader to return a list of routes, got {routes!r}"
                 )
