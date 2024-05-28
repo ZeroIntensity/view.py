@@ -116,11 +116,25 @@ ERROR_CODES: tuple[int, ...] = (
 )
 
 
-@dataclass()
 class TestingResponse:
-    message: str
-    headers: dict[str, str]
-    status: int
+    def __init__(
+        self,
+        message: str | None,
+        headers: dict[str, str],
+        status: int,
+        content: bytes
+    ) -> None:
+        self._message = message
+        self.headers = headers
+        self.status = status
+        self.content = bytes
+  
+    @property
+    def message(self) -> str:
+        if not self._message:
+            raise RuntimeError("cannot decode content into string")
+
+        return self._message
 
 
 def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
@@ -244,7 +258,7 @@ class TestingContext:
                     )
                 )
             elif obj["type"] == "http.response.body":
-                await body_q.put(obj["body"].decode())
+                await body_q.put(obj["body"])
             else:
                 raise ViewInternalError(f"bad type: {obj['type']}")
 
@@ -272,9 +286,14 @@ class TestingContext:
         )
 
         res_headers, status = await start.get()
-        body_s = await body_q.get()
+        body_b = await body_q.get()
 
-        return TestingResponse(body_s, res_headers, status)
+        try:
+            body_s = body_b.decode()
+        except UnicodeError:
+            body_s = None
+
+        return TestingResponse(body_s, res_headers, status, body_b)
 
     async def get(
         self,
