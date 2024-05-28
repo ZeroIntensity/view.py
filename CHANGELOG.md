@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added support for returning `bytes` objects in the body.
 -   **Breaking Change:** Removed the `hijack` configuration setting
 -   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
+-   **Breaking Change:** `load()` now takes routes via variadic arguments, instead of a list of routes.
 
 ## [1.0.0-alpha10] - 2024-5-26
 
