@@ -38,4 +38,4 @@ jobs:
               run: sudo apt-get -y install valgrind
 
             - name: Run tests with Valgrind
-              run: valgrind --supressions=valgrind-python.supp --error-exitcode=1 pytest -x
+              run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x
