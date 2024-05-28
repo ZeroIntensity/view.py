@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added support for coroutines in `PyAwaitable` (vendored)
 -   Finished websocket implementation
 -   Added the `custom` loader
+-   Added support for returning `bytes` objects in the body.
 -   **Breaking Change:** Removed the `hijack` configuration setting
 -   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
 
