@@ -239,7 +239,7 @@ class TestingContext:
         query: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> TestingResponse:
-        body_q: asyncio.Queue[str] = asyncio.Queue()
+        body_q: asyncio.Queue[bytes] = asyncio.Queue()
         start: asyncio.Queue[tuple[dict[str, str], int]] = asyncio.Queue()
 
         async def receive():
@@ -258,6 +258,7 @@ class TestingContext:
                     )
                 )
             elif obj["type"] == "http.response.body":
+                assert isinstance(obj["body"], bytes)
                 await body_q.put(obj["body"])
             else:
                 raise ViewInternalError(f"bad type: {obj['type']}")
