@@ -5,7 +5,8 @@ from typing import Dict
 from typing_extensions import Annotated
 
 import pytest
-from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app, CallNext, to_response
+from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app, to_response
+from view.typing import CallNext
 from leaks import limit_leaks
 
 @limit_leaks("1 MB")
