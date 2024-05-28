@@ -29,6 +29,7 @@ __all__ = (
     "WebSocketError",
     "WebSocketExpectError",
     "WebSocketHandshakeError",
+    "InvalidCustomLoaderError",
 )
 
 
@@ -139,3 +140,6 @@ class WebSocketHandshakeError(WebSocketError):
 
 class WebSocketExpectError(WebSocketError, AssertionError, TypeError):
     """WebSocket received unexpected message."""
+
+class InvalidCustomLoaderError(ViewError):
+    """Custom loader is invalid."""
