@@ -289,7 +289,7 @@ class TestingContext:
         body_b = await body_q.get()
 
         try:
-            body_s = body_b.decode()
+            body_s: str | None = body_b.decode()
         except UnicodeError:
             body_s = None
 
