@@ -9,7 +9,7 @@ import ujson
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import BodyTranslateStrategy, SameSite, ViewResult
+from .typing import BodyTranslateStrategy, SameSite, ViewResult, ResponseBody
 from .util import timestamp
 
 T = TypeVar("T")
@@ -191,7 +191,7 @@ class JSON(Response[Dict[str, Any]]):
         return ujson.dumps(body)
 
 
-def to_response(result: ViewResult) -> Response[str]:
+def to_response(result: ViewResult) -> Response[ResponseBody]:
     """Cast a result from a route function to a `Response` object."""
 
     if hasattr(result, "__view_result__"):
@@ -202,12 +202,12 @@ def to_response(result: ViewResult) -> Response[str]:
         status: int = 200
         headers: dict[str, str] = {}
         raw_headers: list[tuple[bytes, bytes]] = []
-        body: str | None = None
+        body: ResponseBody | None = None
 
         for value in result:
             if isinstance(value, int):
                 status = value
-            elif isinstance(value, str):
+            elif isinstance(value, (str, bytes)):
                 body = value
             elif isinstance(value, dict):
                 headers = value
