@@ -5,7 +5,7 @@ from typing import Dict
 from typing_extensions import Annotated
 
 import pytest
-from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app
+from view import App, BadEnvironmentError, TypeValidationError, compile_type, env, get_app, new_app, CallNext, to_response
 from leaks import limit_leaks
 
 @limit_leaks("1 MB")
@@ -126,4 +126,34 @@ async def test_environment_variables():
     os.environ["_TEST3"] = "false"
     assert env("_TEST3", tp=bool) is False
 
+@pytest.mark.asyncio
+async def test_to_response():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return "hello", 201, {"a": "b"}
+
+    @app.get("/bytes")
+    async def other():
+        return b"hello", {"hello": "world"}
+
+    @index.middleware
+    async def middleware(call_next: CallNext):
+        res = to_response(await call_next())
+        assert res.body == "hello"
+        assert res.status == 201
+        assert res.headers == {"a": "b"}
+        res.body = "goodbye"
+        return res
+
+    @other.middleware
+    async def other_middleware(call_next: CallNext):
+        res = to_response(await call_next())
+        assert res.body == b"hello"
+        assert res.headers == {"hello": "world"}
+        return res
     
+    async with app.test() as test:
+        assert (await test.get("/")).message == "goodbye"
+        assert (await test.get("/bytes")).message == "hello"
