@@ -19,7 +19,7 @@ from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
 from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
-                    TextIO, TypeVar, get_type_hints, overload, List)
+                    TextIO, TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -69,7 +69,7 @@ _ROUTES_WARN_MSG = (
 _ConfigSpecified = None
 
 B = TypeVar("B", bound=BaseException)
-CustomLoader: TypeAlias = Callable[["App", Path], List[Route]]
+CustomLoader: TypeAlias = Callable[["App", Path], Iterable[Route]]
 
 ERROR_CODES: tuple[int, ...] = (
     400,
@@ -1012,11 +1012,11 @@ class App(ViewApp):
                 raise InvalidCustomLoaderError("custom loader was not set")
     
             routes = self._user_loader(self, self.config.app.loader_path)
-            if not isinstance(routes, list):
+            if not iterable(routes):
                 raise InvalidCustomLoaderError(
                     f"expected custom loader to return a list of routes, got {routes!r}"
                 )
-            finalize(routes, self)
+            finalize([i for i in routes], self)
         else:
             finalize([*(routes or ()), *self._manual_routes], self)
 
