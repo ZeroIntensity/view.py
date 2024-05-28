@@ -840,4 +840,22 @@ async def test_body_translate_strategies():
     async with app.test() as test:
         assert (await test.get("/")).message == repr("a")
         assert (await test.get("/result")).message == "{}"
-        assert (await test.get("/custom")).message == "1 2 3" 
+        assert (await test.get("/custom")).message == "1 2 3"
+
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_bytes_response():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return b"\t \e \s \t"
+
+    @app.get("/hi")
+    async def hi():
+        return b"hi", 201, {"test": "test"}
+  
+    async with app.test() as test:
+        assert (await test.get("/")).content == b"\t \e \s \t"
+        assert (await test.get("/hi")).content == b"hi"
