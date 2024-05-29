@@ -38,6 +38,10 @@ To ensure you've installed view.py correctly, run the `view` command:
 $ view
 ```
 
+!!! note Problem on Linux
+
+    On Linux, `view` is already a command! Read about it [here](https://www.ibm.com/docs/zh/aix/7.2?topic=v-view-command), but in short, it opens `vi` in read only mode. You can either shadow this command with view.py's CLI, or use the `view-admin` command instead, which is an alias. This documentation will assume you use `view` instead of `view-admin`, but note that they do the exact same thing.
+
 If this doesn't work properly, try executing via Python:
 
 ```
