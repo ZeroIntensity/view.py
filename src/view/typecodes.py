@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, TypeVar
 
-import ujson
+import orjson
 from typing_extensions import TypeGuard
 
 from _view import TCPublic
@@ -21,7 +21,7 @@ class TCValidator(TCPublic, Generic[T]):
     def __init__(self, tp: type[T], codes: Iterable[TypeInfo]) -> None:
         self.tp: type[T] = tp
         self.codes: Iterable[TypeInfo] = codes
-        self._compile(codes, ujson.loads)
+        self._compile(codes, orjson.loads)
 
     def check_type(self, obj: object) -> TypeGuard[T]:
         """Check if an object is the type."""
