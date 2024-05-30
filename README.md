@@ -86,6 +86,10 @@ $ pip install view.py
 $ pipx install view.py
 ```
 
+## Copyright
+
+`view.py` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+
 <div align="center">
     <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=150 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
     <h4>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h4>
