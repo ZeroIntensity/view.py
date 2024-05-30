@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
-import ujson
+import orjson
 
 from .typing import ViewBody
 
@@ -25,4 +25,4 @@ def query_parser(data: str) -> ViewBody:
 
 
 def supply_parsers(app: App) -> None:
-    app._supply_parsers(query_parser, ujson.loads)
+    app._supply_parsers(query_parser, orjson.loads)
