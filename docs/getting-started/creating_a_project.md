@@ -1,4 +1,4 @@
-# Project Creation
+# Creating a Project
 
 ## Automatic
 
@@ -7,10 +7,6 @@ The View CLI supports automatically creating a project via the `view init` comma
 ```
 $ view init
 ```
-
-!!! note
-
-    Depending on how or where you installed view.py, `view` might open vim! If that's the case, run `python3 -m view init`, or however your environment works.
 
 Alternatively, you can run `view init` with `pipx`:
 
