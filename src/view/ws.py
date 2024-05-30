@@ -87,7 +87,7 @@ class WebSocket:
         if isinstance(message, (str, bytes)):
             await self.socket.send(message)
         elif isinstance(message, dict):
-            await self.socket.send(ujson.dumps(message))
+            await self.socket.send(orjson.dumps(message).decode())
         elif isinstance(message, bool):
             await self.socket.send("true" if message else "false")
         elif isinstance(message, int):
