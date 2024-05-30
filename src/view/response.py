@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Generic, TextIO, TypeVar, Union
 
 import aiofiles
-import ujson
+import orjson
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
@@ -189,7 +189,7 @@ class JSON(Response[Dict[str, Any]]):
         self._raw_headers.append((b"content-type", b"application/json"))
 
     def _custom(self, body: dict[str, Any]) -> str:
-        return ujson.dumps(body)
+        return orjson.dumps(body)
 
 
 def to_response(result: ViewResult) -> Response[ResponseBody]:
