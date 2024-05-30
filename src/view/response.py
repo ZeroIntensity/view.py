@@ -189,7 +189,7 @@ class JSON(Response[Dict[str, Any]]):
         self._raw_headers.append((b"content-type", b"application/json"))
 
     def _custom(self, body: dict[str, Any]) -> str:
-        return orjson.dumps(body)
+        return orjson.dumps(body).encode("utf-8")
 
 
 def to_response(result: ViewResult) -> Response[ResponseBody]:
