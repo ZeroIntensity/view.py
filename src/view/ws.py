@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Union, overload
 
-import ujson
+import orjson
 from typing_extensions import Self
 
 from _view import ViewWebSocket, register_ws_cls
@@ -59,7 +59,7 @@ class WebSocket:
             return int(res)
 
         if tp is dict:
-            return ujson.loads(res)
+            return orjson.loads(res)
 
         if tp is bytes:
             return res.encode()
