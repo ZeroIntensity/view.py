@@ -23,7 +23,7 @@ from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
                     TextIO, TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
-import ujson
+import orjson
 from rich import print
 from rich.traceback import install
 from typing_extensions import ParamSpec, TypeAlias, Unpack
@@ -144,9 +144,9 @@ def _format_qs(query: dict[str, Any]) -> dict[str, Any]:
     for k, v in query.items():
         if isinstance(v, (dict, list)):
             if isinstance(v, dict):
-                query_str[k] = ujson.dumps(_format_qs(v))
+                query_str[k] = orjson.dumps(_format_qs(v))
             else:
-                query_str[k] = ujson.dumps(v)
+                query_str[k] = orjson.dumps(v)
         else:
             query_str[k] = v
 
@@ -245,7 +245,7 @@ class TestingContext:
 
         async def receive():
             return {
-                "body": ujson.dumps(body).encode(),
+                "body": orjson.dumps(body).encode(),
                 "more_body": False,
                 "type": "http.request",
             }
