@@ -2,6 +2,10 @@
 
 <div align="center"><h2>The Batteries-Detachable Web Framework</h2></div>
 
+![Tests](https://github.com/ZeroIntensity/view.py/actions/workflows/tests.yml/badge.svg)
+![Valgrind](https://github.com/ZeroIntensity/view.py/actions/workflows/memory_check.yml/badge.svg)
+![Build](https://github.com/ZeroIntensity/view.py/actions/workflows/build.yml/badge.svg)
+
 > [!Warning]
 > view.py is currently in alpha, and may be lacking some features.
 > If you would like to follow development progress, be sure to join [the discord](https://discord.gg/tZAfuWAbm2).
@@ -80,3 +84,7 @@ $ pip install view.py
 ```console
 $ pipx install view.py
 ```
+
+## There's C code in here, how do I know it's safe?
+
+view.py is put through [rigorous testing](https://github.com/ZeroIntensity/view.py/tree/master/tests), checked with [Valgrind](https://valgrind.org/), and checks for memory leaks, thanks to [Memray](https://github.com/bloomberg/memray). See the testing badges at the top.
