@@ -24,7 +24,7 @@ dependencies = [
     "rich",
     "click",
     "typing_extensions",
-    "ujson",
+    "orjson",
     "configzen",
     "aiofiles",
     "prompts.py"
