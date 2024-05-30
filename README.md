@@ -2,9 +2,11 @@
 
 <div align="center"><h2>The Batteries-Detachable Web Framework</h2></div>
 
+<div align="center">
 ![Tests](https://github.com/ZeroIntensity/view.py/actions/workflows/tests.yml/badge.svg)
 ![Valgrind](https://github.com/ZeroIntensity/view.py/actions/workflows/memory_check.yml/badge.svg)
 ![Build](https://github.com/ZeroIntensity/view.py/actions/workflows/build.yml/badge.svg)
+</div>
 
 > [!Warning]
 > view.py is currently in alpha, and may be lacking some features.
