@@ -17,11 +17,6 @@
 -   [PyPI](https://pypi.org/project/view.py)
 -   [Discord](https://discord.gg/tZAfuWAbm2)
 
-<div align="center">
-    <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=100 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
-    <h4>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h4>
-</div>
-
 ## Features
 
 -   Batteries Detachable: Don't like our approach to something? No problem! We aim to provide native support for all your favorite libraries, as well as provide APIs to let you reinvent the wheel as you wish.
@@ -65,6 +60,10 @@ def create(name: str, books: dict[str, str]):
     return JSON({"message": "Successfully created user!"}), 201
 ```
 
+## There's C code in here, how do I know it's safe?
+
+view.py is put through [rigorous testing](https://github.com/ZeroIntensity/view.py/tree/master/tests), checked with [Valgrind](https://valgrind.org/), and checks for memory leaks, thanks to [Memray](https://github.com/bloomberg/memray). See the testing badges at the top.
+
 ## Installation
 
 **Python 3.8+ is required.**
@@ -87,6 +86,7 @@ $ pip install view.py
 $ pipx install view.py
 ```
 
-## There's C code in here, how do I know it's safe?
-
-view.py is put through [rigorous testing](https://github.com/ZeroIntensity/view.py/tree/master/tests), checked with [Valgrind](https://valgrind.org/), and checks for memory leaks, thanks to [Memray](https://github.com/bloomberg/memray). See the testing badges at the top.
+<div align="center">
+    <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=100 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
+    <h4>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h4>
+</div>
