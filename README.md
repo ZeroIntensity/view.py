@@ -4,8 +4,8 @@
 
 <div align="center">
     <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/tests.yml/badge.svg" alt="Tests" width=auto height=auto />
-    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/memory_check.yml/badge.svg" alt="Tests" width=auto height=auto />
-    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/build.yml/badge.svg" alt="Tests" width=auto height=auto />
+    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/memory_check.yml/badge.svg" alt="Valgrind" width=auto height=auto />
+    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/build.yml/badge.svg" alt="Build" width=auto height=auto />
 </div>
 
 > [!Warning]
