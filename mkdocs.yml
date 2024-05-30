@@ -8,7 +8,7 @@ nav:
     - Getting Started:
           - Installation: getting-started/installation.md
           - Configuration: getting-started/configuration.md
-          - Project Creation: getting-started/creating_a_project.md
+          - Creating a Project: getting-started/creating_a_project.md
     - Building Projects:
           - App Basics: building-projects/app_basics.md
           - URL Routing: building-projects/routing.md
