@@ -143,7 +143,7 @@ class WebSocketHandshakeError(WebSocketError):
 
 
 class WebSocketDisconnectError(WebSocketHandshakeError):
-    """WebSocket disconnected."""
+    """WebSocket client disconnected unexpectedly."""
 
 
 class WebSocketExpectError(WebSocketError, AssertionError, TypeError):

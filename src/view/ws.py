@@ -8,7 +8,9 @@ from typing_extensions import Self
 
 from _view import ViewWebSocket
 
-from .exceptions import WebSocketExpectError, WebSocketHandshakeError, WebSocketDisconnectError
+from ._logging import Service
+from .exceptions import (WebSocketDisconnectError, WebSocketExpectError,
+                         WebSocketHandshakeError)
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -212,8 +214,12 @@ class WebSocket:
         val: Any,
         tb: TracebackType | None,
     ) -> None:
-        if val:
+        if tp == WebSocketDisconnectError:
+            self.open = False
+            Service.warning("Unhandled WebSocket disconnect")
+        elif tp:
+            self.open = False
             # exception occurred, raise it so view.py can handle it
-            raise val
-        else:
+            raise
+        elif self.open:
             await self.close()

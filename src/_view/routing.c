@@ -269,7 +269,7 @@ int handle_route(PyObject* awaitable, char* query) {
         ) < 0)
         return -1;
 
-    char* buf = malloc(1);         // null terminator
+    char* buf = malloc(1); // null terminator
 
     if (!buf) {
         PyErr_NoMemory();

@@ -260,6 +260,9 @@ int handle_result(
         method
     );
 
+    if (!args)
+        return -1;
+
     if (!PyObject_Call(
         route_log,
         args,

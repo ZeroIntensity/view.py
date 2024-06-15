@@ -4,6 +4,8 @@
 #include <view/app.h> // PyErr_BadASGI
 #include <view/awaitable.h>
 #include <view/backport.h>
+#include <view/results.h> // handle_result
+#include <view/routing.h> // route
 #include <view/ws.h>
 #include <view/view.h>
 
@@ -24,6 +26,87 @@ static void dealloc(WebSocket* self) {
     Py_XDECREF(self->send);
     Py_XDECREF(self->receive);
     Py_TYPE(self)->tp_free((PyObject*) self);
+}
+
+int handle_route_websocket(PyObject* awaitable, PyObject* result) {
+    char* res;
+    int status = 1005;
+    PyObject* headers;
+
+    PyObject* send;
+    PyObject* receive;
+    PyObject* raw_path;
+    route* r;
+    const char* method_str;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        NULL,
+        NULL,
+        NULL,
+        &send,
+        &raw_path
+        ) < 0) return -1;
+
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        &r,
+        NULL,
+        NULL,
+        NULL
+        ) < 0) return -1;
+
+    if (result == Py_None) {
+        PyObject* args = Py_BuildValue(
+            "(iOs)",
+            1000,
+            raw_path,
+            "websocket_closed"
+        );
+
+        if (!args)
+            return -1;
+
+        if (!PyObject_Call(
+            route_log,
+            args,
+            NULL
+            )) {
+            Py_DECREF(args);
+            return -1;
+        }
+        Py_DECREF(args);
+        return 0;
+    }
+
+
+    if (handle_result(result, &res, &status, &headers, raw_path, "websocket_closed") < 0)
+        return -1;
+        
+    PyObject* send_dict = Py_BuildValue(
+        "{s:s,s:s}",
+        "type",
+        "websocket.send",
+        "text",
+        res
+    );
+    free(res);
+
+    if (!send_dict)
+        return -1;
+
+    PyObject* coro = PyObject_Vectorcall(send, (PyObject*[]) { send_dict }, 1, NULL);
+    if (!coro) {
+        Py_DECREF(send_dict);
+        return -1;
+    }
+
+    Py_DECREF(send_dict);
+    if (PyAwaitable_AWAIT(awaitable, coro) < 0) {
+        Py_DECREF(coro);
+        return -1;
+    }
+    return 0;
 }
 
 static PyObject* WebSocket_new(
@@ -213,31 +296,6 @@ static int ws_err(
     PyObject* value,
     PyObject* tb
 ) {
-    if (tp == ws_disconnect_err) {
-        // the socket prematurely disconnected, let's complain about it
-        #if PY_MINOR_VERSION < 9
-        PyObject* args = Py_BuildValue("(s)", "Unhandled WebSocket disconnect");
-        if (!args)
-            return -2;
-        
-        if (!PyObject_Call(route_warn, args)) {
-            Py_DECREF(args);
-            return -2;
-        }
-        #else
-        PyObject* message = PyUnicode_FromStringAndSize("Unhandled WebSocket disconnect", sizeof("Unhandled WebSocket disconnect"));
-        if (!message)
-            return -2;
-        
-        if (!PyObject_CallOneArg(route_warn, message)) {
-            Py_DECREF(message);
-            return -2;
-        };
-        #endif
-
-        return 0;
-    }
-
     // NOTE: this needs to be here for the error to propagate! otherwise, the error is deferred to the ASGI server (which we don't want)
     PyErr_Restore(tp, value, tb);
     PyErr_Print();

@@ -6,5 +6,6 @@
 
 extern PyTypeObject WebSocketType;
 PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive);
+int handle_route_websocket(PyObject* awaitable, PyObject* result);
 
 #endif

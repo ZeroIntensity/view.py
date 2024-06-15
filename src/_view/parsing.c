@@ -7,6 +7,7 @@
 #include <view/inputs.h> // route_input
 #include <view/parsers.h>
 #include <view/routing.h> // route, handle_route_impl
+#include <view/ws.h> // handle_route_websocket
 
 typedef struct _app_parsers app_parsers;
 typedef PyObject** (* parserfunc)(app_parsers*, const char*, PyObject*,
@@ -322,7 +323,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
     if (PyAwaitable_AddAwait(
         awaitable,
         coro,
-        r->is_http ? handle_route_callback : NULL,
+        r->is_http ? handle_route_callback : handle_route_websocket,
         route_error
         ) < 0) {
         Py_DECREF(coro);

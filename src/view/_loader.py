@@ -525,7 +525,7 @@ def finalize(routes: Iterable[Route], app: ViewApp):
 
 def load_fs(app: ViewApp, target_dir: Path) -> None:
     """Filesystem loading implementation.
-    Similiar to NextJS's routing system. You take `target_dir` and search it,
+    Similiar to NextJS's "pages" routing system. You take `target_dir` and search it,
     if a file is found and not prefixed with _, then convert the directory structure
     to a path. For example, target_dir/hello/world/index.py would be converted to a
     route for /hello/world

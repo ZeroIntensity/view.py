@@ -133,6 +133,7 @@ class RouteInfo(NamedTuple):
     status: int | str  # str for websocket states
     route: str
     method: str
+    closed: bool = False
 
 
 class QueueItem(NamedTuple):
@@ -1000,11 +1001,24 @@ def _server_logger():
                 info = result.route
                 assert info, "result has no route"
 
-                table.add_row(
-                    f"[bold {_METHOD_COLORS[info.method]}]{info.method}[/]",
-                    info.route,
-                    f"[bold {_status_color(info.status)}]{info.status}[/]",
-                )
+                if info.method == "websocket":
+                    table.add_row(
+                        f"[bold {_METHOD_COLORS['websocket']}]websocket[/]",
+                        info.route,
+                        f"[bold green]opened[/]",
+                    )
+                elif info.method == "websocket_closed":
+                    table.add_row(
+                        f"[bold {_METHOD_COLORS['websocket']}]websocket[/]",
+                        info.route,
+                        f"[bold red]closed[/]",
+                    )
+                else:
+                    table.add_row(
+                        f"[bold {_METHOD_COLORS[info.method]}]{info.method}[/]",
+                        info.route,
+                        f"[bold {_status_color(info.status)}]{info.status}[/]",
+                    )
 
             live.update(Align.center(layout))
 
@@ -1016,10 +1030,21 @@ def _write_route(status: int | str, route: str, method_raw: str) -> None:
     if _LIVE:
         _QUEUE.put_nowait(QueueItem(True, True, "info", "", info))
     else:
-        Service.info(
-            f"[{_METHOD_COLORS[method]}]{method.lower()}[/] [white]{route}[/] [{_status_color(status)}]{status}[/]",
-            highlight=False,
-        )
+        if method == "websocket_closed":
+            Service.info(
+                f"[{_METHOD_COLORS['websocket']}]websocket[/] [white]{route}[/] [bold red]closed[/]",
+                highlight=False,
+            )
+        elif method == "websocket":
+            Service.info(
+                f"[{_METHOD_COLORS['websocket']}]websocket[/] [white]{route}[/] [bold green]open[/]",
+                highlight=False,
+            )
+        else:  
+            Service.info(
+                f"[{_METHOD_COLORS[method]}]{method.lower()}[/] [white]{route}[/] [{_status_color(status)}]{status}[/]",
+                highlight=False,
+            )
 
 
 setup_route_log(_write_route, Service.warning)
