@@ -58,9 +58,18 @@ class ViewRenderer:
             else:
                 result.append(child)
 
-    async def _tag(self, view: Tag, *, defer: bool = False) -> Tag | str | None:
+    async def _tag(
+        self,
+        view: Tag,
+        *,
+        defer: bool = False,
+    ) -> Tag | str | None:
+        from bs4 import BeautifulSoup
+
         if not view.attrs:
-            raise InvalidTemplateError("<view> tags must have at least one attribute")
+            raise InvalidTemplateError(
+                "<view> tags must have at least one attribute"
+            )
 
         iterator_obj: Iterator[Any] | None = None
         iterator_name: str | None = None
@@ -77,11 +86,21 @@ class ViewRenderer:
             nonlocal iterator_name
             iterator_name = item
 
-        result: list[str] = []
+        result: list[str | Tag] = []
 
         for key, value in view.attrs.items():
             if key == "ref":
-                result.append(str(eval(value, self.parameters)))
+                func = repr if "repr" in view.attrs else str
+                ref: str = func(eval(value, self.parameters))
+                if "nosanitize" in view.attrs:
+                    result.append(BeautifulSoup(ref, "html.parser"))
+                else:
+                    result.append(ref)
+            elif key in {"nosanitize", "repr"}:
+                if "ref" not in view.attrs:
+                    raise InvalidTemplateError(
+                        "f{key} can only be used with a ref attribute in <view> tag"
+                    )
             elif key == "template":
                 html = await template(value)
                 body = html._custom(html.body)
@@ -117,7 +136,7 @@ class ViewRenderer:
                 item = view.attrs.get("item")
                 if not item:
                     raise InvalidTemplateError(
-                        f'<view> tags with an "iter" attribute must have an "item" attribute'
+                        '<view> tags with an "iter" attribute must have an "item" attribute'
                     )  # noqa
 
                 _iter_render(value, item)
@@ -125,12 +144,14 @@ class ViewRenderer:
                 iter_name = view.attrs.get("iter")
                 if not iter_name:
                     raise InvalidTemplateError(
-                        f'<view> tags with an "item" attribute must have an "iter" attribute'
+                        '<view> tags with an "item" attribute must have an "iter" attribute'
                     )  # noqa
 
                 _iter_render(iter_name, value)
             else:
-                raise InvalidTemplateError(f"unknown key {key!r} in <view> tag")
+                raise InvalidTemplateError(
+                    f"unknown attribute {key!r} in <view> tag"
+                )
 
         if iterator_obj:
             assert iterator_name, "iterator_name is None (this is a bug!)"
@@ -143,7 +164,11 @@ class ViewRenderer:
         else:
             await self._render_children(view, result)
 
-        return view.replace_with(*result) if not defer else "\n".join(result)
+        return (
+            view.replace_with(*result)
+            if not defer
+            else "\n".join([str(i) for i in result])
+        )
 
     async def render(self, content: str) -> str:
         try:
@@ -154,7 +179,9 @@ class ViewRenderer:
         soup = BeautifulSoup(content, features="html.parser")
 
         for view in soup.find_all("view"):
-            assert isinstance(view, Tag), "found non-tag somehow (this is a bug!)"
+            assert isinstance(
+                view, Tag
+            ), "found non-tag somehow (this is a bug!)"
             await self._tag(view)
 
         return str(soup)
@@ -239,7 +266,9 @@ async def render(
 
         return Template(source).render(Context(parameters))
     else:
-        raise InvalidTemplateError(f"{engine!r} is not a supported template engine")
+        raise InvalidTemplateError(
+            f"{engine!r} is not a supported template engine"
+        )
 
 
 async def template(

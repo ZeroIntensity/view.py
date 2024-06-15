@@ -152,7 +152,6 @@ static int handle_result_impl(
     int status = 200;
     PyObject* headers = PyList_New(0);
     PyObject* result;
-
     PyObject* view_result = PyObject_GetAttrString(
         raw_result,
         "__view_result__"

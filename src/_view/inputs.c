@@ -28,16 +28,7 @@ PyObject* build_data_input(
     return NULL; // to make editor happy
 }
 
-PyObject** generate_params(
-    app_parsers* parsers,
-    const char* data,
-    PyObject* query,
-    route_input** inputs,
-    Py_ssize_t inputs_size,
-    PyObject* scope,
-    PyObject* receive,
-    PyObject* send
-) {
+static PyObject* parse_body(const char* data, app_parsers* parsers, PyObject* scope) {
     PyObject* py_str = PyUnicode_FromString(data);
     if (!py_str)
         return NULL;
@@ -50,6 +41,20 @@ PyObject** generate_params(
     );
     Py_DECREF(py_str);
 
+    return obj;
+}
+
+PyObject** generate_params(
+    app_parsers* parsers,
+    const char* data,
+    PyObject* query,
+    route_input** inputs,
+    Py_ssize_t inputs_size,
+    PyObject* scope,
+    PyObject* receive,
+    PyObject* send
+) {
+    PyObject* obj = parse_body(data, parsers, scope);
     if (!obj)
         return NULL;
 

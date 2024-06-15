@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Union, overload
+from types import TracebackType
+from typing import Any, Union, overload
 
 import ujson
 from typing_extensions import Self
 
-from _view import ViewWebSocket, register_ws_cls
+from _view import ViewWebSocket
 
-from .exceptions import WebSocketExpectError, WebSocketHandshakeError
+from .exceptions import WebSocketExpectError, WebSocketHandshakeError, WebSocketDisconnectError
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -38,7 +39,9 @@ class WebSocket:
     @overload
     async def receive(self, tp: type[bool] = bool) -> bool: ...
 
-    async def receive(self, tp: type[WebSocketReceivable] = str) -> WebSocketReceivable:
+    async def receive(
+        self, tp: type[WebSocketReceivable] = str
+    ) -> WebSocketReceivable:
         """Receive a message from the WebSocket.
 
         Args:
@@ -50,7 +53,7 @@ class WebSocket:
         res: str = await self.socket.receive()
 
         if res is None:
-            raise WebSocketHandshakeError("socket disconnected")
+            raise WebSocketDisconnectError("socket disconnected")
 
         if tp is str:
             return res
@@ -65,7 +68,9 @@ class WebSocket:
             return res.encode()
 
         if tp is bool:
-            if (res not in {"True", "true", "False", "false"}) and (not res.isdigit()):
+            if (res not in {"True", "true", "False", "false"}) and (
+                not res.isdigit()
+            ):
                 raise WebSocketExpectError(
                     f"expected boolean-like message, got {res!r}"
                 )
@@ -75,7 +80,9 @@ class WebSocket:
 
             return res in {"True", "true"}
 
-        raise TypeError(f"expected type str, bytes, dict, int, or bool, but got {tp!r}")
+        raise TypeError(
+            f"expected type str, bytes, dict, int, or bool, but got {tp!r}"
+        )
 
     async def send(self, message: WebSocketSendable) -> None:
         """Send a message to the client.
@@ -83,7 +90,9 @@ class WebSocket:
         Args:
             message: Message to send."""
         if not self.open:
-            raise WebSocketHandshakeError("cannot send to connection that is not open")
+            raise WebSocketHandshakeError(
+                "cannot send to connection that is not open"
+            )
         if isinstance(message, (str, bytes)):
             await self.socket.send(message)
         elif isinstance(message, dict):
@@ -167,7 +176,9 @@ class WebSocket:
     async def close(self) -> None:
         """Close the connection."""
         if not self.open:
-            raise WebSocketHandshakeError("cannot close connection that isn't open")
+            raise WebSocketHandshakeError(
+                "cannot close connection that isn't open"
+            )
 
         self.open = False
         self.done = True
@@ -184,7 +195,9 @@ class WebSocket:
     async def expect(self, message: WebSocketSendable) -> None:
         msg = await self.receive(tp=type(message))
         if msg != message:
-            raise WebSocketExpectError(f"websocket expected {message!r}, got {msg!r}")
+            raise WebSocketExpectError(
+                f"websocket expected {message!r}, got {msg!r}"
+            )
 
     recv = receive
     connect = accept
@@ -193,8 +206,14 @@ class WebSocket:
         await self.accept()
         return self
 
-    async def __aexit__(self, *_) -> None:
-        await self.close()
-
-
-register_ws_cls(WebSocket)
+    async def __aexit__(
+        self,
+        tp: type[BaseException] | BaseException | None,
+        val: Any,
+        tb: TracebackType | None,
+    ) -> None:
+        if val:
+            # exception occurred, raise it so view.py can handle it
+            raise val
+        else:
+            await self.close()

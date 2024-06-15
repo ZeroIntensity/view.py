@@ -54,7 +54,8 @@ int send_raw_text(
     PyObject* send,
     int status,
     const char* res_str,
-    PyObject* headers     /* may be NULL */
+    PyObject* headers,     /* may be NULL */
+    bool is_http
 );
 
 #endif

@@ -472,15 +472,17 @@ int send_raw_text(
     PyObject* send,
     int status,
     const char* res_str,
-    PyObject* headers     /* may be NULL */
+    PyObject* headers,     /* may be NULL */
+    bool is_http
 ) {
     PyObject* coro;
     PyObject* send_dict;
+
     if (!headers) {
         send_dict = Py_BuildValue(
             "{s:s,s:i,s:[[y,y]]}",
             "type",
-            "http.response.start",
+            is_http ? "http.response.start" : "websocket.http.response.start",
             "status",
             status,
             "headers",
@@ -501,7 +503,7 @@ int send_raw_text(
         send_dict = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
-            "http.response.start",
+            is_http ? "http.response.start" : "websocket.http.response.start",
             "status",
             status,
             "headers",
@@ -534,7 +536,7 @@ int send_raw_text(
     PyObject* dict = Py_BuildValue(
         "{s:s,s:y}",
         "type",
-        "http.response.body",
+        is_http ? "http.response.body" : "websocket.http.response.body",
         "body",
         res_str
     );

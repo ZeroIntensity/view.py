@@ -11,6 +11,8 @@ from .components import DOMNode
 from .exceptions import InvalidResultError
 from .typing import BodyTranslateStrategy, ResponseBody, SameSite, ViewResult
 from .util import timestamp
+from contextlib import suppress
+import uuid
 
 T = TypeVar("T")
 
@@ -228,3 +230,17 @@ def to_response(result: ViewResult) -> Response[ResponseBody]:
 
     assert isinstance(result, (str, bytes))
     return Response(result)
+
+
+async def _reactpy_bootstrap(self: Component) -> ViewResult:
+    from .app import get_app
+
+    react_id = uuid.uuid4().hex
+    app = get_app()
+    app.reactive_sessions[react_id] = self
+    return await app.template("./client/dist/index.html", engine="view")
+
+with suppress(ImportError):
+    from reactpy.core.component import Component
+
+    Component.__view_result__ = _reactpy_bootstrap  # type: ignore

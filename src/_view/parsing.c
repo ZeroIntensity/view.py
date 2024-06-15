@@ -251,7 +251,8 @@ int handle_route_query(PyObject* awaitable, char* query) {
                 r,
                 NULL,
                 NULL,
-                method_str
+                method_str,
+                r->is_http
             );
         } else ++final_size;
 
@@ -277,7 +278,8 @@ int handle_route_query(PyObject* awaitable, char* query) {
                     r,
                     NULL,
                     NULL,
-                    method_str
+                    method_str,
+                    r->is_http
                 );
             }
             params[i] = parsed_item;
@@ -300,7 +302,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
     for (int i = 0; i < final_size; i++)
         merged[*size + i] = params[i];
 
-    PyObject* coro = PyObject_VectorcallDict(
+    PyObject* coro = PyObject_Vectorcall(
         r->callable,
         merged,
         *size + final_size,
@@ -320,7 +322,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
     if (PyAwaitable_AddAwait(
         awaitable,
         coro,
-        handle_route_callback,
+        r->is_http ? handle_route_callback : NULL,
         route_error
         ) < 0) {
         Py_DECREF(coro);

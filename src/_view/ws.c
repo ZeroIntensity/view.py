@@ -12,6 +12,7 @@ typedef struct {
     PyObject* send;
     PyObject* receive;
     PyObject* raw_path;
+    bool closing;
 } WebSocket;
 
 static PyObject* repr(PyObject* self) {
@@ -82,7 +83,6 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         type,
         "websocket.disconnect"
         )) {
-
         return 0;
     }
 
@@ -213,6 +213,31 @@ static int ws_err(
     PyObject* value,
     PyObject* tb
 ) {
+    if (tp == ws_disconnect_err) {
+        // the socket prematurely disconnected, let's complain about it
+        #if PY_MINOR_VERSION < 9
+        PyObject* args = Py_BuildValue("(s)", "Unhandled WebSocket disconnect");
+        if (!args)
+            return -2;
+        
+        if (!PyObject_Call(route_warn, args)) {
+            Py_DECREF(args);
+            return -2;
+        }
+        #else
+        PyObject* message = PyUnicode_FromStringAndSize("Unhandled WebSocket disconnect", sizeof("Unhandled WebSocket disconnect"));
+        if (!message)
+            return -2;
+        
+        if (!PyObject_CallOneArg(route_warn, message)) {
+            Py_DECREF(message);
+            return -2;
+        };
+        #endif
+
+        return 0;
+    }
+
     // NOTE: this needs to be here for the error to propagate! otherwise, the error is deferred to the ASGI server (which we don't want)
     PyErr_Restore(tp, value, tb);
     PyErr_Print();
@@ -257,6 +282,10 @@ static PyObject* recv_awaitable(WebSocket* self, awaitcallback cb) {
 }
 
 static PyObject* WebSocket_accept(WebSocket* self) {
+    if (self->closing) {
+        PyErr_SetString(PyExc_RuntimeError, "websocket has been closed");
+        return NULL;
+    }
     return recv_awaitable(
         self,
         run_ws_accept
@@ -264,6 +293,10 @@ static PyObject* WebSocket_accept(WebSocket* self) {
 }
 
 static PyObject* WebSocket_receive(WebSocket* self) {
+    if (self->closing) {
+        PyErr_SetString(PyExc_RuntimeError, "websocket has been closed");
+        return NULL;
+    }
     return recv_awaitable(
         self,
         run_ws_recv
@@ -290,6 +323,11 @@ static PyObject* WebSocket_close(
         &reason
         ))
         return NULL;
+
+    if (self->closing) {
+        PyErr_SetString(PyExc_RuntimeError, "websocket is already closed or closing");
+        return NULL;
+    }
 
     PyObject* awaitable = PyAwaitable_New();
     if (!awaitable)
@@ -349,6 +387,7 @@ static PyObject* WebSocket_close(
         Py_DECREF(awaitable);
         return NULL;
     }
+    self->closing = true;
 
     Py_DECREF(coro);
     return awaitable;

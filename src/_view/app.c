@@ -71,10 +71,12 @@
         Py_RETURN_NONE; \
 }
 
-int PyErr_BadASGI(void) {
-    PyErr_SetString(
+int view_PyErr_BadASGI(char* file, int lineno) {
+    PyErr_Format(
         PyExc_RuntimeError,
-        "problem with view.py's ASGI server (this is a bug!)"
+        "(%s:%d) problem with view.py's ASGI server (this is a bug!)",
+        file,
+        lineno
     );
     return -1;
 }
@@ -415,7 +417,7 @@ static PyObject* app(
     }
     char* query = strdup(query_str);
     map* ptr = self->websocket; // ws by default
-    const char* method_str;
+    const char* method_str = "websocket";
 
     if (is_http) {
         if (!strcmp(
@@ -460,7 +462,7 @@ static PyObject* app(
             ptr = self->options;
             method_str = "OPTIONS";
         }
-        if (!ptr) {
+        if (ptr == self->websocket) {
             ptr = self->get;
         }
     }
@@ -485,7 +487,8 @@ static PyObject* app(
                     NULL,
                     NULL,
                     NULL,
-                    method_str
+                    method_str,
+                    is_http
                     ) < 0) {
                     Py_DECREF(awaitable);
                     free(path);
@@ -501,7 +504,8 @@ static PyObject* app(
                 NULL,
                 NULL,
                 NULL,
-                method_str
+                method_str,
+                is_http
                 ) < 0) {
                 Py_DECREF(awaitable);
                 free(path);
@@ -706,6 +710,7 @@ static PyObject* app(
 
         return awaitable;
     } else {
+        // If there are no inputs, we can skip parsing!
         if (!is_http) VIEW_FATAL("got a websocket without an input!");
 
         PyObject* res_coro;

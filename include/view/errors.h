@@ -22,7 +22,8 @@ int fire_error(
     route* r,
     bool* called,
     const char* message,
-    const char* method_str
+    const char* method_str,
+    bool is_http
 );
 
 int server_err(

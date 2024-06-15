@@ -205,7 +205,8 @@ def route_types(
         route.extra_types[data.__name__] = data
     else:
         raise InvalidRouteError(
-            "expected type, tuple of tuples," f" or a dict, got {type(data).__name__}"
+            "expected type, tuple of tuples,"
+            f" or a dict, got {type(data).__name__}"
         )
 
     return route
@@ -237,13 +238,17 @@ def _method(
     if not util_path.startswith("/"):
         raise MistakeError(
             "paths must started with a slash",
-            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2),
+            hint=make_hint(
+                f'This should be "/{util_path}" instead', back_lines=2
+            ),
         )
 
     if util_path.endswith("/") and (len(util_path) != 1):
         raise MistakeError(
             "paths must not end with a slash",
-            hint=make_hint(f'This should be "{util_path[:-1]}" instead', back_lines=2),
+            hint=make_hint(
+                f'This should be "{util_path[:-1]}" instead', back_lines=2
+            ),
         )
 
     if "{" in util_path:
@@ -609,7 +614,9 @@ def route(
         doc,
         None,
         cache_rate,
-        method_list=[_STR_METHOD_MAPPING[i] for i in methods] if methods else None,
+        method_list=(
+            [_STR_METHOD_MAPPING[i] for i in methods] if methods else None
+        ),
         steps=steps,
         parallel_build=parallel_build,
     )

@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Finished websocket implementation
 -   Added the `custom` loader
 -   Added support for returning `bytes` objects in the body.
+-   Added `nosanitize` and `repr` to the `ref` attribute of `<view>` tags in view template rendering.
+-   `WebSocketDisconnect` is now raised instead of `WebSocketHandshakeError` in an unexpected WebSocket disconnect.
 -   **Breaking Change:** Removed the `hijack` configuration setting
 -   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
 -   **Breaking Change:** `load()` now takes routes via variadic arguments, instead of a list of routes.

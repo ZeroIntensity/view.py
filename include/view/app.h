@@ -8,7 +8,15 @@
 #include <view/map.h> // map
 
 extern PyTypeObject ViewAppType;
-int PyErr_BadASGI(void);
+#define PyErr_BadASGI() view_PyErr_BadASGI()
+
+#if defined(__LINE__) && defined(__FILE__)
+#define PyErr_BadASGI() view_PyErr_BadASGI(__FILE__, __LINE__)
+#else
+#define PyErr_BadASGI() view_PyErr_BadASGI("<unknown>.c", 0)
+#endif
+
+int view_PyErr_BadASGI(char* file, int lineno);
 
 typedef struct _ViewApp {
     PyObject_HEAD
@@ -30,7 +38,5 @@ typedef struct _ViewApp {
     bool has_path_params;
     PyObject* error_type;
 } ViewApp;
-
-int PyErr_BadASGI(void);
 
 #endif

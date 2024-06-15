@@ -9,17 +9,22 @@
 #include <view/view.h>
 
 PyObject* route_log = NULL;
+PyObject* route_warn = NULL;
 PyObject* ip_address = NULL;
 PyObject* invalid_status_error = NULL;
 PyObject* ws_cls = NULL;
+PyObject* ws_disconnect_err = NULL;
+PyObject* ws_err_cls = NULL;
 
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     PyObject* func;
+    PyObject* warn;
 
     if (!PyArg_ParseTuple(
         args,
-        "O",
-        &func
+        "OO",
+        &func,
+        &warn
         ))
         return NULL;
 
@@ -32,23 +37,50 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
         return NULL;
     }
 
+    if (!PyCallable_Check(warn)) {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "setup_route_log got non-function object: %R",
+            warn
+        );
+        return NULL;
+    }
+
     route_log = Py_NewRef(func);
+    route_warn = Py_NewRef(warn);
+
     Py_RETURN_NONE;
 }
 
 static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
     PyObject* cls;
+    PyObject* ws_disconnect_err_val;
+    PyObject* ws_err_cls_val;
 
-    if (!PyArg_ParseTuple(args, "O", &cls))
+    if (!PyArg_ParseTuple(args, "OOO", &cls, &ws_disconnect_err_val, &ws_err_cls_val))
         return NULL;
 
     if (!PyType_Check(cls)) {
         PyErr_Format(PyExc_RuntimeError,
-            "register_ws_cls got non-function object: %R", cls);
+            "register_ws_cls got non-type object: %R", cls);
+        return NULL;
+    }
+    
+    if (!PyType_Check(ws_disconnect_err_val)) {
+        PyErr_Format(PyExc_RuntimeError,
+            "register_ws_cls got non-type object: %R", cls);
+        return NULL;
+    }
+    
+    if (!PyType_Check(ws_err_cls_val)) {
+        PyErr_Format(PyExc_RuntimeError,
+            "register_ws_cls got non-type object: %R", cls);
         return NULL;
     }
 
     ws_cls = Py_NewRef(cls);
+    ws_disconnect_err = Py_NewRef(ws_disconnect_err_val);
+    ws_err_cls = Py_NewRef(ws_err_cls_val);
     Py_RETURN_NONE;
 }
 
@@ -63,7 +95,13 @@ static struct PyModuleDef module = {
     "_view",
     NULL,
     -1,
-    methods
+    methods,
+    #if PY_MINOR_VERSION >= 12
+    {
+        {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+        {0, NULL}
+    }
+    #endif
 };
 
 NORETURN void view_fatal(

@@ -30,6 +30,7 @@ __all__ = (
     "WebSocketExpectError",
     "WebSocketHandshakeError",
     "InvalidCustomLoaderError",
+    "WebSocketDisconnectError",
 )
 
 
@@ -139,6 +140,10 @@ class WebSocketError(ViewError):
 
 class WebSocketHandshakeError(WebSocketError):
     """WebSocket handshake went wrong somehow."""
+
+
+class WebSocketDisconnectError(WebSocketHandshakeError):
+    """WebSocket disconnected."""
 
 
 class WebSocketExpectError(WebSocketError, AssertionError, TypeError):

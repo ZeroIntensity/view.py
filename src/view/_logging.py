@@ -1022,7 +1022,7 @@ def _write_route(status: int | str, route: str, method_raw: str) -> None:
         )
 
 
-setup_route_log(_write_route)
+setup_route_log(_write_route, Service.warning)
 
 
 def enter_server():

@@ -180,7 +180,7 @@ gen_next(PyObject *self)
                         Py_None);
         return NULL;
     }
-
+    
     if (g->gw_current_await == NULL) {
         cb = aw->aw_callbacks[aw->aw_state++];
 
@@ -202,10 +202,8 @@ gen_next(PyObject *self)
     } else {
         cb = aw->aw_callbacks[aw->aw_state - 1];
     }
-
     PyObject *result = Py_TYPE(g->gw_current_await
                         )->tp_iternext(g->gw_current_await);
-
     if (result == NULL) {
         PyObject *occurred = PyErr_Occurred();
         if (!occurred) {

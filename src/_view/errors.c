@@ -16,7 +16,8 @@
     awaitable, \
     send, \
     code, \
-    msg \
+    msg, \
+    true \
     );
 
 /*
@@ -271,6 +272,7 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
     PyObject* send;
     PyObject* raw_path;
     const char* method_str;
+    route* r;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
@@ -281,7 +283,7 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
-        NULL,
+        &r,
         &method_str
         ) < 0)
         return -1;
@@ -307,7 +309,8 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
         send,
         status_code,
         res_str,
-        headers
+        headers,
+        r->is_http
         ) < 0) {
         Py_DECREF(result);
         free(res_str);
@@ -327,7 +330,8 @@ static int run_err_cb(
     const char* message,
     route* r,
     PyObject* raw_path,
-    const char* method
+    const char* method,
+    bool is_http
 ) {
     if (!handler) {
         if (called) *called = false;
@@ -361,7 +365,8 @@ static int run_err_cb(
             send,
             status,
             msg,
-            NULL
+            NULL,
+            is_http
             ) < 0
         )
             return -1;
@@ -433,7 +438,8 @@ int fire_error(
     route* r,
     bool* called,
     const char* message,
-    const char* method_str
+    const char* method_str,
+    bool is_http
 ) {
     PyObject* send;
     PyObject* raw_path;
@@ -474,14 +480,16 @@ int fire_error(
         message,
         r,
         raw_path,
-        method_str
+        method_str,
+        is_http
         ) < 0) {
         if (send_raw_text(
             awaitable,
             send,
             500,
             "failed to dispatch error handler",
-            NULL
+            NULL,
+            is_http
             ) < 0) {
             return -1;
         }
@@ -522,7 +530,8 @@ static int server_err_exc(
         r,
         handler_was_called,
         message,
-        method_str
+        method_str,
+        false
         ) < 0) {
         Py_XDECREF(msg_str);
         return -1;
@@ -626,7 +635,8 @@ int route_error(
             r,
             NULL,
             message,
-            method_str
+            method_str,
+            r->is_http
             ) < 0) {
             Py_DECREF(status_obj);
             Py_DECREF(msg_obj);
@@ -683,6 +693,9 @@ int route_error(
             return -1;
         }
         Py_DECREF(coro);
+
+        PyErr_Restore(Py_NewRef(tp), Py_NewRef(value), Py_NewRef(tb));
+        PyErr_Print();
 
         return 0;
     }

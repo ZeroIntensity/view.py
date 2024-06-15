@@ -28,7 +28,7 @@ from rich import print
 from rich.traceback import install
 from typing_extensions import ParamSpec, TypeAlias, Unpack
 
-from _view import InvalidStatusError, ViewApp
+from _view import InvalidStatusError, ViewApp, register_ws_cls
 
 from .__main__ import welcome
 from ._docs import markdown_docs
@@ -40,7 +40,7 @@ from ._util import make_hint, needs_dep
 from .build import build_app, build_steps
 from .config import Config, load_config
 from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
-                         ViewError, ViewInternalError)
+                         ViewError, ViewInternalError, WebSocketDisconnectError)
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
@@ -55,6 +55,9 @@ from .routing import websocket
 from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
 from .typing import Callback, DocsType, StrMethod, TemplateEngine
 from .util import enable_debug
+from .ws import WebSocket
+
+ReactPyComponent: TypeAlias = Any
 
 get_type_hints = lru_cache(get_type_hints)  # type: ignore
 
@@ -450,7 +453,7 @@ _LEVELS = dict((v, k) for k, v in LOGS.items())
 
 
 class Error(BaseException):
-    """Base class to act as a transport for raising HTTP exceptions."""
+    """Base class to act as a transport for raising HTTP errors."""
 
     def __init__(self, status: int = 400, message: str | None = None) -> None:
         """
@@ -467,6 +470,22 @@ class Error(BaseException):
         self.message = message
 
 
+class WSError(BaseException):
+    """Base class to act as a transport for raising WebSocket errors."""
+
+    def __init__(self, status: int = 1000, message: str | None = None) -> None:
+        """
+        Args:
+            status: The status code for the resulting response.
+            message: The (optional) message to send back to the client. If none, uses the default error message.
+        """
+        if status not in WS_CODES:
+            raise InvalidStatusError(f"invalid websocket close code: {status}")
+
+        self.status = status
+        self.message = message
+
+
 _DefinedByConfig = None
 
 
@@ -478,6 +497,7 @@ class App(ViewApp):
         config: Config,
         *,
         error_class: type[Error] = Error,
+        ws_error_class: type[WSError] = WSError,
     ) -> None:
         """
         Args:
@@ -493,8 +513,10 @@ class App(ViewApp):
         self._docs: DocsType = {}
         self.loaded_routes: list[Route] = []
         self.templaters: dict[str, Any] = {}
+        self.reactive_sessions: dict[str, ReactPyComponent] = {}
         self._register_error(error_class)
         self._user_loader: CustomLoader | None = None
+        register_ws_cls(WebSocket, WebSocketDisconnectError, ws_error_class)
 
         os.environ.update({k: str(v) for k, v in config.env.items()})
 

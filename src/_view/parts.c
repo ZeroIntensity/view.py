@@ -114,7 +114,8 @@ int extract_parts(
                 NULL,
                 NULL,
                 NULL,
-                method_str
+                method_str,
+                true
                 ) < 0) {
                 Py_DECREF(awaitable);
                 return -1;
@@ -145,7 +146,8 @@ int extract_parts(
             NULL,
             NULL,
             NULL,
-            method_str
+            method_str,
+            true
             ) < 0) {
             return -1;
         }
