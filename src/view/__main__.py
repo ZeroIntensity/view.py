@@ -15,7 +15,6 @@ from prompts.integration import PrettyOption
 
 from .__about__ import __version__
 from ._logging import VIEW_TEXT
-from .build import build_app
 from .exceptions import AppNotFoundError, BuildError
 
 B_OPEN = "{"
@@ -240,6 +239,8 @@ def build(path: Path):
 
     Internal.info = info_hook  # type: ignore
 
+    from .build import build_app
+    
     try:
         asyncio.run(build_app(app, path=path))
     except BuildError as e:

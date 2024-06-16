@@ -18,9 +18,10 @@ from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
 
 from typing_extensions import ParamSpec, TypeAlias
 
+import build
+
 from ._logging import Service
 from ._util import LoadChecker, make_hint
-from .build import run_step
 from .exceptions import InvalidRouteError, MissingAppError, MistakeError
 from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
                      ValueType, ViewResult, ViewRoute, WebSocketRoute)
@@ -89,7 +90,7 @@ RouteData = Literal[1, 2]
 
 async def wrap_step(app: App, step: str) -> None:
     try:
-        await run_step(app, step)
+        await build.run_step(app, step)
     except Exception as e:
         Service.exception(e)
         raise e

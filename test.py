@@ -45,7 +45,7 @@ app = new_app()
 async def index(ctx: Context):
     hook = secrets.token_hex(64)
     component = ReactPyView()
-    app.reactive_sessions[hook] = component
+    app._reactive_sessions[hook] = component
 
     async with Layout(
         ConnectionContext(
@@ -98,7 +98,7 @@ async def index(ctx: Context):
 @app.query("route", str)
 async def index_ws(ws: WebSocket, route: str):
     try:
-        page = app.reactive_sessions[route.strip("\n")]
+        page = app._reactive_sessions[route.strip("\n")]
     except KeyError:
         return "Invalid route stream ID"
 
