@@ -13,7 +13,6 @@ except ModuleNotFoundError as e:
 # these are re-exports
 from _view import Context, InvalidStatusError
 
-from . import _codec
 from .__about__ import *
 from .app import *
 from .build import *

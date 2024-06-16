@@ -80,55 +80,6 @@ dependencies = ["mkdocs", "mkdocstrings[python]", "mkdocs-material", "mkdocs-git
 build = "mkdocs build"
 serve = "mkdocs serve"
 
-[tool.hatch.envs.tests]
-dependencies = [
-  "ward",
-  "coverage",
-]
-
-[tool.hatch.envs.tests.scripts]
-cov = "coverage run -m ward"
-no-cov = "ward"
-
-[[tool.hatch.envs.test.matrix]]
-python = ["38", "39", "310", "311"]
-
-[tool.coverage.run]
-branch = true
-parallel = true
-omit = [
-  "src/view.py/__about__.py",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
-
-[tool.ward]
-path = ["tests"]
-capture-output = true
-order = "standard"
-test-output-style = "test-per-line"
-fail-limit = 5
-progress-style = ["bar"]
-
-
-# [tool.hatch.build]
-# include = ["src/view/**/*.py", "src/_view/_view.pyi"]
-
-# [tool.hatch.build.targets.wheel]
-# packages = ["src/view"]
-
-# [tool.hatch.build.hooks.custom]
-# enable-by-default = true
-
-# [tool.hatch.build.targets.wheel.hooks.autorun]
-# dependencies = ["hatch-autorun"]
-# code = "import view._codec"
-
 [project.scripts]
 view = "view.__main__:main"
 view-admin = "view.__main__:main"
