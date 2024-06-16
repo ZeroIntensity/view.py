@@ -1,3 +1,9 @@
+"""
+view.py configuration APIs
+
+This module contains `load_config`, `Config`, and all subcategories of `Config`.
+"""
+
 from __future__ import annotations
 
 import importlib.util
@@ -239,11 +245,13 @@ def load_config(
     *,
     directory: Path | None = None,
 ) -> Config:
-    """Load the configuration file.
+    """
+    Load the configuration file. If there is no existing configuration file, a virtual configuration is generated with default values.
 
     Args:
         path: Path to get the configuration from.
-        directory: Where to look for the configuration."""
+        directory: Where to look for the configuration.
+    """
     paths = (
         "view.toml",
         "view.json",

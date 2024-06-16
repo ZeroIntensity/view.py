@@ -1,3 +1,8 @@
+"""
+view.py patterns API
+
+This contains the `path()` function, which acts as the logic for the Django-like `patterns` loader.
+"""
 from __future__ import annotations
 
 from ._util import run_path
@@ -49,6 +54,37 @@ def path(
     *inputs: RouteInput,
     method: Method | StrMethod | None = _Get,
 ) -> Route:
+    """
+    Function to generate a `Route` object using Django-like routing.
+
+    Args:
+        target: URL path of the route.
+        path_or_function: Path to a route, a function representing a route, or a Route object (meaning a function was decorated with `get()` or some other router function).
+        inputs: All route inputs, e.g. `query()` or `body()`. Note that route inputs decorated on the function itself are automatically transferred.
+        method: Method of the route. `GET` by default.
+
+    Raises:
+        DuplicateRouteError: Parameter `target` is a string specifying a module path, and it contains multiple `Route` objects.
+        InvalidRouteError: `target` is a string specifying a module that has no `Route` objects.
+
+    Example:
+        ```py
+        # urls.py
+        from view import path, body
+        from .routes import index, create_account
+
+        patterns = [
+            path("/", index),
+            path(
+                "/create",
+                create_account,
+                body("username", str),
+                body("password", str),
+                method="POST"
+            )
+        ]
+        ```
+    """
     if isinstance(path_or_function, str):
         mod = run_path(path_or_function)
         route: Route | ViewRoute | None = None

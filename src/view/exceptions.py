@@ -1,3 +1,8 @@
+"""
+All view.py exceptions
+
+Everything in this module inherits from `ViewError` or `ViewWarning`.
+"""
 from __future__ import annotations
 
 from rich.console import RenderableType
