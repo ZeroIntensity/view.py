@@ -8,14 +8,13 @@ import exceptiongroup
 from reactpy import component, html, use_state, vdom_to_html
 from reactpy.backend.hooks import ConnectionContext
 from reactpy.backend.types import Connection, Location
-from reactpy.core.component import Component
 from reactpy.core.layout import Layout
 from reactpy.core.serve import serve_layout
 from reactpy.core.types import VdomDict, VdomJson
 from reactpy.core.vdom import make_vdom_constructor
 
-from src.view import (HTML, Context, WebSocket, WebSocketDisconnectError,
-                      new_app)
+from src.view import (HTML, Context, Router, WebSocket,
+                      WebSocketDisconnectError, new_app)
 
 _html = make_vdom_constructor("html")
 _body = make_vdom_constructor("body")

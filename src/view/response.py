@@ -6,11 +6,12 @@ All other classes that inherit from it are contained in this module.
 """
 from __future__ import annotations
 
-import uuid
+import secrets
+from collections.abc import Awaitable
 from contextlib import suppress
 from datetime import datetime as DateTime
 from pathlib import Path
-from typing import Any, Dict, Generic, TextIO, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, Generic, TextIO, TypeVar, Union
 
 import aiofiles
 import ujson
@@ -18,8 +19,19 @@ from typing_extensions import final
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import BodyTranslateStrategy, ResponseBody, SameSite, ViewResult
+from .typing import (BodyTranslateStrategy, MaybeAwaitable, ResponseBody,
+                     SameSite, ViewResult)
 from .util import timestamp
+
+if TYPE_CHECKING:
+    from reactpy.types import VdomDict, VdomJson
+
+with suppress(ImportError):
+    from reactpy import vdom_to_html
+    from reactpy.backend.hooks import ConnectionContext
+    from reactpy.backend.types import Connection, Location
+    from reactpy.core.layout import Layout
+    from reactpy.core.serve import serve_layout
 
 T = TypeVar("T")
 
@@ -32,7 +44,7 @@ HTMLContent = Union[TextIO, str, Path, DOMNode]
 class Response(Generic[T]):
     """
     Base view.py response class.
-    
+
     Technically speaking, it's not required for an object to inherit from this class if it wants to be used as a response object - to do that, all an object has to do is implement `__view_result__`.
     However, it's good convention to use this as the base class for objects that are solely used as a response.
 
@@ -46,7 +58,7 @@ class Response(Generic[T]):
         headers: dict[str, str] | None = None,
         *,
         body_translate: BodyTranslateStrategy | None = _Find,
-        content_type: str = "text/plain"
+        content_type: str = "text/plain",
     ) -> None:
         """
         Args:
@@ -71,7 +83,7 @@ class Response(Generic[T]):
         else:
             self.translate = "str" if not hasattr(body, "__view_result__") else "result"
 
-    def translate_body(self, body: T) -> str | bytes:
+    def translate_body(self, body: T) -> MaybeAwaitable[str | bytes]:
         """
         Translate the body via the `"custom"` body translate strategy. On classes that don't implement this, a `NotImplementedError` is raised.
 
@@ -146,7 +158,10 @@ class Response(Generic[T]):
         self._raw_headers.append((b"Set-Cookie", cookie_str))
 
     def _build_headers(self) -> tuple[tuple[bytes, bytes], ...]:
-        headers: list[tuple[bytes, bytes]] = [*self._raw_headers, (b"content-type", self.content_type.encode())]
+        headers: list[tuple[bytes, bytes]] = [
+            *self._raw_headers,
+            (b"content-type", self.content_type.encode()),
+        ]
 
         for k, v in self.headers.items():
             headers.append((k.encode(), v.encode()))
@@ -154,7 +169,7 @@ class Response(Generic[T]):
         return tuple(headers)
 
     @final
-    def __view_result__(self) -> ViewResult:
+    async def __view_result__(self) -> ViewResult:
         """view.py response function. This should not be called manually, and it's implementation should be considered unstable, but this will always be here."""
         body: str | bytes = ""
         if self.translate == "str":
@@ -165,7 +180,11 @@ class Response(Generic[T]):
         elif self.translate == "repr":
             body = repr(self.body)
         elif self.translate == "custom":
-            body = self.translate_body(self.body)
+            coro_or_body = self.translate_body(self.body)
+            if isinstance(coro_or_body, Awaitable):
+                body = await coro_or_body
+            else:
+                body = coro_or_body
         else:
             view_result = getattr(self.body, "__view_result__", None)
 
@@ -173,6 +192,9 @@ class Response(Generic[T]):
                 raise AttributeError(f"{self.body!r} has no __view_result__")
 
             body_res = view_result()
+            if isinstance(body_res, Awaitable):
+                body_res = await body_res
+
             if isinstance(body_res, str):
                 body = body_res
             else:
@@ -194,7 +216,9 @@ class HTML(Response[HTMLContent]):
         status: int = 200,
         headers: dict[str, str] | None = None,
     ) -> None:
-        super().__init__(body, status, headers, body_translate="custom", content_type="text/html")
+        super().__init__(
+            body, status, headers, body_translate="custom", content_type="text/html"
+        )
 
     def translate_body(self, body: HTMLContent) -> str:
         parsed_body = ""
@@ -250,18 +274,26 @@ class JSON(Response[Dict[str, Any]]):
         status: int = 200,
         headers: dict[str, str] | None = None,
     ) -> None:
-        super().__init__(body, status, headers, body_translate="custom", content_type="application/json",)
+        super().__init__(
+            body,
+            status,
+            headers,
+            body_translate="custom",
+            content_type="application/json",
+        )
 
     def translate_body(self, body: dict[str, Any]) -> str:
         return ujson.dumps(body)
 
 
-def to_response(result: ViewResult) -> Response[ResponseBody]:
+async def to_response(result: ViewResult) -> Response[ResponseBody]:
     """Cast a result from a route function to a `Response` object."""
 
     if hasattr(result, "__view_result__"):
         result = result.__view_result__()  # type: ignore
-        return to_response(result)
+        if isinstance(result, Awaitable):
+            return await to_response(await result)
+        return await to_response(result)
 
     if isinstance(result, tuple):
         status: int = 200
@@ -297,10 +329,50 @@ def to_response(result: ViewResult) -> Response[ResponseBody]:
 async def _reactpy_bootstrap(self: Component) -> ViewResult:
     from .app import get_app
 
-    react_id = uuid.uuid4().hex
     app = get_app()
-    app.reactive_sessions[react_id] = self
-    return await app.template("./client/dist/index.html", engine="view")
+    hook = secrets.token_hex(64)
+    app._reactive_sessions[hook] = self
+
+    async with Layout(
+        ConnectionContext(
+            self,
+            value=Connection(
+                {"reactpy": {"id": hook}},
+                Location(ctx.path, ""),
+                carrier=None,
+            ),
+        )
+    ) as layout:
+        # this is especially ugly, but reactpy renders
+        # the first few nodes as nothing
+        # for whatever reason.
+        vdom: VdomJson = (await layout.render())["model"]["children"][0]["children"][0][
+            "children"
+        ][0]
+
+    if vdom["tagName"] != "html":
+        raise RuntimeError("root react component must be html (see view.page())")
+
+    children = vdom.get("children")
+    if not children:
+        raise RuntimeError("root react component has no children")
+
+    head: VdomDict = children[0]
+    if head["tagName"] != "head":
+        raise RuntimeError(f"expected a <head> element, got <{head['tagName']}>")
+
+    body: VdomDict = children[1]
+    if body["tagName"] != "body":
+        raise RuntimeError(f"expected a <body> element, got <{body['tagName']}>")
+
+    prerender_head = vdom_to_html(head)
+    prerender_body = vdom_to_html(body)
+    return await app.template(
+        "./client/dist/index.html",
+        directory=Path("./"),
+        engine="view",
+    )
+
 
 with suppress(ImportError):
     from reactpy.core.component import Component

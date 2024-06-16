@@ -45,9 +45,11 @@ _ViewResponseTupleH = Tuple[ResponseHeaders, ResponseBody]
 _ViewResponseTupleI = Tuple[ResponseBody, int]
 _ViewResponseTupleJ = Tuple[int, ResponseBody]
 
+T = TypeVar("T")
+MaybeAwaitable = Union[T, Awaitable[T]]
 
 class SupportsViewResult(Protocol):
-    def __view_result__(self) -> ViewResult | Awaitable[ViewResult]: ...
+    def __view_result__(self) -> MaybeAwaitable[ViewResult]: ...
 
 
 ViewResult = Union[
