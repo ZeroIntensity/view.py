@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added support for returning `bytes` objects in the body.
 -   Added `nosanitize` and `repr` to the `ref` attribute of `<view>` tags in view template rendering.
 -   `WebSocketDisconnect` is now raised instead of `WebSocketHandshakeError` in an unexpected WebSocket disconnect.
+-   Added many, *many*, more docstrings.
+-   **Breaking Change:** Renamed `Response._custom` to `Response.translate_body`
 -   **Breaking Change:** Removed the `hijack` configuration setting
 -   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
 -   **Breaking Change:** `load()` now takes routes via variadic arguments, instead of a list of routes.

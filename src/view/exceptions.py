@@ -31,6 +31,7 @@ __all__ = (
     "WebSocketHandshakeError",
     "InvalidCustomLoaderError",
     "WebSocketDisconnectError",
+    "MissingAppError",
 )
 
 
@@ -152,3 +153,7 @@ class WebSocketExpectError(WebSocketError, AssertionError, TypeError):
 
 class InvalidCustomLoaderError(ViewError):
     """Custom loader is invalid."""
+
+
+class MissingAppError(ViewError):
+    """No view.py app was found."""

@@ -1,3 +1,11 @@
+"""
+view.py public typecode APIs.
+
+A "typecode" is a view.py term - it's a representation of a type for fast runtime type checking.
+The details of typecode internals are subject to change.
+
+Typecodes are used internally for quickly validating received query and body route inputs.
+"""
 from __future__ import annotations
 
 from typing import Generic, Iterable, TypeVar
@@ -16,15 +24,45 @@ T = TypeVar("T")
 
 
 class TCValidator(TCPublic, Generic[T]):
-    """Class for holding a typecode to be validated against."""
+    """
+    Class for holding a typecode to be validated against.
+
+    A "typecode" is a view.py term - it's a representation of a type for fast runtime type checking.
+    The details of typecode internals are subject to change.
+
+    It's highly unlikely that you would need to instantiate this class yourself - it should only be referenced directly for type hinting purposes.
+    
+    The constructor of this class is considered unstable - do not expect backwards compatibility!
+    Use the `compile_type` function instead.
+    """
 
     def __init__(self, tp: type[T], codes: Iterable[TypeInfo]) -> None:
         self.tp: type[T] = tp
+        """Original, unmodified type passed to `compile_type()`."""
         self.codes: Iterable[TypeInfo] = codes
+        """Iterable containing `TypeInfo` objects. Note that `TypeInfo` objects themself are considered unstable."""
         self._compile(codes, ujson.loads)
 
     def check_type(self, obj: object) -> TypeGuard[T]:
-        """Check if an object is the type."""
+        """
+        Check if an object *is* the type. This will not cast parameters, so it returns a `TypeGuard`.
+
+        Args:
+            obj: Object to check against.
+
+        Example:
+            ```py
+            from view import compile_type
+
+            tc = compile_type(int)
+            val = 1
+
+            if tc.check_type(val):
+                assert type(val) == int
+            else:
+                assert type(Val) != int
+            ```
+        """
         try:
             self._cast(obj, False)
             return True
@@ -32,7 +70,22 @@ class TCValidator(TCPublic, Generic[T]):
             return False
 
     def is_compatible(self, obj: object) -> bool:
-        """Check if an object is compatible with the type (including with casting)."""
+        """
+        Check if an object is compatible with the type (including with casting).
+
+        Args:
+            obj: Object to check against.
+        
+        Example:
+            ```py
+            from view import compile_type
+
+            tc = compile_type(int)
+
+            assert tc.is_compatible('1') is True  # '1' can be casted to an integer
+            assert tc.is_compatible('hello') is False  # 'hello' cannot be casted to an integer
+            ```
+        """
         try:
             self._cast(obj, True)
             return True
@@ -40,10 +93,24 @@ class TCValidator(TCPublic, Generic[T]):
             return False
 
     def cast(self, obj: object) -> T:
-        """Cast an object to the type.
+        """
+        Attempt to turn `obj` into the underlying type.
+
+        Args:
+            obj: Object to cast from.
 
         Raises:
-            TypeValidationError: The object is not compatible with the type."""
+            TypeValidationError: The object is not compatible with the type.
+
+        Example:
+            ```py
+            from view import compile_type
+
+            tc = compile_type(int)
+            obj = tc.cast("1")
+            assert obj == 1
+            ```
+        """
         try:
             return self._cast(obj, True)
         except RuntimeError:
@@ -51,5 +118,7 @@ class TCValidator(TCPublic, Generic[T]):
 
 
 def compile_type(tp: type[T]) -> TCValidator[T]:
-    """Compile a type to a type validation object."""
+    """
+    Compile a type to a type validation object.
+    """
     return TCValidator(tp, _build_type_codes([tp]))

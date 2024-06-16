@@ -1,10 +1,15 @@
+"""
+view.py public router APIs
+
+This module contains all the router functions (e.g. `get()`, `post()`, etc.).
+"""
 from __future__ import annotations
 
 import asyncio
 import builtins
 import inspect
 import re
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
@@ -16,7 +21,7 @@ from typing_extensions import ParamSpec, TypeAlias
 from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .build import run_step
-from .exceptions import InvalidRouteError, MistakeError
+from .exceptions import InvalidRouteError, MissingAppError, MistakeError
 from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
                      ValueType, ViewResult, ViewRoute, WebSocketRoute)
 
@@ -59,7 +64,7 @@ P = ParamSpec("P")
 
 @dataclass
 class BodyParam(Generic[V]):
-    types: type[V] | list[type[V]] | tuple[type[V], ...]
+    types: type[V] | Sequence[type[V]] | tuple[type[V], ...]
     default: V
 
 
@@ -70,7 +75,7 @@ class RouteInput(Generic[V]):
     tp: tuple[type[V], ...]
     default: V | None | _NoDefaultType
     doc: str | None
-    validators: list[Validator[V]]
+    validators: Sequence[Validator[V]]
 
 
 @dataclass
@@ -92,7 +97,12 @@ async def wrap_step(app: App, step: str) -> None:
 
 @dataclass
 class Route(Generic[P], LoadChecker):
-    """Standard Route Wrapper"""
+    """
+    Standard view.py route object.
+    
+    It's highly unlikely to need to instantiate this class manually, use a router function or some other API.
+    The internals of this API are considered unstable, do not except stability! Use this only for type hinting.
+    """
 
     func: ViewRoute[P]
     path: str | None
@@ -345,7 +355,8 @@ def get(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add a GET route.
+    """
+    Add a GET route.
 
     Args:
         path_or_route: The path to this route, or the route itself.
@@ -381,7 +392,8 @@ def post(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add a POST route.
+    """
+    Add a POST route.
 
     Args:
         path_or_route: The path to this route, or the route itself.
@@ -417,7 +429,8 @@ def patch(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add a PATCH route.
+    """
+    Add a PATCH route.
 
     Args:
         path_or_route: The path to this route, or the route itself.
@@ -453,7 +466,8 @@ def put(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add a PUT route.
+    """
+    Add a PUT route.
 
     Args:
         path_or_route: The path to this route, or the route itself.
@@ -489,7 +503,8 @@ def delete(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add a DELETE route.
+    """
+    Add a DELETE route.
 
     Args:
         path_or_route: The path to this route, or the route itself.
@@ -525,7 +540,8 @@ def options(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add an OPTIONS route.
+    """
+    Add an OPTIONS route.
 
     Args:
         path_or_route: The path to this route, or the route itself.
@@ -560,7 +576,25 @@ def websocket(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Callable[[RouteOrWebsocket[P]], Route[P]]:
-    """Add a websocket route."""
+    """
+    Add a websocket route.
+
+    Args:
+        path_or_route: The path to this route, or the route itself.
+        doc: The description of the route to be used in documentation.
+        steps: Build steps to run before this route is executed.
+        parallel_build: Whether to run the build steps in parallel. If this is not specified, this is defined by the app configuration.
+
+    Example:
+        ```py
+        from view import websocket, WebSocket
+
+        @websocket("/")
+        async def index_ws(ws: WebSocket):
+            async with ws:
+                await ws.send("Hello world")
+        ```
+    """
     return _method_wrapper(  # type: ignore
         path_or_route,
         doc,
@@ -592,13 +626,16 @@ def route(
     steps: Iterable[str] | None = None,
     parallel_build: bool | None = _DefinedByConfig,
 ) -> Path[P]:
-    """Add a route that can be called with any method (or only specific methods).
+    """
+    Add a route that can be called with any method (or only specific methods).
 
     Args:
         path_or_route: The path to this route, or the route itself.
         doc: The description of the route to be used in documentation.
         cache_rate: Reload the cache for this route every x number of requests. `-1` means to never cache.
         methods: Methods that can be used to access this route. If this is `None`, then all methods are allowed.
+        steps: Build steps to run before this route is executed.
+        parallel_build: Whether to run the build steps in parallel. If this is not specified, this is defined by the app configuration.
 
     Example:
         ```py
@@ -732,7 +769,22 @@ def context(
 def context(
     r_or_none: RouteOrCallable[P] | None = None,
 ) -> Callable[[RouteOrCallable[P]], Route[P]] | Route[P]:
-    """Add a context input to the route."""
+    """
+    Add a context input to the route. This is a decorator.
+
+    Args:
+        r_or_none: Route object, or none if calling the decorator with `()`
+
+    Example:
+        ```py
+        from view import context, Context
+
+        @context
+        def index(ctx: Context):
+            print(ctx.headers)
+            return "hello, world"
+        ```
+    """
 
     def inner(r: RouteOrCallable[P]) -> Route[P]:
         route = _ensure_route(r)
@@ -743,3 +795,41 @@ def context(
         return inner(r_or_none)
 
     return inner
+
+
+class Router:
+    """Object that stores and loads routes."""
+    def __init__(self, app: App | None = None) -> None:
+        self.app = app
+        self.routes: Sequence[Route] = []
+
+    def load(self, app: App | None = None, *, url_prefix: str | None = None) -> None:
+        """
+        Load the stored routes onto an app. This clears the stored sequence of routes.
+
+        Args:
+            app: App to load routes on to. If this is `None`, uses the stored `app` attribute.
+            url_prefix: Prefix to append to all routes before loading.
+
+        Raises:
+            ValueError: Both the `app` parameter and stored `app` attribute are `None`.
+        """
+
+        target = app or self.app
+
+        if not target:
+            raise MissingAppError("no app passed to loader")
+
+
+        if url_prefix:
+            if url_prefix.endswith("/"):
+                raise MistakeError("url paths cannot end with /")
+
+            for route in self.routes:
+                if route.parts:
+                    route.parts.insert(0, url_prefix)
+                else:
+                    assert route.path
+                    route.path = url_prefix + route.path
+
+        target.load(*self.routes)

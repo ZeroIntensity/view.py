@@ -1,3 +1,11 @@
+"""
+view.py public utility APIs
+
+This module contains general utility functions.
+Most of these exist because they are used somewhere else in view.py, it's just nice to provide the functionality publicly.
+
+For example, `timestamp()` is used by `cookie()` in `Response`, but it could be useful to generate timestamps for other cases.
+"""
 from __future__ import annotations
 
 import json
@@ -7,9 +15,11 @@ from datetime import datetime as DateTime
 from email.utils import formatdate
 from typing import TYPE_CHECKING, Union, overload
 
+from typing_extensions import deprecated
+
 from ._logging import Internal, Service
 from ._util import run_path, shell_hint
-from .exceptions import AppNotFoundError, BadEnvironmentError, MistakeError
+from .exceptions import AppNotFoundError, BadEnvironmentError
 
 if TYPE_CHECKING:
     from .app import App
@@ -18,7 +28,25 @@ __all__ = ("run", "env", "enable_debug", "timestamp", "extract_path")
 
 
 def extract_path(path: str) -> App:
-    """Extract an `App` instance from a path."""
+    """
+    Extract an `App` instance from a path.
+    
+    Args:
+        path: Path to the file and the app name in the format of `/path/to/app.py:app_name`.
+
+    Raises:
+        AppNotFoundError: File path does not exist.
+        AttributeError: File was found and loaded, but is missing the attribute name specified by `path`.
+        TypeError: The object found is not a `view.App` object.
+
+    Example:
+        ```py
+        from view import extract_path
+
+        app = extract_path("app.py:app")
+        app.run()
+        ```
+    """
     from .app import App
 
     split = path.split(":", maxsplit=1)
@@ -32,8 +60,8 @@ def extract_path(path: str) -> App:
 
     try:
         mod = run_path(file_path)
-    except FileNotFoundError:
-        raise AppNotFoundError(f'"{split[0]}" in {path} does not exist') from None
+    except FileNotFoundError as e:
+        raise AppNotFoundError(f'"{split[0]}" in {path} does not exist') from e
 
     try:
         target = mod[split[1]]
@@ -41,17 +69,19 @@ def extract_path(path: str) -> App:
         raise AttributeError(f'"{split[1]}" in {path} does not exist') from None
 
     if not isinstance(target, App):
-        raise MistakeError(f"{target!r} is not an instance of view.App")
+        raise TypeError(f"{target!r} is not an instance of view.App")
 
     return target
 
 
+@deprecated("Use run() on `App` instead. If you have an app path, use `extract_path()`, followed by run()")
 def run(app_or_path: str | App) -> None:
-    """Run a view app. Should not be used over `App.run()`
-        middleware: list[__Middleware],
+    """
+    Run a view app.
 
     Args:
-        app_or_path: App object or path to run."""
+        app_or_path: App object or path to run.
+    """
     from .app import App
 
     if isinstance(app_or_path, App):
@@ -63,7 +93,11 @@ def run(app_or_path: str | App) -> None:
 
 
 def enable_debug():
-    """Enable debug mode."""
+    """
+    Enable debug mode. The exact details of what this does should be considered unstable.
+
+    Generally, this will enable debug logging.
+    """
     internal = Internal.log
     internal.disabled = False
     internal.setLevel(logging.DEBUG)
@@ -104,7 +138,8 @@ def env(key: str, *, tp: type[dict] = dict) -> dict:  # type: ignore
 
 
 def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
-    """Get and parse an environment variable.
+    """
+    Get and parse an environment variable.
 
     Args:
         key: Environment variable to access.
@@ -122,6 +157,10 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
 
         app.run()
         ```
+
+    Raises:
+        BadEnvironmentError: Environment variable is not set or does not match the type.
+        TypeError: `tp` parameter is not a valid type.
     """
     value = os.environ.get(key)
 
@@ -157,16 +196,18 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
 
         return value == "true"
 
-    raise ValueError(f"{tp.__name__} cannot be converted")
+    raise TypeError(f"invalid type in env(): {tp}")
 
 
 _Now = None
 
 
 def timestamp(tm: DateTime | None = _Now) -> str:
-    """RFC 1123 Compliant Timestamp
+    """
+    RFC 1123 Compliant Timestamp. This is used by `Response` internally.
 
     Args:
-        tm: Date object to create a timestamp for. Now by default."""
+        tm: Date object to create a timestamp for. Now by default. 
+    """
     stamp: float = DateTime.now().timestamp() if not tm else tm.timestamp()
     return formatdate(stamp, usegmt=True)
