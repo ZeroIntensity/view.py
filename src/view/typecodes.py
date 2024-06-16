@@ -31,7 +31,7 @@ class TCValidator(TCPublic, Generic[T]):
     The details of typecode internals are subject to change.
 
     It's highly unlikely that you would need to instantiate this class yourself - it should only be referenced directly for type hinting purposes.
-    
+
     The constructor of this class is considered unstable - do not expect backwards compatibility!
     Use the `compile_type` function instead.
     """
@@ -75,7 +75,7 @@ class TCValidator(TCPublic, Generic[T]):
 
         Args:
             obj: Object to check against.
-        
+
         Example:
             ```py
             from view import compile_type

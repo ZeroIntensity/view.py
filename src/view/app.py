@@ -24,8 +24,18 @@ from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
-                    TextIO, TypeVar, get_type_hints, overload)
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Generic,
+    Iterable,
+    TextIO,
+    TypeVar,
+    get_type_hints,
+    overload,
+)
 from urllib.parse import urlencode
 
 import ujson
@@ -38,19 +48,36 @@ from _view import InvalidStatusError, ViewApp, register_ws_cls
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
-                       format_warnings)
+from ._logging import (
+    LOGS,
+    Internal,
+    Service,
+    enter_server,
+    exit_server,
+    format_warnings,
+)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .config import Config, load_config
-from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
-                         ViewError, ViewInternalError,
-                         WebSocketDisconnectError)
+from .exceptions import (
+    BadEnvironmentError,
+    InvalidCustomLoaderError,
+    ViewError,
+    ViewInternalError,
+    WebSocketDisconnectError,
+)
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
-from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
-                      _NoDefault, _NoDefaultType)
+from .routing import (
+    Route,
+    RouteInput,
+    RouteOrCallable,
+    RouteOrWebsocket,
+    V,
+    _NoDefault,
+    _NoDefaultType,
+)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -73,9 +100,7 @@ A = TypeVar("A")
 T = TypeVar("T")
 P = ParamSpec("P")
 
-_ROUTES_WARN_MSG = (
-    "routes argument should only be passed when load strategy is manual"
-)
+_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
 _ConfigSpecified = None
 
 B = TypeVar("B", bound=BaseException)
@@ -185,9 +210,7 @@ class VirtualWebSocket:
         self.send_queue.put_nowait(data)
 
     async def send(self, message: str) -> None:
-        self.recv_queue.put_nowait(
-            {"type": "websocket.receive", "text": message}
-        )
+        self.recv_queue.put_nowait({"type": "websocket.receive", "text": message})
 
     async def receive(self) -> str:
         data = await _to_thread(self.send_queue.get)
@@ -202,9 +225,7 @@ class VirtualWebSocket:
         return msg
 
     async def handshake(self) -> None:
-        assert (await _to_thread(self.send_queue.get))[
-            "type"
-        ] == "websocket.accept"
+        assert (await _to_thread(self.send_queue.get))["type"] == "websocket.accept"
 
 
 class TestingContext:
@@ -228,12 +249,9 @@ class TestingContext:
     async def stop(self) -> None:
         await self._lifespan.put("lifespan.shutdown")
 
-    def _gen_headers(
-        self, headers: dict[str, str]
-    ) -> list[tuple[bytes, bytes]]:
+    def _gen_headers(self, headers: dict[str, str]) -> list[tuple[bytes, bytes]]:
         return [
-            (key.encode(), value.encode())
-            for key, value in (headers or {}).items()
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
         ]
 
     def _truncate(self, route: str) -> str:
@@ -467,15 +485,14 @@ class Error(BaseException):
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError(
-                "status code can only be a client or server error"
-            )
+            raise InvalidStatusError("status code can only be a client or server error")
 
         self.status = status
         self.message = message
 
 
 WS_CODES = (1000,)
+
 
 class WSError(BaseException):
     """Base class to act as a transport for raising WebSocket errors."""
@@ -566,9 +583,7 @@ class App(ViewApp):
                         print(value.hint)
 
                 if isinstance(value, ViewInternalError):
-                    print(
-                        "[bold dim red]This is an internal error, not your fault![/]"
-                    )
+                    print("[bold dim red]This is an internal error, not your fault![/]")
                     print(
                         "[bold dim red]Please report this at https://github.com/ZeroIntensity/view.py/issues[/]"
                     )
@@ -591,9 +606,7 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
+        warnings.warn("load() was never called (did you forget to start the app?)")
         split = self.config.app.app_path.split(":", maxsplit=1)
 
         if len(split) != 2:
@@ -725,9 +738,7 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(
-            path, doc, cache_rate, get, steps, parallel_build
-        )
+        return self._method_wrapper(path, doc, cache_rate, get, steps, parallel_build)
 
     def post(
         self,
@@ -872,9 +883,7 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(
-            path, doc, cache_rate, put, steps, parallel_build
-        )
+        return self._method_wrapper(path, doc, cache_rate, put, steps, parallel_build)
 
     def options(
         self,
@@ -963,9 +972,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(
-                func
-            )
+            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -988,9 +995,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(
-                func
-            )
+            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -1018,9 +1023,7 @@ class App(ViewApp):
         else:
             f = frame  # type: ignore
 
-        return await template(
-            name, directory, engine, f, app=self, **parameters
-        )
+        return await template(name, directory, engine, f, app=self, **parameters)
 
     async def markdown(
         self,
@@ -1039,13 +1042,15 @@ class App(ViewApp):
     def context(
         self,
         r_or_none: RouteOrCallable[P],
-    ) -> Route[P]: ...
+    ) -> Route[P]:
+        ...
 
     @overload
     def context(
         self,
         r_or_none: None = None,
-    ) -> Callable[[RouteOrCallable[P]], Route[P]]: ...
+    ) -> Callable[[RouteOrCallable[P]], Route[P]]:
+        ...
 
     def context(
         self,
@@ -1075,10 +1080,8 @@ class App(ViewApp):
 
         for index, i in enumerate(routes):
             if not isinstance(i, Route):
-                raise TypeError(
-                    f"(index {index}) expected Route object, got {i}"
-                )
-        
+                raise TypeError(f"(index {index}) expected Route object, got {i}")
+
         with suppress(ImportError):
             import exceptiongroup
             from reactpy.backend.hooks import ConnectionContext
@@ -1341,6 +1344,7 @@ class App(ViewApp):
         Run the default build steps for the app.
         """
         from .build import build_steps
+
         await build_steps(self)
 
     async def export(self, path: str | Path | None = None) -> None:
@@ -1351,12 +1355,13 @@ class App(ViewApp):
             path: Path to export files to. This is passed to `build_app`.
         """
         from .build import build_app
+
         await build_app(self, path=Path(path) if path else None)
 
     def run_threaded(self, *, daemon: bool = True) -> Thread:
         """
         Run the app in a thread.
-        
+
         Args:
             daemon: Equivalent to the `daemon` parameter on `threading.Thread`
         """
@@ -1370,7 +1375,7 @@ class App(ViewApp):
     ) -> None:
         """
         Run the app in an event loop.
-        
+
         Args:
             loop: `asyncio` event loop to use. If `None`, `asyncio.get_event_loop()` is called.
         """
@@ -1405,10 +1410,12 @@ class App(ViewApp):
             await ctx.stop()
 
     @overload
-    def docs(self, file: None = None) -> str: ...
+    def docs(self, file: None = None) -> str:
+        ...
 
     @overload
-    def docs(self, file: TextIO) -> None: ...
+    def docs(self, file: TextIO) -> None:
+        ...
 
     @overload
     def docs(
@@ -1417,7 +1424,8 @@ class App(ViewApp):
         *,
         encoding: str = "utf-8",
         overwrite: bool = True,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     @overload
     def docs(
@@ -1426,7 +1434,8 @@ class App(ViewApp):
         *,
         encoding: str = "utf-8",
         overwrite: bool = True,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     def docs(
         self,
@@ -1489,7 +1498,7 @@ def new_app(
         from view import new_app
 
         app = new_app()
-        
+
         # ...
 
         app.run()

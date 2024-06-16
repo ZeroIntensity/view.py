@@ -115,7 +115,8 @@ def main(ctx: click.Context, debug: bool, version: bool) -> None:
 
 
 @main.group()
-def logs(): ...
+def logs():
+    ...
 
 
 @logs.command()
@@ -240,7 +241,7 @@ def build(path: Path):
     Internal.info = info_hook  # type: ignore
 
     from .build import build_app
-    
+
     try:
         asyncio.run(build_app(app, path=path))
     except BuildError as e:

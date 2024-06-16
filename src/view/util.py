@@ -30,7 +30,7 @@ __all__ = ("run", "env", "enable_debug", "timestamp", "extract_path")
 def extract_path(path: str) -> App:
     """
     Extract an `App` instance from a path.
-    
+
     Args:
         path: Path to the file and the app name in the format of `/path/to/app.py:app_name`.
 
@@ -74,7 +74,9 @@ def extract_path(path: str) -> App:
     return target
 
 
-@deprecated("Use run() on `App` instead. If you have an app path, use `extract_path()`, followed by run()")
+@deprecated(
+    "Use run() on `App` instead. If you have an app path, use `extract_path()`, followed by run()"
+)
 def run(app_or_path: str | App) -> None:
     """
     Run a view app.
@@ -207,7 +209,7 @@ def timestamp(tm: DateTime | None = _Now) -> str:
     RFC 1123 Compliant Timestamp. This is used by `Response` internally.
 
     Args:
-        tm: Date object to create a timestamp for. Now by default. 
+        tm: Date object to create a timestamp for. Now by default.
     """
     stamp: float = DateTime.now().timestamp() if not tm else tm.timestamp()
     return formatdate(stamp, usegmt=True)

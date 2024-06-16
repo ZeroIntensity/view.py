@@ -19,8 +19,7 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
-                           TextColumn)
+from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -1040,7 +1039,7 @@ def _write_route(status: int | str, route: str, method_raw: str) -> None:
                 f"[{_METHOD_COLORS['websocket']}]websocket[/] [white]{route}[/] [bold green]open[/]",
                 highlight=False,
             )
-        else:  
+        else:
             Service.info(
                 f"[{_METHOD_COLORS[method]}]{method.lower()}[/] [white]{route}[/] [{_status_color(status)}]{status}[/]",
                 highlight=False,

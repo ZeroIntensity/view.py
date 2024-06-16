@@ -15,13 +15,6 @@ from reactpy.core.vdom import make_vdom_constructor
 from src.view import (HTML, Context, Router, WebSocket,
                       WebSocketDisconnectError, new_app)
 
-_html = make_vdom_constructor("html")
-_body = make_vdom_constructor("body")
-
-
-def page(head: VdomDict, *body: VdomDict, lang: str = "en") -> VdomDict:
-    return _html({"lang": lang}, head, _body(*body))
-
 app = new_app()
 
 @app.get("/")

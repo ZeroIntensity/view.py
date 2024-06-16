@@ -15,8 +15,11 @@ from typing_extensions import Self
 from _view import ViewWebSocket
 
 from ._logging import Service
-from .exceptions import (WebSocketDisconnectError, WebSocketExpectError,
-                         WebSocketHandshakeError)
+from .exceptions import (
+    WebSocketDisconnectError,
+    WebSocketExpectError,
+    WebSocketHandshakeError,
+)
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -42,23 +45,26 @@ class WebSocket:
         """Whether the connection was accepted, and then closed."""
 
     @overload
-    async def receive(self, tp: type[str] = str) -> str: ...
+    async def receive(self, tp: type[str] = str) -> str:
+        ...
 
     @overload
-    async def receive(self, tp: type[bytes] = bytes) -> bytes: ...
+    async def receive(self, tp: type[bytes] = bytes) -> bytes:
+        ...
 
     @overload
-    async def receive(self, tp: type[dict] = dict) -> dict: ...
+    async def receive(self, tp: type[dict] = dict) -> dict:
+        ...
 
     @overload
-    async def receive(self, tp: type[int] = int) -> int: ...
+    async def receive(self, tp: type[int] = int) -> int:
+        ...
 
     @overload
-    async def receive(self, tp: type[bool] = bool) -> bool: ...
+    async def receive(self, tp: type[bool] = bool) -> bool:
+        ...
 
-    async def receive(
-        self, tp: type[WebSocketReceivable] = str
-    ) -> WebSocketReceivable:
+    async def receive(self, tp: type[WebSocketReceivable] = str) -> WebSocketReceivable:
         """
         Receive a message from the client.
 
@@ -102,9 +108,7 @@ class WebSocket:
             return res.encode()
 
         if tp is bool:
-            if (res not in {"True", "true", "False", "false"}) and (
-                not res.isdigit()
-            ):
+            if (res not in {"True", "true", "False", "false"}) and (not res.isdigit()):
                 raise WebSocketExpectError(
                     f"expected boolean-like message, got {res!r}"
                 )
@@ -114,9 +118,7 @@ class WebSocket:
 
             return res in {"True", "true"}
 
-        raise TypeError(
-            f"expected type str, bytes, dict, int, or bool, but got {tp!r}"
-        )
+        raise TypeError(f"expected type str, bytes, dict, int, or bool, but got {tp!r}")
 
     async def send(self, message: WebSocketSendable) -> None:
         """
@@ -128,7 +130,7 @@ class WebSocket:
         Raises:
             WebSocketHandshakeError: The connection has already been closed.
             TypeError: Type of `message` cannot be sent to the client.
-        
+
         Example:
             ```py
             from view import websocket, WebSocket
@@ -140,9 +142,7 @@ class WebSocket:
             ```
         """
         if not self.open:
-            raise WebSocketHandshakeError(
-                "cannot send to connection that is not open"
-            )
+            raise WebSocketHandshakeError("cannot send to connection that is not open")
         if isinstance(message, (str, bytes)):
             await self._socket.send(message)
         elif isinstance(message, dict):
@@ -163,7 +163,8 @@ class WebSocket:
         *,
         tp: type[str] = str,
         recv_first: bool = False,
-    ) -> str: ...
+    ) -> str:
+        ...
 
     @overload
     async def pair(
@@ -172,7 +173,8 @@ class WebSocket:
         *,
         tp: type[bytes] = bytes,
         recv_first: bool = False,
-    ) -> bytes: ...
+    ) -> bytes:
+        ...
 
     @overload
     async def pair(
@@ -181,7 +183,8 @@ class WebSocket:
         *,
         tp: type[int] = int,
         recv_first: bool = False,
-    ) -> int: ...
+    ) -> int:
+        ...
 
     @overload
     async def pair(
@@ -190,7 +193,8 @@ class WebSocket:
         *,
         tp: type[dict] = dict,
         recv_first: bool = False,
-    ) -> dict: ...
+    ) -> dict:
+        ...
 
     @overload
     async def pair(
@@ -199,7 +203,8 @@ class WebSocket:
         *,
         tp: type[bool] = bool,
         recv_first: bool = False,
-    ) -> bool: ...
+    ) -> bool:
+        ...
 
     async def pair(
         self,
@@ -238,7 +243,7 @@ class WebSocket:
     async def close(self) -> None:
         """
         Close the connection.
-        
+
         Raises:
             WebSocketHandshakeError: The connection has already been closed.
 
@@ -253,9 +258,7 @@ class WebSocket:
             ```
         """
         if not self.open:
-            raise WebSocketHandshakeError(
-                "cannot close connection that isn't open"
-            )
+            raise WebSocketHandshakeError("cannot close connection that isn't open")
 
         self.open = False
         self.done = True
@@ -264,7 +267,7 @@ class WebSocket:
     async def accept(self) -> None:
         """
         Open the connection.
-        
+
         Raises:
             WebSocketHandshakeError: `accept()` has already been called on this object.
 
@@ -288,9 +291,7 @@ class WebSocket:
     async def expect(self, message: WebSocketSendable) -> None:
         msg = await self.receive(tp=type(message))
         if msg != message:
-            raise WebSocketExpectError(
-                f"websocket expected {message!r}, got {msg!r}"
-            )
+            raise WebSocketExpectError(f"websocket expected {message!r}, got {msg!r}")
 
     recv = receive
     connect = accept

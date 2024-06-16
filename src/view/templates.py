@@ -77,9 +77,7 @@ class _ViewRenderer:
         from bs4 import BeautifulSoup
 
         if not view.attrs:
-            raise InvalidTemplateError(
-                "<view> tags must have at least one attribute"
-            )
+            raise InvalidTemplateError("<view> tags must have at least one attribute")
 
         iterator_obj: Iterator[Any] | None = None
         iterator_name: str | None = None
@@ -159,9 +157,7 @@ class _ViewRenderer:
 
                 _iter_render(iter_name, value)
             else:
-                raise InvalidTemplateError(
-                    f"unknown attribute {key!r} in <view> tag"
-                )
+                raise InvalidTemplateError(f"unknown attribute {key!r} in <view> tag")
 
         if iterator_obj:
             assert iterator_name, "iterator_name is None (this is a bug!)"
@@ -189,9 +185,7 @@ class _ViewRenderer:
         soup = BeautifulSoup(content, features="html.parser")
 
         for view in soup.find_all("view"):
-            assert isinstance(
-                view, Tag
-            ), "found non-tag somehow (this is a bug!)"
+            assert isinstance(view, Tag), "found non-tag somehow (this is a bug!)"
             await self._tag(view)
 
         return str(soup)
@@ -210,7 +204,7 @@ async def render(
 
     This function does not require that an app has been created, but will attempt to get an app with `get_app()` regardless.
     If `get_app()` fails, template engine instances are not stored.
-    
+
     Args:
         source: Source code to pass to the template engine.
         engine: Template engine to use. Unlike `template()`, this does not try and load the default template engine from the config.
@@ -299,9 +293,7 @@ async def render(
 
         return Template(source).render(Context(parameters))
     else:
-        raise InvalidTemplateError(
-            f"{engine!r} is not a supported template engine"
-        )
+        raise InvalidTemplateError(f"{engine!r} is not a supported template engine")
 
 
 async def template(

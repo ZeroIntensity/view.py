@@ -1,8 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
-                    List, Literal, Tuple, Type, TypeVar, Union)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
 
@@ -40,8 +52,11 @@ StrResponseBody = Union[str, bytes]
 T = TypeVar("T")
 MaybeAwaitable = Union[T, Awaitable[T]]
 
+
 class SupportsViewResult(Protocol):
-    def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]: ...
+    def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+        ...
+
 
 ResponseBody = Union[StrResponseBody, SupportsViewResult]
 
@@ -50,7 +65,7 @@ ViewResult = Union[
     None,
     Tuple[ResponseBody, int],
     Tuple[ResponseBody, int, dict[str, str]],
-    Tuple[ResponseBody, int, Sequence[Tuple[bytes, bytes]]]
+    Tuple[ResponseBody, int, Sequence[Tuple[bytes, bytes]]],
 ]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")
@@ -90,7 +105,8 @@ class _SupportsViewBodyCV(Protocol):
 
 class _SupportsViewBodyF(Protocol):
     @staticmethod
-    def __view_body__() -> ViewBody: ...
+    def __view_body__() -> ViewBody:
+        ...
 
 
 ViewBodyLike = Union[_SupportsViewBodyCV, _SupportsViewBodyF]
