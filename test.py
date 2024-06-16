@@ -1,23 +1,10 @@
-import asyncio
-import secrets
-from contextlib import suppress
-from functools import partial
-from pathlib import Path
+from reactpy import component, html, use_state
 
-import exceptiongroup
-from reactpy import component, html, use_state, vdom_to_html
-from reactpy.backend.types import Connection, Location
-from reactpy.core.layout import Layout
-from reactpy.core.serve import serve_layout
-from reactpy.core.types import VdomDict, VdomJson
-from reactpy.core.vdom import make_vdom_constructor
-
-from src.view import (HTML, Context, Router, WebSocket,
-                      WebSocketDisconnectError, new_app)
+from view import new_app, page
 
 app = new_app()
 
-@app.get("/")
+@app.get("/")  # type: ignore
 @component
 def test():
     count, set_count = use_state(0)
