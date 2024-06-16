@@ -19,12 +19,14 @@ from typing_extensions import final
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import (BodyTranslateStrategy, MaybeAwaitable, ResponseBody,
-                     SameSite, ViewResult)
+from .typing import (BodyTranslateStrategy, MaybeAwaitable, SameSite,
+                     StrResponseBody, ViewResult)
 from .util import timestamp
 
 if TYPE_CHECKING:
     from reactpy.types import VdomDict, VdomJson
+
+    from _view import Context
 
 with suppress(ImportError):
     from reactpy import vdom_to_html
@@ -169,8 +171,11 @@ class Response(Generic[T]):
         return tuple(headers)
 
     @final
-    async def __view_result__(self) -> ViewResult:
-        """view.py response function. This should not be called manually, and it's implementation should be considered unstable, but this will always be here."""
+    async def __view_result__(self, ctx: Context) -> ViewResult:
+        """
+        view.py response function.
+        This should not be called manually, and it's implementation should be considered unstable, but this will always be here.
+        """
         body: str | bytes = ""
         if self.translate == "str":
             if isinstance(self.body, bytes):
@@ -286,7 +291,7 @@ class JSON(Response[Dict[str, Any]]):
         return ujson.dumps(body)
 
 
-async def to_response(result: ViewResult) -> Response[ResponseBody]:
+async def to_response(result: ViewResult) -> Response[StrResponseBody]:
     """Cast a result from a route function to a `Response` object."""
 
     if hasattr(result, "__view_result__"):
@@ -299,7 +304,7 @@ async def to_response(result: ViewResult) -> Response[ResponseBody]:
         status: int = 200
         headers: dict[str, str] = {}
         raw_headers: list[tuple[bytes, bytes]] = []
-        body: ResponseBody | None = None
+        body: StrResponseBody | None = None
 
         for value in result:
             if isinstance(value, int):
@@ -326,7 +331,7 @@ async def to_response(result: ViewResult) -> Response[ResponseBody]:
     return Response(result)
 
 
-async def _reactpy_bootstrap(self: Component) -> ViewResult:
+async def _reactpy_bootstrap(self: Component, ctx: Context) -> ViewResult:
     from .app import get_app
 
     app = get_app()

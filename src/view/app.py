@@ -17,7 +17,7 @@ import weakref
 from collections.abc import Iterable as CollectionsIterable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, partial
 from io import UnsupportedOperation
 from pathlib import Path
 from queue import Queue
@@ -474,6 +474,8 @@ class Error(BaseException):
         self.status = status
         self.message = message
 
+
+WS_CODES = (1000,)
 
 class WSError(BaseException):
     """Base class to act as a transport for raising WebSocket errors."""
@@ -1076,6 +1078,28 @@ class App(ViewApp):
                 raise TypeError(
                     f"(index {index}) expected Route object, got {i}"
                 )
+        
+        with suppress(ImportError):
+            import exceptiongroup
+            from reactpy.backend.hooks import ConnectionContext
+            from reactpy.core.layout import Layout
+            from reactpy.core.serve import serve_layout
+
+            @self.websocket("/_view/reactpy-stream")
+            @self.query("route", str)
+            async def index_ws(ws: WebSocket, route: str):
+                try:
+                    page = self._reactive_sessions[route.strip("\n")]
+                except KeyError:
+                    return "Invalid route stream ID"
+
+                await ws.accept()
+                with suppress(exceptiongroup.ExceptionGroup):
+                    await serve_layout(
+                        Layout(ConnectionContext(page)),  # type: ignore
+                        ws.send,  # type: ignore
+                        partial(ws.receive, tp=dict),  # type: ignore
+                    )
 
         if self.config.app.loader == "filesystem":
             load_fs(self, self.config.app.loader_path)
@@ -1100,6 +1124,9 @@ class App(ViewApp):
 
         for r in self.loaded_routes:
             if not r.path:
+                continue
+
+            if r.path.startswith("/_view"):
                 continue
 
             body: dict[str, InputDoc] = {}
@@ -1198,8 +1225,9 @@ class App(ViewApp):
             for log in (
                 logging.getLogger("uvicorn.error"),
                 logging.getLogger("uvicorn.access"),
+                logging.getLogger("uvicorn.asgi"),
             ):
-                log.disabled = not self.config.log.server_logger
+                log.propagate = not self.config.log.server_logger
 
             config = uvicorn.Config(
                 self._app,

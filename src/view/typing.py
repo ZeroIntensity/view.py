@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
                     List, Literal, Tuple, Type, TypeVar, Union)
 
 from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
 
 if TYPE_CHECKING:
+    from _view import Context
+
     from .app import RouteDoc
     from .ws import WebSocket
 
@@ -32,40 +35,22 @@ ResponseHeaders = Union[
     List[RawResponseHeader],
     Tuple[RawResponseHeader, ...],
 ]
-ResponseBody = Union[str, bytes]
-
-_ViewResponseTupleA = Tuple[ResponseBody, int, ResponseHeaders]
-_ViewResponseTupleB = Tuple[int, ResponseBody, ResponseHeaders]
-_ViewResponseTupleC = Tuple[ResponseBody, ResponseHeaders, int]
-_ViewResponseTupleD = Tuple[int, ResponseHeaders, ResponseBody]
-_ViewResponseTupleE = Tuple[ResponseHeaders, ResponseBody, int]
-_ViewResponseTupleF = Tuple[ResponseHeaders, int, ResponseBody]
-_ViewResponseTupleG = Tuple[ResponseBody, ResponseHeaders]
-_ViewResponseTupleH = Tuple[ResponseHeaders, ResponseBody]
-_ViewResponseTupleI = Tuple[ResponseBody, int]
-_ViewResponseTupleJ = Tuple[int, ResponseBody]
+StrResponseBody = Union[str, bytes]
 
 T = TypeVar("T")
 MaybeAwaitable = Union[T, Awaitable[T]]
 
 class SupportsViewResult(Protocol):
-    def __view_result__(self) -> MaybeAwaitable[ViewResult]: ...
+    def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]: ...
 
+ResponseBody = Union[StrResponseBody, SupportsViewResult]
 
 ViewResult = Union[
-    _ViewResponseTupleA,
-    _ViewResponseTupleB,
-    _ViewResponseTupleC,
-    _ViewResponseTupleD,
-    _ViewResponseTupleE,
-    _ViewResponseTupleF,
-    _ViewResponseTupleG,
-    _ViewResponseTupleH,
-    _ViewResponseTupleI,
-    _ViewResponseTupleJ,
     ResponseBody,
-    SupportsViewResult,
     None,
+    Tuple[ResponseBody, int],
+    Tuple[ResponseBody, int, dict[str, str]],
+    Tuple[ResponseBody, int, Sequence[Tuple[bytes, bytes]]]
 ]
 P = ParamSpec("P")
 V = TypeVar("V", bound="ValueType")

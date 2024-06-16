@@ -340,8 +340,8 @@ async def build_steps(app_or_config: App | Config) -> None:
             await _build_step(step)
 
 
-def _handle_result(res: ViewResult) -> str | bytes:
-    response = to_response(res)
+async def _handle_result(res: ViewResult) -> str | bytes:
+    response = await to_response(res)
     return response.body
 
 
@@ -372,16 +372,23 @@ async def _compile_routes(
 
         res = i.func()  # type: ignore
 
+        # I'm unsure if I'm doing this right.
+        # Reviewers, correct this if I'm wrong!
         if isinstance(res, Coroutine):
             if should_await:
-                results[i.path[1:]] = _handle_result(await res)
+                results[i.path[1:]] = await _handle_result(await res)
             else:
                 task = asyncio.create_task(res)
 
                 def cb(fut: asyncio.Task[ViewResult]):
                     text = fut.result()
-                    assert i.path is not None
-                    results[i.path[1:]] = _handle_result(text)
+
+                    def cb_2(fut2: asyncio.Task[str | bytes]):
+                        assert i.path is not None
+                        results[i.path[1:]] = fut2.result()
+
+                    task2 = asyncio.create_task(_handle_result(text))
+                    task2.add_done_callback(cb_2)
 
                 task.add_done_callback(cb)
                 coros.append(res)

@@ -4,6 +4,7 @@
 #include <view/app.h> // ViewApp
 #include <view/awaitable.h>
 #include <view/backport.h>
+#include <view/context.h> // context_from_data
 #include <view/errors.h> // route_error
 #include <view/inputs.h> // route_input
 #include <view/parsers.h> // body_inc_buf
@@ -354,9 +355,34 @@ int handle_route_callback(
     PyObject* awaitable,
     PyObject* result
 ) {
-    PyObject* view_result = PyObject_GetAttrString(result, "__view_result__");
+    ViewApp* self;
+    PyObject* send;
+    PyObject* scope;
+    PyObject* receive;
+    PyObject* raw_path;
+    route* r;
+    const char* method_str;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        &self,
+        &scope,
+        &receive,
+        &send,
+        &raw_path
+        ) < 0)
+        return -1;
+
+    PyObject* view_result = PyObject_GetAttrString(result,
+        "__view_result__");
     if (view_result) {
-        result = PyObject_CallNoArgs(view_result);
+        PyObject* context = context_from_data((PyObject*) self, scope);
+        if (!context) {
+            Py_DECREF(view_result);
+            return -1;
+        }
+
+        result = PyObject_CallOneArg(view_result, context);
         Py_DECREF(view_result);
         if (!result)
             return -1;
@@ -373,24 +399,6 @@ int handle_route_callback(
             return 0;
         }
     } else Py_INCREF(result);
-
-    PyObject* send;
-    PyObject* receive;
-    PyObject* raw_path;
-    route* r;
-    const char* method_str;
-
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        NULL,
-        NULL,
-        &receive,
-        &send,
-        &raw_path
-        ) < 0) {
-        Py_DECREF(result);
-        return -1;
-    }
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,

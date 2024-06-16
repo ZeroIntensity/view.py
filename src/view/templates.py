@@ -113,7 +113,7 @@ class _ViewRenderer:
                     )
             elif key == "template":
                 html = await template(value)
-                body = html._custom(html.body)
+                body = html.translate_body(html.body)
                 result.append(body)
             elif key == "if":
                 self._last_if = bool(eval(value, self.parameters))

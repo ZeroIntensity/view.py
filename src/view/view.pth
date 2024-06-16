@@ -1,1 +1,0 @@
-import codecs; codecs.register(lambda name: __import__("view._codec")._codec.codec_info if name == "view" else None)

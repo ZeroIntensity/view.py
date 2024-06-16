@@ -169,8 +169,6 @@ class LoaderDoc:
 class _NotSet:
     """Sentinel value for default being not set in _build_type_codes."""
 
-    ...
-
 
 def _build_type_codes(
     inp: Iterable[type[ValueType]],

@@ -13,13 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added support for coroutines in `PyAwaitable` (vendored)
 -   Finished websocket implementation
 -   Added the `custom` loader
--   Added support for returning `bytes` objects in the body.
--   Added `nosanitize` and `repr` to the `ref` attribute of `<view>` tags in view template rendering.
--   `WebSocketDisconnect` is now raised instead of `WebSocketHandshakeError` in an unexpected WebSocket disconnect.
--   Added many, _many_, more docstrings.
+-   Added support for returning `bytes` objects in the body
+-   Added `nosanitize` and `repr` to the `ref` attribute of `<view>` tags in view template rendering
+-   `WebSocketDisconnect` is now raised instead of `WebSocketHandshakeError` in an unexpected WebSocket disconnect
+-   Added many, _many_, more docstrings
 -   Added the `app` attribute to `Context`
 -   Switched to PyMalloc under the hood
+-   Deprecated the `run()` utility
 -   Added support for asynchronous `__view_result__` functions
+-   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous
 -   **Breaking Change:** Renamed `Response._custom` to `Response.translate_body`
 -   **Breaking Change:** Removed the `hijack` configuration setting

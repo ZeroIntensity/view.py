@@ -1,4 +1,3 @@
-print("a")
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Union
@@ -14,7 +13,7 @@ from encodings.utf_8 import StreamReader as UTF8StreamReader
 from html.parser import HTMLParser
 from io import StringIO
 
-__all__ = "codec_info",
+__all__ = ("codec_info",)
 
 Input = Union[bytes, bytearray, memoryview]
 
