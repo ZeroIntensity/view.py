@@ -28,3 +28,4 @@ vgcore.*
 *.test
 package-lock.json
 client.js
+test.py
