@@ -3,6 +3,7 @@
 
 #include <Python.h> // PyObject, Py_ssize_t
 
+#include <view/app.h> // ViewApp
 #include <view/parsers.h> // app_parsers
 #include <view/typecodes.h>
 
@@ -19,12 +20,14 @@ typedef struct _route_input {
 
 PyObject* build_data_input(
     int num,
+    PyObject* app,
     PyObject* scope,
     PyObject* receive,
     PyObject* send
 );
 
 PyObject** generate_params(
+    ViewApp* app,
     app_parsers* parsers,
     const char* data,
     PyObject* query,

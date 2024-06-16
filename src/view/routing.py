@@ -18,8 +18,6 @@ from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
 
 from typing_extensions import ParamSpec, TypeAlias
 
-import build
-
 from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MissingAppError, MistakeError
@@ -44,6 +42,7 @@ __all__ = (
     "route",
     "websocket",
     "Route",
+    "Router"
 )
 
 PART = re.compile(r"{(((\w+)(: *(\w+)))|(\w+))}")
@@ -89,8 +88,10 @@ RouteData = Literal[1, 2]
 
 
 async def wrap_step(app: App, step: str) -> None:
+    from .build import run_step
+
     try:
-        await build.run_step(app, step)
+        await run_step(app, step)
     except Exception as e:
         Service.exception(e)
         raise e
@@ -799,10 +800,13 @@ def context(
 
 
 class Router:
-    """Object that stores and loads routes."""
-    def __init__(self, app: App | None = None) -> None:
+    """
+    Object that stores and loads routes.
+    """
+    def __init__(self, app: App | None = None, url_prefix: str | None = None) -> None:
         self.app = app
-        self.routes: Sequence[Route] = []
+        self.routes: list[Route] = []
+        self.url_prefix = url_prefix
 
     def load(self, app: App | None = None, *, url_prefix: str | None = None) -> None:
         """
@@ -810,7 +814,7 @@ class Router:
 
         Args:
             app: App to load routes on to. If this is `None`, uses the stored `app` attribute.
-            url_prefix: Prefix to append to all routes before loading.
+            url_prefix: Prefix to append to all routes before loading. If this is `None`, uses the stored `url_prefix` attribute.
 
         Raises:
             ValueError: Both the `app` parameter and stored `app` attribute are `None`.
@@ -821,7 +825,7 @@ class Router:
         if not target:
             raise MissingAppError("no app passed to loader")
 
-
+        url_prefix = url_prefix or self.url_prefix
         if url_prefix:
             if url_prefix.endswith("/"):
                 raise MistakeError("url paths cannot end with /")
@@ -834,3 +838,35 @@ class Router:
                     route.path = url_prefix + route.path
 
         target.load(*self.routes)
+        self.routes = []
+    
+    def get(
+        self,
+        path_or_route: str | None | RouteOrCallable[P] = None,
+        doc: str | None = None,
+        *,
+        cache_rate: int = -1,
+        steps: Iterable[str] | None = None,
+        parallel_build: bool | None = _DefinedByConfig,
+    ) -> Path[P]:
+        """
+        Add a GET route to the router.
+
+        Example:
+            ```py
+            from view import Router
+
+            router = Router(url_prefix="/foo")
+
+            @router.get("/")
+            async def index():
+                return "Hello, view.py!"
+            ```
+        """
+        return get(
+            path_or_route,
+            doc,
+            cache_rate=cache_rate,
+            steps=steps,
+            parallel_build=parallel_build,
+        )

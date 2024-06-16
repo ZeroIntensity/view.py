@@ -47,7 +47,7 @@ _ViewResponseTupleJ = Tuple[int, ResponseBody]
 
 
 class SupportsViewResult(Protocol):
-    def __view_result__(self) -> ViewResult: ...
+    def __view_result__(self) -> ViewResult | Awaitable[ViewResult]: ...
 
 
 ViewResult = Union[

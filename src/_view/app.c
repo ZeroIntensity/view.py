@@ -49,7 +49,7 @@
         return NULL; \
     } \
     if (!map_get(self->all_routes, path)) { \
-        int* num = malloc(sizeof(int)); \
+        int* num = PyMem_Malloc(sizeof(int)); \
         if (!num) { \
             PyErr_NoMemory(); \
             route_free(r); \
@@ -316,7 +316,7 @@ static PyObject* app(
             scope,
             receive,
             send
-        ) < 0) {
+            ) < 0) {
             Py_DECREF(awaitable);
             return NULL;
         }
@@ -371,7 +371,7 @@ static PyObject* app(
     size_t len = strlen(raw_path);
     char* path;
     if (raw_path[len - 1] == '/' && len != 1) {
-        path = malloc(len);
+        path = PyMem_Malloc(len);
         if (!path) {
             Py_DECREF(awaitable);
             return PyErr_NoMemory();
@@ -404,7 +404,7 @@ static PyObject* app(
 
     if (!query_obj) {
         Py_DECREF(awaitable);
-        free(path);
+        PyMem_Free(path);
         return NULL;
     }
 
@@ -412,7 +412,7 @@ static PyObject* app(
 
     if (!query_str) {
         Py_DECREF(awaitable);
-        free(path);
+        PyMem_Free(path);
         return NULL;
     }
     char* query = strdup(query_str);
@@ -491,10 +491,10 @@ static PyObject* app(
                     is_http
                     ) < 0) {
                     Py_DECREF(awaitable);
-                    free(path);
+                    PyMem_Free(path);
                     return NULL;
                 }
-                free(path);
+                PyMem_Free(path);
                 return awaitable;
             }
             if (fire_error(
@@ -508,10 +508,10 @@ static PyObject* app(
                 is_http
                 ) < 0) {
                 Py_DECREF(awaitable);
-                free(path);
+                PyMem_Free(path);
                 return NULL;
             }
-            free(path);
+            PyMem_Free(path);
             return awaitable;
         }
 
@@ -527,8 +527,8 @@ static PyObject* app(
             &params
         );
         if (res < 0) {
-            free(path);
-            free(size);
+            PyMem_Free(path);
+            PyMem_Free(size);
 
             if (res == -1) {
                 // -1 denotes that an exception occurred, raise it
@@ -560,10 +560,10 @@ static PyObject* app(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
-                free(size);
+                PyMem_Free(params);
+                PyMem_Free(size);
             }
-            free(path);
+            PyMem_Free(path);
             Py_DECREF(awaitable);
             return NULL;
         }
@@ -582,10 +582,10 @@ static PyObject* app(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
-                free(size);
+                PyMem_Free(params);
+                PyMem_Free(size);
             }
-            free(path);
+            PyMem_Free(path);
             Py_DECREF(awaitable);
             return NULL;
         }
@@ -598,12 +598,12 @@ static PyObject* app(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
-                free(size);
+                PyMem_Free(params);
+                PyMem_Free(size);
             }
             Py_DECREF(awaitable);
             Py_DECREF(coro);
-            free(path);
+            PyMem_Free(path);
             return NULL;
         };
 
@@ -622,11 +622,11 @@ static PyObject* app(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
-                free(size);
+                PyMem_Free(params);
+                PyMem_Free(size);
             }
             Py_DECREF(awaitable);
-            free(path);
+            PyMem_Free(path);
             return NULL;
         }
 
@@ -644,11 +644,11 @@ static PyObject* app(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
-                free(size);
+                PyMem_Free(params);
+                PyMem_Free(size);
             }
             Py_DECREF(awaitable);
-            free(path);
+            PyMem_Free(path);
             return NULL;
         }
 
@@ -660,17 +660,17 @@ static PyObject* app(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
-                free(size);
+                PyMem_Free(params);
+                PyMem_Free(size);
             }
             Py_DECREF(awaitable);
             Py_DECREF(coro);
-            free(path);
+            PyMem_Free(path);
             return NULL;
         }
 
         Py_DECREF(coro);
-        free(path);
+        PyMem_Free(path);
         return awaitable;
     }
 
@@ -693,7 +693,7 @@ static PyObject* app(
                 query
                 ) < 0) {
                 Py_DECREF(awaitable);
-                free(path);
+                PyMem_Free(path);
                 return NULL;
             };
 
@@ -725,14 +725,14 @@ static PyObject* app(
             for (int i = 0; i < *size; i++)
                 Py_DECREF(params[i]);
 
-            free(path);
-            free(params);
-            free(size);
+            PyMem_Free(path);
+            PyMem_Free(params);
+            PyMem_Free(size);
         } else res_coro = PyObject_CallNoArgs(r->callable);
 
         if (!res_coro) {
             Py_DECREF(awaitable);
-            free(path);
+            PyMem_Free(path);
             return NULL;
         }
 
@@ -755,7 +755,7 @@ static PyObject* app(
             route_error
             ) < 0) {
             Py_DECREF(res_coro);
-            free(path);
+            PyMem_Free(path);
             Py_DECREF(awaitable);
             return NULL;
         }

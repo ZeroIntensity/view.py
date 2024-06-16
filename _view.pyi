@@ -14,6 +14,7 @@ from typing import Literal as __Literal
 from typing import NoReturn as __NoReturn
 from typing import TypeVar as __TypeVar
 
+from view.app import App
 from view.routing import RouteData as __RouteData
 from view.typing import AsgiDict as __AsgiDict
 from view.typing import AsgiReceive as __AsgiReceive
@@ -126,6 +127,7 @@ def test_awaitable(
 class Context:
     def __init__(self) -> __NoReturn: ...
 
+    app: App
     cookies: dict[str, str]
     headers: dict[str, str]
     client: __IPv4Address | __IPv6Address | None

@@ -53,13 +53,13 @@ int extract_parts(
     while ((token = v_strsep(
         &path,
         "/"
-    ))) {
+                    ))) {
         if (skip) {
             skip = false;
             continue;
         }
         // TODO: optimize this
-        char* s = malloc(strlen(token) + 2);
+        char* s = PyMem_Malloc(strlen(token) + 2);
         sprintf(
             s,
             "/%s",
@@ -80,7 +80,7 @@ int extract_parts(
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
-                free(params);
+                PyMem_Free(params);
                 return -1;
             }
 
@@ -99,14 +99,14 @@ int extract_parts(
             target,
             s
         );
-        free(s);
+        PyMem_Free(s);
 
         if (!rt) {
             // the route doesnt exist!
             for (int i = 0; i < *size; i++)
                 Py_DECREF(params[i]);
 
-            free(params);
+            PyMem_Free(params);
             if (fire_error(
                 self,
                 awaitable,
@@ -138,7 +138,7 @@ int extract_parts(
         for (int i = 0; i < *size; i++)
             Py_DECREF(params[i]);
 
-        free(params);
+        PyMem_Free(params);
         if (fire_error(
             self,
             awaitable,

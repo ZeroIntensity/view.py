@@ -143,7 +143,7 @@ static int find_result_for(
 }
 
 static int handle_result_impl(
-    PyObject* raw_result,
+    PyObject* result,
     char** res_target,
     int* status_target,
     PyObject** headers_target
@@ -151,18 +151,7 @@ static int handle_result_impl(
     char* res_str = NULL;
     int status = 200;
     PyObject* headers = PyList_New(0);
-    PyObject* result;
-    PyObject* view_result = PyObject_GetAttrString(
-        raw_result,
-        "__view_result__"
-    );
     PyErr_Clear();
-
-    if (view_result) {
-        result = PyObject_CallNoArgs(view_result);
-        if (!result)
-            return -1;
-    } else result = raw_result;
 
     if (PyUnicode_CheckExact(
         result

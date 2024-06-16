@@ -10,6 +10,7 @@
 
 typedef struct {
     PyObject_HEAD
+    PyObject* app;
     PyObject* scheme;
     PyObject* headers;
     PyObject* cookies;
@@ -23,6 +24,10 @@ typedef struct {
 } Context;
 
 static PyMemberDef members[] = {
+    {"app", T_OBJECT_EX, offsetof(
+        Context,
+        app
+     ), 0, NULL},
     {"scheme", T_OBJECT_EX, offsetof(
         Context,
         scheme
@@ -69,7 +74,7 @@ static PyMemberDef members[] = {
 static PyObject* repr(PyObject* self) {
     Context* ctx = (Context*) self;
     return PyUnicode_FromFormat(
-        "Context(scheme=%R, headers=%R, cookies=%R, http_version=%R, client=%R, client_port=%R, server=%R, server_port=%R, method=%R, path=%R)",
+        "Context(app=..., scheme=%R, headers=%R, cookies=%R, http_version=%R, client=%R, client_port=%R, server=%R, server_port=%R, method=%R, path=%R)",
         ctx->scheme,
         ctx->headers,
         ctx->cookies,
@@ -85,6 +90,7 @@ static PyObject* repr(PyObject* self) {
 
 
 static void dealloc(Context* self) {
+    Py_XDECREF(self->app);
     Py_XDECREF(self->scheme);
     Py_XDECREF(self->headers);
     Py_XDECREF(self->cookies);
@@ -113,7 +119,7 @@ static PyObject* Context_new(
     return (PyObject*) self;
 }
 
-PyObject* context_from_data(PyObject* scope) {
+PyObject* context_from_data(PyObject* app, PyObject* scope) {
     Context* context = (Context*) Context_new(
         &ContextType,
         NULL,
@@ -195,7 +201,7 @@ PyObject* context_from_data(PyObject* scope) {
             (PyObject*[]) { PyTuple_GET_ITEM(
                 client,
                 0
-            ) },
+                            ) },
             1,
             NULL
         );
@@ -225,7 +231,7 @@ PyObject* context_from_data(PyObject* scope) {
             (PyObject*[]) { PyTuple_GET_ITEM(
                 server,
                 0
-            ) },
+                            ) },
             1,
             NULL
         );
@@ -347,6 +353,7 @@ PyObject* context_from_data(PyObject* scope) {
         Py_DECREF(value);
     }
 
+    context->app = Py_NewRef(app);
     return (PyObject*) context;
 }
 

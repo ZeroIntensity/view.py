@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <stdbool.h> // true
 
+#include <view/app.h> // ViewApp
 #include <view/context.h> // context_from_data
 #include <view/ws.h> // ws_from_data
 #include <view/parsers.h> // app_parsers
@@ -10,12 +11,13 @@
 
 PyObject* build_data_input(
     int num,
+    PyObject* app,
     PyObject* scope,
     PyObject* receive,
     PyObject* send
 ) {
     switch (num) {
-    case 1: return context_from_data(scope);
+    case 1: return context_from_data(app, scope);
     case 2: return ws_from_data(
         scope,
         send,
@@ -28,7 +30,11 @@ PyObject* build_data_input(
     return NULL; // to make editor happy
 }
 
-static PyObject* parse_body(const char* data, app_parsers* parsers, PyObject* scope) {
+static PyObject* parse_body(
+    const char* data,
+    app_parsers* parsers,
+    PyObject* scope
+) {
     PyObject* py_str = PyUnicode_FromString(data);
     if (!py_str)
         return NULL;
@@ -45,6 +51,7 @@ static PyObject* parse_body(const char* data, app_parsers* parsers, PyObject* sc
 }
 
 PyObject** generate_params(
+    ViewApp* app,
     app_parsers* parsers,
     const char* data,
     PyObject* query,
@@ -75,11 +82,12 @@ PyObject** generate_params(
                 inp->route_data,
                 scope,
                 receive,
-                send
+                send,
+                (PyObject*) app
             );
             if (!data) {
                 Py_DECREF(obj);
-                free(ob);
+                PyMem_Free(ob);
                 return NULL;
             }
 
@@ -101,7 +109,7 @@ PyObject** generate_params(
 
         if (!item) {
             Py_DECREF(obj);
-            free(ob);
+            PyMem_Free(ob);
             return NULL;
         }
 
@@ -114,7 +122,7 @@ PyObject** generate_params(
             );
             if (!PyObject_IsTrue(o)) {
                 Py_DECREF(o);
-                free(ob);
+                PyMem_Free(ob);
                 Py_DECREF(obj);
                 Py_DECREF(item);
                 return NULL;

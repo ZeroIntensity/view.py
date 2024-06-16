@@ -5,6 +5,6 @@
 #include <view/backport.h>
 
 extern PyTypeObject ContextType;
-PyObject* context_from_data(PyObject* scope);
+PyObject* context_from_data(PyObject* app, PyObject* scope);
 
 #endif

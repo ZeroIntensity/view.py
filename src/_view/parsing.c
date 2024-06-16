@@ -108,8 +108,8 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
             Py_DECREF(more_body);
             Py_DECREF(body);
             Py_DECREF(receive_coro);
-            free(query);
-            free(nbuf);
+            PyMem_Free(query);
+            PyMem_Free(nbuf);
             return -1;
         }
 
@@ -122,7 +122,7 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
             ) < 0) {
             Py_DECREF(more_body);
             Py_DECREF(body);
-            free(nbuf);
+            PyMem_Free(nbuf);
             return -1;
         };
     }
@@ -210,6 +210,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
         if (r->inputs[i]->route_data) {
             PyObject* data = build_data_input(
                 r->inputs[i]->route_data,
+                (PyObject*) self,
                 scope,
                 receive,
                 send
@@ -218,7 +219,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
                 for (int i = 0; i < r->inputs_size; i++)
                     Py_XDECREF(params[i]);
 
-                free(params);
+                PyMem_Free(params);
                 Py_DECREF(query_obj);
                 return -1;
             }
@@ -243,7 +244,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
             for (int i = 0; i < r->inputs_size; i++)
                 Py_XDECREF(params[i]);
 
-            free(params);
+            PyMem_Free(params);
             Py_DECREF(query_obj);
             return fire_error(
                 self,
@@ -270,7 +271,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
                 for (int i = 0; i < r->inputs_size; i++)
                     Py_XDECREF(params[i]);
 
-                free(params);
+                PyMem_Free(params);
                 Py_DECREF(query_obj);
                 return fire_error(
                     self,
@@ -314,7 +315,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
         Py_XDECREF(merged[i]);
 
     PyMem_Free(merged);
-    free(params);
+    PyMem_Free(params);
     Py_DECREF(query_obj);
 
     if (!coro)

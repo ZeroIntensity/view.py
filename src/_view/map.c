@@ -37,7 +37,7 @@ void* map_get(map* m, const char* key) {
 }
 
 map* map_new(Py_ssize_t inital_capacity, map_free_func dealloc) {
-    map* m = malloc(sizeof(map));
+    map* m = PyMem_Malloc(sizeof(map));
     if (!m)
         return (map*) PyErr_NoMemory();
 
@@ -77,7 +77,7 @@ static int set_entry(pair** items, Py_ssize_t capacity, const char* key,
         (*len)++;
 
     if (!items[index]) {
-        items[index] = malloc(sizeof(pair));
+        items[index] = PyMem_Malloc(sizeof(pair));
         if (!items[index]) {
             PyErr_NoMemory();
             return -1;
@@ -120,11 +120,11 @@ static int expand(map* m) {
                 ) < 0) {
                 return -1;
             };
-            free(item);
+            PyMem_Free(item);
         }
     }
 
-    free(m->items);
+    PyMem_Free(m->items);
     m->items = items;
     m->capacity = new_capacity;
     return 0;
@@ -135,12 +135,12 @@ void map_free(map* m) {
         pair* item = m->items[i];
         if (item) {
             m->dealloc(item->value);
-            free(item);
+            PyMem_Free(item);
         }
     }
 
-    free(m->items);
-    free(m);
+    PyMem_Free(m->items);
+    PyMem_Free(m);
 }
 
 void map_set(map* m, const char* key, void* value) {

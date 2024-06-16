@@ -570,7 +570,7 @@ PyTypeObject TCPublicType = {
 
 
 type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
-    type_info** tps = calloc(
+    type_info** tps = PyMem_Calloc(
         sizeof(type_info),
         len
     );
@@ -580,14 +580,14 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             type_codes,
             i
         );
-        type_info* ti = malloc(sizeof(type_info));
+        type_info* ti = PyMem_Malloc(sizeof(type_info));
 
         if (!info && ti) {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
 
-            free(tps);
-            if (ti) free(ti);
+            PyMem_Free(tps);
+            if (ti) PyMem_Free(ti);
             return NULL;
         }
 
@@ -625,7 +625,7 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
 
-            free(tps);
+            PyMem_Free(tps);
             return NULL;
         }
 
@@ -645,7 +645,7 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
 
-            free(tps);
+            PyMem_Free(tps);
             Py_XDECREF(obj);
             if ((intptr_t) df > 0) Py_DECREF(df);
             return NULL;
@@ -661,7 +661,7 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             for (int x = 0; x < i; i++)
                 free_type_info(tps[x]);
 
-            free(tps);
+            PyMem_Free(tps);
             Py_XDECREF(obj);
             if ((intptr_t) df) Py_DECREF(df);
             return NULL;

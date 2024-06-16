@@ -313,11 +313,11 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
         r->is_http
         ) < 0) {
         Py_DECREF(result);
-        free(res_str);
+        PyMem_Free(res_str);
         return -1;
     }
 
-    free(res_str);
+    PyMem_Free(res_str);
     return 0;
 }
 
@@ -574,16 +574,18 @@ int route_error(
         PyObject* args = Py_BuildValue("(s)", "Unhandled WebSocket disconnect");
         if (!args)
             return -2;
-        
+
         if (!PyObject_Call(route_warn, args)) {
             Py_DECREF(args);
             return -2;
         }
         #else
-        PyObject* message = PyUnicode_FromStringAndSize("Unhandled WebSocket disconnect", sizeof("Unhandled WebSocket disconnect"));
+        PyObject* message = PyUnicode_FromStringAndSize(
+            "Unhandled WebSocket disconnect", sizeof(
+                "Unhandled WebSocket disconnect"));
         if (!message)
             return -2;
-        
+
         if (!PyObject_CallOneArg(route_warn, message)) {
             Py_DECREF(message);
             return -2;

@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added `nosanitize` and `repr` to the `ref` attribute of `<view>` tags in view template rendering.
 -   `WebSocketDisconnect` is now raised instead of `WebSocketHandshakeError` in an unexpected WebSocket disconnect.
 -   Added many, *many*, more docstrings.
+-   Added the `app` attribute to `Context`
+-   Switched to PyMalloc under the hood
+-   Added support for asynchronous `__view_result__` functions
 -   **Breaking Change:** Renamed `Response._custom` to `Response.translate_body`
 -   **Breaking Change:** Removed the `hijack` configuration setting
 -   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
