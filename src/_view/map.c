@@ -2,13 +2,16 @@
 #include <stdint.h> // uint64_t
 #include <stdio.h>
 #include <string.h> // strdup
+
 #include <view/map.h>
+#include <view/results.h> // pymem_strdup
+#include <view/view.h> // PURE, COLD
 
 #define FNV_OFFSET 14695981039346656037UL
 #define FNV_PRIME 1099511628211UL
 
 // https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
-static uint64_t hash_key(const char* key) {
+PURE static uint64_t hash_key(const char* key) {
     uint64_t hash = FNV_OFFSET;
     for (const char* p = key; *p; p++) {
         hash ^= (uint64_t) (unsigned char) (*p);
@@ -17,7 +20,7 @@ static uint64_t hash_key(const char* key) {
     return hash;
 }
 
-void* map_get(map* m, const char* key) {
+PURE void* map_get(map* m, const char* key) {
     uint64_t hash = hash_key(key);
     Py_ssize_t index = (Py_ssize_t) (hash & (uint64_t)(m->capacity - 1));
 
@@ -84,7 +87,14 @@ static int set_entry(pair** items, Py_ssize_t capacity, const char* key,
         }
     }
 
-    items[index]->key = key;
+    char* new_key = pymem_strdup(key, strlen(key));
+
+    if (!new_key) {
+        PyMem_Free(items[index]);
+        return -1;
+    }
+
+    items[index]->key = new_key;
     items[index]->value = value;
     return 0;
 }
@@ -98,7 +108,7 @@ static int expand(map* m) {
         );
         return -1;
     }
-    pair** items = calloc(
+    pair** items = PyMem_Calloc(
         new_capacity,
         sizeof(pair)
     );
@@ -135,6 +145,7 @@ void map_free(map* m) {
         pair* item = m->items[i];
         if (item) {
             m->dealloc(item->value);
+            PyMem_Free(item->key);
             PyMem_Free(item);
         }
     }
@@ -157,7 +168,7 @@ void map_set(map* m, const char* key, void* value) {
 }
 
 // Debugging purposes
-void print_map(map* m, map_print_func pr) {
+COLD void print_map(map* m, map_print_func pr) {
     puts("map {");
     for (int i = 0; i < m->capacity; i++) {
         pair* p = m->items[i];

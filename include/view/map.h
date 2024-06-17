@@ -7,7 +7,7 @@ typedef void (* map_free_func)(void*);
 typedef void (* map_print_func)(void*);
 
 typedef struct STRUCT_MAP_PAIR {
-    const char* key;
+    char* key;
     void* value;
 } pair;
 

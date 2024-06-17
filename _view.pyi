@@ -130,7 +130,7 @@ class Context:
 
     app: App
     cookies: dict[str, str]
-    headers: dict[str, str]
+    headers: HeaderDict
     client: __IPv4Address | __IPv6Address | None
     server: __IPv4Address | __IPv6Address | None
     method: __StrMethodASGI
@@ -162,7 +162,7 @@ def register_ws_cls(
     tp: type[__Any], ws_handshake_err: type[__Any], ws_err: type[__Any], /,
 ) -> None: ...
 
-class HeadersDict:
+class HeaderDict:
     def __init__(self) -> __NoReturn: ...
     def __setitem__(self, key: str, value: str, /) -> None: ...
-    def __getitem__(self, key: str, /) -> str: ...
+    def __getitem__(self, key: str, /) -> str | list[str]: ...

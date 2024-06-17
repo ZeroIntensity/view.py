@@ -82,7 +82,7 @@
  * Something unexpected happened with the received ASGI data (e.g. the scope is missing a key).
  * Don't call this manually, use the PyErr_BadASGI macro, which passes the file and lineno.
  */
-int view_PyErr_BadASGI(char* file, int lineno) {
+COLD int view_PyErr_BadASGI(char* file, int lineno) {
     PyErr_Format(
         PyExc_RuntimeError,
         "(%s:%d) problem with view.py's ASGI server (this is a bug!)",
@@ -308,7 +308,7 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
  *
  * This is accessible via asgi_app_entry in Python
  */
-static PyObject* app(
+HOT static PyObject* app(
     ViewApp* self,
     PyObject* const* args,
     Py_ssize_t nargs

@@ -248,6 +248,7 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result)
     PyObject* raw_path;
     const char* method_str;
     route* r;
+    int is_http;
 
     if (PyAwaitable_UnpackValues(
         awaitable,
@@ -259,6 +260,9 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result)
         awaitable,
         &r,
         &method_str) < 0)
+        return -1;
+
+    if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
     char* res_str;
@@ -283,7 +287,7 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result)
         status_code,
         res_str,
         headers,
-        r->is_http) < 0)
+        is_http) < 0)
     {
         Py_DECREF(result);
         PyMem_Free(res_str);
@@ -304,7 +308,8 @@ static int run_err_cb(
     route* r,
     PyObject* raw_path,
     const char* method,
-    bool is_http)
+    bool is_http
+)
 {
     if (!handler)
     {
@@ -380,6 +385,12 @@ static int run_err_cb(
         1,
         r) < 0)
     {
+        Py_DECREF(new_awaitable);
+        Py_DECREF(coro);
+        return -1;
+    }
+
+    if (PyAwaitable_SaveIntValues(new_awaitable, 1, is_http) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;

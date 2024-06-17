@@ -28,7 +28,7 @@ PyObject*_PyObject_VectorcallBackport(
 #endif
 
 #if PY_VERSION_HEX < 0x030c0000
-PyObject*PyErr_GetRaisedException(void) {
+PyObject* PyErr_GetRaisedException(void) {
     PyObject* type, * val, * tb;
     PyErr_Fetch(&type, &val, &tb);
     PyErr_NormalizeException(&type, &val, &tb);

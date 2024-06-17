@@ -8,6 +8,7 @@
 #include <view/map.h>
 #include <view/headerdict.h>
 #include <view/results.h> // pymem_strdup
+#include <view/view.h> // COLD
 
 typedef struct {
     bool is_list;
@@ -34,9 +35,31 @@ typedef struct {
     map* headers;
 } HeaderDict;
 
-static PyObject* repr(PyObject* self) {
+/*
+ * This creates a copy of the object as a dictionary.
+ * It's not perfect, but this function won't really get called in production,
+ * so we can cheat a little bit here.
+ */
+static PyObject* repr(HeaderDict* self) {
+    PyObject* dict_repr = PyDict_New();
+    if (!dict_repr)
+        return NULL;
+
+    for (Py_ssize_t i = 0; i < self->headers->capacity; ++i) {
+        pair* p = self->headers->items[i];
+        if (!p)
+            continue;
+
+        header_item* it = p->value;
+        if (PyDict_SetItemString(dict_repr, p->key, it->value) < 0) {
+            Py_DECREF(dict_repr);
+            return NULL;
+        };
+    }
+
     return PyUnicode_FromFormat(
-        "HeaderDict(bleh)"
+        "HeaderDict(%R)",
+        dict_repr
     );
 }
 
@@ -64,6 +87,11 @@ static PyObject* HeaderDict_new(
         return NULL;
     }
     return (PyObject*) self;
+}
+
+// For debugging
+COLD static void print_header_item(header_item* item) {
+    PyObject_Print(item->value, stdout, Py_PRINT_RAW);
 }
 
 static PyObject* get_item(HeaderDict* self, PyObject* value) {
@@ -105,7 +133,7 @@ static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
     }
 
     Py_ssize_t key_size;
-    const char* const_key_str = PyUnicode_AsUTF8AndSize(value, &key_size);
+    const char* const_key_str = PyUnicode_AsUTF8AndSize(key, &key_size);
     if (!const_key_str)
         return -1;
 
@@ -132,6 +160,7 @@ static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
         return 0;
     }
     PyMem_Free(key_str);
+
     if (item->is_list) {
         if (PyList_Append(item->value, value) < 0)
             return -1;
@@ -145,6 +174,7 @@ static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
     PyList_SET_ITEM(list, 0, item->value);
     PyList_SET_ITEM(list, 1, Py_NewRef(value));
     item->value = list;
+    item->is_list = 1;
 
     return 0;
 }
@@ -218,9 +248,9 @@ PyTypeObject HeaderDictType = {
     .tp_name = "_view.HeaderDict",
     .tp_basicsize = sizeof(HeaderDict),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = HeaderDict_new,
     .tp_dealloc = (destructor) dealloc,
-    .tp_repr = repr,
+    .tp_repr = (reprfunc) repr,
     .tp_as_mapping = &mapping_methods
 };
