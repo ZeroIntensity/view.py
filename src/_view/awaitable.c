@@ -2,6 +2,7 @@
 /*
     Proposed implementation for an awaitable C API.
     See https://discuss.python.org/t/adding-a-c-api-for-coroutines-awaitables/22786
+    This project has since been moved to https://github.com/ZeroIntensity/pyawaitable
 
     Modified for the purpose of view.py.
 

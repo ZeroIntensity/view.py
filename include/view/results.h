@@ -11,5 +11,6 @@ int handle_result(
     PyObject* raw_path,
     const char* method
 );
+char* pymem_strdup(const char* c, Py_ssize_t size);
 
 #endif

@@ -1,3 +1,12 @@
+/*
+ * view.py context implementation.
+ *
+ * This file provides the definition and logic of the `Context` class.
+ *
+ * Note that while this is part of the private _view module, fields of `Context` are
+ * considered to be a public API. Make changes to those with caution! They have much
+ * less lenience than the rest of the C API.
+ */
 #include <Python.h>
 #include <structmember.h> // PyMemberDef
 
@@ -71,6 +80,10 @@ static PyMemberDef members[] = {
     {NULL}  /* Sentinel */
 };
 
+/*
+ * Python __repr__ for `Context`.
+ * As of now, this is just a really format string.
+ */
 static PyObject* repr(PyObject* self) {
     Context* ctx = (Context*) self;
     return PyUnicode_FromFormat(
@@ -88,7 +101,7 @@ static PyObject* repr(PyObject* self) {
     );
 }
 
-
+/* The Context Deallocator */
 static void dealloc(Context* self) {
     Py_XDECREF(self->app);
     Py_XDECREF(self->scheme);
@@ -104,6 +117,15 @@ static void dealloc(Context* self) {
     Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
+/*
+ * Initializer for the `Context` class.
+ *
+ * This shouldn't be called outside of this file, as the app
+ * generates `Context` inputs through the exported `context_from_data`.
+ *
+ * Again, only the *attributes* for `Context` are considered public.
+ * This can change at any time!
+ */
 static PyObject* Context_new(
     PyTypeObject* type,
     PyObject* args,
@@ -119,6 +141,10 @@ static PyObject* Context_new(
     return (PyObject*) self;
 }
 
+/*
+ * This is the actual interface for generating a `Context` instance at runtime.
+ * Also a private API.
+ */
 PyObject* context_from_data(PyObject* app, PyObject* scope) {
     Context* context = (Context*) Context_new(
         &ContextType,

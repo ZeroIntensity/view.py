@@ -21,38 +21,44 @@
     );
 
 /*
-   400 - 0
-   401 - 1
-   402 - 2
-   403 - 3
-   404 - 4
-   405 - 5
-   406 - 6
-   407 - 7
-   408 - 8
-   409 - 9
-   410 - 10
-   411 - 11
-   412 - 12
-   413 - 13
-   414 - 14
-   415 - 15
-   416 - 16
-   417 - 17
-   418 - 18
-   NOTICE: status codes start to skip around now!
-   421 - 19
-   422 - 20
-   423 - 21
-   424 - 22
-   425 - 23
-   426 - 24
-   428 - 25
-   429 - 26
-   431 - 27
-   451 - 28
+ * Mappings between error codes and their index.
+ * 400 - 0
+ * 401 - 1
+ * 402 - 2
+ * 403 - 3
+ * 404 - 4
+ * 405 - 5
+ * 406 - 6
+ * 407 - 7
+ * 408 - 8
+ * 409 - 9
+ * 410 - 10
+ * 411 - 11
+ * 412 - 12
+ * 413 - 13
+ * 414 - 14
+ * 415 - 15
+ * 416 - 16
+ * 417 - 17
+ * 418 - 18
+ * NOTICE: status codes start to skip around now!
+ * 421 - 19
+ * 422 - 20
+ * 423 - 21
+ * 424 - 22
+ * 425 - 23
+ * 426 - 24
+ * 428 - 25
+ * 429 - 26
+ * 431 - 27
+ * 451 - 28
  */
 
+
+/*
+ * Translate the error code into an index for the error table.
+ * See above for the mappings between status codes and indicies.
+ */
 uint16_t hash_client_error(int status) {
     if (status < 419) {
         return status - 400;

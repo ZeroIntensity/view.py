@@ -4,6 +4,32 @@
 #include <view/results.h>
 #include <view/view.h> // route_log
 
+char* pymem_strdup(const char* c, Py_ssize_t size) {
+    char* buf = PyMem_Malloc(size);
+    if (!buf)
+        return (char*) PyErr_NoMemory();
+    memcpy(buf, c, size);
+    return buf;
+}
+
+static char* handle_response_body(PyObject* target) {
+    if (PyUnicode_CheckExact(target)) {
+        Py_ssize_t size;
+        const char* tmp = PyUnicode_AsUTF8AndSize(target, &size);
+        if (!tmp) return NULL;
+        return pymem_strdup(tmp, size);
+    } else if (PyBytes_CheckExact(target)) {
+        Py_ssize_t size;
+        char* tmp;
+        if (PyBytes_AsStringAndSize(target, &tmp, &size) < 0)
+            return NULL;
+        return pymem_strdup(tmp, size);
+    } else {
+        PyErr_Format(PyExc_TypeError,
+            "expected a str or bytes response body, got %R", target);
+        return NULL;
+    }
+}
 
 static int find_result_for(
     PyObject* target,
@@ -15,131 +41,70 @@ static int find_result_for(
         target,
         &PyUnicode_Type
         )) {
-        const char* tmp = PyUnicode_AsUTF8(target);
+        Py_ssize_t size;
+        const char* tmp = PyUnicode_AsUTF8AndSize(target, &size);
         if (!tmp) return -1;
-        *res_str = strdup(tmp);
+        *res_str = pymem_strdup(tmp, size);
     } else if (Py_IS_TYPE(
         target,
         &PyBytes_Type
                )) {
-        const char* tmp = PyBytes_AsString(target);
-        if (!tmp) return -1;
-        *res_str = strdup(tmp);
+        Py_ssize_t size;
+        char* tmp;
+        if (PyBytes_AsStringAndSize(target, &tmp, &size) < 0)
+            return -1;
+        *res_str = pymem_strdup(tmp, size);
     } else if (Py_IS_TYPE(
         target,
         &PyDict_Type
                )) {
-        PyObject* item;
-        PyObject* v;
-        Py_ssize_t pos = 0;
-
-        while (PyDict_Next(
-            target,
-            &pos,
-            &item,
-            &v
-               )) {
-            const char* v_str = PyUnicode_AsUTF8(v);
-            if (!v_str) {
-                return -1;
-            }
-
-            PyObject* item_bytes = PyUnicode_EncodeLocale(
-                item,
-                "strict"
-            );
-
-            if (!item_bytes) {
-                return -1;
-            }
-
-            PyObject* header_list = PyTuple_New(2);
-
-            if (!header_list) {
-                Py_DECREF(item_bytes);
-                return -1;
-            }
-
-            if (PyTuple_SetItem(
-                header_list,
-                0,
-                item_bytes
-                ) < 0) {
-                Py_DECREF(header_list);
-                Py_DECREF(item_bytes);
-                return -1;
-            };
-
-            PyObject* v_bytes = PyBytes_FromString(v_str);
-
-            if (!v_bytes) {
-                Py_DECREF(header_list);
-                return -1;
-            }
-
-            if (PyTuple_SetItem(
-                header_list,
-                1,
-                v_bytes
-                ) < 0) {
-                Py_DECREF(header_list);
-                return -1;
-            };
-
-            if (PyList_Append(
-                headers,
-                header_list
-                ) < 0) {
-                Py_DECREF(header_list);
-                return -1;
-            }
-            Py_DECREF(header_list);
-        }
-
-        if (PyErr_Occurred()) return -1;
-    } else if (Py_IS_TYPE(
-        target,
-        &PyLong_Type
-               )) {
-        *status = (int) PyLong_AsLong(target);
-    } else if (Py_IS_TYPE(
-        target,
-        &PyTuple_Type
-               )) {
-
-        for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(target); i++) {
-            PyObject* t_value = PyTuple_GET_ITEM(
-                target,
-                i
-            );
-            if (!PyTuple_Check(
-                t_value
-                )) {
-                PyErr_SetString(
-                    PyExc_TypeError,
-                    "raw header tuple should contain tuples"
-                );
-                return -1;
-            }
-
-            PyList_Append(
-                headers,
-                t_value
-            );
-        }
-
-        if (PyErr_Occurred()) {
-            return -1;
-        }
-    } else {
-        PyErr_SetString(
-            PyExc_TypeError,
-            "returned tuple should only contain a str, bytes, int, or dict"
-        );
-        return -1;
     }
 
-    return 0;
+    if (PyErr_Occurred()) return -1;
+}
+else if (Py_IS_TYPE(
+    target,
+    &PyLong_Type
+         )) {
+    *status = (int) PyLong_AsLong(target);
+} else if (Py_IS_TYPE(
+    target,
+    &PyTuple_Type
+           )) {
+
+    for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(target); i++) {
+        PyObject* t_value = PyTuple_GET_ITEM(
+            target,
+            i
+        );
+        if (!PyTuple_Check(
+            t_value
+            )) {
+            PyErr_SetString(
+                PyExc_TypeError,
+                "raw header tuple should contain tuples"
+            );
+            return -1;
+        }
+
+        PyList_Append(
+            headers,
+            t_value
+        );
+    }
+
+    if (PyErr_Occurred()) {
+        return -1;
+    }
+} else {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "returned tuple should only contain a str, bytes, int, or dict"
+    );
+    return -1;
+}
+
+return 0;
 }
 
 static int handle_result_impl(
@@ -150,64 +115,74 @@ static int handle_result_impl(
 ) {
     char* res_str = NULL;
     int status = 200;
-    PyObject* headers = PyList_New(0);
+    PyObject* headers;
     PyErr_Clear();
 
-    if (PyUnicode_CheckExact(
-        result
-        )) {
-        const char* tmp = PyUnicode_AsUTF8(result);
-        if (!tmp) return -1;
-        res_str = strdup(tmp);
-    } else if (PyBytes_CheckExact(result)) {
-        const char* tmp = PyBytes_AsString(result);
-        if (!tmp) return -1;
-        res_str = strdup(tmp);
-    } else if (PyTuple_CheckExact(
-        result
-               )) {
+    res_str = handle_response_body(result);
+    if (!res_str) {
+        if (!PyTuple_CheckExact(result))
+            return -1;
+
+        PyErr_Clear();
         if (PySequence_Size(result) > 3) {
             PyErr_SetString(
                 PyExc_TypeError,
                 "returned tuple should not exceed 3 elements"
             );
             return -1;
-        } else {
-            PyObject* first = PyTuple_GetItem(
-                result,
-                0
-            );
-            PyObject* second = PyTuple_GetItem(
-                result,
-                1
-            );
-            PyObject* third = PyTuple_GetItem(
-                result,
-                2
-            );
+        }
 
-            PyErr_Clear();
+        PyObject* first = PyTuple_GetItem(
+            result,
+            0
+        );
+        PyObject* second = PyTuple_GetItem(
+            result,
+            1
+        );
+        PyObject* third = PyTuple_GetItem(
+            result,
+            2
+        );
 
-            if (first && find_result_for(
-                first,
-                &res_str,
-                &status,
-                headers
-                ) < 0) return -1;
+        PyErr_Clear();
+        res_str = handle_response_body(first);
+        if (!res_str)
+            return -1;
 
-            if (second && find_result_for(
-                second,
-                &res_str,
-                &status,
-                headers
-                ) < 0) return -1;
+        if (!second) {
+            // exit early
+            *res_target = res_str;
+            *status_target = 200;
+            *headers_target = NULL;
+            return 0;
+        }
 
-            if (third && find_result_for(
-                third,
-                &res_str,
-                &status,
-                headers
-                ) < 0) return -1;
+        if (!PyLong_CheckExact(second)) {
+            PyErr_Format(PyExc_TypeError,
+                "expected second value of response to be an int, got %R",
+                second);
+            return -1;
+        }
+
+        status = PyLong_AsLong(second);
+        if (status == -1) {
+            PyMem_Free(res_str);
+            return -1;
+        }
+
+        if (!third) {
+            // exit early
+            *res_target = res_str;
+            *status_target = 200;
+            *headers_target = NULL;
+            return 0;
+        }
+        if (PyDict_CheckExact(third)) {
+            PyErr_Format(PyExc_TypeError,
+                "expected third value of response to be a dict, got %R",
+                third);
+            return -1;
         }
     } else {
         PyErr_Format(

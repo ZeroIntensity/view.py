@@ -1,3 +1,9 @@
+/*
+ * view.py private app implementation
+ *
+ * This file contains the ViewApp class, which is the base class for the App class.
+ * All the actual ASGI calls are here.
+ */
 #include <Python.h>
 
 #include <stdbool.h>
@@ -9,6 +15,7 @@
 #include <view/errors.h>
 #include <view/parsers.h> // handle_route_query
 #include <view/parts.h> // extract_parts, load_parts
+#include <view/results.h> // pymem_strdup
 #include <view/routing.h> // route_free, route_new, handle_route
 #include <view/map.h>
 #include <view/view.h> // VIEW_FATAL
@@ -71,6 +78,10 @@
         Py_RETURN_NONE; \
 }
 
+/*
+ * Something unexpected happened with the received ASGI data (e.g. the scope is missing a key).
+ * Don't call this manually, use the PyErr_BadASGI macro, which passes the file and lineno.
+ */
 int view_PyErr_BadASGI(char* file, int lineno) {
     PyErr_Format(
         PyExc_RuntimeError,
@@ -81,6 +92,10 @@ int view_PyErr_BadASGI(char* file, int lineno) {
     return -1;
 }
 
+/*
+ * Allocate and initialize a new ViewApp object.
+ * This builds all the route tables, and any other field on the ViewApp struct.
+ */
 static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
     ViewApp* self = (ViewApp*) tp->tp_alloc(
         tp,
@@ -139,6 +154,10 @@ static PyObject* new(PyTypeObject* tp, PyObject* args, PyObject* kwds) {
     return (PyObject*) self;
 }
 
+/*
+ * Dummy function to stop manual construction of a ViewApp from Python.
+ * In a perfect world, this will never get called.
+ */
 static int init(PyObject* self, PyObject* args, PyObject* kwds) {
     PyErr_SetString(
         PyExc_TypeError,
@@ -147,6 +166,11 @@ static int init(PyObject* self, PyObject* args, PyObject* kwds) {
     return -1;
 }
 
+/*
+ * ASGI lifespan implementation.
+ * This needs to be here, or else the server will complain about lifespan not being supported.
+ * Most of this is undocumented and unavailable for use from the user for now.
+ */
 static int lifespan(PyObject* awaitable, PyObject* result) {
     ViewApp* self;
     PyObject* send;
@@ -234,6 +258,7 @@ static int lifespan(PyObject* awaitable, PyObject* result) {
     return 0;
 }
 
+/* The ViewApp deallocator. */
 static void dealloc(ViewApp* self) {
     Py_XDECREF(self->cleanup);
     Py_XDECREF(self->startup);
@@ -256,6 +281,10 @@ static void dealloc(ViewApp* self) {
     Py_TYPE(self)->tp_free(self);
 }
 
+/*
+ * Utility function for getting a key from the ASGI scope.
+ * If the key is missing, an error is thown via PyErr_BadASGI().
+ */
 static const char* dict_get_str(PyObject* dict, const char* str) {
     Py_INCREF(dict);
     PyObject* ob = PyDict_GetItemString(
@@ -272,11 +301,20 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
     return result;
 }
 
+/*
+ * view.py ASGI implementation. This is where the magic happens!
+ * All HTTP and WebSocket connections start here. This function is responsible for
+ * looking up loaded routes, calling PyAwaitable, and so on.
+ *
+ * This is accessible via asgi_app_entry in Python
+ */
 static PyObject* app(
     ViewApp* self,
     PyObject* const* args,
     Py_ssize_t nargs
 ) {
+    // We can assume that there will be three arguments.
+    // If there aren't, then something is seriously wrong!
     assert(nargs == 3);
     PyObject* scope = args[0];
     PyObject* receive = args[1];
@@ -303,6 +341,7 @@ static PyObject* app(
         type,
         "lifespan"
         )) {
+        // We are in the lifespan protocol!
         PyObject* recv_coro = PyObject_CallNoArgs(receive);
         if (!recv_coro) {
             Py_DECREF(awaitable);
@@ -339,11 +378,13 @@ static PyObject* app(
         scope,
         "path"
     );
+
     if (!raw_path_obj) {
         Py_DECREF(awaitable);
         PyErr_BadASGI();
         return NULL;
     }
+
     const char* raw_path = PyUnicode_AsUTF8(raw_path_obj);
     if (!raw_path) {
         Py_DECREF(awaitable);
@@ -363,6 +404,7 @@ static PyObject* app(
         return NULL;
     }
 
+    Py_DECREF(raw_path_obj);
     bool is_http = !strcmp(
         type,
         "http"
@@ -382,7 +424,7 @@ static PyObject* app(
 
         path[len - 1] = '\0';
     } else {
-        path = strdup(raw_path);
+        path = pymem_strdup(raw_path, len);
         if (!path) {
             Py_DECREF(awaitable);
             return PyErr_NoMemory();
@@ -408,14 +450,15 @@ static PyObject* app(
         return NULL;
     }
 
-    const char* query_str = PyBytes_AsString(query_obj);
+    Py_ssize_t query_size;
+    char* query_str;
 
-    if (!query_str) {
+    if (PyBytes_AsStringAndSize(query_obj, &query_str, &query_size) < 0) {
         Py_DECREF(awaitable);
         PyMem_Free(path);
         return NULL;
     }
-    char* query = strdup(query_str);
+    char* query = pymem_strdup(query_str, query_size);
     map* ptr = self->websocket; // ws by default
     const char* method_str = "websocket";
 
@@ -545,6 +588,8 @@ static PyObject* app(
     if (is_http && (r->cache_rate != -1) && (r->cache_index++ <
                                              r->cache_rate) &&
         r->cache) {
+        // We have a cached response that we can use!
+        // Let's start the ASGI response process
         PyObject* dct = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
@@ -764,6 +809,10 @@ static PyObject* app(
     return awaitable;
 }
 
+/*
+ * These are all loader functions that allocate a route structure and store
+ * it on the corresponding route table.
+ */
 ROUTE(get);
 ROUTE(post);
 ROUTE(patch);
@@ -771,12 +820,24 @@ ROUTE(put);
 ROUTE(delete);
 ROUTE(options);
 
+/*
+ * Loader function for WebSockets.
+ * We have a special case for WebSocket routes - the `is_http` field is set to false.
+ * That means we have to use the LOAD_ROUTE macro instead of the ROUTE macro
+ * */
 static PyObject* websocket(ViewApp* self, PyObject* args) {
     LOAD_ROUTE(websocket);
     r->is_http = false;
     Py_RETURN_NONE;
 }
 
+/*
+ * Adds a global error handler to the app.
+ * Note that this is for *status* codes only, not exceptions!
+ * For example, if a route returned 400 without raising an exception, then the handler
+ * for error 400 would be called.
+ * This is more or less undocumented, and subject to change.
+ */
 static PyObject* err_handler(ViewApp* self, PyObject* args) {
     PyObject* handler;
     int status_code;
@@ -815,6 +876,11 @@ static PyObject* err_handler(ViewApp* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+/*
+ * Adds a global exception handler to the app.
+ * This is similar to `err_handler`, but this catches exceptions instead of
+ * error response codes.
+ */
 static PyObject* exc_handler(ViewApp* self, PyObject* args) {
     PyObject* dict;
     if (!PyArg_ParseTuple(
@@ -836,6 +902,10 @@ static PyObject* exc_handler(ViewApp* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+/*
+ * Simple function that defers a segmentation fault to the VIEW_FATAL macro.
+ * This is only active as a signal handler when development mode is enabled.
+ */
 static void sigsegv_handler(int signum) {
     signal(
         SIGSEGV,
@@ -844,6 +914,10 @@ static void sigsegv_handler(int signum) {
     VIEW_FATAL("segmentation fault");
 }
 
+/*
+ * Set whether the app is in development mode.
+ * If it is, then the SIGSEGV handler is enabled.
+ */
 static PyObject* set_dev_state(ViewApp* self, PyObject* args) {
     int value;
     if (!PyArg_ParseTuple(
@@ -862,6 +936,11 @@ static PyObject* set_dev_state(ViewApp* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+/*
+ * Supply Python parser functions to C code.
+ * As of now, this only takes a query string parser and a JSON parser, but
+ * that it is pretty much gaurunteed to change.
+ */
 static PyObject* supply_parsers(ViewApp* self, PyObject* args) {
     PyObject* query;
     PyObject* json;
@@ -879,6 +958,9 @@ static PyObject* supply_parsers(ViewApp* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+/*
+ * Register the base class to be recognized as an HTTP error.
+ */
 static PyObject* register_error(ViewApp* self, PyObject* args) {
     PyObject* type;
 

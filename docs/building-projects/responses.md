@@ -114,7 +114,7 @@ app = new_app()
 
 class MyObject:
     def __view_result__(self):
-        return "Hello from MyObject!", {"x-www-myobject": "foo"}
+        return "Hello from MyObject!", 201, {"x-www-myobject": "foo"}
 
 @app.get("/")
 async def index():
@@ -127,7 +127,7 @@ Note that in the above scenario, you wouldn't actually need a whole object. Inst
 
 ```py
 def _response():
-    return "Hello, view.py!", {"foo": "bar"}
+    return "Hello, view.py!", 201, {"foo": "bar"}
 
 @app.get("/")
 async def index():
@@ -227,7 +227,7 @@ class MyResponse(Response[str]):
 
 Generally, you'll want to use the `custom` translation strategy when writing custom `Response` objects.
 
-You must implement the `_custom` method (which takes in the `T` passed to `Response`, and returns a `str`) to use the `custom` strategy. For example, the code below would be for a `Response` type that formats a list:
+You must implement the `translate_body` method (which takes in the `T` passed to `Response`, and returns a `str`) to use the `custom` strategy. For example, the code below would be for a `Response` type that formats a list:
 
 ```py
 from view import Response
@@ -236,7 +236,7 @@ class ListResponse(Response[list]):
     def __init__(self, body: list) -> None:
         super().__init__(body, body_translate="custom")
 
-    def _custom(self, body: list) -> str:
+    def translate_body(self, body: list) -> str:
         return " ".join(body)
 ```
 
