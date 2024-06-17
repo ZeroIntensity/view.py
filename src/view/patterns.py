@@ -7,18 +7,8 @@ from __future__ import annotations
 
 from ._util import run_path
 from .exceptions import DuplicateRouteError, InvalidRouteError
-from .routing import (
-    Callable,
-    Method,
-    Route,
-    RouteOrCallable,
-    delete,
-    get,
-    options,
-    patch,
-    post,
-    put,
-)
+from .routing import (Callable, Method, Route, RouteOrCallable, delete, get,
+                      options, patch, post, put)
 from .routing import route as route_impl
 from .typing import StrMethod, ViewRoute
 

@@ -1,9 +1,13 @@
 # flake8: noqa
-# NOTE: anything in this file that is defined solely for typing purposes should be
-# prefixed with __ to tell the developer that its not an actual symbol defined by
-# the extension module
 
-from collections.abc import Mapping
+"""
+_view - Type stubs for the view.py extension module.
+
+Anything in this file that is defined solely for typing purposes should be
+prefixed with __ to tell the developer that its not an actual symbol defined by
+the extension module.
+"""
+
 from ipaddress import IPv4Address as __IPv4Address
 from ipaddress import IPv6Address as __IPv6Address
 from typing import Any as __Any

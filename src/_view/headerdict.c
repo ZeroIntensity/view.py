@@ -240,6 +240,29 @@ static PyMappingMethods mapping_methods = {
     .mp_length = (lenfunc) get_length
 };
 
+static PyObject* HeaderDict_get(HeaderDict* self, PyObject* args) {
+    PyObject* key;
+    PyObject* df = Py_None;
+
+    if (!PyArg_ParseTuple(args, "O!|O", &PyUnicode_Type, &key, &df))
+        return NULL;
+
+    PyObject* val = get_item(self, key);
+    if (!val) {
+        if (!PyErr_ExceptionMatches(PyExc_KeyError))
+            return NULL;
+        PyErr_Clear();
+        return Py_NewRef(df);
+    }
+
+    return val;
+}
+
+static PyMethodDef methods[] = {
+    {"get", (PyCFunction) HeaderDict_get, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}
+};
+
 PyTypeObject HeaderDictType = {
     PyVarObject_HEAD_INIT(
         NULL,
@@ -252,5 +275,6 @@ PyTypeObject HeaderDictType = {
     .tp_new = HeaderDict_new,
     .tp_dealloc = (destructor) dealloc,
     .tp_repr = (reprfunc) repr,
-    .tp_as_mapping = &mapping_methods
+    .tp_as_mapping = &mapping_methods,
+    .tp_methods = methods
 };

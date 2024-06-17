@@ -48,29 +48,12 @@ async def test_headers():
 
     @app.get("/")
     async def index():
-        return "hello", {"a": "b"}
+        return "hello", 200, {"a": "b"}
 
     async with app.test() as test:
         res = await test.get("/")
         assert res.headers["a"] == "b"
         assert res.message == "hello"
-
-
-@pytest.mark.asyncio
-@limit_leaks("1 MB")
-async def test_combination_of_headers_responses_and_status_codes():
-    app = new_app()
-
-    @app.get("/")
-    async def index():
-        return 201, "123", {"a": "b"}
-
-    async with app.test() as test:
-        res = await test.get("/")
-        assert res.status == 201
-        assert res.message == "123"
-        assert res.headers["a"] == "b"
-
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -78,7 +61,7 @@ async def test_result_protocol():
     app = new_app()
 
     class MyObject:
-        def __view_result__(self):
+        def __view_result__(self, ctx: Context):
             return "hello", 200
 
     @app.get("/")

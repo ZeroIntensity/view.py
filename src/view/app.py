@@ -58,7 +58,8 @@ from .routing import query as query_impl
 from .routing import route as route_impl
 from .routing import websocket
 from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
-from .typing import Callback, DocsType, StrMethod, TemplateEngine
+from .typing import (Callback, DocsType, ErrorStatusCode, StrMethod,
+                     TemplateEngine)
 from .util import enable_debug
 from .ws import WebSocket
 
@@ -66,7 +67,7 @@ ReactPyComponent: TypeAlias = Any
 
 get_type_hints = lru_cache(get_type_hints)  # type: ignore
 
-__all__ = "App", "new_app", "get_app", "Error", "ERROR_CODES"
+__all__ = "App", "new_app", "get_app", "HTTPError", "ERROR_CODES"
 
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
@@ -79,7 +80,7 @@ _ConfigSpecified = None
 B = TypeVar("B", bound=BaseException)
 CustomLoader: TypeAlias = Callable[["App", Path], Iterable[Route]]
 
-ERROR_CODES: tuple[int, ...] = (
+ERROR_CODES: tuple[ErrorStatusCode, ...] = (
     400,
     401,
     402,
@@ -448,10 +449,10 @@ class RouteDoc:
 _LEVELS = dict((v, k) for k, v in LOGS.items())
 
 
-class Error(BaseException):
+class HTTPError(BaseException):
     """Base class to act as a transport for raising HTTP errors."""
 
-    def __init__(self, status: int = 400, message: str | None = None) -> None:
+    def __init__(self, status: ErrorStatusCode = 400, message: str | None = None) -> None:
         """
         Args:
             status: The status code for the resulting response.
@@ -483,6 +484,7 @@ class WSError(BaseException):
         self.message = message
 
 
+register_ws_cls(WebSocket, WebSocketDisconnectError, WSError)
 _DefinedByConfig = None
 
 
@@ -497,9 +499,6 @@ class App(ViewApp):
     def __init__(
         self,
         config: Config,
-        *,
-        error_class: type[Error] = Error,
-        ws_error_class: type[WSError] = WSError,
     ) -> None:
         """
         Args:
@@ -523,9 +522,8 @@ class App(ViewApp):
         self.templaters: dict[str, Any] = {}
         """Dictionary containing template engine instances."""
         self._reactive_sessions: dict[str, ReactPyComponent] = {}
-        self._register_error(error_class)
+        self._register_error(HTTPError)
         self._user_loader: CustomLoader | None = None
-        register_ws_cls(WebSocket, WebSocketDisconnectError, ws_error_class)
 
         os.environ.update({k: str(v) for k, v in config.env.items()})
 

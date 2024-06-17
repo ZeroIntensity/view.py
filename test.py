@@ -20,6 +20,7 @@ def test():
 @app.get("/")
 @app.context
 async def index(ctx: Context):
-    return "abc"
+    print(ctx.headers.get("user-agent"))
+    return "abc", 201
 
 app.run()

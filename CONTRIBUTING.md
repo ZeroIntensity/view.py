@@ -69,10 +69,11 @@ For debugging purposes, you're also going to want to disable `fancy` and `hijack
 ```toml
 [log]
 fancy = false
-hijack = false
+server_logger = true
+
 ```
 
-These settings will stop view.py's fancy output from showing, as well as stopping the hijack of the `uvicorn` logger, and you'll get the raw `uvicorn` output.
+These settings will stop view.py's fancy output from showing, as well as stopping the hijack of the server's logger, and you'll get the raw server output.
 
 ## Writing Tests
 

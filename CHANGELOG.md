@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added support for asynchronous `__view_result__` functions
 -   Removed unstable `components` functions from top-level `view` module
 -   Added native support for `ReactPy` component routes
+-   Added the `expect_errors` utility
+-   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous
 -   **Breaking Change:** Renamed `Response._custom` to `Response.translate_body`

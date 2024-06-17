@@ -13,19 +13,23 @@ import logging
 import os
 from datetime import datetime as DateTime
 from email.utils import formatdate
-from typing import TYPE_CHECKING, Union, overload
+from typing import TYPE_CHECKING, Callable, TypeVar, Union, overload
 
-from typing_extensions import deprecated
+from typing_extensions import ParamSpec, deprecated
 
 from ._logging import Internal, Service
 from ._util import run_path, shell_hint
+from .app import HTTPError
 from .exceptions import AppNotFoundError, BadEnvironmentError
+from .typing import ErrorStatusCode
 
 if TYPE_CHECKING:
     from .app import App
 
-__all__ = ("run", "env", "enable_debug", "timestamp", "extract_path")
+__all__ = ("run", "env", "enable_debug", "timestamp", "extract_path", "expect_errors")
 
+T = TypeVar("T")
+P = ParamSpec("P")
 
 def extract_path(path: str) -> App:
     """
@@ -200,7 +204,6 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
 
     raise TypeError(f"invalid type in env(): {tp}")
 
-
 _Now = None
 
 
@@ -213,3 +216,41 @@ def timestamp(tm: DateTime | None = _Now) -> str:
     """
     stamp: float = DateTime.now().timestamp() if not tm else tm.timestamp()
     return formatdate(stamp, usegmt=True)
+
+
+_UseErrMessage = None
+
+def expect_errors(*errs: BaseException, message: str | None = _UseErrMessage, status: ErrorStatusCode = 400) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """
+    Raise an HTTP error if any of `errs` occurs during execution.
+    This function is a decorator.
+
+    Args:
+        errs: All errors to recognize.
+        message: Message to pass to `HTTPError`. Uses the message with the raised exception if `None`.
+        status: Status code to return. `400` by default.
+
+    Example:
+        ```py
+        from view import get, expect_errors, context, Context
+
+        @get("/")
+        @context
+        @expect_errors(KeyError, message="Missing header.")
+        def index(ctx: Context):
+            my_header = ctx.headers["www-token"]
+            return ...
+        ```
+    """
+    def inner(func: Callable[P, T]) -> Callable[P, T]:
+        def deco(*args: P.args, **kwargs: P.kwargs) -> T:
+            try:
+                return func(*args, **kwargs)
+            except BaseException as e:
+                if e not in errs:
+                    raise
+
+                raise HTTPError(message=message or str(e), status=status)
+
+        return deco
+    return inner
