@@ -31,7 +31,9 @@ SOFTWARE.
 try:
     import _view
 except ModuleNotFoundError as e:
-    raise ImportError("the _view extension module is missing! view.py cannot be used with pure python") from e
+    raise ImportError(
+        "the _view extension module is missing! view.py cannot be used with pure python"
+    ) from e
 
 # these are re-exports
 from _view import Context, HeaderDict, InvalidStatusError

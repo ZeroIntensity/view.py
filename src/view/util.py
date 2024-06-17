@@ -31,6 +31,7 @@ __all__ = ("run", "env", "enable_debug", "timestamp", "extract_path", "expect_er
 T = TypeVar("T")
 P = ParamSpec("P")
 
+
 def extract_path(path: str) -> App:
     """
     Extract an `App` instance from a path.
@@ -204,6 +205,7 @@ def env(key: str, *, tp: type[EnvConv] = str) -> EnvConv:
 
     raise TypeError(f"invalid type in env(): {tp}")
 
+
 _Now = None
 
 
@@ -220,7 +222,12 @@ def timestamp(tm: DateTime | None = _Now) -> str:
 
 _UseErrMessage = None
 
-def expect_errors(*errs: BaseException, message: str | None = _UseErrMessage, status: ErrorStatusCode = 400) -> Callable[[Callable[P, T]], Callable[P, T]]:
+
+def expect_errors(
+    *errs: BaseException,
+    message: str | None = _UseErrMessage,
+    status: ErrorStatusCode = 400,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Raise an HTTP error if any of `errs` occurs during execution.
     This function is a decorator.
@@ -242,6 +249,7 @@ def expect_errors(*errs: BaseException, message: str | None = _UseErrMessage, st
             return ...
         ```
     """
+
     def inner(func: Callable[P, T]) -> Callable[P, T]:
         def deco(*args: P.args, **kwargs: P.kwargs) -> T:
             try:
@@ -253,4 +261,5 @@ def expect_errors(*errs: BaseException, message: str | None = _UseErrMessage, st
                 raise HTTPError(message=message or str(e), status=status)
 
         return deco
+
     return inner

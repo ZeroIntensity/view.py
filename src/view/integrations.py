@@ -2,7 +2,7 @@ from typing import Any
 
 from ._util import needs_dep
 
-__all__ = "page",
+__all__ = ("page",)
 
 try:
     from reactpy.core.types import VdomDict

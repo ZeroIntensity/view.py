@@ -19,8 +19,13 @@ from typing_extensions import final
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import (BodyTranslateStrategy, MaybeAwaitable, SameSite,
-                     StrResponseBody, ViewResult)
+from .typing import (
+    BodyTranslateStrategy,
+    MaybeAwaitable,
+    SameSite,
+    StrResponseBody,
+    ViewResult,
+)
 from .util import timestamp
 
 if TYPE_CHECKING:

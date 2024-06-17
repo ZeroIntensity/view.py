@@ -24,8 +24,18 @@ from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
-                    TextIO, TypeVar, get_type_hints, overload)
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Generic,
+    Iterable,
+    TextIO,
+    TypeVar,
+    get_type_hints,
+    overload,
+)
 from urllib.parse import urlencode
 
 import ujson
@@ -38,19 +48,36 @@ from _view import InvalidStatusError, ViewApp, register_ws_cls
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
-                       format_warnings)
+from ._logging import (
+    LOGS,
+    Internal,
+    Service,
+    enter_server,
+    exit_server,
+    format_warnings,
+)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .config import Config, load_config
-from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
-                         ViewError, ViewInternalError,
-                         WebSocketDisconnectError)
+from .exceptions import (
+    BadEnvironmentError,
+    InvalidCustomLoaderError,
+    ViewError,
+    ViewInternalError,
+    WebSocketDisconnectError,
+)
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
-from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
-                      _NoDefault, _NoDefaultType)
+from .routing import (
+    Route,
+    RouteInput,
+    RouteOrCallable,
+    RouteOrWebsocket,
+    V,
+    _NoDefault,
+    _NoDefaultType,
+)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -58,8 +85,7 @@ from .routing import query as query_impl
 from .routing import route as route_impl
 from .routing import websocket
 from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
-from .typing import (Callback, DocsType, ErrorStatusCode, StrMethod,
-                     TemplateEngine)
+from .typing import Callback, DocsType, ErrorStatusCode, StrMethod, TemplateEngine
 from .util import enable_debug
 from .ws import WebSocket
 
@@ -452,7 +478,9 @@ _LEVELS = dict((v, k) for k, v in LOGS.items())
 class HTTPError(BaseException):
     """Base class to act as a transport for raising HTTP errors."""
 
-    def __init__(self, status: ErrorStatusCode = 400, message: str | None = None) -> None:
+    def __init__(
+        self, status: ErrorStatusCode = 400, message: str | None = None
+    ) -> None:
         """
         Args:
             status: The status code for the resulting response.
