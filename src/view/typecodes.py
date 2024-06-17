@@ -45,7 +45,7 @@ class TCValidator(TCPublic, Generic[T]):
 
     def check_type(self, obj: object) -> TypeGuard[T]:
         """
-        Check if an object *is* the type. This will not cast parameters, so it returns a `TypeGuard`.
+        Check if an object *is* the type. This will not cast parameters, so it acts as a `TypeGuard`.
 
         Args:
             obj: Object to check against.
@@ -60,7 +60,7 @@ class TCValidator(TCPublic, Generic[T]):
             if tc.check_type(val):
                 assert type(val) == int
             else:
-                assert type(Val) != int
+                assert type(val) != int
             ```
         """
         try:
@@ -120,5 +120,16 @@ class TCValidator(TCPublic, Generic[T]):
 def compile_type(tp: type[T]) -> TCValidator[T]:
     """
     Compile a type to a type validation object.
+
+    Args:
+        tp: Type to compile. Note that this can't be just *any* type, it has to be something that view.py supports (such as `str`, `int`, or something that implements `__view_body__`).
+
+    Example:
+        ```py
+        from view import compile_type
+
+        validator = compile_type(str | int)
+        assert validator.is_compatible('1')  # True
+        ```
     """
     return TCValidator(tp, _build_type_codes([tp]))

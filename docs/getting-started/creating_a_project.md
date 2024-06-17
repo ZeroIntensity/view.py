@@ -18,7 +18,7 @@ $ pipx run view-py init
 
 view.py doesn't actually need any big project structure. In fact, you can run an app in just a single Python file, but larger structures like this might be more convenient for big projects. The only real requirement for something to be a view app is that it calls `new_app`, but again, more on that later.
 
-Some "hello world" code for manually starting a view project would look like this:
+Some "hello world" code for manually starting a view.py project would look like this:
 
 ```py
 from view import new_app

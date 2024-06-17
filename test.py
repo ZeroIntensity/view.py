@@ -17,10 +17,13 @@ def test():
     )
 """
 
+class Test:
+    def __view_result__(self):
+        return "broken!"
+
 @app.get("/")
 @app.context
 async def index(ctx: Context):
-    print(ctx.headers.get("user-agent"))
-    return "abc", 201
+    return Test()
 
 app.run()

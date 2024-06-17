@@ -19,7 +19,6 @@ from typing_extensions import ParamSpec, deprecated
 
 from ._logging import Internal, Service
 from ._util import run_path, shell_hint
-from .app import HTTPError
 from .exceptions import AppNotFoundError, BadEnvironmentError
 from .typing import ErrorStatusCode
 
@@ -258,6 +257,7 @@ def expect_errors(
                 if e not in errs:
                     raise
 
+                from .app import HTTPError
                 raise HTTPError(message=message or str(e), status=status)
 
         return deco

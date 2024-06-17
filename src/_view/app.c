@@ -729,6 +729,13 @@ HOT static PyObject* app(
         return NULL;
     }
 
+    if (PyAwaitable_SaveIntValues(awaitable, 1, is_http) < 0) {
+        Py_DECREF(awaitable);
+        return NULL;
+    }
+
+    printf("is_http: %d, r->is_http: %d\n", is_http, r->is_http);
+
     if (r->inputs_size != 0) {
         if (!r->has_body) {
             if (handle_route_query(

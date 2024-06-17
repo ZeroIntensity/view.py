@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Removed unstable `components` functions from top-level `view` module
 -   Added native support for `ReactPy` component routes
 -   Added the `expect_errors` utility
+-   Added the `HeaderDict` class
+-   Changed the `headers` attribute on `Context` to a `HeaderDict` instance of a `dict`
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous

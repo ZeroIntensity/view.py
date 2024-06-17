@@ -617,6 +617,11 @@ int route_error(
         &method_str) < 0)
         return -1;
 
+    int is_http;
+
+    if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
+        return -1;
+
     if (tp == self->error_type)
     {
         PyObject* status_obj = PyObject_GetAttrString(
@@ -664,7 +669,7 @@ int route_error(
             NULL,
             message,
             method_str,
-            r->is_http) < 0)
+            is_http) < 0)
         {
             Py_DECREF(status_obj);
             Py_DECREF(msg_obj);
@@ -676,7 +681,7 @@ int route_error(
         return 0;
     }
 
-    if (!r->is_http)
+    if (!is_http)
     {
         // send a websocket error code
         PyObject* send_dict;

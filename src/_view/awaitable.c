@@ -9,8 +9,8 @@
     Follows PEP 7, not the _view style.
 */
 #include "Python.h"
-#include "pyerrors.h"
 #include <view/awaitable.h>
+#include <view/view.h>
 #include <stdarg.h>
 #include <stdbool.h>
 
@@ -169,7 +169,7 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
     return 0;
 }
 
-static PyObject *
+HOT static PyObject *
 gen_next(PyObject *self)
 {
     GenWrapperObject *g = (GenWrapperObject *) self;
@@ -224,8 +224,8 @@ gen_next(PyObject *self)
         }
 
         if (cb->callback == NULL) {
-            // coro is done, but with a result
-            // we can disregard the result if theres no callback
+            // Coro is done, but with a result.
+            // We can disregard the result if theres no callback
             g->gw_current_await = NULL;
             PyErr_Clear();
             return gen_next(self);
@@ -252,8 +252,8 @@ gen_next(PyObject *self)
         Py_INCREF(aw);
         int result = cb->callback((PyObject *) aw, value);
         if (result < -1) {
-            // -2 or lower denotes that the error should be deferred
-            // regardless of whether a handler is present
+            // -2 or lower denotes that the error should be deferred,
+            // regardless of whether a handler is present.
             return NULL;
         }
 
@@ -281,7 +281,6 @@ static PyObject *
 awaitable_next(PyObject *self)
 {
     PyAwaitableObject *aw = (PyAwaitableObject *) self;
-
 
     if (aw->aw_done) {
         PyErr_SetString(PyExc_RuntimeError, "cannot reuse awaitable");

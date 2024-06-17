@@ -854,3 +854,16 @@ async def test_bytes_response():
     async with app.test() as test:
         assert (await test.get("/")).content == b"\x09 \x09"
         assert (await test.get("/hi")).content == b"hi"
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_app_leaks():
+    app = new_app()
+
+    @app.get("/")
+    async def index():
+        return "a"
+
+    for i in range(10000):
+        async with app.test() as test:
+            await test.get("/")
