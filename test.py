@@ -1,9 +1,9 @@
 from reactpy import component, html, use_state
 
-from view import new_app, page
+from src.view import Context, new_app, page
 
 app = new_app()
-
+"""
 @app.get("/")  # type: ignore
 @component
 def test():
@@ -15,6 +15,12 @@ def test():
             f"you clicked {count} times",
         ),
     )
+"""
 
+@app.get("/")
+@app.context
+async def index(ctx: Context):
+    print(ctx.headers["user-agent"])
+    return "abc"
 
 app.run()

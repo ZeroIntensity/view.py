@@ -31,6 +31,8 @@ struct _PyAwaitableObject {
     Py_ssize_t aw_values_size;
     void **aw_arb_values;
     Py_ssize_t aw_arb_values_size;
+    int *aw_int_values;
+    Py_ssize_t aw_int_values_size;
     Py_ssize_t aw_state;
     bool aw_done;
 };
@@ -762,6 +764,72 @@ PyAwaitable_SaveArbValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
         aw->aw_arb_values[i] = va_arg(vargs, void *);
 
     va_end(vargs);
+    Py_DECREF(awaitable);
+    return 0;
+}
+
+int
+PyAwaitable_SaveIntValues(PyObject *awaitable, Py_ssize_t nargs, ...) {
+    assert(awaitable != NULL);
+    assert(nargs != 0);
+    Py_INCREF(awaitable);
+    PyAwaitableObject *aw = (PyAwaitableObject *) awaitable;
+
+    va_list vargs;
+    va_start(vargs, nargs);
+    Py_ssize_t offset = aw->aw_int_values_size;
+
+    if (aw->aw_int_values == NULL)
+        aw->aw_int_values = PyMem_Calloc(
+            nargs,
+            sizeof(int)
+        );
+    else
+        aw->aw_int_values = PyMem_Realloc(
+            aw->aw_int_values,
+            sizeof(int) * (aw->aw_int_values_size + nargs)
+        );
+
+    if (aw->aw_int_values == NULL) {
+        PyErr_NoMemory();
+        Py_DECREF(awaitable);
+        return -1;
+    }
+
+    aw->aw_int_values_size += nargs;
+
+    for (Py_ssize_t i = offset; i < aw->aw_int_values_size; i++)
+        aw->aw_int_values[i] = va_arg(vargs, int);
+
+    va_end(vargs);
+    Py_DECREF(awaitable);
+    return 0;
+}
+
+
+int
+PyAwaitable_UnpackIntValues(PyObject *awaitable, ...) {
+    assert(awaitable != NULL);
+    PyAwaitableObject *aw = (PyAwaitableObject *) awaitable;
+    Py_INCREF(awaitable);
+
+    if (aw->aw_int_values == NULL) {
+        PyErr_SetString(PyExc_ValueError,
+                        "awaitable object has no stored int values");
+        Py_DECREF(awaitable);
+        return -1;
+    }
+
+    va_list args;
+    va_start(args, awaitable);
+
+    for (int i = 0; i < aw->aw_int_values_size; i++) {
+        int *ptr = va_arg(args, int *);
+        if (ptr == NULL) continue;
+        *ptr = aw->aw_int_values[i];
+    }
+
+    va_end(args);
     Py_DECREF(awaitable);
     return 0;
 }

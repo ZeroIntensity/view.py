@@ -12,5 +12,6 @@ int handle_result(
     const char* method
 );
 char* pymem_strdup(const char* c, Py_ssize_t size);
+PyObject* build_default_headers();
 
 #endif

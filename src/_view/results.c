@@ -5,10 +5,10 @@
 #include <view/view.h> // route_log
 
 char* pymem_strdup(const char* c, Py_ssize_t size) {
-    char* buf = PyMem_Malloc(size);
+    char* buf = PyMem_Malloc(size + 1); // length with null terminator
     if (!buf)
         return (char*) PyErr_NoMemory();
-    memcpy(buf, c, size);
+    memcpy(buf, c, size + 1);
     return buf;
 }
 
@@ -109,6 +109,38 @@ static char* handle_response_body(PyObject* target) {
    }
  */
 
+PyObject* build_default_headers() {
+    PyObject* tup = PyTuple_New(1);
+    if (!tup)
+        return NULL;
+
+    PyObject* content_type = PyTuple_New(2);
+    if (!content_type) {
+        Py_DECREF(tup);
+        return NULL;
+    }
+
+    PyObject* key = PyBytes_FromString("content-type");
+    if (!key) {
+        Py_DECREF(tup);
+        Py_DECREF(content_type);
+        return NULL;
+    }
+
+    PyObject* val = PyBytes_FromString("text/plain");
+    if (!val) {
+        Py_DECREF(key);
+        Py_DECREF(tup);
+        Py_DECREF(content_type);
+        return NULL;
+    }
+
+    PyTuple_SET_ITEM(content_type, 0, key);
+    PyTuple_SET_ITEM(content_type, 1, val);
+    PyTuple_SET_ITEM(tup, 0, content_type);
+    return tup;
+}
+
 static int handle_result_impl(
     PyObject* result,
     char** res_target,
@@ -117,7 +149,6 @@ static int handle_result_impl(
 ) {
     char* res_str = NULL;
     int status = 200;
-    PyObject* headers;
     PyErr_Clear();
 
     res_str = handle_response_body(result);
@@ -156,7 +187,7 @@ static int handle_result_impl(
             // exit early
             *res_target = res_str;
             *status_target = 200;
-            *headers_target = NULL;
+            *headers_target = Py_NewRef(default_headers);
             return 0;
         }
 
@@ -176,28 +207,62 @@ static int handle_result_impl(
         if (!third) {
             // exit early
             *res_target = res_str;
-            *status_target = 200;
-            *headers_target = NULL;
+            *status_target = status;
+            *headers_target = Py_NewRef(default_headers);
             return 0;
         }
+
+        if (PyList_CheckExact(third)) {
+            /*
+             * Undocumented because I don't want the user to touch it!
+             * This is a way for a route to return a raw ASGI header list, which allows
+             * for faster and multi-headers.
+             */
+            *res_target = res_str;
+            *status_target = status;
+            *headers_target = Py_NewRef(third);
+            return 0;
+        }
+
         if (PyDict_CheckExact(third)) {
             PyErr_Format(PyExc_TypeError,
                 "expected third value of response to be a dict, got %R",
                 third);
             return -1;
         }
-    } else {
-        PyErr_Format(
-            PyExc_TypeError,
-            "%R is not a valid return value for route",
-            result
-        );
-        return -1;
+
+        PyObject* header_tup = PyTuple_New(PyDict_GET_SIZE(third));
+        if (!header_tup) {
+            PyMem_Free(res_str);
+            return -1;
+        }
+
+        PyObject* key;
+        PyObject* value;
+        Py_ssize_t pos = 0;
+
+        while (PyDict_Next(third, &pos, &key, &value)) {
+            PyObject* header = PyTuple_New(2);
+            if (!header) {
+                PyMem_Free(res_str);
+                Py_DECREF(header_tup);
+                return -1;
+            }
+            PyTuple_SET_ITEM(header, 0, Py_NewRef(key));
+            PyTuple_SET_ITEM(header, 1, Py_NewRef(value));
+
+            // this steals the reference, no need to decref
+            PyTuple_SET_ITEM(header_tup, pos, header);
+        }
+
+        *headers_target = header_tup;
+        *res_target = res_str;
+        *status_target = status;
     }
 
     *res_target = res_str;
     *status_target = status;
-    *headers_target = headers;
+    *headers_target = Py_NewRef(default_headers);
     return 0;
 }
 

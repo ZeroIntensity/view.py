@@ -15,6 +15,7 @@
 #include <view/app.h> // PyErr_BadASGI
 #include <view/backport.h>
 #include <view/context.h>
+#include <view/headerdict.h> // headerdict_from_list
 #include <view/view.h> // ip_address
 
 typedef struct {
@@ -193,6 +194,7 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         Py_XDECREF(scheme);
         Py_XDECREF(http_version);
         Py_XDECREF(path);
+        Py_XDECREF(client);
         Py_XDECREF(method);
         Py_DECREF(context);
         PyErr_BadASGI();
@@ -207,6 +209,11 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
     if (client != Py_None) {
         if (PyTuple_Size(client) != 2) {
             Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
+            Py_DECREF(path);
+            Py_DECREF(method);
+            Py_DECREF(http_version);
             PyErr_BadASGI();
             return NULL;
         }
@@ -219,6 +226,11 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         );
         if (PyErr_Occurred()) {
             Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
+            Py_DECREF(path);
+            Py_DECREF(method);
+            Py_DECREF(http_version);
             return NULL;
         }
 
@@ -234,14 +246,26 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
 
         if (!address) {
             Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
+            Py_DECREF(path);
+            Py_DECREF(method);
+            Py_DECREF(http_version);
             return NULL;
         }
 
         context->client = address;
     } else context->client = NULL;
+
     if (server != Py_None) {
         if (PyTuple_Size(server) != 2) {
             Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
+            Py_DECREF(path);
+            Py_DECREF(method);
+            Py_DECREF(http_version);
+            Py_XDECREF(context->client);
             PyErr_BadASGI();
             return NULL;
         }
@@ -252,133 +276,61 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
                 1
             )
         );
+        // no idea what uncrustify is smoking but lets roll with it
         PyObject* address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) { PyTuple_GET_ITEM(
+            (PyObject*[]) {
+            PyTuple_GET_ITEM(
                 server,
                 0
-                            ) },
+            )
+        },
             1,
             NULL
         );
+        if (!address) {
+            Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
+            Py_DECREF(path);
+            Py_DECREF(method);
+            Py_DECREF(http_version);
+            Py_XDECREF(context->client);
+            return NULL;
+        }
         context->server = address;
     } else context->server = NULL;
 
-    PyObject* headers = PyDict_New();
-
-    if (!headers) {
-        Py_DECREF(context);
-        return NULL;
-    }
-
-    context->headers = headers;
     PyObject* cookies = PyDict_New();
 
     if (!cookies) {
         Py_DECREF(context);
+        Py_DECREF(context);
+        Py_DECREF(client);
+        Py_DECREF(server);
+        Py_DECREF(path);
+        Py_DECREF(method);
+        Py_DECREF(http_version);
+        Py_XDECREF(context->client);
+        Py_XDECREF(context->server);
         return NULL;
     }
 
     context->cookies = cookies;
-
-    for (int i = 0; i < PyList_GET_SIZE(header_list); i++) {
-        PyObject* header = PyList_GET_ITEM(
-            header_list,
-            i
-        );
-
-        if (PyTuple_Size(header) != 2) {
-            Py_DECREF(context);
-            PyErr_BadASGI();
-            return NULL;
-        }
-
-        PyObject* key_bytes = PyTuple_GET_ITEM(
-            header,
-            0
-        );
-        PyObject* value_bytes = PyTuple_GET_ITEM(
-            header,
-            1
-        );
-        PyObject* key = PyUnicode_FromEncodedObject(
-            key_bytes,
-            "utf8",
-            "strict"
-        );
-        PyObject* value = PyUnicode_FromEncodedObject(
-            value_bytes,
-            "utf8",
-            "strict"
-        );
-
-        if (!key || !value) {
-            Py_XDECREF(key);
-            Py_XDECREF(value);
-            Py_DECREF(context);
-            return NULL;
-        }
-
-        if (PyUnicode_CompareWithASCIIString(
-            key,
-            "cookie"
-            ) == 0) {
-            PyObject* d = PyUnicode_FromString("=");
-
-            if (!d) {
-                Py_DECREF(context);
-                Py_DECREF(key);
-                Py_DECREF(value);
-                return NULL;
-            }
-
-            PyObject* parts = PyUnicode_Partition(
-                value,
-                d
-            );
-            PyObject* cookie_key = PyTuple_GET_ITEM(
-                parts,
-                0
-            );
-            PyObject* cookie_value = PyTuple_GET_ITEM(
-                parts,
-                2
-            );
-
-            if (PyDict_SetItem(
-                cookies,
-                cookie_key,
-                cookie_value
-                ) < 0) {
-                Py_DECREF(cookie_key);
-                Py_DECREF(cookie_value);
-                Py_DECREF(parts);
-                Py_DECREF(d);
-                Py_DECREF(context);
-                Py_DECREF(key);
-                Py_DECREF(value);
-                return NULL;
-            }
-
-            Py_DECREF(parts);
-            Py_DECREF(d);
-        } else {
-            if (PyDict_SetItem(
-                headers,
-                key,
-                value
-                ) < 0) {
-                Py_DECREF(key);
-                Py_DECREF(value);
-                Py_DECREF(context);
-                return NULL;
-            }
-        }
-
-        Py_DECREF(key);
-        Py_DECREF(value);
+    context->headers = headerdict_from_list(header_list);
+    if (!context->headers) {
+        Py_DECREF(context);
+        Py_DECREF(context);
+        Py_DECREF(client);
+        Py_DECREF(server);
+        Py_DECREF(path);
+        Py_DECREF(method);
+        Py_DECREF(http_version);
+        Py_XDECREF(context->client);
+        Py_XDECREF(context->server);
+        Py_DECREF(cookies);
+        return NULL;
     }
-
     context->app = Py_NewRef(app);
     return (PyObject*) context;
 }

@@ -5,6 +5,7 @@
 #include <view/awaitable.h>
 #include <view/context.h>
 #include <view/headerdict.h>
+#include <view/results.h> // build_default_headers
 #include <view/typecodes.h>
 #include <view/ws.h>
 #include <view/view.h>
@@ -16,6 +17,7 @@ PyObject* invalid_status_error = NULL;
 PyObject* ws_cls = NULL;
 PyObject* ws_disconnect_err = NULL;
 PyObject* ws_err_cls = NULL;
+PyObject* default_headers = NULL;
 
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     PyObject* func;
@@ -228,6 +230,14 @@ PyMODINIT_FUNC PyInit__view() {
     }
     Py_DECREF(ipaddress_mod);
 
+    // We want python to manage this memory, so we have to put it on the module.
+    // This won't be on the type stub, though.
+    if (PyModule_AddObject(m, "ip_address", ip_address) < 0) {
+        Py_DECREF(m);
+        Py_DECREF(ip_address);
+        return NULL;
+    }
+
     invalid_status_error = PyErr_NewException(
         "_view.InvalidStatusError",
         PyExc_RuntimeError,
@@ -235,7 +245,6 @@ PyMODINIT_FUNC PyInit__view() {
     );
     if (!invalid_status_error) {
         Py_DECREF(m);
-        Py_DECREF(ip_address);
         return NULL;
     }
 
@@ -245,8 +254,21 @@ PyMODINIT_FUNC PyInit__view() {
         invalid_status_error
         ) < 0) {
         Py_DECREF(m);
-        Py_DECREF(ip_address);
         Py_DECREF(invalid_status_error);
+        return NULL;
+    }
+
+    default_headers = build_default_headers();
+    if (!default_headers) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    // Once again, reference management should be delegated to Python.
+    // Will not be on the type stub either.
+    if (PyModule_AddObject(m, "default_headers", default_headers) < 0) {
+        Py_DECREF(m);
+        Py_DECREF(default_headers);
         return NULL;
     }
 

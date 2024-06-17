@@ -7,6 +7,7 @@
 #include <view/backport.h>
 #include <view/map.h>
 #include <view/headerdict.h>
+#include <view/results.h> // pymem_strdup
 
 typedef struct {
     bool is_list;
@@ -35,10 +36,9 @@ typedef struct {
 
 static PyObject* repr(PyObject* self) {
     return PyUnicode_FromFormat(
-        "HeaderDict({})"
+        "HeaderDict(bleh)"
     );
 }
-
 
 static void dealloc(HeaderDict* self) {
     if (self->headers)
@@ -73,11 +73,22 @@ static PyObject* get_item(HeaderDict* self, PyObject* value) {
         return NULL;
     }
 
-    const char* key = PyUnicode_AsUTF8(value);
-    if (!key)
+    Py_ssize_t key_size;
+    const char* const_key_str = PyUnicode_AsUTF8AndSize(value, &key_size);
+    if (!const_key_str)
         return NULL;
 
-    header_item* item = map_get(self->headers, key);
+    char* key_str = pymem_strdup(const_key_str, key_size);
+    if (!key_str)
+        return NULL;
+
+    // make it lower case
+    for (Py_ssize_t i = 0; key_str[i]; ++i) {
+        key_str[i] = tolower(key_str[i]);
+    }
+
+    header_item* item = map_get(self->headers, key_str);
+    PyMem_Free(key_str);
     if (item == NULL) {
         PyErr_SetObject(PyExc_KeyError, value);
         return NULL;
@@ -93,21 +104,34 @@ static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
         return -1;
     }
 
-    const char* key_str = PyUnicode_AsUTF8(value);
+    Py_ssize_t key_size;
+    const char* const_key_str = PyUnicode_AsUTF8AndSize(value, &key_size);
+    if (!const_key_str)
+        return -1;
+
+    char* key_str = pymem_strdup(const_key_str, key_size);
     if (!key_str)
         return -1;
+
+    // make it lower case
+    for (Py_ssize_t i = 0; key_str[i]; ++i) {
+        key_str[i] = tolower(key_str[i]);
+    }
 
     header_item* item = map_get(self->headers, key_str);
     if (!item) {
         // item is not set, set it
         item = header_item_new(value);
-        if (!item)
+        if (!item) {
+            PyMem_Free(key_str);
             return -1;
+        }
 
         map_set(self->headers, key_str, item);
+        PyMem_Free(key_str);
         return 0;
     }
-
+    PyMem_Free(key_str);
     if (item->is_list) {
         if (PyList_Append(item->value, value) < 0)
             return -1;
@@ -140,26 +164,41 @@ PyObject* headerdict_from_list(PyObject* list) {
         PyObject* key = PyTuple_GET_ITEM(tup, 0);
         PyObject* value = PyTuple_GET_ITEM(tup, 1);
 
-        const char* key_str = PyBytes_AsString(key);
+        Py_ssize_t key_size;
+        char* const_key_str;
+        if (PyBytes_AsStringAndSize(key, &const_key_str, &key_size) < 0) {
+            Py_DECREF(hd);
+            return NULL;
+        }
+
+        char* key_str = pymem_strdup(const_key_str, key_size);
         if (!key_str) {
             Py_DECREF(hd);
             return NULL;
         }
 
+        // make it lower case
+        for (Py_ssize_t i = 0; key_str[i]; ++i) {
+            key_str[i] = tolower(key_str[i]);
+        }
+
         PyObject* value_str = PyUnicode_FromEncodedObject(value, "utf8",
             "strict");
         if (!value_str) {
+            PyMem_Free(key_str);
             Py_DECREF(hd);
             return NULL;
         }
 
-        header_item* item = header_item_new(value);
+        header_item* item = header_item_new(value_str);
         if (!item) {
+            PyMem_Free(key_str);
             Py_DECREF(hd);
             return NULL;
         }
 
         map_set(hd->headers, key_str, item);
+        PyMem_Free(key_str);
     }
 
     return (PyObject*) hd;
@@ -182,5 +221,6 @@ PyTypeObject HeaderDictType = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_new = HeaderDict_new,
     .tp_dealloc = (destructor) dealloc,
-    .tp_repr = repr
+    .tp_repr = repr,
+    .tp_as_mapping = &mapping_methods
 };

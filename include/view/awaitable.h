@@ -29,4 +29,7 @@ int PyAwaitable_UnpackArbValues(PyObject *awaitable, ...);
 
 #define PyAwaitable_AWAIT(aw, coro) PyAwaitable_AddAwait(aw, coro, NULL, NULL)
 
+int PyAwaitable_SaveIntValues(PyObject *awaitable, Py_ssize_t nargs, ...);
+int PyAwaitable_UnpackIntValues(PyObject *awaitable, ...);
+
 #endif

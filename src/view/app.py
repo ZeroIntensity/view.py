@@ -24,18 +24,8 @@ from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Coroutine,
-    Generic,
-    Iterable,
-    TextIO,
-    TypeVar,
-    get_type_hints,
-    overload,
-)
+from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
+                    TextIO, TypeVar, get_type_hints, overload)
 from urllib.parse import urlencode
 
 import ujson
@@ -48,36 +38,19 @@ from _view import InvalidStatusError, ViewApp, register_ws_cls
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (
-    LOGS,
-    Internal,
-    Service,
-    enter_server,
-    exit_server,
-    format_warnings,
-)
+from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
+                       format_warnings)
 from ._parsers import supply_parsers
 from ._util import make_hint, needs_dep
 from .config import Config, load_config
-from .exceptions import (
-    BadEnvironmentError,
-    InvalidCustomLoaderError,
-    ViewError,
-    ViewInternalError,
-    WebSocketDisconnectError,
-)
+from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
+                         ViewError, ViewInternalError,
+                         WebSocketDisconnectError)
 from .logging import _LogArgs, log
 from .response import HTML
 from .routing import Path as _RouteDeco
-from .routing import (
-    Route,
-    RouteInput,
-    RouteOrCallable,
-    RouteOrWebsocket,
-    V,
-    _NoDefault,
-    _NoDefaultType,
-)
+from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
+                      _NoDefault, _NoDefaultType)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -639,7 +612,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a route that can be called with any method (or only specific methods).
+        """
+        Add a route that can be called with any method (or only specific methods).
 
         Args:
             path_or_route: The path to this route, or the route itself.
@@ -718,7 +692,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a GET route.
+        """
+        Add a GET route.
 
         Args:
             path: The path to this route.
@@ -749,7 +724,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a POST route.
+        """
+        Add a POST route.
 
         Args:
             path: The path to this route.
@@ -787,7 +763,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a DELETE route.
+        """
+        Add a DELETE route.
 
         Args:
             path: The path to this route.
@@ -825,7 +802,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a PATCH route.
+        """
+        Add a PATCH route.
 
         Args:
             path: The path to this route.
@@ -863,7 +841,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a PUT route.
+        """
+        Add a PUT route.
 
         Args:
             path: The path to this route.
@@ -894,7 +873,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add an OPTIONS route.
+        """
+        Add an OPTIONS route.
 
         Args:
             path: The path to this route.
@@ -962,7 +942,8 @@ class App(ViewApp):
         doc: str | None = None,
         default: V | None | _NoDefaultType = _NoDefault,
     ) -> Callable[[RouteOrCallable[P]], Route[P]]:
-        """Set a query parameter.
+        """
+        Set a query parameter.
 
         Args:
             name: Name of the parameter.
@@ -985,7 +966,8 @@ class App(ViewApp):
         doc: str | None = None,
         default: V | None | _NoDefaultType = _NoDefault,
     ) -> Callable[[RouteOrCallable[P]], Route[P]]:
-        """Set a body parameter.
+        """
+        Set a body parameter.
 
         Args:
             name: Name of the parameter.

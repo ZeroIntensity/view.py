@@ -413,15 +413,13 @@ static PyObject* app(
     size_t len = strlen(raw_path);
     char* path;
     if (raw_path[len - 1] == '/' && len != 1) {
-        path = PyMem_Malloc(len);
+        path = PyMem_Malloc(len + 1);
         if (!path) {
             Py_DECREF(awaitable);
             return PyErr_NoMemory();
         }
 
-        for (size_t i = 0; i < len - 1; i++)
-            path[i] = raw_path[i];
-
+        memcpy(path, raw_path, len);
         path[len - 1] = '\0';
     } else {
         path = pymem_strdup(raw_path, len);

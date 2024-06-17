@@ -3,7 +3,7 @@
 
 #include <Python.h>
 
-PyTypeObject HeaderDictType;
+extern PyTypeObject HeaderDictType;
 PyObject* headerdict_from_list(PyObject* list);
 
 #endif
