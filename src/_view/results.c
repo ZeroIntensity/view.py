@@ -31,12 +31,13 @@ static char* handle_response_body(PyObject* target) {
     }
 }
 
-static int find_result_for(
+/*
+   static int find_result_for(
     PyObject* target,
     char** res_str,
     int* status,
     PyObject* headers
-) {
+   ) {
     if (Py_IS_TYPE(
         target,
         &PyUnicode_Type
@@ -44,7 +45,7 @@ static int find_result_for(
         Py_ssize_t size;
         const char* tmp = PyUnicode_AsUTF8AndSize(target, &size);
         if (!tmp) return -1;
-        *res_str = pymem_strdup(tmp, size);
+ * res_str = pymem_strdup(tmp, size);
     } else if (Py_IS_TYPE(
         target,
         &PyBytes_Type
@@ -53,7 +54,7 @@ static int find_result_for(
         char* tmp;
         if (PyBytes_AsStringAndSize(target, &tmp, &size) < 0)
             return -1;
-        *res_str = pymem_strdup(tmp, size);
+ * res_str = pymem_strdup(tmp, size);
     } else if (Py_IS_TYPE(
         target,
         &PyDict_Type
@@ -61,13 +62,13 @@ static int find_result_for(
     }
 
     if (PyErr_Occurred()) return -1;
-}
-else if (Py_IS_TYPE(
+   }
+   else if (Py_IS_TYPE(
     target,
     &PyLong_Type
          )) {
-    *status = (int) PyLong_AsLong(target);
-} else if (Py_IS_TYPE(
+ * status = (int) PyLong_AsLong(target);
+   } else if (Py_IS_TYPE(
     target,
     &PyTuple_Type
            )) {
@@ -96,16 +97,17 @@ else if (Py_IS_TYPE(
     if (PyErr_Occurred()) {
         return -1;
     }
-} else {
+   } else {
     PyErr_SetString(
         PyExc_TypeError,
         "returned tuple should only contain a str, bytes, int, or dict"
     );
     return -1;
-}
+   }
 
-return 0;
-}
+   return 0;
+   }
+ */
 
 static int handle_result_impl(
     PyObject* result,

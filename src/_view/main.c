@@ -4,6 +4,7 @@
 #include <view/app.h>
 #include <view/awaitable.h>
 #include <view/context.h>
+#include <view/headerdict.h>
 #include <view/typecodes.h>
 #include <view/ws.h>
 #include <view/view.h>
@@ -57,7 +58,8 @@ static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
     PyObject* ws_disconnect_err_val;
     PyObject* ws_err_cls_val;
 
-    if (!PyArg_ParseTuple(args, "OOO", &cls, &ws_disconnect_err_val, &ws_err_cls_val))
+    if (!PyArg_ParseTuple(args, "OOO", &cls, &ws_disconnect_err_val, &
+        ws_err_cls_val))
         return NULL;
 
     if (!PyType_Check(cls)) {
@@ -65,13 +67,13 @@ static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
             "register_ws_cls got non-type object: %R", cls);
         return NULL;
     }
-    
+
     if (!PyType_Check(ws_disconnect_err_val)) {
         PyErr_Format(PyExc_RuntimeError,
             "register_ws_cls got non-type object: %R", cls);
         return NULL;
     }
-    
+
     if (!PyType_Check(ws_err_cls_val)) {
         PyErr_Format(PyExc_RuntimeError,
             "register_ws_cls got non-type object: %R", cls);
@@ -98,7 +100,8 @@ static struct PyModuleDef module = {
     methods,
     #if PY_MINOR_VERSION >= 12
     {
-        {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+        {Py_mod_multiple_interpreters,
+         Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
         {0, NULL}
     }
     #endif
@@ -133,7 +136,8 @@ PyMODINIT_FUNC PyInit__view() {
         (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) ||
         (PyType_Ready(&ContextType) < 0) ||
         (PyType_Ready(&TCPublicType) < 0) ||
-        (PyType_Ready(&WebSocketType) < 0)) {
+        (PyType_Ready(&WebSocketType) < 0) ||
+        (PyType_Ready(&HeaderDictType) < 0)) {
         Py_DECREF(m);
         return NULL;
     }
@@ -199,6 +203,13 @@ PyMODINIT_FUNC PyInit__view() {
         Py_DECREF(m);
         return NULL;
     }
+
+    Py_INCREF(&HeaderDictType);
+    if (PyModule_AddObject(m, "HeaderDict", (PyObject*) &HeaderDictType) < 0) {
+        Py_DECREF(m);
+        return NULL;
+    }
+
 
     PyObject* ipaddress_mod = PyImport_ImportModule("ipaddress");
     if (!ipaddress_mod) {
