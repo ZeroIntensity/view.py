@@ -526,7 +526,6 @@ int send_raw_text(
 
     if (!headers)
     {
-        printf("send_raw_text is_http: %d\n", is_http);
         send_dict = Py_BuildValue(
             "{s:s,s:i,s:[[y,y]]}",
             "type",
@@ -548,7 +547,6 @@ int send_raw_text(
     }
     else
     {
-        printf("send_raw_text 2 is_http: %d\n", is_http);
         send_dict = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",

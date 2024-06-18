@@ -526,7 +526,7 @@ static int server_err_exc(
         handler_was_called,
         message,
         method_str,
-        false) < 0)
+        true) < 0)
     {
         Py_XDECREF(msg_str);
         return -1;

@@ -734,8 +734,6 @@ HOT static PyObject* app(
         return NULL;
     }
 
-    printf("is_http: %d, r->is_http: %d\n", is_http, r->is_http);
-
     if (r->inputs_size != 0) {
         if (!r->has_body) {
             if (handle_route_query(
