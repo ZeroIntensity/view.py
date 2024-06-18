@@ -22,7 +22,8 @@
             send,             \
             code,             \
             msg,              \
-            true);
+            true              \
+        );
 
 /*
  * Mappings between error codes and their index.
@@ -64,28 +65,23 @@
  */
 uint16_t hash_client_error(int status)
 {
-    if (status < 419)
-    {
+    if (status < 419) {
         return status - 400;
     }
 
-    if (status < 427)
-    {
+    if (status < 427) {
         return status - 402;
     }
 
-    if (status < 430)
-    {
+    if (status < 430) {
         return status - 406;
     }
 
-    if (status == 431)
-    {
+    if (status == 431) {
         return 27;
     }
 
-    if (status == 451)
-    {
+    if (status == 451) {
         return 28;
     }
 
@@ -96,6 +92,9 @@ uint16_t hash_client_error(int status)
     return 600;
 }
 
+/*
+ * Translate a server error into an index for the error table.
+ */
 uint16_t hash_server_error(int status)
 {
     uint16_t index = status - (status < 509 ? 500 : 501);
@@ -110,10 +109,13 @@ uint16_t hash_server_error(int status)
     return index;
 }
 
-static const char*get_err_str(int status)
+/*
+ * Get the stringified version of an error (e.g. 400 -> "Bad Request").
+ * These strings are static, and do not need to be freed by the caller.
+ */
+static const char* get_err_str(int status)
 {
-    switch (status)
-    {
+    switch (status) {
     ER(
         400,
         "Bad Request");
@@ -243,8 +245,13 @@ static const char*get_err_str(int status)
     return NULL;
 }
 
-static int finalize_err_cb(PyObject* awaitable, PyObject* result)
-{
+/*
+ * PyAwaitable callback for an error handler.
+ *
+ * This function takes the result of an error callback, which is
+ * the same as any route callback, so the result is deferred to handle_result()
+ */
+static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
     PyObject* send;
     PyObject* raw_path;
     const char* method_str;
@@ -362,8 +369,7 @@ static int run_err_cb(
 
     PyObject* new_awaitable = PyAwaitable_New();
 
-    if (!new_awaitable)
-    {
+    if (!new_awaitable) {
         Py_DECREF(coro);
         return -1;
     }
@@ -372,8 +378,7 @@ static int run_err_cb(
         new_awaitable,
         2,
         send,
-        raw_path) < 0)
-    {
+        raw_path) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;
@@ -382,8 +387,7 @@ static int run_err_cb(
     if (PyAwaitable_SaveArbValues(
         new_awaitable,
         1,
-        r) < 0)
-    {
+        r) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;
@@ -399,8 +403,7 @@ static int run_err_cb(
         new_awaitable,
         coro,
         finalize_err_cb,
-        NULL) < 0)
-    {
+        NULL) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;
@@ -408,8 +411,7 @@ static int run_err_cb(
 
     if (PyAwaitable_AWAIT(
         awaitable,
-        new_awaitable) < 0)
-    {
+        new_awaitable) < 0) {
         Py_DECREF(new_awaitable);
         Py_DECREF(coro);
         return -1;
@@ -563,8 +565,8 @@ int route_error(
 {
     if (tp == ws_disconnect_err)
     {
-// the socket prematurely disconnected, let's complain about it
-#if PY_MINOR_VERSION < 9
+        // the socket prematurely disconnected, let's complain about it
+        #if PY_MINOR_VERSION < 9
         PyObject* args = Py_BuildValue("(s)", "Unhandled WebSocket disconnect");
         if (!args)
             return -2;
@@ -574,19 +576,18 @@ int route_error(
             Py_DECREF(args);
             return -2;
         }
-#else
+        #else
         PyObject* message = PyUnicode_FromStringAndSize(
             "Unhandled WebSocket disconnect", sizeof(
                 "Unhandled WebSocket disconnect"));
         if (!message)
             return -2;
 
-        if (!PyObject_CallOneArg(route_warn, message))
-        {
+        if (!PyObject_CallOneArg(route_warn, message)) {
             Py_DECREF(message);
             return -2;
         };
-#endif
+        #endif
 
         return 0;
     }
@@ -757,8 +758,7 @@ int route_error(
     return 0;
 }
 
-int load_errors(route* r, PyObject* dict)
-{
+int load_errors(route* r, PyObject* dict) {
     PyObject* iter = PyObject_GetIter(dict);
     PyObject* key;
     PyObject* value;
@@ -801,7 +801,7 @@ int load_errors(route* r, PyObject* dict)
             if (index == 600)
             {
                 PyErr_Format(
-                    PyExc_ValueError,
+                    invalid_status_error,
                     "%d is not a valid status code",
                     status_code);
                 return -1;

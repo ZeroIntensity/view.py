@@ -1,8 +1,29 @@
 /*
- * view.py private app implementation
+ * view.py ASGI app implementation
  *
  * This file contains the ViewApp class, which is the base class for the App class.
  * All the actual ASGI calls are here.
+ *
+ * The lifecycle of a request, as shown here is as follows:
+ *
+ * - Receive ASGI values (scope, receive(), and send())
+ * - If it's a lifespan call, start the lifespan protocol.
+ * - If not, extract the path and method from the scope.
+ * - If it's an HTTP request:
+ *       * Search the corresponding method map with the route.
+ *       * If it's not found, check if the app has path parameters.
+ *           > If not, return a 404.
+ *           > If it does, defer to the path parts API (very unstable and buggy).
+ *       * If it is found, check if the route has inputs (data inputs, query parameters, and body parameters).
+ *           > If it does, defer to the proper handler function.
+ *           > If not, we can just call it right now, and send the result to the results API.
+ * - If it's a WebSocket connection:
+ *       * Search the WebSocket map with the route.
+ *       * If it's not found, check if the app has path parameters.
+ *           > If not, return a 404, but explicitly mark it as a WebSocket rejection (websocket.http.response)
+ *           > If it does, defer to the path parts API (very unstable and buggy). This is not implemented yet!
+ *       * Defer to the proper handler function. A WebSocket route always has at least one input.
+ *
  */
 #include <Python.h>
 
