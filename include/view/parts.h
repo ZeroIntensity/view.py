@@ -5,6 +5,7 @@
 
 #include <view/app.h> // ViewApp
 #include <view/map.h> // map
+#include <view/route.h> // route
 
 int extract_parts(
     ViewApp* self,

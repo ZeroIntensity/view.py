@@ -6,7 +6,7 @@
 #include <stdint.h> // uint16_t
 
 #include <view/app.h> // ViewApp
-#include <view/routing.h> // route
+#include <view/route.h> // route
 
 int route_error(
     PyObject* awaitable,

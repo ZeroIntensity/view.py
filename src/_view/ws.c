@@ -1,3 +1,13 @@
+/*
+ * view.py WebSocket object implementation.
+ *
+ * This file contains the internal _WebSocket object, as well
+ * as all the logic for dealing with WebSockets.
+ *
+ * While the WebSocket API is public, it is wrapped by a Python class,
+ * hence why the object name here is _WebSocket, meaning that
+ * breaking API changes can be made here.
+ */
 #include <Python.h>
 #include <stddef.h> // offsetof
 
@@ -5,108 +15,22 @@
 #include <view/awaitable.h>
 #include <view/backport.h>
 #include <view/results.h> // handle_result
-#include <view/routing.h> // route
-#include <view/ws.h>
+#include <view/route.h> // route
+#include <view/ws.h> // WebSocketType
 #include <view/view.h>
 
 typedef struct {
     PyObject_HEAD
-    PyObject* send;
-    PyObject* receive;
-    PyObject* raw_path;
-    bool closing;
+    PyObject* send; // ASGI send()
+    PyObject* receive; // ASGI receive()
+    PyObject* raw_path; // Path from the ASGI scope
+    bool closing; // This is set upon calling close(), regardless of whether the connection has actually finalized
 } WebSocket;
-
-static PyObject* repr(PyObject* self) {
-    WebSocket* ws = (WebSocket*) self;
-    return PyUnicode_FromFormat("_WebSocket(%p)", self);
-}
 
 static void dealloc(WebSocket* self) {
     Py_XDECREF(self->send);
     Py_XDECREF(self->receive);
     Py_TYPE(self)->tp_free((PyObject*) self);
-}
-
-int handle_route_websocket(PyObject* awaitable, PyObject* result) {
-    char* res;
-    int status = 1005;
-    PyObject* headers;
-
-    PyObject* send;
-    PyObject* receive;
-    PyObject* raw_path;
-    route* r;
-    const char* method_str;
-
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        NULL,
-        NULL,
-        NULL,
-        &send,
-        &raw_path
-        ) < 0) return -1;
-
-    if (PyAwaitable_UnpackArbValues(
-        awaitable,
-        &r,
-        NULL,
-        NULL,
-        NULL
-        ) < 0) return -1;
-
-    if (result == Py_None) {
-        PyObject* args = Py_BuildValue(
-            "(iOs)",
-            1000,
-            raw_path,
-            "websocket_closed"
-        );
-
-        if (!args)
-            return -1;
-
-        if (!PyObject_Call(
-            route_log,
-            args,
-            NULL
-            )) {
-            Py_DECREF(args);
-            return -1;
-        }
-        Py_DECREF(args);
-        return 0;
-    }
-
-
-    if (handle_result(result, &res, &status, &headers, raw_path, "websocket_closed") < 0)
-        return -1;
-        
-    PyObject* send_dict = Py_BuildValue(
-        "{s:s,s:s}",
-        "type",
-        "websocket.send",
-        "text",
-        res
-    );
-    free(res);
-
-    if (!send_dict)
-        return -1;
-
-    PyObject* coro = PyObject_Vectorcall(send, (PyObject*[]) { send_dict }, 1, NULL);
-    if (!coro) {
-        Py_DECREF(send_dict);
-        return -1;
-    }
-
-    Py_DECREF(send_dict);
-    if (PyAwaitable_AWAIT(awaitable, coro) < 0) {
-        Py_DECREF(coro);
-        return -1;
-    }
-    return 0;
 }
 
 static PyObject* WebSocket_new(
@@ -383,7 +307,8 @@ static PyObject* WebSocket_close(
         return NULL;
 
     if (self->closing) {
-        PyErr_SetString(PyExc_RuntimeError, "websocket is already closed or closing");
+        PyErr_SetString(PyExc_RuntimeError,
+            "websocket is already closed or closing");
         return NULL;
     }
 
@@ -540,6 +465,5 @@ PyTypeObject WebSocketType = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_new = WebSocket_new,
     .tp_dealloc = (destructor) dealloc,
-    .tp_repr = repr,
     .tp_methods = methods
 };

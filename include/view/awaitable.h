@@ -2,8 +2,7 @@
 #ifndef VIEW_AWAITABLE_H
 #define VIEW_AWAITABLE_H
 
-#include <Python.h>
-#include <view/backport.h>
+#include <Python.h> // PyObject, Py_ssize_t, PyTypeObject
 
 typedef int (*awaitcallback)(PyObject *, PyObject *);
 typedef int (*awaitcallback_err)(PyObject *, PyObject *, PyObject *, PyObject *);

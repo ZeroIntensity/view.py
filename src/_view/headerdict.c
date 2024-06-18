@@ -36,7 +36,8 @@ typedef struct {
 } HeaderDict;
 
 /*
- * This creates a copy of the object as a dictionary.
+ * This creates a copy of the object as a dictionary, and uses it as a __repr__()
+ *
  * It's not perfect, but this function won't really get called in production,
  * so we can cheat a little bit here.
  */

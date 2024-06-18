@@ -6,7 +6,6 @@
 #include <Python.h>
 #include <view/backport.h>
 
-
 #ifdef VIEW_NEEDS_VECTORCALL
 PyObject*_PyObject_VectorcallBackport(
     PyObject* obj,

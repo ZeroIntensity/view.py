@@ -1,8 +1,6 @@
-#ifndef VIEW_ROUTING_H
-#define VIEW_ROUTING_H
+#ifndef VIEW_ROUTE_H
+#define VIEW_ROUTE_H
 
-#include <Python.h>
-#include <stdbool.h> // bool
 #include <stdint.h> // uint16_t
 
 #include <view/map.h> // map
@@ -30,6 +28,7 @@ struct Route {
     route* r;
 };
 
+void route_free(route* r);
 route* route_new(
     PyObject* callable,
     Py_ssize_t inputs_size,
@@ -37,25 +36,5 @@ route* route_new(
     bool has_body
 );
 route* route_transport_new(route* r);
-
-int handle_route_callback(
-    PyObject* awaitable,
-    PyObject* result
-);
-int handle_route(PyObject* awaitable, char* query);
-int handle_route_impl(
-    PyObject* awaitable,
-    char* body,
-    char* query
-);
-void route_free(route* r);
-int send_raw_text(
-    PyObject* awaitable,
-    PyObject* send,
-    int status,
-    const char* res_str,
-    PyObject* headers,     /* may be NULL */
-    bool is_http
-);
 
 #endif

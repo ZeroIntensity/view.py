@@ -1,7 +1,7 @@
 import pytest
 from leaks import limit_leaks
 
-from view import ERROR_CODES, Error, InvalidStatusError, new_app
+from view import ERROR_CODES, HTTPError, InvalidStatusError, new_app
 
 STATUS_CODES = (
     200,
@@ -36,15 +36,15 @@ async def test_returning_the_proper_status_code():
 
     @app.get("/error")
     async def err(status: int):
-        raise Error(status)
+        raise HTTPError(status)  # type: ignore
 
     @app.get("/fail")
     async def fail():
         with pytest.raises(InvalidStatusError):
-            raise Error(200)
+            raise HTTPError(200)  # type: ignore
 
         with pytest.raises(InvalidStatusError):
-            raise Error(600)
+            raise HTTPError(600)  # type: ignore
 
         return ""
 

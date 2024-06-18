@@ -1,3 +1,10 @@
+/*
+ * view.py C route handling implementation
+ *
+ * This file contains the route allocators, and the general logic for calling
+ * a route object. This is responsible for determining inputs, dealing with return
+ * values, and dispatching the HTTP response to the ASGI server.
+ */
 #include <Python.h>
 #include <stdbool.h> // bool
 
@@ -6,121 +13,16 @@
 #include <view/backport.h>
 #include <view/context.h> // context_from_data
 #include <view/errors.h>  // route_error
-#include <view/inputs.h>  // route_input
-#include <view/parsers.h> // body_inc_buf
+#include <view/handling.h>
+#include <view/inputs.h>  // route_input, body_inc_buf
 #include <view/results.h> // handle_result
-#include <view/routing.h>
-
-/*
- * -- routes and r information --
- * lets say the requested route is GET /app/12345/index and 12345 is a path parameter.
- * we would first map_get(app->get, "/app"). if this returns NULL, it is a 404.
- * then, we map_get(route->routes, "/12345"). if NULL, we check if a route->r is available.
- * if so, this is a path parameter, we save the value and move on to the next. otherwise, 404.
- * we repeat this process until we reach the end of the URL. so, next we do map_get(route->r->routes, "/index").
- * */
-
-route* route_new(
-    PyObject* callable,
-    Py_ssize_t inputs_size,
-    Py_ssize_t cache_rate,
-    bool has_body)
-{
-    route* r = PyMem_Malloc(sizeof(route));
-    if (!r)
-        return (route*)PyErr_NoMemory();
-
-    r->cache = NULL;
-    r->callable = Py_NewRef(callable);
-    r->cache_rate = cache_rate;
-    r->cache_index = 0;
-    r->cache_headers = NULL;
-    r->cache_status = 0;
-    r->inputs = NULL;
-    r->inputs_size = inputs_size;
-    r->has_body = has_body;
-    r->is_http = true;
-
-    // transports
-    r->routes = NULL;
-    r->r = NULL;
-
-    for (int i = 0; i < 28; i++)
-        r->client_errors[i] = NULL;
-
-    for (int i = 0; i < 11; i++)
-        r->server_errors[i] = NULL;
-
-    return r;
-}
-
-void route_free(route* r)
-{
-    for (int i = 0; i < r->inputs_size; i++)
-    {
-        if (r->inputs[i]->route_data)
-        {
-            continue;
-        }
-        Py_XDECREF(r->inputs[i]->df);
-        free_type_codes(
-            r->inputs[i]->types,
-            r->inputs[i]->types_size);
-
-        for (int i = 0; i < r->inputs[i]->validators_size; i++)
-        {
-            Py_DECREF(r->inputs[i]->validators[i]);
-        }
-    }
-
-    PyMem_Free(r->inputs);
-
-    Py_XDECREF(r->cache_headers);
-    Py_DECREF(r->callable);
-
-    for (int i = 0; i < 11; i++)
-        Py_XDECREF(r->server_errors[i]);
-
-    for (int i = 0; i < 28; i++)
-        Py_XDECREF(r->client_errors[i]);
-
-    if (r->cache)
-        free(r->cache);
-    PyMem_Free(r);
-}
-
-route* route_transport_new(route* r)
-{
-    route* rt = PyMem_Malloc(sizeof(route));
-    if (!rt)
-        return (route*)PyErr_NoMemory();
-    rt->cache = NULL;
-    rt->callable = NULL;
-    rt->cache_rate = 0;
-    rt->cache_index = 0;
-    rt->cache_headers = NULL;
-    rt->cache_status = 0;
-    rt->inputs = NULL;
-    rt->inputs_size = 0;
-    rt->has_body = false;
-    rt->is_http = false;
-
-    for (int i = 0; i < 28; i++)
-        rt->client_errors[i] = NULL;
-
-    for (int i = 0; i < 11; i++)
-        rt->server_errors[i] = NULL;
-
-    rt->routes = NULL;
-    rt->r = r;
-    return rt;
-}
+#include <view/view.h> // route_log
 
 int handle_route_impl(
     PyObject* awaitable,
     char* body,
-    char* query)
-{
+    char* query
+) {
     route* r;
     ViewApp* self;
     Py_ssize_t* size;
@@ -135,8 +37,8 @@ int handle_route_impl(
         &scope,
         &receive,
         &send,
-        NULL) < 0)
-    {
+        NULL) < 0
+    ) {
         return -1;
     }
 
@@ -147,8 +49,8 @@ int handle_route_impl(
         &r,
         &path_params,
         &size,
-        &method_str) < 0)
-    {
+        &method_str) < 0
+    ) {
         return -1;
     }
 
@@ -252,8 +154,8 @@ int handle_route_impl(
     return 0;
 }
 
-int handle_route(PyObject* awaitable, char* query)
-{
+int handle_route(PyObject* awaitable, char* query) {
+    puts("handle_route");
     PyObject* receive;
     route* r;
 
@@ -358,8 +260,8 @@ int handle_route(PyObject* awaitable, char* query)
 
 int handle_route_callback(
     PyObject* awaitable,
-    PyObject* result)
-{
+    PyObject* result
+) {
     ViewApp* self;
     PyObject* send;
     PyObject* scope;
@@ -519,8 +421,8 @@ int send_raw_text(
     int status,
     const char* res_str,
     PyObject* headers, /* may be NULL */
-    bool is_http)
-{
+    bool is_http
+) {
     PyObject* coro;
     PyObject* send_dict;
 
@@ -608,5 +510,88 @@ int send_raw_text(
     }
 
     Py_DECREF(coro);
+    return 0;
+}
+
+int handle_route_websocket(PyObject* awaitable, PyObject* result) {
+    char* res;
+    int status = 1005;
+    PyObject* headers;
+
+    PyObject* send;
+    PyObject* receive;
+    PyObject* raw_path;
+    route* r;
+    const char* method_str;
+
+    if (PyAwaitable_UnpackValues(
+        awaitable,
+        NULL,
+        NULL,
+        NULL,
+        &send,
+        &raw_path
+        ) < 0) return -1;
+
+    if (PyAwaitable_UnpackArbValues(
+        awaitable,
+        &r,
+        NULL,
+        NULL,
+        NULL
+        ) < 0) return -1;
+
+    if (result == Py_None) {
+        PyObject* args = Py_BuildValue(
+            "(iOs)",
+            1000,
+            raw_path,
+            "websocket_closed"
+        );
+
+        if (!args)
+            return -1;
+
+        if (!PyObject_Call(
+            route_log,
+            args,
+            NULL
+            )) {
+            Py_DECREF(args);
+            return -1;
+        }
+        Py_DECREF(args);
+        return 0;
+    }
+
+
+    if (handle_result(result, &res, &status, &headers, raw_path,
+        "websocket_closed") < 0)
+        return -1;
+
+    PyObject* send_dict = Py_BuildValue(
+        "{s:s,s:s}",
+        "type",
+        "websocket.send",
+        "text",
+        res
+    );
+    free(res);
+
+    if (!send_dict)
+        return -1;
+
+    PyObject* coro = PyObject_Vectorcall(send, (PyObject*[]) { send_dict }, 1,
+        NULL);
+    if (!coro) {
+        Py_DECREF(send_dict);
+        return -1;
+    }
+
+    Py_DECREF(send_dict);
+    if (PyAwaitable_AWAIT(awaitable, coro) < 0) {
+        Py_DECREF(coro);
+        return -1;
+    }
     return 0;
 }

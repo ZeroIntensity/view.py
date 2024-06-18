@@ -7,9 +7,10 @@
 #include <view/awaitable.h>
 #include <view/backport.h>
 #include <view/errors.h>
+#include <view/handling.h> // send_raw_text
 #include <view/results.h> // handle_result
-#include <view/routing.h> // route, send_raw_text
-#include <view/view.h>    // invalid_status_error
+#include <view/route.h> // route
+#include <view/view.h> // invalid_status_error
 
 #define ER(code, str) \
     case code:        \
@@ -275,8 +276,7 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result)
         &status_code,
         &headers,
         raw_path,
-        method_str) < 0)
-    {
+        method_str) < 0) {
         Py_DECREF(result);
         return -1;
     }
@@ -309,8 +309,7 @@ static int run_err_cb(
     PyObject* raw_path,
     const char* method,
     bool is_http
-)
-{
+) {
     if (!handler)
     {
         if (called)

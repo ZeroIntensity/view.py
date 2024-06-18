@@ -1,17 +1,47 @@
+/*
+ * view.py route results implementation
+ *
+ * This file is responsible for parsing route responses.
+ * Note that this implementation does not actually send
+ * ASGI responses. Instead, it generates the necessary
+ * components to send a response (which is done by the handler).
+ */
 #include <Python.h>
 
 #include <view/backport.h>
 #include <view/results.h>
 #include <view/view.h> // route_log
 
+/*
+ * Implementation of strdup() using PyMem_Malloc()
+ *
+ * Unlike strdup(), this takes a size parameter. Try
+ * to avoid using strlen(), and use a function that includes
+ * the string size, such as PyUnicode_AsUTF8AndSize()
+ *
+ * Strings that are returned by this function should
+ * be freed using PyMem_Free(), not free()
+ *
+ * Technically speaking, this is more or less a copy
+ * of CPython's private _PyMem_Strdup function.
+ */
 char* pymem_strdup(const char* c, Py_ssize_t size) {
-    char* buf = PyMem_Malloc(size + 1); // length with null terminator
+    char* buf = PyMem_Malloc(size + 1); // Length with null terminator
     if (!buf)
         return (char*) PyErr_NoMemory();
     memcpy(buf, c, size + 1);
     return buf;
 }
 
+/*
+ * Get a duplicated string of a Python string or bytes object.
+ *
+ * If the object is not a string or bytes, this throws a TypeError
+ * and returns NULL.
+ *
+ * This using pymem_strdup(), so strings returned by this function
+ * should be deallocated via PyMem_Free()
+ */
 static char* handle_response_body(PyObject* target) {
     if (PyUnicode_CheckExact(target)) {
         Py_ssize_t size;
@@ -32,83 +62,13 @@ static char* handle_response_body(PyObject* target) {
 }
 
 /*
-   static int find_result_for(
-    PyObject* target,
-    char** res_str,
-    int* status,
-    PyObject* headers
-   ) {
-    if (Py_IS_TYPE(
-        target,
-        &PyUnicode_Type
-        )) {
-        Py_ssize_t size;
-        const char* tmp = PyUnicode_AsUTF8AndSize(target, &size);
-        if (!tmp) return -1;
- * res_str = pymem_strdup(tmp, size);
-    } else if (Py_IS_TYPE(
-        target,
-        &PyBytes_Type
-               )) {
-        Py_ssize_t size;
-        char* tmp;
-        if (PyBytes_AsStringAndSize(target, &tmp, &size) < 0)
-            return -1;
- * res_str = pymem_strdup(tmp, size);
-    } else if (Py_IS_TYPE(
-        target,
-        &PyDict_Type
-               )) {
-    }
-
-    if (PyErr_Occurred()) return -1;
-   }
-   else if (Py_IS_TYPE(
-    target,
-    &PyLong_Type
-         )) {
- * status = (int) PyLong_AsLong(target);
-   } else if (Py_IS_TYPE(
-    target,
-    &PyTuple_Type
-           )) {
-
-    for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(target); i++) {
-        PyObject* t_value = PyTuple_GET_ITEM(
-            target,
-            i
-        );
-        if (!PyTuple_Check(
-            t_value
-            )) {
-            PyErr_SetString(
-                PyExc_TypeError,
-                "raw header tuple should contain tuples"
-            );
-            return -1;
-        }
-
-        PyList_Append(
-            headers,
-            t_value
-        );
-    }
-
-    if (PyErr_Occurred()) {
-        return -1;
-    }
-   } else {
-    PyErr_SetString(
-        PyExc_TypeError,
-        "returned tuple should only contain a str, bytes, int, or dict"
-    );
-    return -1;
-   }
-
-   return 0;
-   }
+ * Generate the "default response headers" (i.e. headers that
+ * are sent when no headers are explicitly set by the user.)
+ *
+ * This returns a new strong reference. However, this should
+ * only be called once per program, by the module initialization
+ * function. The result is stored globally as `default_headers`.
  */
-
 PyObject* build_default_headers() {
     PyObject* tup = PyTuple_New(1);
     if (!tup)
@@ -141,6 +101,12 @@ PyObject* build_default_headers() {
     return tup;
 }
 
+/*
+ * The raw implementation of handling results.
+ *
+ * Unlike the exported handle_result(), this does not write to
+ * the route log.
+ */
 static int handle_result_impl(
     PyObject* result,
     char** res_target,
@@ -266,6 +232,24 @@ static int handle_result_impl(
     return 0;
 }
 
+/*
+ * Generate HTTP response components (i.e. the body, status, and headers) from
+ * a route return value.
+ *
+ * The result passed should be a tuple, or body string. This functions
+ * does not call __view_result__(), as that is up to the caller.
+ *
+ * The body output parameter will be a string on the heap,
+ * and is responsible for deallocating it with PyMem_Free()
+ *
+ * The status output parameter can be *any* integer (including non-HTTP
+ * status codes). Validation is up to the caller.
+ *
+ * The headers will always be an ASGI headers iterable [(bytes_key, bytes_value), ...]
+ *
+ * If this function fails, the caller is not responsible for
+ * deallocating or managing references of any of the parameters.
+ */
 int handle_result(
     PyObject* raw_result,
     char** res_target,

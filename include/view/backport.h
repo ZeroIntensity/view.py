@@ -5,7 +5,7 @@
 
 #ifndef _PyObject_Vectorcall
 #define VIEW_NEEDS_VECTORCALL
-PyObject*_PyObject_VectorcallBackport(
+PyObject* _PyObject_VectorcallBackport(
     PyObject* obj,
     PyObject** args,
     size_t nargsf,

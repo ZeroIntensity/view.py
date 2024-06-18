@@ -1,13 +1,70 @@
+/*
+ * Path parts implementation (aka path parameters).
+ *
+ * This is unfinished, undocumented, and quite buggy.
+ * Nearly all of this will be changed or rewritten.
+ */
 #include <Python.h>
 #include <stdbool.h> // true
 
 #include <view/app.h> // ViewApp
 #include <view/errors.h>
 #include <view/map.h> // map
-#include <view/routing.h> // route
+#include <view/route.h> // route, route_free
 #include <view/view.h> // VIEW_FATAL
 
 #define TRANSPORT_MAP() map_new(2, (map_free_func) route_free)
+
+/*
+ * -- Routes and route->r information --
+ * Let's say the requested route is GET /app/12345/index and 12345 is a path parameter.
+ *
+ * We would first call map_get(app->get, "/app"). Of this returns NULL, it is a 404.
+ * Then, we map_get(route->routes, "/12345"). If NULL, then we check if a route->r is available.
+ *
+ * If so, this is a path parameter, we save the value and move on to the next. Otherwise, 404.
+ * We repeat this process until we reach the end of the URL. So, next we do map_get(route->r->routes, "/index").
+ *
+ * Once again, we check if map_get(route->r->routes, "/index") is NULL. If it isn't, then we check
+ * if route->r->r is non-NULL. If it is, then it's a 404. Otherwise, once again save the value as a path parameter
+ * and repeat the process.
+ *
+ * This will go until the end of the path is reached.
+ *
+ * In the above example, then order of operations would look like so:
+ *
+ * - app_routes["/app/12345/index"] -> NULL, check for path parameters.
+ * - app_routes["/app"] -> non-NULL, proceed with path parameter extraction.
+ * - app_routes["/app"].routes["/12345"] -> NULL, check if transport is available.
+ * - app_routes["/app"].r -> non-NULL, this is a path parameter! If not, a 404 would be sent back.
+ * - path_params = ["12345"]
+ * - app_routes["/app"].r.routes["/index"] -> non-NULL, proceed.
+ * - Reached end of path! Location of our route object is app_routes["/app"].r.routes["/index"],
+ *   with ["12345"] as the initial inputs.
+ *
+ * A visual representation of the route structure could look like such:
+ *
+ * This is our initial route, which
+ * is only accessed if, in this case,
+ * /app/12345/index returns NULL.
+ * +-- /app --+
+ * |          |
+ * |   ...    |                           This is the object we want!
+ * |          |                           +-- /index --+
+ * |   routes -------> NULL               |            |
+ * |   r ------------> +----------+       |     ...    |
+ * |          |        |          |       |            |
+ * +----------+        |   NULL   |       |     routes ------> NULL
+ *                     |          |       |     r -----------> NULL
+ *                     |          |       |            |
+ *                     |  routes -------> +------------+
+ *                     |  r ------------> NULL
+ *                     |          |
+ *                     +----------+
+ *                     This is our transport
+ *                     route, it represents
+ *                     a path parameter.
+ */
 
 // Port of strsep for use on windows
 char* v_strsep(char** stringp, const char* delim) {

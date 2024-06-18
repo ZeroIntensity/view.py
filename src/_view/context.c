@@ -34,51 +34,18 @@ typedef struct {
 } Context;
 
 static PyMemberDef members[] = {
-    {"app", T_OBJECT_EX, offsetof(
-        Context,
-        app
-     ), 0, NULL},
-    {"scheme", T_OBJECT_EX, offsetof(
-        Context,
-        scheme
-     ), 0, NULL},
-    {"headers", T_OBJECT_EX, offsetof(
-        Context,
-        headers
-     ), 0, NULL},
-    {"cookies", T_OBJECT_EX, offsetof(
-        Context,
-        cookies
-     ), 0, NULL},
-    {"http_version", T_OBJECT_EX, offsetof(
-        Context,
-        http_version
-     ), 0, NULL},
-    {"client", T_OBJECT, offsetof(
-        Context,
-        client
-     ), 0, NULL},
-    {"client_port", T_OBJECT, offsetof(
-        Context,
-        client_port
-     ), 0, NULL},
-    {"server", T_OBJECT, offsetof(
-        Context,
-        server
-     ), 0, NULL},
-    {"server_port", T_OBJECT, offsetof(
-        Context,
-        server_port
-     ), 0, NULL},
-    {"method", T_OBJECT, offsetof(
-        Context,
-        method
-     ), 0, NULL},
-    {"path", T_OBJECT, offsetof(
-        Context,
-        path
-     ), 0, NULL},
-    {NULL}  /* Sentinel */
+    {"app", T_OBJECT_EX, offsetof(Context, app), 0, NULL},
+    {"scheme", T_OBJECT_EX, offsetof(Context, scheme), 0, NULL},
+    {"headers", T_OBJECT_EX, offsetof(Context, headers), 0, NULL},
+    {"cookies", T_OBJECT_EX, offsetof(Context, cookies), 0, NULL},
+    {"http_version", T_OBJECT_EX, offsetof(Context, http_version), 0, NULL},
+    {"client", T_OBJECT, offsetof(Context, client), 0, NULL},
+    {"client_port", T_OBJECT, offsetof(Context, client_port), 0, NULL},
+    {"server", T_OBJECT, offsetof(Context, server), 0, NULL},
+    {"server_port", T_OBJECT, offsetof(Context, server_port), 0, NULL},
+    {"method", T_OBJECT, offsetof(Context, method), 0, NULL},
+    {"path", T_OBJECT, offsetof(Context, path), 0, NULL},
+    {NULL} // Sentinel
 };
 
 /*
@@ -236,10 +203,9 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
 
         PyObject* address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) { PyTuple_GET_ITEM(
-                client,
-                0
-                            ) },
+            (PyObject*[]) {
+            PyTuple_GET_ITEM(client, 0)
+        },
             1,
             NULL
         );

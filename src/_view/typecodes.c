@@ -1,9 +1,97 @@
+/*
+ * view.py typecode implementation
+ *
+ * Typecodes are a view.py invention. In short, they are a fast
+ * way to do runtime type checking.
+ *
+ * The simplest way to do runtime type checking would just
+ * be to take a type, and run isinstance() (or in this case, PyObject_IsInstance).
+ *
+ * You could cheat a little by using something like Py_IS_TYPE to avoid the call,
+ * but that's still not great. There's also no good way to do unions, generics,
+ * or other typing shenanigans.
+ *
+ * Typecodes are view.py's solution. It starts in the _build_type_codes function,
+ * which is in Python (since it's a one time cost, we don't have to worry about performance there).
+ *
+ * See _loader.py for the _build_type_codes implementation - in short, it takes
+ * a type (including things like `typing._GenericAlias`, for generics), and converts
+ * it into a list that the C API loader can understand.
+ *
+ * We'll stay away from the internals of that here - let's just focus on
+ * the C implementation.
+ *
+ * A type code is stored in a type_info structure.
+ * Technically speaking, the actual "type code" is just an integer on the structure,
+ * and the whole structure is called "type information." However, view.py calls
+ * type information typecodes for convenience and historical purposes.
+ *
+ * In most cases, you'll see type information being passed as an array, instead of
+ * a single structure. An array of type information just means unions - a single type
+ * is represented by *one* type_info structure, and then unions are just a bunch
+ * of those chained together. We'll refer to a single structure as "type information,"
+ * and an array of them as "typecodes."
+ *
+ * A typecode (or really, type_info structure) has three parts:
+ *
+ * - An 8-bit integer indicating the type. This is the actual "type code."
+ * - An array of type information (typecodes) acting as the "children." This will be empty in many cases.
+ *   This is generally for generic types. For example, if the type was `list[str]`, then the overall
+ *   type code integer would be for lists, and then the children would contain the typecodes of the
+ *   generics, which in this case would be that of `str`.
+ * - A default value to use in case the value was missing when checked.
+ *
+ * The basic types are:
+ * - Any (which if this exists anywhere on the typecode, the rest of it is skipped).
+ * - String
+ * - Integer
+ * - Boolean
+ * - Float
+ * - None/null
+ *
+ * These types don't have any children, and are simply checked with CheckExact.
+ *
+ * view.py does what it can to cast the object to the given type at runtime. For example, if
+ * the object was the string `"1"`, but the typecode is for an `int`, then it will
+ * cast it (unless casting was disabled, which only happens when using the public typecode API).
+
+ * If a string is anywhere on the typecode, then it means that every value can
+ * be assigned to it. However, casting on strings is done lazily. So, if the typecode is
+ * for `str | int`, then it will only try and cast it to a string if casting to an integer fails.
+ *
+ * The types that can have children are:
+ *
+ * - Dictionary/JSON
+ * - List/array
+ * - Classes
+ *
+ * Dictionaries and lists both use the children as generics, so if the typecode was
+ * for a list, then it would expect all of it's items to be compliant with the
+ * children typecodes.
+ *
+ * Note that dictionaries can only have string keys, so the children only apply
+ * to the values.
+ *
+ * Classes are a bit special, since the only children they can have are of `TYPECODE_CLASSTYPES`.
+ * `TYPECODE_CLASSTYPES` are only supported here, and must not be used anywhere else.
+ *
+ * A `TYPECODE_CLASSTYPES` represents an attribute of an object.
+ * The children are the type of the attribute, and the default is stored like any other typecode.
+ *
+ * However, the name is stored in a sneaky way - there's actually a fourth field on the
+ * type_info structure, which contains an extra Python object. This slot is only
+ * present with a `TYPECODE_CLASSTYPES`, and contains a Python string containing
+ * the name of the attribute.
+ *
+ * The only thing that can be casted to a class is a dictionary or a string that represents JSON.
+ */
 #include <Python.h>
 #include <stdbool.h> // bool
 
 #include <view/backport.h>
 #include <view/inputs.h> // route_input
-#include <view/routing.h> // route
+#include <view/results.h> // pymem_strdup
+#include <view/route.h> // route
 #include <view/typecodes.h>
 #include <view/view.h> // VIEW_FATAL
 
@@ -24,6 +112,7 @@
                     verified = true; \
                 } break;
 
+/* Deallocator for type info */
 static void free_type_info(type_info* ti) {
     Py_XDECREF(ti->ob);
     if ((intptr_t) ti->df > 0) Py_DECREF(ti->df);
@@ -32,39 +121,43 @@ static void free_type_info(type_info* ti) {
     }
 }
 
+/* Deallocator for an array of type information. */
 void free_type_codes(type_info** codes, Py_ssize_t len) {
     for (Py_ssize_t i = 0; i < len; i++)
         free_type_info(codes[i]);
 }
 
-static inline int bad_input(const char* name) {
+/*
+ * Utility function for raising an error when the loader
+ * passes some wrong input. This is semantically
+ * similar to PyErr_BadASGI()
+ *
+ * In a perfect world, this will never be called.
+ */
+COLD static inline int bad_input(const char* name) {
     PyErr_Format(
-        PyExc_ValueError,
+        PyExc_SystemError,
         "missing key in loader dict: %s",
         name
     );
     return -1;
 }
 
+/*
+ * Verify a dictionary object given typecodes.
+ * This will update the dictionary with casted values.
+ */
 static int verify_dict_typecodes(
     type_info** codes,
     Py_ssize_t len,
     PyObject* dict,
     PyObject* json_parser
 ) {
-    if (!PyDict_Size(dict)) return 0;
-    PyObject* iter = PyObject_GetIter(dict);
+    Py_ssize_t pos;
     PyObject* key;
-    while ((key = PyIter_Next(iter))) {
-        PyObject* value = PyDict_GetItem(
-            dict,
-            key
-        );
-        if (!value) {
-            Py_DECREF(iter);
-            return -1;
-        }
+    PyObject* value;
 
+    while (PyDict_Next(dict, &pos, &key, &value)) {
         value = cast_from_typecodes(
             codes,
             len,
@@ -77,22 +170,20 @@ static int verify_dict_typecodes(
             dict,
             key,
             value
-            ) < 0) {
-            Py_DECREF(iter);
+            ) < 0)
             return -1;
-        }
     }
 
-    Py_DECREF(iter);
-    if (PyErr_Occurred()) {
-        PyErr_Print();
+    if (PyErr_Occurred())
         return -1;
-    }
 
     return 0;
 }
 
-
+/*
+ * Verify a list with the given typecodes.
+ * This will cast items in the list.
+ */
 static int verify_list_typecodes(
     type_info** codes,
     Py_ssize_t len,
@@ -128,6 +219,15 @@ static int verify_list_typecodes(
     return 0;
 }
 
+/*
+ * Cast an object using the given typecodes.
+ * This is essentially the "main" function of typecodes.
+ *
+ * The allow_casting parameter is whether to allow an object to not
+ * be the actual type. For example, if casting is enabled, the string `"1"` can
+ * be casted to the integer `1`, if the typecode supports it. If this is disabled,
+ * then it will ensure that the `item` parameter is directly an instance of the type.
+ */
 PyObject* cast_from_typecodes(
     type_info** codes,
     Py_ssize_t len,
@@ -353,7 +453,8 @@ PyObject* cast_from_typecodes(
                     return NULL;
                 };
                 Py_DECREF(parsed_item);
-            };
+            }
+            ;
 
             if (!ok) break;
 
@@ -454,121 +555,11 @@ PyObject* cast_from_typecodes(
     return NULL;
 }
 
-typedef struct {
-    PyObject_HEAD
-    type_info** codes;
-    Py_ssize_t codes_len;
-    PyObject* json_parser;
-} TCPublic;
-
-static void dealloc(TCPublic* self) {
-    free_type_codes(
-        self->codes,
-        self->codes_len
-    );
-    Py_DECREF(self->json_parser);
-    Py_TYPE(self)->tp_free((PyObject*) self);
-}
-
-static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
-    TCPublic* self = (TCPublic*) type->tp_alloc(
-        type,
-        0
-    );
-    if (!self)
-        return NULL;
-
-    return (PyObject*) self;
-}
-
-static PyObject* cast_from_typecodes_public(PyObject* self, PyObject* args) {
-    TCPublic* tc = (TCPublic*) self;
-    PyObject* obj;
-    int allow_cast;
-
-    if (!PyArg_ParseTuple(
-        args,
-        "Op",
-        &obj,
-        &allow_cast
-        ))
-        return NULL;
-
-    PyObject* res = cast_from_typecodes(
-        tc->codes,
-        tc->codes_len,
-        obj,
-        tc->json_parser,
-        allow_cast
-    );
-    if (!res) {
-        PyErr_SetString(
-            PyExc_RuntimeError,
-            "cast_from_typecodes returned NULL"
-        );
-        return NULL;
-    }
-
-    return res;
-}
-
-static PyObject* compile(PyObject* self, PyObject* args) {
-    TCPublic* tc = (TCPublic*) self;
-    PyObject* list;
-    PyObject* json_parser;
-
-    if (!PyArg_ParseTuple(
-        args,
-        "OO",
-        &list,
-        &json_parser
-        ))
-        return NULL;
-
-    if (!PySequence_Check(list)) {
-        PyErr_SetString(
-            PyExc_TypeError,
-            "expected a sequence"
-        );
-        return NULL;
-    }
-
-    Py_ssize_t size = PySequence_Size(list);
-    if (size < 0)
-        return NULL;
-
-    type_info** info = build_type_codes(
-        list,
-        size
-    );
-    tc->codes = info;
-    tc->codes_len = size;
-    tc->json_parser = Py_NewRef(json_parser);
-    Py_RETURN_NONE;
-}
-
-static PyMethodDef methods[] = {
-    {"_compile", (PyCFunction) compile, METH_VARARGS, NULL},
-    {"_cast", (PyCFunction) cast_from_typecodes_public, METH_VARARGS, NULL},
-    {NULL, NULL, 0, NULL}
-};
-
-
-PyTypeObject TCPublicType = {
-    PyVarObject_HEAD_INIT(
-        NULL,
-        0
-    )
-    .tp_name = "_view.TCPublic",
-    .tp_basicsize = sizeof(TCPublic),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_new = new,
-    .tp_dealloc = (destructor) dealloc,
-    .tp_methods = methods,
-};
-
-
+/*
+ * Convert Python typecodes generated by the loader into C typecodes.
+ *
+ * This is essentially the bridge for typecodes between C and Python.
+ */
 type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
     type_info** tps = PyMem_Calloc(
         sizeof(type_info),
@@ -749,7 +740,8 @@ int load_typecodes(
             return bad_input("name");
         }
 
-        const char* cname = PyUnicode_AsUTF8(name);
+        Py_ssize_t name_size;
+        const char* cname = PyUnicode_AsUTF8AndSize(name, &name_size);
         if (!cname) {
             Py_DECREF(iter);
             Py_DECREF(name);
@@ -757,7 +749,7 @@ int load_typecodes(
             PyMem_Free(inp);
             return -1;
         }
-        inp->name = strdup(cname);
+        inp->name = pymem_strdup(cname, name_size);
 
         Py_DECREF(name);
 
@@ -879,7 +871,12 @@ int load_typecodes(
     return 0;
 }
 
-
+/*
+ * Figure out whether there's a body input in the list of route inputs.
+ *
+ * This is for optimization - if a route doesn't have a body input,
+ * then receiving and parsing the body can be skipped at runtime.
+ */
 bool figure_has_body(PyObject* inputs) {
     PyObject* iter = PyObject_GetIter(inputs);
     PyObject* item;
@@ -919,3 +916,136 @@ bool figure_has_body(PyObject* inputs) {
 
     return res;
 }
+
+/*
+ * TCPublic is just the base type for the Python wrapper.
+ * Breaking changes are allowed on the API.
+ */
+
+typedef struct {
+    PyObject_HEAD
+    type_info** codes;
+    Py_ssize_t codes_len;
+    PyObject* json_parser;
+} TCPublic;
+
+/* Deallocator for a public type validation object. */
+static void dealloc(TCPublic* self) {
+    free_type_codes(
+        self->codes,
+        self->codes_len
+    );
+    Py_DECREF(self->json_parser);
+    Py_TYPE(self)->tp_free((PyObject*) self);
+}
+
+/*
+ * Allocator function for the TCPublic object.
+ * This is considered private - breaking changes are allowed.
+ */
+static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
+    TCPublic* self = (TCPublic*) type->tp_alloc(
+        type,
+        0
+    );
+    if (!self)
+        return NULL;
+
+    return (PyObject*) self;
+}
+
+/*
+ * Python wrapper around cast_from_typecodes()
+ * Also considered private - breaking changes are possible.
+ *
+ * This is known as _cast() in Python
+ */
+static PyObject* cast_from_typecodes_public(PyObject* self, PyObject* args) {
+    TCPublic* tc = (TCPublic*) self;
+    PyObject* obj;
+    int allow_cast;
+
+    if (!PyArg_ParseTuple(
+        args,
+        "Op",
+        &obj,
+        &allow_cast
+        ))
+        return NULL;
+
+    PyObject* res = cast_from_typecodes(
+        tc->codes,
+        tc->codes_len,
+        obj,
+        tc->json_parser,
+        allow_cast
+    );
+    if (!res) {
+        PyErr_SetString(
+            PyExc_RuntimeError,
+            "cast_from_typecodes returned NULL"
+        );
+        return NULL;
+    }
+
+    return res;
+}
+
+/*
+ * Load Python typecodes into the object as C type codes.
+ */
+static PyObject* compile(PyObject* self, PyObject* args) {
+    TCPublic* tc = (TCPublic*) self;
+    PyObject* list;
+    PyObject* json_parser;
+
+    if (!PyArg_ParseTuple(
+        args,
+        "OO",
+        &list,
+        &json_parser
+        ))
+        return NULL;
+
+    if (!PySequence_Check(list)) {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "expected a sequence"
+        );
+        return NULL;
+    }
+
+    Py_ssize_t size = PySequence_Size(list);
+    if (size < 0)
+        return NULL;
+
+    type_info** info = build_type_codes(
+        list,
+        size
+    );
+    tc->codes = info;
+    tc->codes_len = size;
+    tc->json_parser = Py_NewRef(json_parser);
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef methods[] = {
+    {"_compile", (PyCFunction) compile, METH_VARARGS, NULL},
+    {"_cast", (PyCFunction) cast_from_typecodes_public, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}
+};
+
+
+PyTypeObject TCPublicType = {
+    PyVarObject_HEAD_INIT(
+        NULL,
+        0
+    )
+    .tp_name = "_view.TCPublic",
+    .tp_basicsize = sizeof(TCPublic),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_new = new,
+    .tp_dealloc = (destructor) dealloc,
+    .tp_methods = methods,
+};

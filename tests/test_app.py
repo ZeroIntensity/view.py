@@ -629,7 +629,9 @@ async def test_request_data():
     @app.get("/")
     @context()
     async def index(ctx: Context):
-        return ctx.headers["hello"]
+        header = ctx.headers["hello"]
+        assert isinstance(header, str)
+        return header
 
     @app.get("/scheme")
     @app.context
@@ -678,7 +680,9 @@ async def test_context_alongside_other_inputs():
     @app.context
     @app.body("c", str)
     async def index(a: str, ctx: Context, c: str):
-        return a + ctx.headers["b"] + c
+        b = ctx.headers["b"]
+        assert isinstance(b, str)
+        return a + b + c
 
     async with app.test() as test:
         assert (

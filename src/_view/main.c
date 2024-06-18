@@ -1,13 +1,12 @@
 #include <Python.h>
 #include <signal.h>
 
-#include <view/app.h>
-#include <view/awaitable.h>
-#include <view/context.h>
-#include <view/headerdict.h>
+#include <view/app.h> // ViewAppType
+#include <view/awaitable.h> // PyAwaitable_Type, _PyAwaitable_GenWrapper_Type
+#include <view/context.h> // ContextType
+#include <view/headerdict.h> // HeaderDictType
 #include <view/results.h> // build_default_headers
-#include <view/typecodes.h>
-#include <view/ws.h>
+#include <view/ws.h> // WebSocketType
 #include <view/view.h>
 
 PyObject* route_log = NULL;

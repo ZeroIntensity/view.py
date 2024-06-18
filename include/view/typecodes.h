@@ -4,7 +4,7 @@
 #include <Python.h> // PyObject, PyTypeObject
 #include <stdbool.h> // bool
 
-typedef struct Route route; // routing.h depends on this file
+typedef struct Route route; // route.h depends on this file
 extern PyTypeObject TCPublicType;
 
 typedef enum {
@@ -36,7 +36,7 @@ PyObject* cast_from_typecodes(
     PyObject* json_parser,
     bool allow_casting
 );
-type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) ;
+type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len);
 void free_type_codes(type_info** codes, Py_ssize_t len);
 
 #endif

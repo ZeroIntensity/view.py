@@ -1,29 +1,17 @@
-from reactpy import component, html, use_state
+import asyncio
+from typing import Union
 
-from src.view import Context, new_app, page
+from src.view import Context, body, new_app, page
 
 app = new_app()
-"""
-@app.get("/")  # type: ignore
-@component
-def test():
-    count, set_count = use_state(0)
-    return page(
-        html.head(html.title("view.py x React")),
-        html.button(
-            {"on_click": lambda e: set_count(count + 1)},
-            f"you clicked {count} times",
-        ),
-    )
-"""
-
-class Test:
-    def __view_result__(self):
-        return "broken!"
 
 @app.get("/")
-@app.context
-async def index(ctx: Context):
-    return Test()
+@body("name", str)
+async def index(name: str):
+    return name
 
-app.run()
+async def main():
+    async with app.test() as test:
+        assert (await test.get("/", body={"name": "hi"})).message == "hi"
+
+asyncio.run(main())
