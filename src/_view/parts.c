@@ -3,20 +3,10 @@
  *
  * This is unfinished, undocumented, and quite buggy.
  * Nearly all of this will be changed or rewritten.
- */
-#include <Python.h>
-#include <stdbool.h> // true
-
-#include <view/app.h> // ViewApp
-#include <view/errors.h>
-#include <view/map.h> // map
-#include <view/route.h> // route, route_free
-#include <view/view.h> // VIEW_FATAL
-
-#define TRANSPORT_MAP() map_new(2, (map_free_func) route_free)
-
-/*
- * -- Routes and route->r information --
+ *
+ * The underlying implementation is quite complicated, so let's try and go through
+ * it with an example.
+ *
  * Let's say the requested route is GET /app/12345/index and 12345 is a path parameter.
  *
  * We would first call map_get(app->get, "/app"). Of this returns NULL, it is a 404.
@@ -65,6 +55,16 @@
  *                     route, it represents
  *                     a path parameter.
  */
+#include <Python.h>
+#include <stdbool.h> // true
+
+#include <view/app.h> // ViewApp
+#include <view/errors.h>
+#include <view/map.h> // map
+#include <view/route.h> // route, route_free
+#include <view/view.h> // VIEW_FATAL
+
+#define TRANSPORT_MAP() map_new(2, (map_free_func) route_free)
 
 // Port of strsep for use on windows
 char* v_strsep(char** stringp, const char* delim) {
@@ -82,6 +82,11 @@ char* v_strsep(char** stringp, const char* delim) {
     return rv;
 }
 
+/*
+ * The implementation of runtime path parameter extraction.
+ *
+ * This is extremely buggy - do not use this function.
+ */
 int extract_parts(
     ViewApp* self,
     PyObject* awaitable,
@@ -213,6 +218,14 @@ int extract_parts(
     }
 }
 
+/*
+ * Generate route tables on routes, and add transport routes.
+ *
+ * This is a one-time cost, so performance is not super important
+ * in this function.
+ *
+ * Private API - subject to change.
+ */
 int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
     PyObject* iter = PyObject_GetIter(parts);
     if (!iter) return -1;

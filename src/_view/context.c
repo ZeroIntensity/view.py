@@ -1,7 +1,16 @@
 /*
  * view.py context implementation.
  *
- * This file provides the definition and logic of the `Context` class.
+ * This file provides the definition and logic of the `Context` class. The implementation
+ * of `Context` is pretty simple.
+ *
+ * It's a simple extension type that uses PyMemberDef with T_OBJECT or T_OBJECT_EX for
+ * all the fields.
+ *
+ * The object is constructed at runtime by the exported context_from_data() function,
+ * which is called during route input generation. context_from_data() is responsible
+ * for unpacking all the values given the ASGI scope. For convenience, the app
+ * instance is stored on the object as well.
  *
  * Note that while this is part of the private _view module, fields of `Context` are
  * considered to be a public API. Make changes to those with caution! They have much
