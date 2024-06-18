@@ -2,9 +2,29 @@
  * view.py route results implementation
  *
  * This file is responsible for parsing route responses.
+ *
  * Note that this implementation does not actually send
  * ASGI responses. Instead, it generates the necessary
  * components to send a response (which is done by the handler).
+ *
+ * This is also not responsible for calling __view_result__(), since
+ * that would require generating a Context()
+ *
+ * All this does, is given a flattened result (i.e. __view_result__() was already called), extract
+ * the three needed components for an ASGI response. If some components are missing, then default
+ * ones are used.
+ *
+ * For example, given b"hello world" as result, this would be in charge of turning that
+ * into a "hello world" C string on the heap, as well as setting the status code to 200 and
+ * using the default headers.
+ *
+ * If it was given a tuple, such as (b"hello world", 201), then it would once again get the
+ * C string, then set the status to 201, and then use the default headers.
+ *
+ * Historically, view.py used to support doing this in any order (e.g. returning the
+ * tuple `(b"hello world", 201)` would be equivalent to `(201, b"hello world")`)
+ *
+ * For performance and versatility reasons, this was removed.
  */
 #include <Python.h>
 
@@ -234,7 +254,9 @@ static int handle_result_impl(
 
 /*
  * Generate HTTP response components (i.e. the body, status, and headers) from
- * a route return value.
+ * a route return value. This calls handle_result_impl() internally, but
+ * this function is the actual interface for handling a return value.
+ * The only extra thing that this does is write to the route log.
  *
  * The result passed should be a tuple, or body string. This functions
  * does not call __view_result__(), as that is up to the caller.

@@ -2,9 +2,12 @@
  * view.py ASGI app implementation
  *
  * This file contains the ViewApp class, which is the base class for the App class.
- * All the actual ASGI calls are here.
+ * All the actual ASGI calls are here. The ASGI app location is under the asgi_app_entry() method.
  *
- * The lifecycle of a request, as shown here is as follows:
+ * The view.py ASGI app should *never* raise an exception (in a perfect world, at least). All errors
+ * should be handled accordingly, and a proper HTTP response should be sent back in all cases, regardless of what happened.
+ *
+ * The lifecycle of a request is as follows:
  *
  * - Receive ASGI values (scope, receive(), and send())
  * - If it's a lifespan call, start the lifespan protocol.
@@ -23,7 +26,6 @@
  *           > If not, return a 404, but explicitly mark it as a WebSocket rejection (websocket.http.response)
  *           > If it does, defer to the path parts API (very unstable and buggy). This is not implemented yet!
  *       * Defer to the proper handler function. A WebSocket route always has at least one input.
- *
  */
 #include <Python.h>
 
@@ -323,10 +325,23 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
 
 /*
  * view.py ASGI implementation. This is where the magic happens!
+ *
  * All HTTP and WebSocket connections start here. This function is responsible for
  * looking up loaded routes, calling PyAwaitable, and so on.
  *
- * This is accessible via asgi_app_entry in Python
+ * Note that a lot of things aren't actually implemented here, such as route handling, but
+ * it's all sort of stitched together in this function.
+ *
+ * This is accessible via asgi_app_entry() in Python.
+ *
+ * As mentioned in the top comment, this should always send some sort
+ * of response back to the user, regardless of how badly things went.
+ *
+ * For example, if an error occurred somewhere, this should sent
+ * back a 500 (assuming that an exception handler doesn't exist).
+ *
+ * We don't want to let the ASGI server do it, because then we're
+ * missing out on the chance to call an error handler or log what happened.
  */
 HOT static PyObject* app(
     ViewApp* self,
@@ -847,7 +862,7 @@ ROUTE(options);
  * Loader function for WebSockets.
  * We have a special case for WebSocket routes - the `is_http` field is set to false.
  * That means we have to use the LOAD_ROUTE macro instead of the ROUTE macro
- * */
+ */
 static PyObject* websocket(ViewApp* self, PyObject* args) {
     LOAD_ROUTE(websocket);
     r->is_http = false;

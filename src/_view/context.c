@@ -1,18 +1,25 @@
 /*
- * view.py context implementation.
+ * view.py route context implementation
  *
- * This file provides the definition and logic of the `Context` class. The implementation
- * of `Context` is pretty simple.
+ * This file provides the definition and logic of the Context() class. A context
+ * essentially wraps the ASGI scope, and contains a reference to the app instance.
  *
- * It's a simple extension type that uses PyMemberDef with T_OBJECT or T_OBJECT_EX for
- * all the fields.
+ * It contains information that someone might find useful, such as the headers,
+ * cookies, method, route, and so on. Use of the context's attributes should be
+ * avoided from C, since you have the ASGI scope in C. This is, more or less, a
+ * transport for passing those values to something like a route.
+ *
+ * Note that this also does some header parsing through the HeaderDict() class.
+ *
+ * The implementation of Context() is pretty simple. It's a simple extension type that
+ * uses PyMemberDef with T_OBJECT or T_OBJECT_EX for all the fields.
  *
  * The object is constructed at runtime by the exported context_from_data() function,
  * which is called during route input generation. context_from_data() is responsible
  * for unpacking all the values given the ASGI scope. For convenience, the app
  * instance is stored on the object as well.
  *
- * Note that while this is part of the private _view module, fields of `Context` are
+ * Note that while this is part of the private _view module, fields of Context() are
  * considered to be a public API. Make changes to those with caution! They have much
  * less lenience than the rest of the C API.
  */
@@ -58,8 +65,8 @@ static PyMemberDef members[] = {
 };
 
 /*
- * Python __repr__ for `Context`.
- * As of now, this is just a really format string.
+ * Python __repr__ for Context()
+ * As of now, this is just a really long format string.
  */
 static PyObject* repr(PyObject* self) {
     Context* ctx = (Context*) self;
@@ -95,12 +102,12 @@ static void dealloc(Context* self) {
 }
 
 /*
- * Initializer for the `Context` class.
+ * Initializer for the Context() class.
  *
  * This shouldn't be called outside of this file, as the app
- * generates `Context` inputs through the exported `context_from_data`.
+ * generates Context() inputs through the exported context_from_data()
  *
- * Again, only the *attributes* for `Context` are considered public.
+ * Again, only the *attributes* for Context() are considered public.
  * This can change at any time!
  */
 static PyObject* Context_new(
@@ -119,8 +126,13 @@ static PyObject* Context_new(
 }
 
 /*
- * This is the actual interface for generating a `Context` instance at runtime.
- * Also a private API.
+ * The actual interface for generating a Context() instance at runtime.
+ *
+ * This doesn't really do much other than unpack values from
+ * the ASGI scope and store them in the proper attributes, with
+ * the exception of calling headerdict_from_list() on the headers.
+ *
+ * Private API - no access from Python and unstable.
  */
 PyObject* context_from_data(PyObject* app, PyObject* scope) {
     Context* context = (Context*) Context_new(

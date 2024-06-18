@@ -1,3 +1,9 @@
+/*
+ * view.py hash map implementation
+ *
+ * This is a simple and fast hash map that view.py uses instead
+ * of Python dictionaries.
+ */
 #include <Python.h>
 #include <stdint.h> // uint64_t
 #include <stdio.h>
