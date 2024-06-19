@@ -226,11 +226,39 @@ PyObject* headerdict_from_list(PyObject* list, PyObject* cookies) {
 
         if (!strcmp(key_str, "cookie") && cookies) {
             // It's a cookie
-            if (PyDict_SetItemString(cookies, key_str, value) < 0) {
+            PyObject* sep = PyUnicode_FromStringAndSize("=", 1);
+            if (!sep) {
                 PyMem_Free(key_str);
                 Py_DECREF(hd);
                 return NULL;
             }
+
+            PyObject* key_str_obj = PyUnicode_FromEncodedObject(
+                key,
+                "utf8",
+                "strict"
+            );
+            PyObject* parts = PyUnicode_Partition(key_str_obj, sep);
+            Py_DECREF(sep);
+            Py_DECREF(key_str_obj);
+            if (!parts) {
+                PyMem_Free(key_str);
+                Py_DECREF(hd);
+                return NULL;
+
+            }
+
+            PyObject* cookie_key = PyTuple_GET_ITEM(parts, 0);
+            PyObject* cookie_value = PyTuple_GET_ITEM(parts, 2);
+
+            if (PyDict_SetItem(cookies, cookie_key, cookie_value) < 0) {
+                Py_DECREF(parts);
+                PyMem_Free(key_str);
+                Py_DECREF(hd);
+                return NULL;
+            }
+
+            Py_DECREF(parts);
         }
 
         header_item* item = header_item_new(value_str);
