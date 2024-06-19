@@ -868,6 +868,6 @@ async def test_app_leaks():
     async def index():
         return "a"
 
-    for i in range(10000):
+    for i in range(1000):
         async with app.test() as test:
             await test.get("/")

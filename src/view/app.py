@@ -44,7 +44,7 @@ from ._loader import finalize, load_fs, load_patterns, load_simple
 from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
                        format_warnings)
 from ._parsers import supply_parsers
-from ._util import make_hint, needs_dep
+from ._util import needs_dep
 from .config import Config, load_config
 from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
                          ViewError, ViewInternalError,
@@ -453,7 +453,9 @@ _LEVELS = dict((v, k) for k, v in LOGS.items())
 
 
 class HTTPError(BaseException):
-    """Base class to act as a transport for raising HTTP errors."""
+    """
+    Base class to act as a transport for raising HTTP errors.
+    """
 
     def __init__(
         self, status: ErrorStatusCode = 400, message: str | None = None
@@ -474,7 +476,9 @@ WS_CODES = (1000,)
 
 
 class WSError(BaseException):
-    """Base class to act as a transport for raising WebSocket errors."""
+    """
+    Base class to act as a transport for raising WebSocket errors.
+    """
 
     def __init__(self, status: int = 1000, message: str | None = None) -> None:
         """
@@ -585,17 +589,6 @@ class App(ViewApp):
 
         if len(split) != 2:
             return
-
-        app_name = split[1]
-
-        print(
-            make_hint(
-                "Add this to your code",
-                split[0],
-                line=-1,
-                prepend=f"\n{app_name}.run()",
-            )
-        )
 
     def _push_route(self, route: Route) -> None:
         if route in self._manual_routes:
@@ -1383,7 +1376,9 @@ class App(ViewApp):
 
     @asynccontextmanager
     async def test(self):
-        """Open the testing context."""
+        """
+        Open the testing context.
+        """
         self.load()
         await self.build()
         ctx = TestingContext(self.asgi_app_entry)
@@ -1461,7 +1456,8 @@ def new_app(
     store: bool = True,
     config: Config | None = None,
 ) -> App:
-    """Create a new view app.
+    """
+    Create a new view app.
 
     Args:
         start: Should the app be started automatically? (In a new thread)
@@ -1505,7 +1501,6 @@ def new_app(
         os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
         # id() on CPython returns the address, but it is
         # implementation dependent.
-
         # However, view.py only supports CPython anyway
 
     return app

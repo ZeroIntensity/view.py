@@ -18,6 +18,8 @@
 #include <view/results.h> // handle_result
 #include <view/view.h> // route_log
 
+#define INITIAL_BUF_SIZE 1024
+
 int handle_route_impl(
     PyObject* awaitable,
     char* body,
@@ -83,10 +85,11 @@ int handle_route_impl(
 
     Py_DECREF(query_obj);
 
-    if (!params)
-    {
+    if (!params) {
         // parsing failed
-        PyErr_Clear();
+        if (self->dev)
+            PyErr_Print();
+        else PyErr_Clear();
 
         return server_err(
             self,
@@ -99,11 +102,14 @@ int handle_route_impl(
 
     PyObject* coro;
 
-    if (size)
-    {
-        PyObject** merged = calloc(
+    if (size) {
+        PyObject** merged = PyMem_Calloc(
             r->inputs_size + (*size),
-            sizeof(PyObject*));
+            sizeof(PyObject*)
+        );
+
+        if (!merged)
+            return -1;
 
         for (int i = 0; i < (*size); i++)
             merged[i] = path_params[i];
@@ -131,13 +137,12 @@ int handle_route_impl(
             NULL,
             method_str) < 0)
             return -1;
-    }
-    else
-        coro = PyObject_Vectorcall(
-            r->callable,
-            params,
-            r->inputs_size,
-            NULL);
+    } else coro = PyObject_Vectorcall(
+        r->callable,
+        params,
+        r->inputs_size,
+        NULL
+    );
 
     if (!coro)
         return -1;
@@ -146,8 +151,8 @@ int handle_route_impl(
         awaitable,
         coro,
         handle_route_callback,
-        route_error) < 0)
-    {
+        route_error
+        ) < 0) {
         return -1;
     }
 
@@ -155,7 +160,6 @@ int handle_route_impl(
 }
 
 int handle_route(PyObject* awaitable, char* query) {
-    puts("handle_route");
     PyObject* receive;
     route* r;
 
@@ -176,27 +180,33 @@ int handle_route(PyObject* awaitable, char* query) {
         NULL) < 0)
         return -1;
 
-    char* buf = PyMem_Malloc(1); // null terminator
+    char* buf = PyMem_Malloc(INITIAL_BUF_SIZE);
 
-    if (!buf)
-    {
+    if (!buf) {
         PyErr_NoMemory();
         return -1;
     }
 
     Py_ssize_t* size = PyMem_Malloc(sizeof(Py_ssize_t));
 
-    if (!size)
-    {
+    if (!size) {
         PyMem_Free(buf);
         PyErr_NoMemory();
         return -1;
     }
 
-    *size = 1;
-    strcpy(
-        buf,
-        "");
+    Py_ssize_t* used = PyMem_Malloc(sizeof(Py_ssize_t));
+
+    if (!used) {
+        PyMem_Free(buf);
+        PyMem_Free(used);
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    *used = 0;
+    *size = INITIAL_BUF_SIZE;
+    strcpy(buf, "");
 
     PyObject* aw = PyAwaitable_New();
     if (!aw)
@@ -206,8 +216,8 @@ int handle_route(PyObject* awaitable, char* query) {
         aw,
         2,
         awaitable,
-        receive) < 0)
-    {
+        receive
+        ) < 0) {
         Py_DECREF(aw);
         PyMem_Free(buf);
         return -1;
@@ -215,11 +225,12 @@ int handle_route(PyObject* awaitable, char* query) {
 
     if (PyAwaitable_SaveArbValues(
         aw,
-        3,
+        4,
         buf,
         size,
-        query) < 0)
-    {
+        used,
+        query
+        ) < 0) {
         Py_DECREF(aw);
         PyMem_Free(buf);
         return -1;
@@ -227,8 +238,7 @@ int handle_route(PyObject* awaitable, char* query) {
 
     PyObject* receive_coro = PyObject_CallNoArgs(receive);
 
-    if (!receive_coro)
-    {
+    if (!receive_coro) {
         Py_DECREF(aw);
         return -1;
     }
@@ -237,8 +247,8 @@ int handle_route(PyObject* awaitable, char* query) {
         aw,
         receive_coro,
         body_inc_buf,
-        NULL) < 0)
-    {
+        NULL
+        ) < 0) {
         Py_DECREF(aw);
         PyMem_Free(buf);
         return -1;
@@ -248,8 +258,8 @@ int handle_route(PyObject* awaitable, char* query) {
 
     if (PyAwaitable_AWAIT(
         awaitable,
-        aw) < 0)
-    {
+        aw
+        ) < 0) {
         Py_DECREF(aw);
         PyMem_Free(buf);
         return -1;
@@ -279,13 +289,13 @@ int handle_route_callback(
         &raw_path) < 0)
         return -1;
 
-    PyObject* view_result = PyObject_GetAttrString(result,
-        "__view_result__");
-    if (view_result)
-    {
+    PyObject* view_result = PyObject_GetAttrString(
+        result,
+        "__view_result__"
+    );
+    if (view_result) {
         PyObject* context = context_from_data((PyObject*)self, scope);
-        if (!context)
-        {
+        if (!context) {
             Py_DECREF(view_result);
             return -1;
         }
@@ -299,26 +309,26 @@ int handle_route_callback(
             am_await)
         {
             // object is awaitable
-            if (PyAwaitable_AddAwait(awaitable, result, handle_route_callback,
-                route_error) < 0)
-            {
+            if (PyAwaitable_AddAwait(
+                awaitable,
+                result,
+                handle_route_callback,
+                route_error
+                ) < 0) {
                 Py_DECREF(result);
                 return -1;
             }
 
             return 0;
         }
-    }
-    else
-        Py_INCREF(result);
+    } else Py_INCREF(result);
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
         &r,
         NULL,
         NULL,
-        &method_str) < 0)
-    {
+        &method_str) < 0) {
         Py_DECREF(result);
         return -1;
     }
@@ -333,16 +343,14 @@ int handle_route_callback(
         &status,
         &headers,
         raw_path,
-        method_str) < 0)
-    {
+        method_str) < 0) {
         Py_DECREF(result);
         return -1;
     }
 
     Py_DECREF(result);
 
-    if (r->cache_rate > 0)
-    {
+    if (r->cache_rate > 0) {
         r->cache = res_str;
         r->cache_status = status;
         r->cache_headers = Py_NewRef(headers);

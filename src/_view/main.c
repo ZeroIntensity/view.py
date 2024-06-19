@@ -131,9 +131,14 @@ static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* dummy_context(PyObject* self, PyObject* app) {
+    return context_from_data(app, NULL);
+}
+
 static PyMethodDef methods[] = {
     {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
     {"register_ws_cls", register_ws_cls, METH_VARARGS, NULL},
+    {"dummy_context", dummy_context, METH_O, NULL},
     {NULL, NULL, 0, NULL}
 };
 

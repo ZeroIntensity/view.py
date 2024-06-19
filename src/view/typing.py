@@ -1,22 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Dict, Generic,
+                    List, Literal, Tuple, Type, TypeVar, Union)
 
-from typing_extensions import Concatenate, ParamSpec, Protocol, TypedDict
+from typing_extensions import (Concatenate, ParamSpec, Protocol, TypedDict,
+                               runtime_checkable)
 
 if TYPE_CHECKING:
     from _view import Context
@@ -53,6 +42,7 @@ T = TypeVar("T")
 MaybeAwaitable = Union[T, Awaitable[T]]
 
 
+@runtime_checkable
 class SupportsViewResult(Protocol):
     def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
         ...

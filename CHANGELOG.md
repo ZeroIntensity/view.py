@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added the `expect_errors` utility
 -   Added the `HeaderDict` class
 -   Changed the `headers` attribute on `Context` to a `HeaderDict` instance of a `dict`
+-   Added the `call_result` utility
+-   Added the `ctx` parameter to `to_response`
+-   Removed broken hint when forgetting to call `load()`
+-   Added support for `isinstance` to `SupportsViewResult`
+-   Moved `to_response` to the `view.utils` module
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous

@@ -18,14 +18,7 @@ import ujson
 from typing_extensions import final
 
 from .components import DOMNode
-from .exceptions import InvalidResultError
-from .typing import (
-    BodyTranslateStrategy,
-    MaybeAwaitable,
-    SameSite,
-    StrResponseBody,
-    ViewResult,
-)
+from .typing import BodyTranslateStrategy, MaybeAwaitable, SameSite, ViewResult
 from .util import timestamp
 
 if TYPE_CHECKING:
@@ -38,11 +31,10 @@ with suppress(ImportError):
     from reactpy.backend.hooks import ConnectionContext
     from reactpy.backend.types import Connection, Location
     from reactpy.core.layout import Layout
-    from reactpy.core.serve import serve_layout
 
 T = TypeVar("T")
 
-__all__ = "Response", "HTML", "JSON", "to_response"
+__all__ = "Response", "HTML", "JSON",
 
 _Find = None
 HTMLContent = Union[TextIO, str, Path, DOMNode]
@@ -294,46 +286,6 @@ class JSON(Response[Dict[str, Any]]):
 
     def translate_body(self, body: dict[str, Any]) -> str:
         return ujson.dumps(body)
-
-
-async def to_response(result: ViewResult) -> Response[StrResponseBody]:
-    """Cast a result from a route function to a `Response` object."""
-
-    if hasattr(result, "__view_result__"):
-        result = result.__view_result__()  # type: ignore
-        if isinstance(result, Awaitable):
-            return await to_response(await result)
-        return await to_response(result)
-
-    if isinstance(result, tuple):
-        status: int = 200
-        headers: dict[str, str] = {}
-        raw_headers: list[tuple[bytes, bytes]] = []
-        body: StrResponseBody | None = None
-
-        for value in result:
-            if isinstance(value, int):
-                status = value
-            elif isinstance(value, (str, bytes)):
-                body = value
-            elif isinstance(value, dict):
-                headers = value
-            elif isinstance(value, list):
-                raw_headers = value
-            else:
-                raise InvalidResultError(
-                    f"{value!r} is not a valid response tuple item"
-                )
-
-        if not body:
-            raise InvalidResultError("result has no body")
-
-        res = Response(body, status, headers)
-        res._raw_headers = raw_headers
-        return res
-
-    assert isinstance(result, (str, bytes))
-    return Response(result)
 
 
 async def _reactpy_bootstrap(self: Component, ctx: Context) -> ViewResult:

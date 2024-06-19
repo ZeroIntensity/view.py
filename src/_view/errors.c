@@ -294,8 +294,7 @@ static int finalize_err_cb(PyObject* awaitable, PyObject* result) {
         status_code,
         res_str,
         headers,
-        is_http) < 0)
-    {
+        is_http) < 0) {
         Py_DECREF(result);
         PyMem_Free(res_str);
         return -1;

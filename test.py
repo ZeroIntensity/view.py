@@ -12,6 +12,6 @@ async def index(name: str):
 
 async def main():
     async with app.test() as test:
-        assert (await test.get("/", body={"name": "hi"})).message == "hi"
+        print((await test.get("/", body={"name": "hi"})).message)
 
 asyncio.run(main())

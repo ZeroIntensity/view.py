@@ -34,6 +34,8 @@
 #include <view/headerdict.h> // headerdict_from_list
 #include <view/view.h> // ip_address
 
+#define STR_TO_OBJECT(str) PyUnicode_FromStringAndSize(str, sizeof(str))
+
 typedef struct {
     PyObject_HEAD
     PyObject* app;
@@ -140,42 +142,61 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         NULL,
         NULL
     );
-    PyObject* scheme = Py_XNewRef(
-        PyDict_GetItemString(
+    PyObject* scheme;
+    PyObject* http_version;
+    PyObject* method;
+    PyObject* path;
+    PyObject* header_list;
+    PyObject* client;
+    PyObject* server;
+
+    if (scope != NULL) {
+        scheme = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "scheme"
+            )
+        );
+        http_version = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "http_version"
+            )
+        );
+        method = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "method"
+            )
+        );
+        path = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "path"
+            )
+        );
+        header_list = PyDict_GetItemString(
             scope,
-            "scheme"
-        )
-    );
-    PyObject* http_version = Py_XNewRef(
-        PyDict_GetItemString(
+            "headers"
+        );
+        client = PyDict_GetItemString(
             scope,
-            "http_version"
-        )
-    );
-    PyObject* method = Py_XNewRef(
-        PyDict_GetItemString(
+            "client"
+        ); // [host, port]
+        server = PyDict_GetItemString(
             scope,
-            "method"
-        )
-    );
-    PyObject* path = Py_XNewRef(
-        PyDict_GetItemString(
-            scope,
-            "path"
-        )
-    );
-    PyObject* header_list = PyDict_GetItemString(
-        scope,
-        "headers"
-    );
-    PyObject* client = PyDict_GetItemString(
-        scope,
-        "client"
-    ); // [host, port]
-    PyObject* server = PyDict_GetItemString(
-        scope,
-        "server"
-    ); // [host, port/None]
+            "server"
+        ); // [host, port/None]
+    } else {
+        // Default values for a dummy context
+        scheme = STR_TO_OBJECT("http");
+        http_version = STR_TO_OBJECT("view_test");
+        method = STR_TO_OBJECT("GET");
+        path = STR_TO_OBJECT("/???");
+        header_list = Py_NewRef(default_headers);
+        client = Py_BuildValue("[s]", "localhost");
+        server = Py_BuildValue("[s]", "localhost");
+    }
 
     if (!scheme || !header_list || !http_version || !client || !server ||
         !path || !method) {

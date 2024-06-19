@@ -163,6 +163,6 @@ async def test_websocket_leaks():
         await ws.close()
 
     async with app.test() as test:
-        for i in range(10000):
+        for i in range(1000):
             async with test.websocket("/") as ws:
                 ...

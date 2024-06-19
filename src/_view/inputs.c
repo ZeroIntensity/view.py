@@ -72,12 +72,14 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
 
     char* buf;
     Py_ssize_t* size;
+    Py_ssize_t* used;
     char* query;
 
     if (PyAwaitable_UnpackArbValues(
         awaitable,
         &buf,
         &size,
+        &used,
         &query
         ) < 0) {
         Py_DECREF(body);
@@ -85,27 +87,35 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
         return -1;
     }
 
-    char* nbuf = realloc(
-        buf,
-        (*size) + buf_inc_size
-    );
+    char* nbuf = buf;
 
-    if (!nbuf) {
-        Py_DECREF(body);
-        Py_DECREF(more_body);
-        return -1;
+    while (((*used) + buf_inc_size) > (*size)) {
+        // The buffer would overflow, we need to reallocate it
+        *size *= 2;
+        nbuf = PyMem_Realloc(
+            buf,
+            (*size)
+        );
+
+        if (!nbuf) {
+            Py_DECREF(body);
+            Py_DECREF(more_body);
+            PyErr_NoMemory();
+            return -1;
+        }
     }
 
-    strcat(
+    strncat(
         nbuf,
-        buf_inc
+        buf_inc,
+        buf_inc_size
     );
+    *used += buf_inc_size;
     PyAwaitable_SetArbValue(
         awaitable,
         0,
         nbuf
     );
-    *size = (*size) + buf_inc_size;
 
     PyObject* aw;
     PyObject* receive;
@@ -223,7 +233,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
 
     if (size == NULL)
         size = &fake_size;
-    PyObject** params = calloc(
+    PyObject** params = PyMem_Calloc(
         r->inputs_size,
         sizeof(PyObject*)
     );
@@ -441,7 +451,7 @@ PyObject** generate_params(
     if (!obj)
         return NULL;
 
-    PyObject** ob = calloc(
+    PyObject** ob = PyMem_Calloc(
         inputs_size,
         sizeof(PyObject*)
     );

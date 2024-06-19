@@ -11,21 +11,27 @@ from __future__ import annotations
 import json
 import logging
 import os
+from collections.abc import Awaitable
 from datetime import datetime as DateTime
 from email.utils import formatdate
 from typing import TYPE_CHECKING, Callable, TypeVar, Union, overload
 
 from typing_extensions import ParamSpec, deprecated
 
+from _view import Context, dummy_context
+
 from ._logging import Internal, Service
 from ._util import run_path, shell_hint
-from .exceptions import AppNotFoundError, BadEnvironmentError
-from .typing import ErrorStatusCode
+from .exceptions import (AppNotFoundError, BadEnvironmentError,
+                         InvalidResultError)
+from .typing import (ErrorStatusCode, StrResponseBody, SupportsViewResult,
+                     ViewResult)
 
 if TYPE_CHECKING:
     from .app import App
+    from .response import Response
 
-__all__ = ("run", "env", "enable_debug", "timestamp", "extract_path", "expect_errors")
+__all__ = ("run", "env", "enable_debug", "timestamp", "extract_path", "expect_errors", "call_result", "to_response")
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -263,3 +269,93 @@ def expect_errors(
         return deco
 
     return inner
+
+async def call_result(result: SupportsViewResult, *, ctx: Context | None = None) -> ViewResult:
+    """
+    Call the `__view_result__` on an object.
+
+    Args:
+        result: An object containing a `__view_result__` method.
+        ctx: The `Context` object to pass. If this is `None`, then a dummy context with incorrect values is generated. Only pass `None` here when you're sure that the `__view_result__` does not need the context.
+    """
+    from .app import get_app
+    app: App | None = None
+
+    try:
+        app = get_app()
+    except BadEnvironmentError:
+        app = None
+
+    ctx = ctx or dummy_context(app)
+    coro_or_res = result.__view_result__(ctx)
+    if isinstance(coro_or_res, Awaitable):
+        return await coro_or_res
+
+    return coro_or_res
+
+
+async def to_response(result: ViewResult | Awaitable[ViewResult], *, ctx: Context | None = None,) -> Response[StrResponseBody]:
+    """
+    Cast a result from a route function to a `Response` object.
+
+    Args:
+        result: Result to cast. This can be any valid view.py response, such as a string, a tuple, or some object that implements `__view_result__`.
+        ctx: `Context` object to pass to `call_result`, if the `result` parameter supports `__view_result__`.
+
+    Example:
+        ```py
+        from view import new_app, to_response
+
+        app = new_app()
+
+        @app.get("/")
+        def index():
+            return "Hello, world!"
+
+        @app.get("/test")
+        async def test():
+            response = await to_response(index())
+            assert response.body == "Hello, world!"
+            return ...
+
+        app.run()
+        ```
+    """
+    from .response import Response
+
+    if isinstance(result, Awaitable):
+        result = await result
+
+    if isinstance(result, SupportsViewResult):
+        res = await call_result(result, ctx=ctx)
+        return await to_response(res)
+
+    if isinstance(result, tuple):
+        status: int = 200
+        headers: dict[str, str] = {}
+        raw_headers: list[tuple[bytes, bytes]] = []
+        body: StrResponseBody | None = None
+
+        for value in result:
+            if isinstance(value, int):
+                status = value
+            elif isinstance(value, (str, bytes)):
+                body = value
+            elif isinstance(value, dict):
+                headers = value
+            elif isinstance(value, list):
+                raw_headers = value
+            else:
+                raise InvalidResultError(
+                    f"{value!r} is not a valid response tuple item"
+                )
+
+        if not body:
+            raise InvalidResultError("result has no body")
+
+        res = Response(body, status, headers)
+        res._raw_headers = raw_headers
+        return res
+
+    assert isinstance(result, (str, bytes))
+    return Response(result)
