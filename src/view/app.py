@@ -1,7 +1,10 @@
 """
 view.py app implementation
 
-This module contains the `App` class, `new_app`, and `get_app`. Note that the actual ASGI functionality is stored under the `ViewApp` extension type, which `App` inherits from.
+This module contains the `App` class, `new_app`, and `get_app`.
+
+Note that the actual ASGI functionality is stored under the `ViewApp`
+extension type, which `App` inherits from.
 """
 from __future__ import annotations
 

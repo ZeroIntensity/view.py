@@ -85,7 +85,7 @@ char* v_strsep(char** stringp, const char* delim) {
 /*
  * The implementation of runtime path parameter extraction.
  *
- * This is extremely buggy - do not use this function.
+ * This is extremely buggy and will likely be rewritten - do not use this function.
  */
 int extract_parts(
     ViewApp* self,
@@ -112,10 +112,7 @@ int extract_parts(
     bool skip = true; // skip leading /
     route* last_r = NULL;
 
-    while ((token = v_strsep(
-        &path,
-        "/"
-                    ))) {
+    while ((token = v_strsep(&path, "/"))) {
         if (skip) {
             skip = false;
             continue;

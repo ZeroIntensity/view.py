@@ -19,7 +19,8 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
+from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
+                           TextColumn)
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -687,7 +688,9 @@ class LogTable(Table):
 
 
 class Dataset:
-    """Dataset in a graph."""
+    """
+    Dataset in a graph.
+    """
 
     def __init__(self, name: str, point_limit: int | None = None) -> None:
         """
@@ -740,7 +743,9 @@ def _heat_color(amount: float) -> str:
 
 
 class HeatedProgress(Progress):
-    """Progress that changes color based on how close the bar is to completion."""
+    """
+    Progress that changes color based on how close the bar is to completion.
+    """
 
     def make_tasks_table(self, tasks: Iterable[Task]) -> Table:
         result = super().make_tasks_table(tasks)
