@@ -829,7 +829,7 @@ async def test_body_translate_strategies():
         def __init__(self, body: list) -> None:
             super().__init__(body, body_translate="custom")
 
-        def _custom(self, body: list) -> str:
+        def translate_body(self, body: list) -> str:
             return " ".join(body)
 
     @app.get("/custom")

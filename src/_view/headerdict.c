@@ -184,7 +184,7 @@ static Py_ssize_t get_length(HeaderDict* self) {
     return self->headers->len;
 }
 
-PyObject* headerdict_from_list(PyObject* list) {
+PyObject* headerdict_from_list(PyObject* list, PyObject* cookies) {
     HeaderDict* hd = (HeaderDict*) HeaderDict_new(&HeaderDictType, NULL, NULL);
     if (!hd)
         return NULL;
@@ -213,12 +213,24 @@ PyObject* headerdict_from_list(PyObject* list) {
             key_str[i] = tolower(key_str[i]);
         }
 
-        PyObject* value_str = PyUnicode_FromEncodedObject(value, "utf8",
-            "strict");
+        PyObject* value_str = PyUnicode_FromEncodedObject(
+            value,
+            "utf8",
+            "strict"
+        );
         if (!value_str) {
             PyMem_Free(key_str);
             Py_DECREF(hd);
             return NULL;
+        }
+
+        if (!strcmp(key_str, "cookie") && cookies) {
+            // It's a cookie
+            if (PyDict_SetItemString(cookies, key_str, value) < 0) {
+                PyMem_Free(key_str);
+                Py_DECREF(hd);
+                return NULL;
+            }
         }
 
         header_item* item = header_item_new(value_str);

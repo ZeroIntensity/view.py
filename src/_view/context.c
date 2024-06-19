@@ -325,7 +325,7 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
     }
 
     context->cookies = cookies;
-    context->headers = headerdict_from_list(header_list);
+    context->headers = headerdict_from_list(header_list, context->cookies);
     if (!context->headers) {
         Py_DECREF(context);
         Py_DECREF(context);
