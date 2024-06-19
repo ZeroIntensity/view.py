@@ -78,10 +78,6 @@ static PyObject* WebSocket_new(
  *
  * Note that this does not actually return a _WebSocket() instance, but
  * instead an instance of the Python WebSocket() class.
- *
- * With that being said, this is not an official WebSocket() constructor
- * in terms of the Python API. This is still private, like most things
- * in the C API - it can change at any time.
  */
 PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
     WebSocket* ws = (WebSocket*) WebSocket_new(
@@ -113,7 +109,7 @@ PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
 }
 
 /*
- * Actual implementation of accept()
+ * Actual implementation of accept(). Do not call this manually!
  *
  * This is a PyAwaitable callback set by recv_awaitable(), it is
  * given the result of the call to the ASGI receive() function.
@@ -210,7 +206,7 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
 }
 
 /*
- * Actual implementation of receive()
+ * Actual implementation of receive(). Do not call this manually!
  *
  * This behaves nearly exactly the same as accept(), with the
  * exception of the return value.
@@ -277,9 +273,6 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
 /*
  * Simple wrapper around exceptions that occur during
  * asynchronous calls in WebSocket connections.
- *
- * All this does is print the error and clear the error indicator, to
- * prevent the ASGI server from handling it weirdly.
  */
 static int ws_err(
     PyObject* awaitable,
@@ -287,8 +280,12 @@ static int ws_err(
     PyObject* value,
     PyObject* tb
 ) {
-    // NOTE: This needs to be here for the error to propagate!
-    // Otherwise, the error is deferred to the ASGI server (which we don't want)
+    /*
+     * This needs to be here for the error to propagate at runtime.
+     *
+     * All this does is print the error and clear the error indicator, to
+     * prevent the ASGI server from handling it weirdly.
+     */
     PyErr_Restore(tp, value, tb);
     PyErr_Print();
     PyErr_Clear();
@@ -358,10 +355,13 @@ static PyObject* WebSocket_accept(WebSocket* self) {
 /*
  * Actual Python method for receive()
  *
- * This defers to PyAwaitable, which calls run_ws_recv(), which
- * is the actual implementation function.
+ * This is an asynchronous function.
  */
 static PyObject* WebSocket_receive(WebSocket* self) {
+    /*
+     * This defers to PyAwaitable, which calls run_ws_recv(), which
+     * is the actual implementation function.
+     */
     if (self->closing) {
         PyErr_SetString(PyExc_RuntimeError, "websocket has been closed");
         return NULL;
@@ -379,15 +379,16 @@ static PyObject* WebSocket_receive(WebSocket* self) {
  * Code is the WebSocket close code, and reason is a string containing the reason why.
  *
  * Validating these are up to the Python caller, not C.
- *
- * This still counts as a private API - the WebSocket() class that
- * wraps it is what's public.
  */
 static PyObject* WebSocket_close(
     WebSocket* self,
     PyObject* args,
     PyObject* kwargs
 ) {
+    /*
+     * This still counts as a private API - the WebSocket() class that
+     * wraps it is what's public.
+     */
     static char* kwlist[] = {"code", "reason", NULL};
     PyObject* code = NULL;
     PyObject* reason = NULL;
@@ -478,12 +479,13 @@ static PyObject* WebSocket_close(
  * Send data to the client.
  *
  * This is a Python method that accepts a string or bytes.
- *
- * Note that this is still a private API - the Python send()
- * function in WebSocket() is responsible for wrapping it.
- * Breaking changes are allowed!
  */
 static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
+    /*
+     * Note that this is still a private API - the Python send()
+     * function in WebSocket() is responsible for wrapping it.
+     * Breaking changes are allowed!
+     */
     PyObject* data;
 
     if (!PyArg_ParseTuple(

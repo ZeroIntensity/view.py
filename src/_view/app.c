@@ -190,10 +190,10 @@ static int init(PyObject* self, PyObject* args, PyObject* kwds) {
 
 /*
  * ASGI lifespan implementation.
- * This needs to be here, or else the server will complain about lifespan not being supported.
- * Most of this is undocumented and unavailable for use from the user for now.
  */
 static int lifespan(PyObject* awaitable, PyObject* result) {
+    // This needs to be here, or else the server will complain about lifespan not being supported.
+    // Most of this is undocumented and unavailable for use from the user for now.
     ViewApp* self;
     PyObject* send;
     PyObject* receive;
@@ -326,28 +326,31 @@ static const char* dict_get_str(PyObject* dict, const char* str) {
 /*
  * view.py ASGI implementation. This is where the magic happens!
  *
- * All HTTP and WebSocket connections start here. This function is responsible for
- * looking up loaded routes, calling PyAwaitable, and so on.
- *
- * Note that a lot of things aren't actually implemented here, such as route handling, but
- * it's all sort of stitched together in this function.
- *
  * This is accessible via asgi_app_entry() in Python.
  *
- * As mentioned in the top comment, this should always send some sort
- * of response back to the user, regardless of how badly things went.
- *
- * For example, if an error occurred somewhere, this should sent
- * back a 500 (assuming that an exception handler doesn't exist).
- *
- * We don't want to let the ASGI server do it, because then we're
- * missing out on the chance to call an error handler or log what happened.
  */
 HOT static PyObject* app(
     ViewApp* self,
     PyObject* const* args,
     Py_ssize_t nargs
 ) {
+    /*
+     * All HTTP and WebSocket connections start here. This function is responsible for
+     * looking up loaded routes, calling PyAwaitable, and so on.
+     *
+     * Note that a lot of things aren't actually implemented here, such as route handling, but
+     * it's all sort of stitched together in this function.
+     *
+     * As mentioned in the top comment, this should always send some sort
+     * of response back to the user, regardless of how badly things went.
+     *
+     * For example, if an error occurred somewhere, this should sent
+     * back a 500 (assuming that an exception handler doesn't exist).
+     *
+     * We don't want to let the ASGI server do it, because then we're
+     * missing out on the chance to call an error handler or log what happened.
+     */
+
     // We can assume that there will be three arguments.
     // If there aren't, then something is seriously wrong!
     assert(nargs == 3);
@@ -861,7 +864,6 @@ ROUTE(options);
 /*
  * Loader function for WebSockets.
  * We have a special case for WebSocket routes - the `is_http` field is set to false.
- * That means we have to use the LOAD_ROUTE macro instead of the ROUTE macro
  */
 static PyObject* websocket(ViewApp* self, PyObject* args) {
     LOAD_ROUTE(websocket);
@@ -871,9 +873,11 @@ static PyObject* websocket(ViewApp* self, PyObject* args) {
 
 /*
  * Adds a global error handler to the app.
+ *
  * Note that this is for *status* codes only, not exceptions!
- * For example, if a route returned 400 without raising an exception, then the handler
- * for error 400 would be called.
+ * For example, if a route returned 400 without raising an exception,
+ * then the handler for error 400 would be called.
+ *
  * This is more or less undocumented, and subject to change.
  */
 static PyObject* err_handler(ViewApp* self, PyObject* args) {
@@ -916,8 +920,9 @@ static PyObject* err_handler(ViewApp* self, PyObject* args) {
 
 /*
  * Adds a global exception handler to the app.
- * This is similar to `err_handler`, but this catches exceptions instead of
- * error response codes.
+ *
+ * This is similar to err_handler(), but this
+ * catches exceptions instead of error response codes.
  */
 static PyObject* exc_handler(ViewApp* self, PyObject* args) {
     PyObject* dict;
@@ -941,8 +946,11 @@ static PyObject* exc_handler(ViewApp* self, PyObject* args) {
 }
 
 /*
- * Simple function that defers a segmentation fault to the VIEW_FATAL macro.
- * This is only active as a signal handler when development mode is enabled.
+ * Simple function that defers a
+ * segmentation fault to the VIEW_FATAL macro.
+ *
+ * This is only active as a signal handler
+ * when development mode is enabled.
  */
 static void sigsegv_handler(int signum) {
     signal(
@@ -954,6 +962,7 @@ static void sigsegv_handler(int signum) {
 
 /*
  * Set whether the app is in development mode.
+ *
  * If it is, then the SIGSEGV handler is enabled.
  */
 static PyObject* set_dev_state(ViewApp* self, PyObject* args) {
@@ -976,8 +985,9 @@ static PyObject* set_dev_state(ViewApp* self, PyObject* args) {
 
 /*
  * Supply Python parser functions to C code.
+ *
  * As of now, this only takes a query string parser and a JSON parser, but
- * that it is pretty much gaurunteed to change.
+ * that is pretty much gaurunteed to change.
  */
 static PyObject* supply_parsers(ViewApp* self, PyObject* args) {
     PyObject* query;

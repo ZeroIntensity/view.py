@@ -1,3 +1,25 @@
+/*
+ * The _view extension module definition
+ *
+ * This is where all attributes of the extension module are initialized.
+ * Type stubs for the module are defined in the _view.pyi file.
+ *
+ * Most things the view.py C API are private APIs - they can make
+ * breaking changes without a deprecation period.
+ *
+ * Python objects stored at global scope are initialized by the module
+ * initialization function (PyInit__view). Generally, Python objects at
+ * global scope are one of two things:
+ *
+ * - A Python object that needs to be used from C, such as an exception class.
+ * - A Python API that needs to be called from the C API, such as `ipaddress.ip_address`.
+ *
+ * Some APIs are at global scope, but stored on the module to allow Python to manage
+ * it's reference count, such as the default headers. If they were only stored
+ * at global scope, then there would be no way for view.py to know when to decrement
+ * their reference count and deallocate it, causing a memory leak when the module
+ * is deallocated.
+ */
 #include <Python.h>
 #include <signal.h>
 
@@ -9,6 +31,9 @@
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
 
+// Module object instance, this is not exported!
+PyObject* m = NULL;
+
 PyObject* route_log = NULL;
 PyObject* route_warn = NULL;
 PyObject* ip_address = NULL;
@@ -18,6 +43,12 @@ PyObject* ws_disconnect_err = NULL;
 PyObject* ws_err_cls = NULL;
 PyObject* default_headers = NULL;
 
+/*
+ * Register route logging functions.
+ *
+ * As of now, this stores only the route logger, and the
+ * service warning function.
+ */
 static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     PyObject* func;
     PyObject* warn;
@@ -50,6 +81,17 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
 
     route_log = Py_NewRef(func);
     route_warn = Py_NewRef(warn);
+
+    if (PyModule_AddObject(m, "route_log", route_log) < 0) {
+        Py_DECREF(route_log);
+        Py_DECREF(route_warn);
+        return NULL;
+    }
+
+    if (PyModule_AddObject(m, "route_warn", route_warn) < 0) {
+        Py_DECREF(route_warn);
+        return NULL;
+    }
 
     Py_RETURN_NONE;
 }
@@ -84,6 +126,8 @@ static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
     ws_cls = Py_NewRef(cls);
     ws_disconnect_err = Py_NewRef(ws_disconnect_err_val);
     ws_err_cls = Py_NewRef(ws_err_cls_val);
+    // TODO: add PyModule_AddObject here
+
     Py_RETURN_NONE;
 }
 
@@ -108,6 +152,11 @@ static struct PyModuleDef module = {
     #endif
 };
 
+/*
+ * Crash Python and view.py with a fatal error.
+ *
+ * Don't use this directly! Use the VIEW_FATAL macro instead.
+ */
 NORETURN void view_fatal(
     const char* message,
     const char* where,
@@ -130,7 +179,7 @@ NORETURN void view_fatal(
 };
 
 PyMODINIT_FUNC PyInit__view() {
-    PyObject* m = PyModule_Create(&module);
+    m = PyModule_Create(&module);
 
     if ((PyType_Ready(&PyAwaitable_Type) < 0) ||
         (PyType_Ready(&ViewAppType) < 0) ||

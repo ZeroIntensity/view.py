@@ -53,11 +53,12 @@
 /*
  * Fowler-Noll-Vo Hash Function.
  * Read about it here: https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
- *
- * This function is marked as "pure," meaning it makes no memory allocations, and
- * only depends on the passed parameters and state of memory.
  */
 PURE static uint64_t hash_key(const char* key) {
+    /*
+     * This function is marked as "pure," meaning it makes no memory allocations, and
+     * only depends on the passed parameters and state of memory.
+     */
     uint64_t hash = FNV_OFFSET;
     for (const char* p = key; *p; p++) {
         hash ^= (uint64_t) (unsigned char) (*p);
@@ -69,19 +70,21 @@ PURE static uint64_t hash_key(const char* key) {
 /*
  * Get an item out of the map.
  *
- * This hashes the key using an FNV hash function.
- *
- * If the key stored at the index does not matched what was passed to the function,
- * then there is a hash collision, and this function uses an O(n) search to find
- * the value.
- *
- * If no value is found, either by a fast or slow search, this function
- * returns NULL. Note that this does not raise a Python exception.
- *
- * Best case: O(1)
- * Worst case: O(n)
+ * If no value is found, this function returns NULL.
+ * Note that this does not raise a Python exception.
  */
 PURE void* map_get(map* m, const char* key) {
+    /*
+     * This hashes the key using an FNV hash function.
+     *
+     * If the key stored at the index does not matched what was passed to the function,
+     * then there is a hash collision, and this function uses an O(n) search to find
+     * the value.
+     *
+     * Best case: O(1)
+     * Worst case: O(n)
+     *
+     */
     uint64_t hash = hash_key(key);
     Py_ssize_t index = (Py_ssize_t) (hash & (uint64_t)(m->capacity - 1));
 
@@ -265,12 +268,14 @@ void map_free(map* m) {
 /*
  * Set a key and value on the map.
  *
- * If the map is at maximum capacity (e.g. 2 items set on a capacity of 2),
- * then, it is expanded by a factor of two.
- *
- * The key is hashed using an FNV hash function.
  */
 void map_set(map* m, const char* key, void* value) {
+    /*
+     * If the map is at maximum capacity (e.g. 2 items set on a capacity of 2),
+     * then, it is expanded by a factor of two.
+     *
+     * The key is hashed using an FNV hash function.
+     */
     if (m->len >= m->capacity / 2)
         expand(m);
     set_entry(

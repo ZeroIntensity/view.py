@@ -95,6 +95,9 @@ typedef struct {
 PyDoc_STRVAR(awaitable_doc,
     "Awaitable transport utility for the C API.");
 
+/*
+ * Allocate a new PyAwaitable object.
+ */
 static PyObject *
 awaitable_new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
 {
@@ -120,6 +123,9 @@ awaitable_new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
 }
 
 
+/*
+ * Allocate a new GenWrapper()
+ */
 static PyObject *
 gen_new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
 {
@@ -139,6 +145,11 @@ gen_new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
     return (PyObject *) g;
 }
 
+/*
+ * Deallocator for GenWrapper()
+ *
+ * This doesn't require any fields to be non-NULL
+ */
 static void
 gen_dealloc(PyObject *self)
 {
@@ -149,6 +160,9 @@ gen_dealloc(PyObject *self)
     Py_TYPE(self)->tp_free(self);
 }
 
+/*
+ * Public interface for allocating a new GenWrapper()
+ */
 static PyObject *
 _PyAwaitable_GenWrapper_New(PyAwaitableObject *aw)
 {
@@ -164,6 +178,14 @@ _PyAwaitable_GenWrapper_New(PyAwaitableObject *aw)
     return (PyObject *) g;
 }
 
+/*
+ * Set a return value on the GenWrapper()
+ *
+ * This is old logic - it no longer exists in the new
+ * version of PyAwaitable
+ *
+ * This may be removed in the future, but do not consider it deprecated.
+ */
 static void
 _PyAwaitable_GenWrapper_SetResult(PyObject *gen, PyObject *result)
 {
@@ -176,6 +198,12 @@ _PyAwaitable_GenWrapper_SetResult(PyObject *gen, PyObject *result)
     Py_DECREF(gen);
 }
 
+/*
+ * Execute an error callback.
+ *
+ * This uses the deprecated PyErr_Fetch() and
+ * three (type, val, tb) syntax.
+ */
 static int
 fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
 {
@@ -217,9 +245,15 @@ fire_err_callback(PyObject *self, PyObject *await, awaitable_callback *cb)
     return 0;
 }
 
+/*
+ * The __next__() of GenWrapper()
+ *
+ * This is the bulk of where the magic happens in PyAwaitable.
+ */
 HOT static PyObject *
 gen_next(PyObject *self)
 {
+    // See the top comment for the lifecycle of this function
     GenWrapperObject *g = (GenWrapperObject *) self;
     PyAwaitableObject *aw = g->gw_aw;
     awaitable_callback *cb;
@@ -325,6 +359,12 @@ gen_next(PyObject *self)
 }
 
 
+/*
+ * __next__() for an AwaitableObject()
+ *
+ * This is only allowed to be called once
+ * per object. Otherwise, an exception is thrown.
+ */
 static PyObject *
 awaitable_next(PyObject *self)
 {
@@ -346,6 +386,9 @@ awaitable_next(PyObject *self)
     return gen;
 }
 
+/*
+ * Free an AwaitableObject()
+ */
 static void
 awaitable_dealloc(PyObject *self)
 {
@@ -369,18 +412,12 @@ awaitable_dealloc(PyObject *self)
     Py_TYPE(self)->tp_free(self);
 }
 
-static PyObject *
-awaitable_repr(PyObject *self) {
-    assert(self != NULL);
-    PyAwaitableObject *aw = (PyAwaitableObject *) self;
-    Py_ssize_t done_size = 0;
-    for (int i = 0; i < aw->aw_callback_size; i++) {
-        if (aw->aw_callbacks[i]->done) ++done_size;
-    }
-    return PyUnicode_FromFormat("<builtin awaitable at %p>",
-                                self);
-}
-
+/*
+ * The PyAwaitable equivalent of coro.send(arg) in Python
+ *
+ * This is not an actual Python method - it's a utility
+ * function for use from the method functions.
+ */
 static PyObject *
 awaitable_send_with_arg(PyObject *self, PyObject *value)
 {
@@ -396,6 +433,9 @@ awaitable_send_with_arg(PyObject *self, PyObject *value)
     return gen_next(aw->aw_gen);
 }
 
+/*
+ * Python method for send() on an AwaitableObject()
+ */
 static PyObject *
 awaitable_send(PyObject *self, PyObject *args)
 {
@@ -407,6 +447,11 @@ awaitable_send(PyObject *self, PyObject *args)
     return awaitable_send_with_arg(self, value);
 }
 
+/*
+ * Python implementation of close() on an AwaitableObject()
+ *
+ * This cancels all the active coroutines.
+ */
 static PyObject *
 awaitable_close(PyObject *self, PyObject *args)
 {
@@ -416,6 +461,10 @@ awaitable_close(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+/*
+ * Python method for the coroutine
+ * equivalent of coro.throw(tp, val, tb)
+ */
 static PyObject *
 awaitable_throw(PyObject *self, PyObject *args)
 {
@@ -459,6 +508,9 @@ awaitable_throw(PyObject *self, PyObject *args)
 }
 
 #if PY_MINOR_VERSION > 9
+/*
+ * 3.10+ generator send function
+ */
 static PySendResult
 awaitable_am_send(PyObject *self, PyObject *arg, PyObject **presult) {
     PyObject *send_res = awaitable_send_with_arg(self, arg);
@@ -552,7 +604,7 @@ PyTypeObject PyAwaitable_Type = {
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
     &awaitable_async_methods,                   /* tp_as_async */
-    awaitable_repr,                             /* tp_repr */
+    0,                                          /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */
     0,                                          /* tp_as_mapping */

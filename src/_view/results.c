@@ -59,7 +59,7 @@ char* pymem_strdup(const char* c, Py_ssize_t size) {
  * If the object is not a string or bytes, this throws a TypeError
  * and returns NULL.
  *
- * This using pymem_strdup(), so strings returned by this function
+ * This uses pymem_strdup(), so strings returned by this function
  * should be deallocated via PyMem_Free()
  */
 static char* handle_response_body(PyObject* target) {
@@ -254,11 +254,9 @@ static int handle_result_impl(
 
 /*
  * Generate HTTP response components (i.e. the body, status, and headers) from
- * a route return value. This calls handle_result_impl() internally, but
- * this function is the actual interface for handling a return value.
- * The only extra thing that this does is write to the route log.
+ * a route return value.
  *
- * The result passed should be a tuple, or body string. This functions
+ * The result passed should be a tuple, or body string. This function
  * does not call __view_result__(), as that is up to the caller.
  *
  * The body output parameter will be a string on the heap,
@@ -280,6 +278,12 @@ int handle_result(
     PyObject* raw_path,
     const char* method
 ) {
+    /*
+     * This calls handle_result_impl() internally, but
+     * this function is the actual interface for handling a return value.
+     *
+     * The only extra thing that this does is write to the route log.
+     */
     int res = handle_result_impl(
         raw_result,
         res_target,

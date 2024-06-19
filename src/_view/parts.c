@@ -218,12 +218,13 @@ int extract_parts(
 /*
  * Generate route tables on routes, and add transport routes.
  *
- * This is a one-time cost, so performance is not super important
- * in this function.
- *
  * Private API - subject to change.
  */
 int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
+    /*
+     * This is a one-time cost, so performance is not super important
+     * in this function.
+     */
     PyObject* iter = PyObject_GetIter(parts);
     if (!iter) return -1;
 

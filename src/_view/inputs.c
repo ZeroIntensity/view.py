@@ -1,3 +1,16 @@
+/*
+ * view.py route inputs implementation
+ *
+ * This file is responsible for parsing route inputs through query
+ * strings and body parameters.
+ *
+ * These functions are only called when there inputs on a route - otherwise the
+ * parsing is skipped.
+ *
+ * This implementation is also in charge of building data inputs (such as Context() or WebSocket())
+ * and appending them to routes.
+ *
+ */
 #include <Python.h>
 #include <stdbool.h> // true
 
@@ -15,7 +28,16 @@ typedef struct _app_parsers app_parsers;
 typedef PyObject** (* parserfunc)(app_parsers*, const char*, PyObject*,
                                   route_input**, Py_ssize_t);
 
-
+/*
+ * PyAwaitable callback - do not call manually!
+ *
+ * This appends the internal buffer with the received body, and
+ * calls itself as a coroutine until the entire body has been
+ * received.
+ *
+ * After the body has been received, the route is sent to
+ * the handler.
+ */
 int body_inc_buf(PyObject* awaitable, PyObject* result) {
     PyObject* body = PyDict_GetItemString(
         result,
@@ -135,6 +157,9 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
     return 0;
 }
 
+/*
+ * Call a route without parsing the body.
+ */
 int handle_route_query(PyObject* awaitable, char* query) {
     ViewApp* self;
     route* r;
@@ -337,6 +362,9 @@ int handle_route_query(PyObject* awaitable, char* query) {
     return 0;
 }
 
+/*
+ * Parse a query string into a Python dictionary.
+ */
 PyObject* query_parser(
     app_parsers* parsers,
     const char* data
