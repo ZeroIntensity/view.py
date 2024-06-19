@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Removed broken hint when forgetting to call `load()`
 -   Added support for `isinstance` to `SupportsViewResult`
 -   Moved `to_response` to the `view.utils` module
+-   Added the `live_reload` configuration setting
+-   Added support for reloading the app upon editing
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous

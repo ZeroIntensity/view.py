@@ -43,6 +43,7 @@ class AppConfig(ConfigModel, env_prefix="view_app_"):  # type: ignore
     app_path: str = ConfigField("app.py:app")
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
+    live_reload: bool = False
 
     @field_validator("loader")
     @classmethod
