@@ -22,16 +22,23 @@ from _view import Context, dummy_context
 
 from ._logging import Internal, Service
 from ._util import run_path, shell_hint
-from .exceptions import (AppNotFoundError, BadEnvironmentError,
-                         InvalidResultError)
-from .typing import (ErrorStatusCode, StrResponseBody, SupportsViewResult,
-                     ViewResult)
+from .exceptions import AppNotFoundError, BadEnvironmentError, InvalidResultError
+from .typing import ErrorStatusCode, StrResponseBody, SupportsViewResult, ViewResult
 
 if TYPE_CHECKING:
     from .app import App
     from .response import Response
 
-__all__ = ("run", "env", "enable_debug", "timestamp", "extract_path", "expect_errors", "call_result", "to_response")
+__all__ = (
+    "run",
+    "env",
+    "enable_debug",
+    "timestamp",
+    "extract_path",
+    "expect_errors",
+    "call_result",
+    "to_response",
+)
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -264,13 +271,17 @@ def expect_errors(
                     raise
 
                 from .app import HTTPError
+
                 raise HTTPError(message=message or str(e), status=status)
 
         return deco
 
     return inner
 
-async def call_result(result: SupportsViewResult, *, ctx: Context | None = None) -> ViewResult:
+
+async def call_result(
+    result: SupportsViewResult, *, ctx: Context | None = None
+) -> ViewResult:
     """
     Call the `__view_result__` on an object.
 
@@ -279,6 +290,7 @@ async def call_result(result: SupportsViewResult, *, ctx: Context | None = None)
         ctx: The `Context` object to pass. If this is `None`, then a dummy context with incorrect values is generated. Only pass `None` here when you're sure that the `__view_result__` does not need the context.
     """
     from .app import get_app
+
     app: App | None = None
 
     try:
@@ -294,7 +306,11 @@ async def call_result(result: SupportsViewResult, *, ctx: Context | None = None)
     return coro_or_res
 
 
-async def to_response(result: ViewResult | Awaitable[ViewResult], *, ctx: Context | None = None,) -> Response[StrResponseBody]:
+async def to_response(
+    result: ViewResult | Awaitable[ViewResult],
+    *,
+    ctx: Context | None = None,
+) -> Response[StrResponseBody]:
     """
     Cast a result from a route function to a `Response` object.
 

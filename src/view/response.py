@@ -19,8 +19,13 @@ from typing_extensions import final
 
 from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import (BodyTranslateStrategy, MaybeAwaitable, SameSite,
-                     SupportsViewResult, ViewResult)
+from .typing import (
+    BodyTranslateStrategy,
+    MaybeAwaitable,
+    SameSite,
+    SupportsViewResult,
+    ViewResult,
+)
 from .util import call_result, timestamp
 
 if TYPE_CHECKING:
@@ -36,7 +41,11 @@ with suppress(ImportError):
 
 T = TypeVar("T")
 
-__all__ = "Response", "HTML", "JSON",
+__all__ = (
+    "Response",
+    "HTML",
+    "JSON",
+)
 
 _Find = None
 HTMLContent = Union[TextIO, str, Path, DOMNode]
@@ -191,7 +200,9 @@ class Response(Generic[T]):
                 body = coro_or_body
         else:
             if not isinstance(self.body, SupportsViewResult):
-                raise InvalidResultError(f"{self.body} does not support __view_result__")
+                raise InvalidResultError(
+                    f"{self.body} does not support __view_result__"
+                )
 
             body_res = await call_result(self.body, ctx=ctx)
             if isinstance(body_res, (str, bytes)):
@@ -199,9 +210,13 @@ class Response(Generic[T]):
             elif isinstance(body_res, tuple):
                 body = body_res[0]  # type: ignore
                 if not isinstance(body, (str, bytes)):
-                    raise InvalidResultError(f"expected str or bytes object, got {body}")
+                    raise InvalidResultError(
+                        f"expected str or bytes object, got {body}"
+                    )
             else:
-                raise InvalidResultError(f"unexpected result from __view_result__: {body_res}")
+                raise InvalidResultError(
+                    f"unexpected result from __view_result__: {body_res}"
+                )
 
         return body, self.status, self._build_headers()
 

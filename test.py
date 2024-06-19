@@ -1,14 +1,14 @@
-import asyncio
-from typing import Union
+import inspect
+import logging
 
-from src.view import Context, body, new_app, page
+from fishhook import hook
+
+from src.view import new_app
 
 app = new_app()
 
 @app.get("/")
-@app.context
-async def index(ctx: Context):
-    print(ctx.cookies)
-    return "a"
+async def index():
+    return "test"
 
 app.run()

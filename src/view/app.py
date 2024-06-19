@@ -41,8 +41,8 @@ from _view import InvalidStatusError, ViewApp, register_ws_cls
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
-                       format_warnings)
+from ._logging import (LOGS, Hijack, Internal, Service, enter_server,
+                       exit_server, format_warnings)
 from ._parsers import supply_parsers
 from ._util import needs_dep
 from .config import Config, load_config
@@ -505,18 +505,13 @@ class App(ViewApp):
     The constructor of this class should be considered unstable - although, it will probably not change all that much.
     """
 
-    def __init__(
-        self,
-        config: Config,
-        *,
-        manual_routes: list[Route] | None = None
-    ) -> None:
+    def __init__(self, config: Config) -> None:
         supply_parsers(self)
         self.config = config
         """Configuration object."""
 
         self._set_dev_state(config.dev)
-        self._manual_routes: list[Route] = manual_routes or []
+        self._manual_routes: list[Route] = []
         self.loaded: bool = False
         """Whether load() has been called at least once."""
         self.running = False
@@ -529,6 +524,7 @@ class App(ViewApp):
         self._reactive_sessions: dict[str, ReactPyComponent] = {}
         self._register_error(HTTPError)
         self._user_loader: CustomLoader | None = None
+        self._run_called = False
 
         os.environ.update({k: str(v) for k, v in config.env.items()})
 
@@ -582,11 +578,16 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn("load() was never called (did you forget to start the app?)")
-        split = self.config.app.app_path.split(":", maxsplit=1)
+        if not self._run_called:
+            warnings.warn("load() was never called (did you forget to start the app?)")
+            split = self.config.app.app_path.split(":", maxsplit=1)
 
-        if len(split) != 2:
-            return
+            if len(split) != 2:
+                return
+        else:
+            warnings.warn(
+                "run() was called, but the app never started. pass force=True to run() to fix this"
+            )
 
     def _push_route(self, route: Route) -> None:
         if route in self._manual_routes:
@@ -1046,7 +1047,7 @@ class App(ViewApp):
         if self.loaded:
             if routes:
                 finalize(routes, self)
-            Internal.warning("load called twice")
+            Internal.warning("load called again")
             return
 
         if routes and (self.config.app.loader != "manual"):
@@ -1064,7 +1065,7 @@ class App(ViewApp):
 
             @self.websocket("/_view/reactpy-stream")
             @self.query("route", str)
-            async def index_ws(ws: WebSocket, route: str):
+            async def reactpy_stream(ws: WebSocket, route: str):
                 try:
                     page = self._reactive_sessions[route.strip("\n")]
                 except KeyError:
@@ -1151,7 +1152,7 @@ class App(ViewApp):
 
         if self.config.log.fancy:
             enter_server()
-        
+
         self.running = True
         Internal.debug("here we go!")
 
@@ -1160,7 +1161,7 @@ class App(ViewApp):
 
         async def subcoro():
             Service.info(
-                f"server running at http://{self.config.server.host}:{self.config.server.port}"
+                f"server running at http://{self.config.server.host}:{self.config.server.port} with backend {self.config.server.backend}"  # noqa
             )
 
         await asyncio.gather(task, subcoro())
@@ -1210,13 +1211,16 @@ class App(ViewApp):
                 loop="uvloop" if uvloop_enabled else "asyncio",
                 **self.config.server.extra_args,
             )
-            
+
             for log in (
+                logging.getLogger("uvicorn"),
                 logging.getLogger("uvicorn.error"),
                 logging.getLogger("uvicorn.access"),
                 logging.getLogger("uvicorn.asgi"),
             ):
-                log.propagate = not self.config.log.server_logger
+                if self.config.log.server_logger and self.config.log.fancy:
+                    log.addFilter(Hijack())
+                log.disabled = not self.config.log.server_logger
 
             uvicorn_server = uvicorn.Server(config)
             return start(self._spawn(uvicorn_server.serve()))
@@ -1231,6 +1235,8 @@ class App(ViewApp):
                 logging.getLogger("hypercorn.error"),
                 logging.getLogger("hypercorn.access"),
             ):
+                if self.config.log.server_logger and self.config.log.fancy:
+                    log.addFilter(Hijack())
                 log.disabled = not self.config.log.server_logger
 
             from hypercorn.asyncio import serve
@@ -1259,23 +1265,31 @@ class App(ViewApp):
                 port=self.config.server.port,
             )
 
-            logger = logging.getLogger("daphne.cli")
-            logger.disabled = not self.config.log.server_logger
-            # default daphne log configuration
-            level = (
-                _LEVELS[self.config.log.level]
-                if not isinstance(self.config.log.level, int)
-                else self.config.log.level
-            )
-            logger.setLevel(level)
-            logging.basicConfig(
-                level=level,
-                format="%(asctime)-15s %(levelname)-8s %(message)s",
-            )
+            for logger in (
+                logging.getLogger("daphne.cli"),
+                logging.getLogger("daphne.server"),
+                logging.getLogger("daphne.http_protocol"),
+            ):
+                logger.disabled = not self.config.log.server_logger
+                # default daphne log configuration
+                level = (
+                    _LEVELS[self.config.log.level]
+                    if not isinstance(self.config.log.level, int)
+                    else self.config.log.level
+                )
+                logger.setLevel(level)
 
-            daphne_server = Server(
-                self._app, server_name="view.py", endpoints=endpoints
-            )
+                if self.config.log.server_logger:
+                    logging.basicConfig(
+                        level=level,
+                        format="%(asctime)-15s %(levelname)-8s %(message)s",
+                    )
+
+                daphne_server = Server(
+                    self._app, server_name="view.py", endpoints=endpoints
+                )
+                if self.config.log.server_logger and self.config.log.fancy:
+                    logger.addFilter(Hijack())
             # mypy thinks asyncio.to_thread doesn't exist for some reason
             return start(
                 self._spawn(asyncio.to_thread(daphne_server.run))  # type: ignore
@@ -1283,13 +1297,15 @@ class App(ViewApp):
         else:
             raise NotImplementedError("viewserver is not implemented yet")
 
-    def run(self, *, fancy: bool | None = None) -> None:
+    def run(self, *, fancy: bool | None = None, force: bool = False) -> None:
         """
         Run the app.
 
         args:
             fancy: Override for the `fancy` parameter in configuration. It's useful to pass this parameter instead of modifying the configuration when debugging.
+            force: Force the app to run, regardless of environment.
         """
+        self._run_called = True
         if fancy is not None:
             self.config.log.fancy = fancy
 
@@ -1306,8 +1322,12 @@ class App(ViewApp):
                 f"ran app from {base}, but app path is {fname} in config",
             )
 
-        if (not os.environ.get("_VIEW_RUN")) and (
-            back.f_globals.get("__name__") == "__main__"
+        if force:
+            Internal.info("forcing app start")
+
+        if force or (
+            (not os.environ.get("_VIEW_RUN"))
+            and (back.f_globals.get("__name__") == "__main__")
         ):
             if self.config.app.live_reload:
                 try:
@@ -1451,9 +1471,6 @@ class App(ViewApp):
             file.write(md)
 
         return None
-
-    def __reduce__(self):
-        return (partial(self.__class__, manual_routes=self._manual_routes), ())
 
 
 def new_app(

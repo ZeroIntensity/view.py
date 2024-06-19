@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Moved `to_response` to the `view.utils` module
 -   Added the `live_reload` configuration setting
 -   Added support for reloading the app upon editing
+-   Added the `force` parameter to `run`
+-   Added the `view dev` command
+-   Fixed redirection and disabling of HTTP server logging
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous

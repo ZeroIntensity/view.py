@@ -19,8 +19,7 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
-                           TextColumn)
+from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -31,9 +30,8 @@ from ._util import shell_hint
 from .exceptions import ViewInternalError
 from .typing import LogLevel
 
-# see https://github.com/Textualize/rich/issues/433
 
-
+# See https://github.com/Textualize/rich/issues/433
 def _showwarning(
     message: Warning | str,
     category: type[Warning],
@@ -624,6 +622,20 @@ _LOG_COLORS: dict[LogLevel, str] = {
     "error": "red",
     "critical": "dim red",
 }
+
+LMAPPINGS = {
+    logging.DEBUG: Service.debug,
+    logging.INFO: Service.info,
+    logging.WARNING: Service.warning,
+    logging.ERROR: Service.error,
+    logging.CRITICAL: Service.critical,
+}
+
+
+class Hijack(logging.Filter):
+    def filter(self, record: logging.LogRecord):
+        LMAPPINGS[record.levelno](record.getMessage())
+        return False
 
 
 class LogPanel(Panel):

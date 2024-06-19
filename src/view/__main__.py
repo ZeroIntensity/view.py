@@ -205,12 +205,24 @@ def prod():
 
 @main.command()
 @click.option(
-    "--target",
-    type=click.Choice(("replit", "heroku", "nginx")),
-    prompt="Where to deploy to",
+    "--path",
+    "-p",
+    type=click.Path(
+        exists=True,
+        file_okay=False,
+        resolve_path=True,
+        path_type=Path,
+        readable=True,
+    ),
+    default="./",
 )
-def deploy(target: str):
-    raise NotImplementedError
+def dev(path: Path):
+    try:
+        from watchfiles import run_process
+    except ImportError:
+        error("Module `watchfiles` is not installed!")
+
+    run_process(path, target=_run)
 
 
 @main.command()

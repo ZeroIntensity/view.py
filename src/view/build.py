@@ -29,9 +29,14 @@ if TYPE_CHECKING:
 import platform
 
 from .config import BuildStep, Platform
-from .exceptions import (BuildError, BuildWarning, MissingRequirementError,
-                         PlatformNotSupportedError, UnknownBuildStepError,
-                         ViewInternalError)
+from .exceptions import (
+    BuildError,
+    BuildWarning,
+    MissingRequirementError,
+    PlatformNotSupportedError,
+    UnknownBuildStepError,
+    ViewInternalError,
+)
 from .util import to_response
 
 __all__ = "build_steps", "build_app"
