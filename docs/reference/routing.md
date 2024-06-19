@@ -4,3 +4,5 @@
 
 <!-- prettier-ignore -->
 ::: view._loader
+
+::: view.patterns
