@@ -18,8 +18,10 @@ import ujson
 from typing_extensions import final
 
 from .components import DOMNode
-from .typing import BodyTranslateStrategy, MaybeAwaitable, SameSite, ViewResult
-from .util import timestamp
+from .exceptions import InvalidResultError
+from .typing import (BodyTranslateStrategy, MaybeAwaitable, SameSite,
+                     SupportsViewResult, ViewResult)
+from .util import call_result, timestamp
 
 if TYPE_CHECKING:
     from reactpy.types import VdomDict, VdomJson
@@ -188,21 +190,18 @@ class Response(Generic[T]):
             else:
                 body = coro_or_body
         else:
-            view_result = getattr(self.body, "__view_result__", None)
+            if not isinstance(self.body, SupportsViewResult):
+                raise InvalidResultError(f"{self.body} does not support __view_result__")
 
-            if not view_result:
-                raise AttributeError(f"{self.body!r} has no __view_result__")
-
-            body_res = view_result()
-            if isinstance(body_res, Awaitable):
-                body_res = await body_res
-
-            if isinstance(body_res, str):
+            body_res = await call_result(self.body, ctx=ctx)
+            if isinstance(body_res, (str, bytes)):
                 body = body_res
+            elif isinstance(body_res, tuple):
+                body = body_res[0]  # type: ignore
+                if not isinstance(body, (str, bytes)):
+                    raise InvalidResultError(f"expected str or bytes object, got {body}")
             else:
-                for i in body_res:
-                    if isinstance(i, str):
-                        body = i
+                raise InvalidResultError(f"unexpected result from __view_result__: {body_res}")
 
         return body, self.status, self._build_headers()
 
