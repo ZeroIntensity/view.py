@@ -30,6 +30,20 @@
 #include <view/results.h> // build_default_headers
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
+#define ADD_TYPE(tp, name) \
+        Py_INCREF(tp);     \
+        if (               \
+    PyModule_AddObject(    \
+    m,                     \
+    name,                  \
+    (PyObject *) tp        \
+    ) < 0                  \
+        ) {                \
+            Py_DECREF(tp); \
+            Py_DECREF(m);  \
+            return NULL;   \
+        }
+
 
 // Module object instance, this is not exported!
 PyObject *m = NULL;
@@ -153,10 +167,14 @@ register_ws_cls(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    ws_cls = Py_NewRef(cls);
-    ws_disconnect_err = Py_NewRef(ws_disconnect_err_val);
-    ws_err_cls = Py_NewRef(ws_err_cls_val);
-    // TODO: add PyModule_AddObject here
+    ws_cls = cls;
+    ADD_TYPE(ws_cls, "_DownstreamWebSocket");
+
+    ws_disconnect_err = ws_disconnect_err_val;
+    ADD_TYPE(ws_disconnect_err, "_DownstreamWebSocketDisconnect");
+
+    ws_err_cls = ws_err_cls_val;
+    ADD_TYPE(ws_err_cls, "_DownstreamWSError");
 
     Py_RETURN_NONE;
 }
@@ -222,9 +240,12 @@ view_fatal(
 };
 
 PyMODINIT_FUNC
-PyInit__view()
+PyInit__view(void)
 {
     m = PyModule_Create(&module);
+
+    if (!m)
+        return NULL;
 
     if (
         (PyType_Ready(&PyAwaitable_Type) < 0) ||
@@ -240,91 +261,13 @@ PyInit__view()
         return NULL;
     }
 
-    if (
-        PyModule_AddObject(
-            m,
-            "Awaitable",
-            (PyObject *) &PyAwaitable_Type
-        ) < 0
-    )
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    Py_INCREF(&ViewAppType);
-
-    if (
-        PyModule_AddObject(
-            m,
-            "ViewApp",
-            (PyObject *) &ViewAppType
-        ) < 0
-    )
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    Py_INCREF(&_PyAwaitable_GenWrapper_Type);
-    if (
-        PyModule_AddObject(
-            m,
-            "_GenWrapper",
-            (PyObject *) &_PyAwaitable_GenWrapper_Type
-        ) < 0
-    )
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    Py_INCREF(&ContextType);
-    if (
-        PyModule_AddObject(
-            m,
-            "Context",
-            (PyObject *) &ContextType
-        ) < 0
-    )
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    Py_INCREF(&TCPublicType);
-    if (
-        PyModule_AddObject(
-            m,
-            "TCPublic",
-            (PyObject *) &TCPublicType
-        ) < 0
-    )
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    Py_INCREF(&WebSocketType);
-    if (
-        PyModule_AddObject(
-            m,
-            "ViewWebSocket",
-            (PyObject *) &WebSocketType
-        ) < 0
-    )
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    Py_INCREF(&HeaderDictType);
-    if (PyModule_AddObject(m, "HeaderDict", (PyObject *) &HeaderDictType) < 0)
-    {
-        Py_DECREF(m);
-        return NULL;
-    }
-
+    ADD_TYPE(&PyAwaitable_Type, "Awaitable");
+    ADD_TYPE(&ViewAppType, "ViewApp");
+    ADD_TYPE(&_PyAwaitable_GenWrapper_Type, "_GenWrapper");
+    ADD_TYPE(&ContextType, "Context");
+    ADD_TYPE(&TCPublicType, "TCPublic");
+    ADD_TYPE(&WebSocketType, "ViewWebSocket");
+    ADD_TYPE(&HeaderDictType, "HeaderDict");
 
     PyObject *ipaddress_mod = PyImport_ImportModule("ipaddress");
     if (!ipaddress_mod)
