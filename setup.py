@@ -21,6 +21,7 @@ if __name__ == "__main__":
             Extension(
                 "_view",
                 glob("./src/_view/*.c"),
+                extra_compile_flags=['-g3']
             )
         ],
         include_dirs=["./include"],

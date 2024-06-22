@@ -240,8 +240,6 @@ PyInit__view()
         return NULL;
     }
 
-    Py_INCREF(&PyAwaitable_Type);
-
     if (
         PyModule_AddObject(
             m,
