@@ -35,7 +35,7 @@ jobs:
               run: pip install .[full]
 
             - name: Install Valgrind
-              run: sudo apt-get -y install valgrind
+              run: sudo apt-get update && sudo apt-get -y install valgrind
 
             - name: Run tests with Valgrind
               run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x
