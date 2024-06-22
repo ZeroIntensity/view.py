@@ -1,31 +1,41 @@
+# Python
 __pycache__/
 .venv/
-ext/
-sample.py
+38venv/
+39venv/
+311venv/
+
+# LSP
+.vscode/
 compile_flags.txt
+
+# View Configurations
 view.toml
 view.json
 view_config.py
-/app.py
+
+# Testing Files
+*.test
+app.py
+test.py
 a.py
+
+# Logs
 *.log
+vgcore.*
+
+# JavaScript
 node_modules/
 *.lock
-site/
 benchmark.py
-dist/
-*.egg-info
-build/
-*.so
-html/dist.css
-38venv
-39venv
-311venv
-a.md
-new_app/
-vgcore.*
-.vscode/
-*.test
 package-lock.json
 client.js
-test.py
+
+# Builds
+site/
+dist/
+build/
+*.egg-info/
+html/dist.css
+*.so
+a.md
