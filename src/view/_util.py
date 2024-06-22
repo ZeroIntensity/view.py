@@ -163,11 +163,10 @@ def needs_dep(
     err: ModuleNotFoundError | ImportError | None = None,
     section: str | None = None,
 ) -> NoReturn:
-    sect = f"[{section}]"
     if section:
         hint = shell_hint(
             f"pip install {name}",
-            f"pip install view.py{escape(sect)}",
+            f"pip install view.py[{section}]",
         )
     else:
         hint = shell_hint(f"pip install {name}")

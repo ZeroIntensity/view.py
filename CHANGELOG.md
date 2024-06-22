@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed redirection and disabling of HTTP server logging
 -   C API is now compliant with [PEP 7](https://peps.python.org/pep-0007/)
 -   Added `-g3` flag to the `_view` extension module (debugging information)
+-   Removed use of `escape()` in the message shown when a dependency is needed
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous
