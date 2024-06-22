@@ -36,19 +36,22 @@
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
 
-typedef struct {
+typedef struct
+{
     PyObject_HEAD
-    PyObject* send; // ASGI send()
-    PyObject* receive; // ASGI receive()
-    PyObject* raw_path; // Path from the ASGI scope
+    PyObject *send; // ASGI send()
+    PyObject *receive; // ASGI receive()
+    PyObject *raw_path; // Path from the ASGI scope
     bool closing; // This is set upon calling close(), regardless of whether the connection has actually finalized
 } WebSocket;
 
 /* Deallocator for the WebSocket object. */
-static void dealloc(WebSocket* self) {
+static void
+dealloc(WebSocket *self)
+{
     Py_XDECREF(self->send);
     Py_XDECREF(self->receive);
-    Py_TYPE(self)->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
 /*
@@ -58,19 +61,21 @@ static void dealloc(WebSocket* self) {
  * object. Generally, you don't want to call this manually. Use
  * the ws_from_data() function instead.
  */
-static PyObject* WebSocket_new(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs
-) {
-    WebSocket* self = (WebSocket*) type->tp_alloc(
+static PyObject *
+WebSocket_new(
+    PyTypeObject *type,
+    PyObject *args,
+    PyObject *kwargs
+)
+{
+    WebSocket *self = (WebSocket *) type->tp_alloc(
         type,
         0
     );
     if (!self)
         return NULL;
 
-    return (PyObject*) self;
+    return (PyObject *) self;
 }
 
 /*
@@ -79,8 +84,10 @@ static PyObject* WebSocket_new(
  * Note that this does not actually return a _WebSocket() instance, but
  * instead an instance of the Python WebSocket() class.
  */
-PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
-    WebSocket* ws = (WebSocket*) WebSocket_new(
+PyObject *
+ws_from_data(PyObject *scope, PyObject *send, PyObject *receive)
+{
+    WebSocket *ws = (WebSocket *) WebSocket_new(
         &WebSocketType,
         NULL,
         NULL
@@ -93,14 +100,15 @@ PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
     ws->receive = Py_NewRef(receive);
     ws->raw_path = Py_XNewRef(PyDict_GetItemString(scope, "path"));
 
-    if (!ws->raw_path) {
+    if (!ws->raw_path)
+    {
         PyErr_BadASGI();
         return NULL;
     }
 
-    PyObject* py_ws = PyObject_Vectorcall(
+    PyObject *py_ws = PyObject_Vectorcall(
         ws_cls,
-        (PyObject*[]) { (PyObject*) ws },
+        (PyObject *[]) { (PyObject *) ws },
         1,
         NULL
     );
@@ -122,31 +130,40 @@ PyObject* ws_from_data(PyObject* scope, PyObject* send, PyObject* receive) {
  *
  * It is up to the Python caller to handle the result of this function.
  */
-static int run_ws_accept(PyObject* awaitable, PyObject* result) {
-    PyObject* tp = PyDict_GetItemString(
+static int
+run_ws_accept(PyObject *awaitable, PyObject *result)
+{
+    PyObject *tp = PyDict_GetItemString(
         result,
         "type"
     );
-    if (!tp) {
+    if (!tp)
+    {
         PyErr_BadASGI();
         return -1;
     }
 
-    const char* type = PyUnicode_AsUTF8(tp);
+    const char *type = PyUnicode_AsUTF8(tp);
     if (!type)
         return -1;
 
-    if (!strcmp(
-        type,
-        "websocket.disconnect"
-        )) {
+    if (
+        !strcmp(
+            type,
+            "websocket.disconnect"
+        )
+    )
+    {
         return 0;
     }
 
-    if (strcmp(
-        type,
-        "websocket.connect"
-        )) {
+    if (
+        strcmp(
+            type,
+            "websocket.connect"
+        )
+    )
+    {
         // type is probably websocket.receive, so accept() was already called
         PyErr_SetString(
             PyExc_RuntimeError,
@@ -155,14 +172,16 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
         return -1;
     }
 
-    WebSocket* ws;
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        &ws
-        ) < 0)
+    WebSocket *ws;
+    if (
+        PyAwaitable_UnpackValues(
+            awaitable,
+            &ws
+        ) < 0
+    )
         return -1;
 
-    PyObject* send_dict = Py_BuildValue(
+    PyObject *send_dict = Py_BuildValue(
         "{s:s}",
         "type",
         "websocket.accept"
@@ -170,9 +189,9 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
     if (!send_dict)
         return -1;
 
-    PyObject* coro = PyObject_Vectorcall(
+    PyObject *coro = PyObject_Vectorcall(
         ws->send,
-        (PyObject*[]) { send_dict },
+        (PyObject *[]) { send_dict },
         1,
         NULL
     );
@@ -181,21 +200,25 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
     if (!coro)
         return -1;
 
-    if (PyAwaitable_AWAIT(
-        awaitable,
-        coro
-        ) < 0) {
+    if (
+        PyAwaitable_AWAIT(
+            awaitable,
+            coro
+        ) < 0
+    )
+    {
         Py_DECREF(coro);
         return -1;
     }
-    PyObject* args = Py_BuildValue(
+    PyObject *args = Py_BuildValue(
         "(zOz)",
         "N/A",
         ws->raw_path,
         "websocket"
     );
 
-    if (!PyObject_Call(route_log, args, NULL)) {
+    if (!PyObject_Call(route_log, args, NULL))
+    {
         Py_DECREF(args);
         Py_DECREF(awaitable);
         return -1;
@@ -211,29 +234,37 @@ static int run_ws_accept(PyObject* awaitable, PyObject* result) {
  * This behaves nearly exactly the same as accept(), with the
  * exception of the return value.
  */
-static int run_ws_recv(PyObject* awaitable, PyObject* result) {
-    PyObject* tp = PyDict_GetItemString(
+static int
+run_ws_recv(PyObject *awaitable, PyObject *result)
+{
+    PyObject *tp = PyDict_GetItemString(
         result,
         "type"
     );
     if (!tp)
         return -1;
 
-    const char* type = PyUnicode_AsUTF8(tp);
+    const char *type = PyUnicode_AsUTF8(tp);
     if (!type)
         return -1;
 
-    if (!strcmp(
-        type,
-        "websocket.disconnect"
-        )) {
+    if (
+        !strcmp(
+            type,
+            "websocket.disconnect"
+        )
+    )
+    {
         return 0;
     }
 
-    if (strcmp(
-        type,
-        "websocket.receive"
-        )) {
+    if (
+        strcmp(
+            type,
+            "websocket.receive"
+        )
+    )
+    {
         // type is probably websocket.connect, so accept() was not called
         PyErr_SetString(
             PyExc_RuntimeError,
@@ -242,27 +273,33 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
         return -1;
     }
 
-    PyObject* text = PyDict_GetItemString(
+    PyObject *text = PyDict_GetItemString(
         result,
         "text"
     );
 
-    if (!text || (text == Py_None)) {
+    if (!text || (text == Py_None))
+    {
         text = PyDict_GetItemString(
             result,
             "bytes"
         );
 
-        if (!text || (text == Py_None)) {
+        if (!text || (text == Py_None))
+        {
             PyErr_BadASGI();
             return -1;
         }
-    };
+    }
+    ;
 
-    if (PyAwaitable_SetResult(
-        awaitable,
-        Py_NewRef(text)
-        ) < 0) {
+    if (
+        PyAwaitable_SetResult(
+            awaitable,
+            Py_NewRef(text)
+        ) < 0
+    )
+    {
         Py_DECREF(text);
         return -1;
     }
@@ -274,12 +311,14 @@ static int run_ws_recv(PyObject* awaitable, PyObject* result) {
  * Simple wrapper around exceptions that occur during
  * asynchronous calls in WebSocket connections.
  */
-static int ws_err(
-    PyObject* awaitable,
-    PyObject* tp,
-    PyObject* value,
-    PyObject* tb
-) {
+static int
+ws_err(
+    PyObject *awaitable,
+    PyObject *tp,
+    PyObject *value,
+    PyObject *tb
+)
+{
     /*
      * This needs to be here for the error to propagate at runtime.
      *
@@ -300,36 +339,46 @@ static int ws_err(
  * their logic in a method-specific callback. For example, accept() is
  * implemented by calling this function with run_ws_accept() as the callback.
  */
-static PyObject* recv_awaitable(WebSocket* self, awaitcallback cb) {
-    PyObject* recv_coro = PyObject_CallNoArgs(self->receive);
+static PyObject *
+recv_awaitable(WebSocket *self, awaitcallback cb)
+{
+    PyObject *recv_coro = PyObject_CallNoArgs(self->receive);
     if (!recv_coro)
         return NULL;
 
-    PyObject* awaitable = PyAwaitable_New();
-    if (!awaitable) {
+    PyObject *awaitable = PyAwaitable_New();
+    if (!awaitable)
+    {
         Py_DECREF(recv_coro);
         return NULL;
     }
 
-    if (PyAwaitable_SaveValues(
-        awaitable,
-        1,
-        self
-        ) < 0) {
+    if (
+        PyAwaitable_SaveValues(
+            awaitable,
+            1,
+            self
+        ) < 0
+    )
+    {
         Py_DECREF(awaitable);
         Py_DECREF(recv_coro);
         return NULL;
     }
 
-    if (PyAwaitable_AddAwait(
-        awaitable,
-        recv_coro,
-        cb,
-        ws_err
-        ) < 0) {
+    if (
+        PyAwaitable_AddAwait(
+            awaitable,
+            recv_coro,
+            cb,
+            ws_err
+        ) < 0
+    )
+    {
         Py_DECREF(recv_coro);
         return NULL;
-    };
+    }
+    ;
 
     Py_DECREF(recv_coro);
     return awaitable;
@@ -341,8 +390,11 @@ static PyObject* recv_awaitable(WebSocket* self, awaitcallback cb) {
  * This defers to PyAwaitable, which calls run_ws_accept(), which
  * is the actual implementation function.
  */
-static PyObject* WebSocket_accept(WebSocket* self) {
-    if (self->closing) {
+static PyObject *
+WebSocket_accept(WebSocket *self)
+{
+    if (self->closing)
+    {
         PyErr_SetString(PyExc_RuntimeError, "websocket has been closed");
         return NULL;
     }
@@ -357,12 +409,15 @@ static PyObject* WebSocket_accept(WebSocket* self) {
  *
  * This is an asynchronous function.
  */
-static PyObject* WebSocket_receive(WebSocket* self) {
+static PyObject *
+WebSocket_receive(WebSocket *self)
+{
     /*
      * This defers to PyAwaitable, which calls run_ws_recv(), which
      * is the actual implementation function.
      */
-    if (self->closing) {
+    if (self->closing)
+    {
         PyErr_SetString(PyExc_RuntimeError, "websocket has been closed");
         return NULL;
     }
@@ -380,92 +435,112 @@ static PyObject* WebSocket_receive(WebSocket* self) {
  *
  * Validating these are up to the Python caller, not C.
  */
-static PyObject* WebSocket_close(
-    WebSocket* self,
-    PyObject* args,
-    PyObject* kwargs
-) {
+static PyObject *
+WebSocket_close(
+    WebSocket *self,
+    PyObject *args,
+    PyObject *kwargs
+)
+{
     /*
      * This still counts as a private API - the WebSocket() class that
      * wraps it is what's public.
      */
-    static char* kwlist[] = {"code", "reason", NULL};
-    PyObject* code = NULL;
-    PyObject* reason = NULL;
+    static char *kwlist[] = {"code", "reason", NULL};
+    PyObject *code = NULL;
+    PyObject *reason = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(
-        args,
-        kwargs,
-        "|O!O!",
-        kwlist,
-        &PyLong_Type,
-        &code,
-        &PyUnicode_Type,
-        &reason
-        ))
+    if (
+        !PyArg_ParseTupleAndKeywords(
+            args,
+            kwargs,
+            "|O!O!",
+            kwlist,
+            &PyLong_Type,
+            &code,
+            &PyUnicode_Type,
+            &reason
+        )
+    )
         return NULL;
 
-    if (self->closing) {
-        PyErr_SetString(PyExc_RuntimeError,
-            "websocket is already closed or closing");
+    if (self->closing)
+    {
+        PyErr_SetString(
+            PyExc_RuntimeError,
+            "websocket is already closed or closing"
+        );
         return NULL;
     }
 
-    PyObject* awaitable = PyAwaitable_New();
+    PyObject *awaitable = PyAwaitable_New();
     if (!awaitable)
         return NULL;
 
-    PyObject* send_dict = Py_BuildValue(
+    PyObject *send_dict = Py_BuildValue(
         "{s:s}",
         "type",
         "websocket.close"
     );
-    if (!send_dict) {
+    if (!send_dict)
+    {
         Py_DECREF(awaitable);
         return NULL;
     }
 
-    if (code) {
-        if (PyDict_SetItemString(
-            send_dict,
-            "code",
-            code
-            ) < 0) {
+    if (code)
+    {
+        if (
+            PyDict_SetItemString(
+                send_dict,
+                "code",
+                code
+            ) < 0
+        )
+        {
             Py_DECREF(awaitable);
             Py_DECREF(send_dict);
             return NULL;
         }
     }
 
-    if (reason) {
-        if (PyDict_SetItemString(
-            send_dict,
-            "reason",
-            reason
-            ) < 0) {
+    if (reason)
+    {
+        if (
+            PyDict_SetItemString(
+                send_dict,
+                "reason",
+                reason
+            ) < 0
+        )
+        {
             Py_DECREF(awaitable);
             Py_DECREF(send_dict);
             return NULL;
         }
     }
 
-    PyObject* coro = PyObject_Vectorcall(
+    PyObject *coro = PyObject_Vectorcall(
         self->send,
-        (PyObject*[]) { send_dict },
+        (PyObject *[]) { send_dict },
         1,
         NULL
     );
     Py_DECREF(send_dict);
 
-    if (!coro) {
+    if (!coro)
+    {
         Py_DECREF(awaitable);
         return NULL;
     }
 
-    if (PyAwaitable_AWAIT(
-        awaitable,
-        coro
-        ) < 0) {
+    if (
+        PyAwaitable_AWAIT(
+            awaitable,
+            coro
+        ) < 0
+    )
+    {
         Py_DECREF(awaitable);
         return NULL;
     }
@@ -480,27 +555,32 @@ static PyObject* WebSocket_close(
  *
  * This is a Python method that accepts a string or bytes.
  */
-static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
+static PyObject *
+WebSocket_send(WebSocket *self, PyObject *args)
+{
     /*
      * Note that this is still a private API - the Python send()
      * function in WebSocket() is responsible for wrapping it.
      * Breaking changes are allowed!
      */
-    PyObject* data;
+    PyObject *data;
 
-    if (!PyArg_ParseTuple(
-        args,
-        "O",
-        &data
-        ))
+    if (
+        !PyArg_ParseTuple(
+            args,
+            "O",
+            &data
+        )
+    )
         return NULL;
 
-    PyObject* awaitable = PyAwaitable_New();
+    PyObject *awaitable = PyAwaitable_New();
     if (!awaitable)
         return NULL;
 
-    PyObject* send_dict;
-    if (PyUnicode_Check(data)) {
+    PyObject *send_dict;
+    if (PyUnicode_Check(data))
+    {
         send_dict = Py_BuildValue(
             "{s:s,s:S}",
             "type",
@@ -508,7 +588,8 @@ static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
             "text",
             data
         );
-    } else if (PyBytes_Check(data)) {
+    } else if (PyBytes_Check(data))
+    {
         send_dict = Py_BuildValue(
             "{s:s,s:S}",
             "type",
@@ -516,34 +597,43 @@ static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
             "bytes",
             data
         );
-    } else {
-        PyErr_Format(PyExc_TypeError, "expected string or bytes, got %R",
-            Py_TYPE(data));
+    } else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected string or bytes, got %R",
+            Py_TYPE(data)
+        );
         return NULL;
     }
 
-    if (!send_dict) {
+    if (!send_dict)
+    {
         Py_DECREF(awaitable);
         return NULL;
     }
 
-    PyObject* coro = PyObject_Vectorcall(
+    PyObject *coro = PyObject_Vectorcall(
         self->send,
-        (PyObject*[]) { send_dict },
+        (PyObject *[]) { send_dict },
         1,
         NULL
     );
     Py_DECREF(send_dict);
 
-    if (!coro) {
+    if (!coro)
+    {
         Py_DECREF(awaitable);
         return NULL;
     }
 
-    if (PyAwaitable_AWAIT(
-        awaitable,
-        coro
-        ) < 0) {
+    if (
+        PyAwaitable_AWAIT(
+            awaitable,
+            coro
+        ) < 0
+    )
+    {
         Py_DECREF(awaitable);
         Py_DECREF(coro);
         return NULL;
@@ -553,7 +643,8 @@ static PyObject* WebSocket_send(WebSocket* self, PyObject* args) {
     return awaitable;
 }
 
-static PyMethodDef methods[] = {
+static PyMethodDef methods[] =
+{
     {"accept", (PyCFunction) WebSocket_accept, METH_NOARGS, NULL},
     {"receive", (PyCFunction) WebSocket_receive, METH_NOARGS, NULL},
     {"close", (PyCFunction) WebSocket_close, METH_VARARGS | METH_KEYWORDS,
@@ -562,7 +653,8 @@ static PyMethodDef methods[] = {
     {NULL}
 };
 
-PyTypeObject WebSocketType = {
+PyTypeObject WebSocketType =
+{
     PyVarObject_HEAD_INIT(
         NULL,
         0

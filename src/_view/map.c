@@ -54,13 +54,16 @@
  * Fowler-Noll-Vo Hash Function.
  * Read about it here: https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
  */
-PURE static uint64_t hash_key(const char* key) {
+PURE static uint64_t
+hash_key(const char *key)
+{
     /*
      * This function is marked as "pure," meaning it makes no memory allocations, and
      * only depends on the passed parameters and state of memory.
      */
     uint64_t hash = FNV_OFFSET;
-    for (const char* p = key; *p; p++) {
+    for (const char *p = key; *p; p++)
+    {
         hash ^= (uint64_t) (unsigned char) (*p);
         hash *= FNV_PRIME;
     }
@@ -73,7 +76,9 @@ PURE static uint64_t hash_key(const char* key) {
  * If no value is found, this function returns NULL.
  * Note that this does not raise a Python exception.
  */
-PURE void* map_get(map* m, const char* key) {
+PURE void *
+map_get(map *m, const char *key)
+{
     /*
      * This hashes the key using an FNV hash function.
      *
@@ -88,14 +93,18 @@ PURE void* map_get(map* m, const char* key) {
     uint64_t hash = hash_key(key);
     Py_ssize_t index = (Py_ssize_t) (hash & (uint64_t)(m->capacity - 1));
 
-    while (m->items[index] != NULL) {
-        if (!strcmp(
-            key,
-            m->items[index]->key
-            ))
+    while (m->items[index] != NULL)
+    {
+        if (
+            !strcmp(
+                key,
+                m->items[index]->key
+            )
+        )
             return m->items[index]->value;
         index++;
-        if (index == m->capacity) {
+        if (index == m->capacity)
+        {
             index = 0;
             // need to wrap around the table
         }
@@ -119,10 +128,12 @@ PURE void* map_get(map* m, const char* key) {
  * If this fails, NULL is returned, and a MemoryError
  * is raised.
  */
-map* map_new(Py_ssize_t inital_capacity, map_free_func dealloc) {
-    map* m = PyMem_Malloc(sizeof(map));
+map *
+map_new(Py_ssize_t inital_capacity, map_free_func dealloc)
+{
+    map *m = PyMem_Malloc(sizeof(map));
     if (!m)
-        return (map*) PyErr_NoMemory();
+        return (map *) PyErr_NoMemory();
 
     m->len = 0;
     m->capacity = inital_capacity;
@@ -131,7 +142,7 @@ map* map_new(Py_ssize_t inital_capacity, map_free_func dealloc) {
         sizeof(pair)
     );
     if (!m->items)
-        return (map*) PyErr_NoMemory();
+        return (map *) PyErr_NoMemory();
     m->dealloc = dealloc;
     return m;
 }
@@ -148,22 +159,28 @@ map* map_new(Py_ssize_t inital_capacity, map_free_func dealloc) {
  * If this function fails, a MemoryError is raised.
  *
  */
-static int set_entry(
-    pair** items,
+static int
+set_entry(
+    pair **items,
     Py_ssize_t capacity,
-    const char* key,
-    void* value,
-    Py_ssize_t* len,
+    const char *key,
+    void *value,
+    Py_ssize_t *len,
     map_free_func dealloc
-) {
+)
+{
     uint64_t hash = hash_key(key);
     Py_ssize_t index = (Py_ssize_t) (hash & (uint64_t)(capacity - 1));
 
-    while (items[index] != NULL) {
-        if (!strcmp(
-            key,
-            items[index]->key
-            )) {
+    while (items[index] != NULL)
+    {
+        if (
+            !strcmp(
+                key,
+                items[index]->key
+            )
+        )
+        {
             dealloc(items[index]->value);
             items[index]->value = value;
             return 0;
@@ -177,17 +194,20 @@ static int set_entry(
     if (len != NULL)
         (*len)++;
 
-    if (!items[index]) {
+    if (!items[index])
+    {
         items[index] = PyMem_Malloc(sizeof(pair));
-        if (!items[index]) {
+        if (!items[index])
+        {
             PyErr_NoMemory();
             return -1;
         }
     }
 
-    char* new_key = pymem_strdup(key, strlen(key));
+    char *new_key = pymem_strdup(key, strlen(key));
 
-    if (!new_key) {
+    if (!new_key)
+    {
         PyMem_Free(items[index]);
         return -1;
     }
@@ -203,37 +223,47 @@ static int set_entry(
  * For example, if the capacity is 4, it will become 8.
  * If it's 8, it will become 16. If it's 16, it will become 32, and so on.
  */
-static int expand(map* m) {
+static int
+expand(map *m)
+{
     Py_ssize_t new_capacity = m->capacity * 2;
-    if (new_capacity < m->capacity) {
+    if (new_capacity < m->capacity)
+    {
         PyErr_SetString(
             PyExc_RuntimeError,
             "integer limit reached on _view map capacity"
         );
         return -1;
     }
-    pair** items = PyMem_Calloc(
+    pair **items = PyMem_Calloc(
         new_capacity,
         sizeof(pair)
     );
-    if (!items) {
+    if (!items)
+    {
         PyErr_NoMemory();
         return -1;
     }
 
-    for (Py_ssize_t i = 0; i < m->capacity; i++) {
-        pair* item = m->items[i];
-        if (item) {
-            if (set_entry(
-                items,
-                new_capacity,
-                item->key,
-                item->value,
-                NULL,
-                m->dealloc
-                ) < 0) {
+    for (Py_ssize_t i = 0; i < m->capacity; i++)
+    {
+        pair *item = m->items[i];
+        if (item)
+        {
+            if (
+                set_entry(
+                    items,
+                    new_capacity,
+                    item->key,
+                    item->value,
+                    NULL,
+                    m->dealloc
+                ) < 0
+            )
+            {
                 return -1;
-            };
+            }
+            ;
             PyMem_Free(item);
         }
     }
@@ -250,10 +280,14 @@ static int expand(map* m) {
  * This will call the deallocator passed to map_new() on
  * each of the stored values.
  */
-void map_free(map* m) {
-    for (Py_ssize_t i = 0; i < m->capacity; i++) {
-        pair* item = m->items[i];
-        if (item) {
+void
+map_free(map *m)
+{
+    for (Py_ssize_t i = 0; i < m->capacity; i++)
+    {
+        pair *item = m->items[i];
+        if (item)
+        {
             m->dealloc(item->value);
             PyMem_Free(item->key);
             PyMem_Free(item);
@@ -264,12 +298,13 @@ void map_free(map* m) {
     PyMem_Free(m);
 }
 
-
 /*
  * Set a key and value on the map.
  *
  */
-void map_set(map* m, const char* key, void* value) {
+void
+map_set(map *m, const char *key, void *value)
+{
     /*
      * If the map is at maximum capacity (e.g. 2 items set on a capacity of 2),
      * then, it is expanded by a factor of two.
@@ -289,11 +324,15 @@ void map_set(map* m, const char* key, void* value) {
 }
 
 // For debugging purposes
-COLD void print_map(map* m, map_print_func pr) {
+COLD void
+print_map(map *m, map_print_func pr)
+{
     puts("map {");
-    for (int i = 0; i < m->capacity; i++) {
-        pair* p = m->items[i];
-        if (p) {
+    for (int i = 0; i < m->capacity; i++)
+    {
+        pair *p = m->items[i];
+        if (p)
+        {
             printf(
                 "\"%s\": ",
                 p->key

@@ -106,23 +106,30 @@
 #define TYPECODE_CLASS 7
 #define TYPECODE_CLASSTYPES 8
 #define TYPECODE_LIST 9
-#define TC_VERIFY(typeobj) if (typeobj( \
-                    value \
-                    )) { \
-                    verified = true; \
-                } break;
+#define TC_VERIFY(typeobj)   \
+        if (typeobj(         \
+    value                    \
+            )) {             \
+            verified = true; \
+        }                    \
+        break;
 
 /* Deallocator for type info */
-static void free_type_info(type_info* ti) {
+static void
+free_type_info(type_info *ti)
+{
     Py_XDECREF(ti->ob);
     if ((intptr_t) ti->df > 0) Py_DECREF(ti->df);
-    for (int i = 0; i < ti->children_size; i++) {
+    for (int i = 0; i < ti->children_size; i++)
+    {
         free_type_info(ti->children[i]);
     }
 }
 
 /* Deallocator for an array of type information. */
-void free_type_codes(type_info** codes, Py_ssize_t len) {
+void
+free_type_codes(type_info **codes, Py_ssize_t len)
+{
     for (Py_ssize_t i = 0; i < len; i++)
         free_type_info(codes[i]);
 }
@@ -134,7 +141,9 @@ void free_type_codes(type_info** codes, Py_ssize_t len) {
  *
  * In a perfect world, this will never be called.
  */
-COLD static inline int bad_input(const char* name) {
+COLD static inline int
+bad_input(const char *name)
+{
     PyErr_Format(
         PyExc_SystemError,
         "missing key in loader dict: %s",
@@ -147,17 +156,20 @@ COLD static inline int bad_input(const char* name) {
  * Verify a dictionary object given typecodes.
  * This will update the dictionary with casted values.
  */
-static int verify_dict_typecodes(
-    type_info** codes,
+static int
+verify_dict_typecodes(
+    type_info **codes,
     Py_ssize_t len,
-    PyObject* dict,
-    PyObject* json_parser
-) {
+    PyObject *dict,
+    PyObject *json_parser
+)
+{
     Py_ssize_t pos;
-    PyObject* key;
-    PyObject* value;
+    PyObject *key;
+    PyObject *value;
 
-    while (PyDict_Next(dict, &pos, &key, &value)) {
+    while (PyDict_Next(dict, &pos, &key, &value))
+    {
         value = cast_from_typecodes(
             codes,
             len,
@@ -166,11 +178,13 @@ static int verify_dict_typecodes(
             true
         );
         if (!value) return -1;
-        if (PyDict_SetItem(
-            dict,
-            key,
-            value
-            ) < 0)
+        if (
+            PyDict_SetItem(
+                dict,
+                key,
+                value
+            ) < 0
+        )
             return -1;
     }
 
@@ -184,18 +198,21 @@ static int verify_dict_typecodes(
  * Verify a list with the given typecodes.
  * This will cast items in the list.
  */
-static int verify_list_typecodes(
-    type_info** codes,
+static int
+verify_list_typecodes(
+    type_info **codes,
     Py_ssize_t len,
-    PyObject* list,
-    PyObject* json_parser
-) {
+    PyObject *list,
+    PyObject *json_parser
+)
+{
     Py_ssize_t list_len = PySequence_Size(list);
     if (list_len == -1) return -1;
     if (list_len == 0) return 0;
 
-    for (int i = 0; i < list_len; i++) {
-        PyObject* item = PyList_GET_ITEM(
+    for (int i = 0; i < list_len; i++)
+    {
+        PyObject *item = PyList_GET_ITEM(
             list,
             i
         );
@@ -228,31 +245,41 @@ static int verify_list_typecodes(
  * be casted to the integer `1`, if the typecode supports it. If this is disabled,
  * then it will ensure that the `item` parameter is directly an instance of the type.
  */
-PyObject* cast_from_typecodes(
-    type_info** codes,
+PyObject *
+cast_from_typecodes(
+    type_info **codes,
     Py_ssize_t len,
-    PyObject* item,
-    PyObject* json_parser,
+    PyObject *item,
+    PyObject *json_parser,
     bool allow_casting
-) {
-    if (!codes) {
+)
+{
+    if (!codes)
+    {
         // type is Any
         if (!item) Py_RETURN_NONE;
         return item;
-    };
+    }
+    ;
 
     typecode_flag typecode_flags = 0;
 
-    for (Py_ssize_t i = 0; i < len; i++) {
-        type_info* ti = codes[i];
+    for (Py_ssize_t i = 0; i < len; i++)
+    {
+        type_info *ti = codes[i];
 
-        switch (ti->typecode) {
-        case TYPECODE_ANY: {
+        switch (ti->typecode)
+        {
+        case TYPECODE_ANY:
+        {
             return item;
         }
-        case TYPECODE_STR: {
-            if (!allow_casting) {
-                if (PyUnicode_CheckExact(item)) {
+        case TYPECODE_STR:
+        {
+            if (!allow_casting)
+            {
+                if (PyUnicode_CheckExact(item))
+                {
                     return Py_NewRef(item);
                 }
                 return NULL;
@@ -260,9 +287,12 @@ PyObject* cast_from_typecodes(
             typecode_flags |= STRING_ALLOWED;
             break;
         }
-        case TYPECODE_NONE: {
-            if (!allow_casting) {
-                if (item == Py_None) {
+        case TYPECODE_NONE:
+        {
+            if (!allow_casting)
+            {
+                if (item == Py_None)
+                {
                     return Py_NewRef(item);
                 }
                 return NULL;
@@ -270,75 +300,100 @@ PyObject* cast_from_typecodes(
             typecode_flags |= NULL_ALLOWED;
             break;
         }
-        case TYPECODE_INT: {
-            if (PyLong_CheckExact(
-                item
-                )) {
+        case TYPECODE_INT:
+        {
+            if (
+                PyLong_CheckExact(
+                    item
+                )
+            )
+            {
                 return Py_NewRef(item);
             } else if (!allow_casting) return NULL;
 
-            PyObject* py_int = PyLong_FromUnicodeObject(
+            PyObject *py_int = PyLong_FromUnicodeObject(
                 item,
                 10
             );
-            if (!py_int) {
+            if (!py_int)
+            {
                 PyErr_Clear();
                 break;
             }
             return py_int;
         }
-        case TYPECODE_BOOL: {
-            if (PyBool_Check(
-                item
-                )) return Py_NewRef(item);
+        case TYPECODE_BOOL:
+        {
+            if (
+                PyBool_Check(
+                    item
+                )
+            ) return Py_NewRef(item);
             else if (!allow_casting) return NULL;
-            const char* str = PyUnicode_AsUTF8(item);
-            PyObject* py_bool = NULL;
+            const char *str = PyUnicode_AsUTF8(item);
+            PyObject *py_bool = NULL;
             if (!str) return NULL;
-            if (strcmp(
-                str,
-                "true"
-                ) == 0) {
+            if (
+                strcmp(
+                    str,
+                    "true"
+                ) == 0
+            )
+            {
                 py_bool = Py_NewRef(Py_True);
-            } else if (strcmp(
-                str,
-                "false"
-                       ) == 0) {
+            } else if (
+                strcmp(
+                    str,
+                    "false"
+                ) == 0
+            )
+            {
                 py_bool = Py_NewRef(Py_False);
             }
 
             if (py_bool) return py_bool;
             break;
         }
-        case TYPECODE_FLOAT: {
-            if (PyFloat_CheckExact(
-                item
-                )) return Py_NewRef(item);
+        case TYPECODE_FLOAT:
+        {
+            if (
+                PyFloat_CheckExact(
+                    item
+                )
+            ) return Py_NewRef(item);
             else if (!allow_casting) return NULL;
-            PyObject* flt = PyFloat_FromString(item);
-            if (!flt) {
+            PyObject *flt = PyFloat_FromString(item);
+            if (!flt)
+            {
                 PyErr_Clear();
                 break;
             }
             return flt;
         }
-        case TYPECODE_DICT: {
-            PyObject* obj;
-            if (PyDict_Check(
-                item
-                )) {
+        case TYPECODE_DICT:
+        {
+            PyObject *obj;
+            if (
+                PyDict_Check(
+                    item
+                )
+            )
+            {
                 obj = Py_NewRef(item);
-            } else if (!allow_casting) {
+            } else if (!allow_casting)
+            {
                 return NULL;
-            } else {
+            } else
+            {
                 obj = PyObject_Vectorcall(
                     json_parser,
-                    (PyObject*[]) { item },
+                    (PyObject *[]) { item },
                     1,
                     NULL
                 );
             }
-            if (!obj) {
+            if (!obj)
+            {
                 PyErr_Clear();
                 break;
             }
@@ -348,67 +403,85 @@ PyObject* cast_from_typecodes(
                 obj,
                 json_parser
             );
-            if (res == -1) {
+            if (res == -1)
+            {
                 Py_DECREF(obj);
                 return NULL;
             }
 
-            if (res == 1) {
+            if (res == 1)
+            {
                 Py_DECREF(obj);
                 break;
             }
 
             return obj;
         }
-        case TYPECODE_CLASS: {
-            if (!allow_casting) {
-                if (!Py_IS_TYPE(
-                    item,
-                    Py_TYPE(ti->ob)
-                    )) {
+        case TYPECODE_CLASS:
+        {
+            if (!allow_casting)
+            {
+                if (
+                    !Py_IS_TYPE(
+                        item,
+                        Py_TYPE(ti->ob)
+                    )
+                )
+                {
                     return NULL;
                 }
 
                 return Py_NewRef(item);
             }
-            PyObject* kwargs = PyDict_New();
+            PyObject *kwargs = PyDict_New();
             if (!kwargs) return NULL;
-            PyObject* obj;
-            if (PyDict_CheckExact(item) || Py_IS_TYPE(
-                item,
-                Py_TYPE(ti->ob)
-                )) {
+            PyObject *obj;
+            if (
+                PyDict_CheckExact(item) || Py_IS_TYPE(
+                    item,
+                    Py_TYPE(ti->ob)
+                )
+            )
+            {
                 obj = Py_NewRef(item);
-            } else {
+            } else
+            {
                 obj = PyObject_Vectorcall(
                     json_parser,
-                    (PyObject*[]) { item },
+                    (PyObject *[]) { item },
                     1,
                     NULL
                 );
             }
 
-            if (!obj) {
+            if (!obj)
+            {
                 PyErr_Clear();
                 Py_DECREF(kwargs);
                 break;
             }
 
             bool ok = true;
-            for (Py_ssize_t i = 0; i < ti->children_size; i++) {
-                type_info* info = ti->children[i];
-                PyObject* got_item = PyDict_GetItem(
+            for (Py_ssize_t i = 0; i < ti->children_size; i++)
+            {
+                type_info *info = ti->children[i];
+                PyObject *got_item = PyDict_GetItem(
                     obj,
                     info->ob
                 );
 
-                if (!got_item) {
-                    if ((intptr_t) info->df != -1) {
-                        if (info->df) {
+                if (!got_item)
+                {
+                    if ((intptr_t) info->df != -1)
+                    {
+                        if (info->df)
+                        {
                             got_item = info->df;
-                            if (PyCallable_Check(got_item)) {
+                            if (PyCallable_Check(got_item))
+                            {
                                 got_item = PyObject_CallNoArgs(got_item); // its a factory
-                                if (!got_item) {
+                                if (!got_item)
+                                {
                                     PyErr_Print();
                                     Py_DECREF(kwargs);
                                     Py_DECREF(obj);
@@ -416,18 +489,20 @@ PyObject* cast_from_typecodes(
                                     break;
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             ok = false;
                             Py_DECREF(kwargs);
                             Py_DECREF(obj);
                             break;
                         }
-                    } else {
+                    } else
+                    {
                         continue;
                     }
                 }
 
-                PyObject* parsed_item = cast_from_typecodes(
+                PyObject *parsed_item = cast_from_typecodes(
                     info->children,
                     info->children_size,
                     got_item,
@@ -435,40 +510,46 @@ PyObject* cast_from_typecodes(
                     allow_casting
                 );
 
-                if (!parsed_item) {
+                if (!parsed_item)
+                {
                     Py_DECREF(kwargs);
                     Py_DECREF(obj);
                     ok = false;
                     break;
                 }
 
-                if (PyDict_SetItem(
-                    kwargs,
-                    info->ob,
-                    parsed_item
-                    ) < 0) {
+                if (
+                    PyDict_SetItem(
+                        kwargs,
+                        info->ob,
+                        parsed_item
+                    ) < 0
+                )
+                {
                     Py_DECREF(kwargs);
                     Py_DECREF(obj);
                     Py_DECREF(parsed_item);
                     return NULL;
-                };
+                }
+                ;
                 Py_DECREF(parsed_item);
             }
             ;
 
             if (!ok) break;
 
-            PyObject* caller;
+            PyObject *caller;
             caller = PyObject_GetAttrString(
                 ti->ob,
                 "__view_construct__"
             );
-            if (!caller) {
+            if (!caller)
+            {
                 PyErr_Clear();
                 caller = ti->ob;
             }
 
-            PyObject* built = PyObject_VectorcallDict(
+            PyObject *built = PyObject_VectorcallDict(
                 caller,
                 NULL,
                 0,
@@ -476,39 +557,48 @@ PyObject* cast_from_typecodes(
             );
 
             Py_DECREF(kwargs);
-            if (!built) {
+            if (!built)
+            {
                 PyErr_Print();
                 return NULL;
             }
 
             return built;
         }
-        case TYPECODE_LIST: {
-            PyObject* list;
-            if (Py_IS_TYPE(
-                item,
-                &PyList_Type
-                )) {
+        case TYPECODE_LIST:
+        {
+            PyObject *list;
+            if (
+                Py_IS_TYPE(
+                    item,
+                    &PyList_Type
+                )
+            )
+            {
                 Py_INCREF(item);
                 list = item;
-            }
-            else {
+            } else
+            {
                 list = PyObject_Vectorcall(
                     json_parser,
-                    (PyObject*[]) { item },
+                    (PyObject *[]) { item },
                     1,
                     NULL
                 );
 
-                if (!list) {
+                if (!list)
+                {
                     PyErr_Clear();
                     break;
                 }
 
-                if (!Py_IS_TYPE(
-                    list,
-                    &PyList_Type
-                    )) {
+                if (
+                    !Py_IS_TYPE(
+                        list,
+                        &PyList_Type
+                    )
+                )
+                {
                     break;
                 }
             }
@@ -519,12 +609,14 @@ PyObject* cast_from_typecodes(
                 list,
                 json_parser
             );
-            if (res == -1) {
+            if (res == -1)
+            {
                 Py_DECREF(list);
                 return NULL;
             }
 
-            if (res == 1) {
+            if (res == 1)
+            {
                 Py_DECREF(list);
                 break;
             }
@@ -532,7 +624,8 @@ PyObject* cast_from_typecodes(
             return list;
         }
         case TYPECODE_CLASSTYPES:
-        default: {
+        default:
+        {
             fprintf(
                 stderr,
                 "got bad typecode in cast_from_typecodes: %d\n",
@@ -542,13 +635,18 @@ PyObject* cast_from_typecodes(
         }
         }
     }
-    if ((CHECK(NULL_ALLOWED)) && (item == NULL || item ==
-                                  Py_None)) Py_RETURN_NONE;
-    if (CHECK(STRING_ALLOWED)) {
-        if (!PyObject_IsInstance(
-            item,
-            (PyObject*) &PyUnicode_Type
-            ))
+    if (
+        (CHECK(NULL_ALLOWED)) && (item == NULL || item ==
+                                  Py_None)
+    ) Py_RETURN_NONE;
+    if (CHECK(STRING_ALLOWED))
+    {
+        if (
+            !PyObject_IsInstance(
+                item,
+                (PyObject *) &PyUnicode_Type
+            )
+        )
             return NULL;
         return Py_NewRef(item);
     }
@@ -560,20 +658,24 @@ PyObject* cast_from_typecodes(
  *
  * This is essentially the bridge for typecodes between C and Python.
  */
-type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
-    type_info** tps = PyMem_Calloc(
+type_info **
+build_type_codes(PyObject *type_codes, Py_ssize_t len)
+{
+    type_info **tps = PyMem_Calloc(
         sizeof(type_info),
         len
     );
 
-    for (Py_ssize_t i = 0; i < len; i++) {
-        PyObject* info = PyList_GetItem(
+    for (Py_ssize_t i = 0; i < len; i++)
+    {
+        PyObject *info = PyList_GetItem(
             type_codes,
             i
         );
-        type_info* ti = PyMem_Malloc(sizeof(type_info));
+        type_info *ti = PyMem_Malloc(sizeof(type_info));
 
-        if (!info && ti) {
+        if (!info && ti)
+        {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
 
@@ -582,37 +684,43 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
             return NULL;
         }
 
-        PyObject* type_code = PyTuple_GetItem(
+        PyObject *type_code = PyTuple_GetItem(
             info,
             0
         );
-        PyObject* obj = PyTuple_GetItem(
+        PyObject *obj = PyTuple_GetItem(
             info,
             1
         );
-        PyObject* children = PyTuple_GetItem(
+        PyObject *children = PyTuple_GetItem(
             info,
             2
         );
 
-        PyObject* df = PyTuple_GetItem(
+        PyObject *df = PyTuple_GetItem(
             info,
             3
         );
 
-        if (df) {
-            if (PyObject_HasAttrString(
-                df,
-                "__VIEW_NODEFAULT__"
-                )) df = NULL;
-            else if (PyObject_HasAttrString(
-                df,
-                "__VIEW_NOREQ__"
-                     ))
-                df = (PyObject*) -1;
+        if (df)
+        {
+            if (
+                PyObject_HasAttrString(
+                    df,
+                    "__VIEW_NODEFAULT__"
+                )
+            ) df = NULL;
+            else if (
+                PyObject_HasAttrString(
+                    df,
+                    "__VIEW_NOREQ__"
+                )
+            )
+                df = (PyObject *) -1;
         }
 
-        if (!type_code || !obj || !children) {
+        if (!type_code || !obj || !children)
+        {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
 
@@ -632,7 +740,8 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
         ti->df = df;
 
         Py_ssize_t children_len = PySequence_Size(children);
-        if (children_len == -1) {
+        if (children_len == -1)
+        {
             for (int x = 0; x < i; x++)
                 free_type_info(tps[x]);
 
@@ -643,12 +752,13 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
         }
 
         ti->children_size = children_len;
-        type_info** children_info = build_type_codes(
+        type_info **children_info = build_type_codes(
             children,
             children_len
         );
 
-        if (!children_info) {
+        if (!children_info)
+        {
             for (int x = 0; x < i; i++)
                 free_type_info(tps[x]);
 
@@ -665,60 +775,70 @@ type_info** build_type_codes(PyObject* type_codes, Py_ssize_t len) {
     return tps;
 }
 
-
-int load_typecodes(
-    route* r,
-    PyObject* target
-) {
-    PyObject* iter = PyObject_GetIter(target);
-    PyObject* item;
+int
+load_typecodes(
+    route *r,
+    PyObject *target
+)
+{
+    PyObject *iter = PyObject_GetIter(target);
+    PyObject *item;
     Py_ssize_t index = 0;
 
     Py_ssize_t len = PySequence_Size(target);
-    if (len == -1) {
+    if (len == -1)
+    {
         return -1;
     }
 
     r->inputs = PyMem_Calloc(
         len,
-        sizeof(route_input*)
+        sizeof(route_input *)
     );
     if (!r->inputs) return -1;
 
-    while ((item = PyIter_Next(iter))) {
-        route_input* inp = PyMem_Malloc(sizeof(route_input));
+    while ((item = PyIter_Next(iter)))
+    {
+        route_input *inp = PyMem_Malloc(sizeof(route_input));
         r->inputs[index++] = inp;
 
-        if (!inp) {
+        if (!inp)
+        {
             Py_DECREF(iter);
             return -1;
         }
 
-        if (Py_IS_TYPE(
-            item,
-            &PyLong_Type
-            )) {
+        if (
+            Py_IS_TYPE(
+                item,
+                &PyLong_Type
+            )
+        )
+        {
             int data = PyLong_AsLong(item);
 
-            if (PyErr_Occurred()) {
+            if (PyErr_Occurred())
+            {
                 Py_DECREF(iter);
                 return -1;
             }
 
             inp->route_data = data;
             continue;
-        } else {
+        } else
+        {
             inp->route_data = 0;
         }
 
-        PyObject* is_body = Py_XNewRef(
+        PyObject *is_body = Py_XNewRef(
             PyDict_GetItemString(
                 item,
                 "is_body"
             )
         );
 
-        if (!is_body) {
+        if (!is_body)
+        {
             Py_DECREF(iter);
             PyMem_Free(r->inputs);
             return bad_input("is_body");
@@ -726,14 +846,15 @@ int load_typecodes(
         inp->is_body = PyObject_IsTrue(is_body);
         Py_DECREF(is_body);
 
-        PyObject* name = Py_XNewRef(
+        PyObject *name = Py_XNewRef(
             PyDict_GetItemString(
                 item,
                 "name"
             )
         );
 
-        if (!name) {
+        if (!name)
+        {
             Py_DECREF(iter);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
@@ -741,8 +862,9 @@ int load_typecodes(
         }
 
         Py_ssize_t name_size;
-        const char* cname = PyUnicode_AsUTF8AndSize(name, &name_size);
-        if (!cname) {
+        const char *cname = PyUnicode_AsUTF8AndSize(name, &name_size);
+        if (!cname)
+        {
             Py_DECREF(iter);
             Py_DECREF(name);
             PyMem_Free(r->inputs);
@@ -753,42 +875,47 @@ int load_typecodes(
 
         Py_DECREF(name);
 
-        PyObject* has_default = PyDict_GetItemString(
+        PyObject *has_default = PyDict_GetItemString(
             item,
             "has_default"
         );
-        if (!has_default) {
+        if (!has_default)
+        {
             Py_DECREF(iter);
             PyMem_Free(r->inputs);
             PyMem_Free(inp);
             return bad_input("has_default");
         }
 
-        if (PyObject_IsTrue(has_default)) {
+        if (PyObject_IsTrue(has_default))
+        {
             inp->df = Py_XNewRef(
                 PyDict_GetItemString(
                     item,
                     "default"
                 )
             );
-            if (!inp->df) {
+            if (!inp->df)
+            {
                 Py_DECREF(iter);
                 PyMem_Free(r->inputs);
                 PyMem_Free(inp);
                 return bad_input("default");
             }
-        } else {
+        } else
+        {
             inp->df = NULL;
         }
 
         Py_DECREF(has_default);
 
-        PyObject* codes = PyDict_GetItemString(
+        PyObject *codes = PyDict_GetItemString(
             item,
             "type_codes"
         );
 
-        if (!codes) {
+        if (!codes)
+        {
             Py_DECREF(iter);
             Py_XDECREF(inp->df);
             PyMem_Free(r->inputs);
@@ -797,7 +924,8 @@ int load_typecodes(
         }
 
         Py_ssize_t len = PySequence_Size(codes);
-        if (len == -1) {
+        if (len == -1)
+        {
             Py_DECREF(iter);
             Py_XDECREF(inp->df);
             PyMem_Free(r->inputs);
@@ -806,12 +934,14 @@ int load_typecodes(
         }
         inp->types_size = len;
         if (!len) inp->types = NULL;
-        else {
+        else
+        {
             inp->types = build_type_codes(
                 codes,
                 len
             );
-            if (!inp->types) {
+            if (!inp->types)
+            {
                 Py_DECREF(iter);
                 Py_XDECREF(inp->df);
                 PyMem_Free(r->inputs);
@@ -820,12 +950,13 @@ int load_typecodes(
             }
         }
 
-        PyObject* validators = PyDict_GetItemString(
+        PyObject *validators = PyDict_GetItemString(
             item,
             "validators"
         );
 
-        if (!validators) {
+        if (!validators)
+        {
             Py_DECREF(iter);
             Py_XDECREF(inp->df);
             free_type_codes(
@@ -840,11 +971,12 @@ int load_typecodes(
         Py_ssize_t size = PySequence_Size(validators);
         inp->validators = PyMem_Calloc(
             size,
-            sizeof(PyObject*)
+            sizeof(PyObject *)
         );
         inp->validators_size = size;
 
-        if (!inp->validators) {
+        if (!inp->validators)
+        {
             Py_DECREF(iter);
             free_type_codes(
                 inp->types,
@@ -856,7 +988,8 @@ int load_typecodes(
             return -1;
         }
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++)
+        {
             inp->validators[i] = Py_NewRef(
                 PySequence_GetItem(
                     validators,
@@ -864,7 +997,8 @@ int load_typecodes(
                 )
             );
         }
-    };
+    }
+    ;
 
     Py_DECREF(iter);
     if (PyErr_Occurred()) return -1;
@@ -877,32 +1011,40 @@ int load_typecodes(
  * This is for optimization - if a route doesn't have a body input,
  * then receiving and parsing the body can be skipped at runtime.
  */
-bool figure_has_body(PyObject* inputs) {
-    PyObject* iter = PyObject_GetIter(inputs);
-    PyObject* item;
+bool
+figure_has_body(PyObject *inputs)
+{
+    PyObject *iter = PyObject_GetIter(inputs);
+    PyObject *item;
     bool res = false;
 
-    if (!iter) {
+    if (!iter)
+    {
         return false;
     }
 
-    while ((item = PyIter_Next(iter))) {
-        if (Py_IS_TYPE(
-            item,
-            &PyLong_Type
-            ))
+    while ((item = PyIter_Next(iter)))
+    {
+        if (
+            Py_IS_TYPE(
+                item,
+                &PyLong_Type
+            )
+        )
             continue;
-        PyObject* is_body = PyDict_GetItemString(
+        PyObject *is_body = PyDict_GetItemString(
             item,
             "is_body"
         );
 
-        if (!is_body) {
+        if (!is_body)
+        {
             Py_DECREF(iter);
             return false;
         }
 
-        if (PyObject_IsTrue(is_body)) {
+        if (PyObject_IsTrue(is_body))
+        {
             res = true;
         }
         Py_DECREF(is_body);
@@ -910,7 +1052,8 @@ bool figure_has_body(PyObject* inputs) {
 
     Py_DECREF(iter);
 
-    if (PyErr_Occurred()) {
+    if (PyErr_Occurred())
+    {
         return false;
     }
 
@@ -922,36 +1065,41 @@ bool figure_has_body(PyObject* inputs) {
  * Breaking changes are allowed on the API.
  */
 
-typedef struct {
+typedef struct
+{
     PyObject_HEAD
-    type_info** codes;
+    type_info **codes;
     Py_ssize_t codes_len;
-    PyObject* json_parser;
+    PyObject *json_parser;
 } TCPublic;
 
 /* Deallocator for a public type validation object. */
-static void dealloc(TCPublic* self) {
+static void
+dealloc(TCPublic *self)
+{
     free_type_codes(
         self->codes,
         self->codes_len
     );
     Py_DECREF(self->json_parser);
-    Py_TYPE(self)->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
 /*
  * Allocator function for the TCPublic object.
  * This is considered private - breaking changes are allowed.
  */
-static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
-    TCPublic* self = (TCPublic*) type->tp_alloc(
+static PyObject *
+new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    TCPublic *self = (TCPublic *) type->tp_alloc(
         type,
         0
     );
     if (!self)
         return NULL;
 
-    return (PyObject*) self;
+    return (PyObject *) self;
 }
 
 /*
@@ -960,27 +1108,32 @@ static PyObject* new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
  *
  * This is known as _cast() in Python
  */
-static PyObject* cast_from_typecodes_public(PyObject* self, PyObject* args) {
-    TCPublic* tc = (TCPublic*) self;
-    PyObject* obj;
+static PyObject *
+cast_from_typecodes_public(PyObject *self, PyObject *args)
+{
+    TCPublic *tc = (TCPublic *) self;
+    PyObject *obj;
     int allow_cast;
 
-    if (!PyArg_ParseTuple(
-        args,
-        "Op",
-        &obj,
-        &allow_cast
-        ))
+    if (
+        !PyArg_ParseTuple(
+            args,
+            "Op",
+            &obj,
+            &allow_cast
+        )
+    )
         return NULL;
 
-    PyObject* res = cast_from_typecodes(
+    PyObject *res = cast_from_typecodes(
         tc->codes,
         tc->codes_len,
         obj,
         tc->json_parser,
         allow_cast
     );
-    if (!res) {
+    if (!res)
+    {
         PyErr_SetString(
             PyExc_RuntimeError,
             "cast_from_typecodes returned NULL"
@@ -994,20 +1147,25 @@ static PyObject* cast_from_typecodes_public(PyObject* self, PyObject* args) {
 /*
  * Load Python typecodes into the object as C type codes.
  */
-static PyObject* compile(PyObject* self, PyObject* args) {
-    TCPublic* tc = (TCPublic*) self;
-    PyObject* list;
-    PyObject* json_parser;
+static PyObject *
+compile(PyObject *self, PyObject *args)
+{
+    TCPublic *tc = (TCPublic *) self;
+    PyObject *list;
+    PyObject *json_parser;
 
-    if (!PyArg_ParseTuple(
-        args,
-        "OO",
-        &list,
-        &json_parser
-        ))
+    if (
+        !PyArg_ParseTuple(
+            args,
+            "OO",
+            &list,
+            &json_parser
+        )
+    )
         return NULL;
 
-    if (!PySequence_Check(list)) {
+    if (!PySequence_Check(list))
+    {
         PyErr_SetString(
             PyExc_TypeError,
             "expected a sequence"
@@ -1019,7 +1177,7 @@ static PyObject* compile(PyObject* self, PyObject* args) {
     if (size < 0)
         return NULL;
 
-    type_info** info = build_type_codes(
+    type_info **info = build_type_codes(
         list,
         size
     );
@@ -1029,14 +1187,16 @@ static PyObject* compile(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-static PyMethodDef methods[] = {
+static PyMethodDef methods[] =
+{
     {"_compile", (PyCFunction) compile, METH_VARARGS, NULL},
     {"_cast", (PyCFunction) cast_from_typecodes_public, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
 
-PyTypeObject TCPublicType = {
+PyTypeObject TCPublicType =
+{
     PyVarObject_HEAD_INIT(
         NULL,
         0

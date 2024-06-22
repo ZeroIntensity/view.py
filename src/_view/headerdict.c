@@ -10,18 +10,23 @@
 #include <view/results.h> // pymem_strdup
 #include <view/view.h> // COLD
 
-typedef struct {
+typedef struct
+{
     bool is_list;
-    PyObject* value;
+    PyObject *value;
 } header_item;
 
-void header_item_free(header_item* item) {
+void
+header_item_free(header_item *item)
+{
     Py_DECREF(item->value);
     PyMem_Free(item);
 }
 
-header_item* header_item_new(PyObject* value) {
-    header_item* item = PyMem_Malloc(sizeof(header_item));
+header_item *
+header_item_new(PyObject *value)
+{
+    header_item *item = PyMem_Malloc(sizeof(header_item));
     if (!item)
         return NULL;
 
@@ -30,9 +35,10 @@ header_item* header_item_new(PyObject* value) {
     return item;
 }
 
-typedef struct {
+typedef struct
+{
     PyObject_HEAD
-    map* headers;
+    map *headers;
 } HeaderDict;
 
 /*
@@ -41,21 +47,26 @@ typedef struct {
  * It's not perfect, but this function won't really get called in production,
  * so we can cheat a little bit here.
  */
-static PyObject* repr(HeaderDict* self) {
-    PyObject* dict_repr = PyDict_New();
+static PyObject *
+repr(HeaderDict *self)
+{
+    PyObject *dict_repr = PyDict_New();
     if (!dict_repr)
         return NULL;
 
-    for (Py_ssize_t i = 0; i < self->headers->capacity; ++i) {
-        pair* p = self->headers->items[i];
+    for (Py_ssize_t i = 0; i < self->headers->capacity; ++i)
+    {
+        pair *p = self->headers->items[i];
         if (!p)
             continue;
 
-        header_item* it = p->value;
-        if (PyDict_SetItemString(dict_repr, p->key, it->value) < 0) {
+        header_item *it = p->value;
+        if (PyDict_SetItemString(dict_repr, p->key, it->value) < 0)
+        {
             Py_DECREF(dict_repr);
             return NULL;
-        };
+        }
+        ;
     }
 
     return PyUnicode_FromFormat(
@@ -64,18 +75,22 @@ static PyObject* repr(HeaderDict* self) {
     );
 }
 
-static void dealloc(HeaderDict* self) {
+static void
+dealloc(HeaderDict *self)
+{
     if (self->headers)
         map_free(self->headers);
-    Py_TYPE(self)->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
-static PyObject* HeaderDict_new(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs
-) {
-    HeaderDict* self = (HeaderDict*) type->tp_alloc(
+static PyObject *
+HeaderDict_new(
+    PyTypeObject *type,
+    PyObject *args,
+    PyObject *kwargs
+)
+{
+    HeaderDict *self = (HeaderDict *) type->tp_alloc(
         type,
         0
     );
@@ -83,42 +98,53 @@ static PyObject* HeaderDict_new(
         return NULL;
 
     self->headers = map_new(4, (map_free_func) header_item_free);
-    if (!self->headers) {
+    if (!self->headers)
+    {
         Py_DECREF(self);
         return NULL;
     }
-    return (PyObject*) self;
+    return (PyObject *) self;
 }
 
 // For debugging
-COLD static void print_header_item(header_item* item) {
+COLD static void
+print_header_item(header_item *item)
+{
     PyObject_Print(item->value, stdout, Py_PRINT_RAW);
 }
 
-static PyObject* get_item(HeaderDict* self, PyObject* value) {
-    if (!PyUnicode_CheckExact(value)) {
-        PyErr_Format(PyExc_TypeError,
-            "expected header dict index to be a string, not %R", value);
+static PyObject *
+get_item(HeaderDict *self, PyObject *value)
+{
+    if (!PyUnicode_CheckExact(value))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected header dict index to be a string, not %R",
+            value
+        );
         return NULL;
     }
 
     Py_ssize_t key_size;
-    const char* const_key_str = PyUnicode_AsUTF8AndSize(value, &key_size);
+    const char *const_key_str = PyUnicode_AsUTF8AndSize(value, &key_size);
     if (!const_key_str)
         return NULL;
 
-    char* key_str = pymem_strdup(const_key_str, key_size);
+    char *key_str = pymem_strdup(const_key_str, key_size);
     if (!key_str)
         return NULL;
 
     // make it lower case
-    for (Py_ssize_t i = 0; key_str[i]; ++i) {
+    for (Py_ssize_t i = 0; key_str[i]; ++i)
+    {
         key_str[i] = tolower(key_str[i]);
     }
 
-    header_item* item = map_get(self->headers, key_str);
+    header_item *item = map_get(self->headers, key_str);
     PyMem_Free(key_str);
-    if (item == NULL) {
+    if (item == NULL)
+    {
         PyErr_SetObject(PyExc_KeyError, value);
         return NULL;
     }
@@ -126,32 +152,41 @@ static PyObject* get_item(HeaderDict* self, PyObject* value) {
     return Py_NewRef(item->value);
 }
 
-static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
-    if (!PyUnicode_CheckExact(value)) {
-        PyErr_Format(PyExc_TypeError,
-            "expected header dict index to be a string, not %R", value);
+static int
+set_item(HeaderDict *self, PyObject *key, PyObject *value)
+{
+    if (!PyUnicode_CheckExact(value))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected header dict index to be a string, not %R",
+            value
+        );
         return -1;
     }
 
     Py_ssize_t key_size;
-    const char* const_key_str = PyUnicode_AsUTF8AndSize(key, &key_size);
+    const char *const_key_str = PyUnicode_AsUTF8AndSize(key, &key_size);
     if (!const_key_str)
         return -1;
 
-    char* key_str = pymem_strdup(const_key_str, key_size);
+    char *key_str = pymem_strdup(const_key_str, key_size);
     if (!key_str)
         return -1;
 
     // make it lower case
-    for (Py_ssize_t i = 0; key_str[i]; ++i) {
+    for (Py_ssize_t i = 0; key_str[i]; ++i)
+    {
         key_str[i] = tolower(key_str[i]);
     }
 
-    header_item* item = map_get(self->headers, key_str);
-    if (!item) {
+    header_item *item = map_get(self->headers, key_str);
+    if (!item)
+    {
         // item is not set, set it
         item = header_item_new(value);
-        if (!item) {
+        if (!item)
+        {
             PyMem_Free(key_str);
             return -1;
         }
@@ -162,13 +197,14 @@ static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
     }
     PyMem_Free(key_str);
 
-    if (item->is_list) {
+    if (item->is_list)
+    {
         if (PyList_Append(item->value, value) < 0)
             return -1;
         return 0;
     }
 
-    PyObject* list = PyList_New(2);
+    PyObject *list = PyList_New(2);
     if (!list)
         return -1;
 
@@ -180,78 +216,95 @@ static int set_item(HeaderDict* self, PyObject* key, PyObject* value) {
     return 0;
 }
 
-static Py_ssize_t get_length(HeaderDict* self) {
+static Py_ssize_t
+get_length(HeaderDict *self)
+{
     return self->headers->len;
 }
 
-PyObject* headerdict_from_list(PyObject* list, PyObject* cookies) {
-    HeaderDict* hd = (HeaderDict*) HeaderDict_new(&HeaderDictType, NULL, NULL);
+PyObject *
+headerdict_from_list(PyObject *list, PyObject *cookies)
+{
+    HeaderDict *hd = (HeaderDict *) HeaderDict_new(
+        &HeaderDictType,
+        NULL,
+        NULL
+    );
     if (!hd)
         return NULL;
 
     Py_ssize_t size = PyList_GET_SIZE(list);
-    for (Py_ssize_t i = 0; i < size; ++i) {
-        PyObject* tup = PyList_GET_ITEM(list, i);
-        PyObject* key = PyTuple_GET_ITEM(tup, 0);
-        PyObject* value = PyTuple_GET_ITEM(tup, 1);
+    for (Py_ssize_t i = 0; i < size; ++i)
+    {
+        PyObject *tup = PyList_GET_ITEM(list, i);
+        PyObject *key = PyTuple_GET_ITEM(tup, 0);
+        PyObject *value = PyTuple_GET_ITEM(tup, 1);
 
         Py_ssize_t key_size;
-        char* const_key_str;
-        if (PyBytes_AsStringAndSize(key, &const_key_str, &key_size) < 0) {
+        char *const_key_str;
+        if (PyBytes_AsStringAndSize(key, &const_key_str, &key_size) < 0)
+        {
             Py_DECREF(hd);
             return NULL;
         }
 
-        char* key_str = pymem_strdup(const_key_str, key_size);
-        if (!key_str) {
+        char *key_str = pymem_strdup(const_key_str, key_size);
+        if (!key_str)
+        {
             Py_DECREF(hd);
             return NULL;
         }
 
         // make it lower case
-        for (Py_ssize_t i = 0; key_str[i]; ++i) {
+        for (Py_ssize_t i = 0; key_str[i]; ++i)
+        {
             key_str[i] = tolower(key_str[i]);
         }
 
-        PyObject* value_str = PyUnicode_FromEncodedObject(
+        PyObject *value_str = PyUnicode_FromEncodedObject(
             value,
             "utf8",
             "strict"
         );
-        if (!value_str) {
+        if (!value_str)
+        {
             PyMem_Free(key_str);
             Py_DECREF(hd);
             return NULL;
         }
 
-        if (!strcmp(key_str, "cookie") && cookies) {
+        if (!strcmp(key_str, "cookie") && cookies)
+        {
             // It's a cookie
-            PyObject* sep = PyUnicode_FromStringAndSize("=", 1);
-            if (!sep) {
+            PyObject *sep = PyUnicode_FromStringAndSize("=", 1);
+            if (!sep)
+            {
                 PyMem_Free(key_str);
                 Py_DECREF(hd);
                 return NULL;
             }
 
-            PyObject* key_str_obj = PyUnicode_FromEncodedObject(
+            PyObject *key_str_obj = PyUnicode_FromEncodedObject(
                 key,
                 "utf8",
                 "strict"
             );
-            PyObject* parts = PyUnicode_Partition(key_str_obj, sep);
+            PyObject *parts = PyUnicode_Partition(key_str_obj, sep);
             Py_DECREF(sep);
             Py_DECREF(key_str_obj);
-            if (!parts) {
+            if (!parts)
+            {
                 PyMem_Free(key_str);
                 Py_DECREF(hd);
                 return NULL;
 
             }
 
-            PyObject* cookie_key = PyTuple_GET_ITEM(parts, 0);
-            PyObject* cookie_value = PyTuple_GET_ITEM(parts, 2);
+            PyObject *cookie_key = PyTuple_GET_ITEM(parts, 0);
+            PyObject *cookie_value = PyTuple_GET_ITEM(parts, 2);
 
-            if (PyDict_SetItem(cookies, cookie_key, cookie_value) < 0) {
+            if (PyDict_SetItem(cookies, cookie_key, cookie_value) < 0)
+            {
                 Py_DECREF(parts);
                 PyMem_Free(key_str);
                 Py_DECREF(hd);
@@ -261,8 +314,9 @@ PyObject* headerdict_from_list(PyObject* list, PyObject* cookies) {
             Py_DECREF(parts);
         }
 
-        header_item* item = header_item_new(value_str);
-        if (!item) {
+        header_item *item = header_item_new(value_str);
+        if (!item)
+        {
             PyMem_Free(key_str);
             Py_DECREF(hd);
             return NULL;
@@ -272,24 +326,28 @@ PyObject* headerdict_from_list(PyObject* list, PyObject* cookies) {
         PyMem_Free(key_str);
     }
 
-    return (PyObject*) hd;
+    return (PyObject *) hd;
 }
 
-static PyMappingMethods mapping_methods = {
+static PyMappingMethods mapping_methods =
+{
     .mp_subscript = (binaryfunc) get_item,
     .mp_ass_subscript = (objobjargproc) set_item,
     .mp_length = (lenfunc) get_length
 };
 
-static PyObject* HeaderDict_get(HeaderDict* self, PyObject* args) {
-    PyObject* key;
-    PyObject* df = Py_None;
+static PyObject *
+HeaderDict_get(HeaderDict *self, PyObject *args)
+{
+    PyObject *key;
+    PyObject *df = Py_None;
 
     if (!PyArg_ParseTuple(args, "O!|O", &PyUnicode_Type, &key, &df))
         return NULL;
 
-    PyObject* val = get_item(self, key);
-    if (!val) {
+    PyObject *val = get_item(self, key);
+    if (!val)
+    {
         if (!PyErr_ExceptionMatches(PyExc_KeyError))
             return NULL;
         PyErr_Clear();
@@ -299,12 +357,14 @@ static PyObject* HeaderDict_get(HeaderDict* self, PyObject* args) {
     return val;
 }
 
-static PyMethodDef methods[] = {
+static PyMethodDef methods[] =
+{
     {"get", (PyCFunction) HeaderDict_get, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
-PyTypeObject HeaderDictType = {
+PyTypeObject HeaderDictType =
+{
     PyVarObject_HEAD_INIT(
         NULL,
         0

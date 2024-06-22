@@ -32,16 +32,16 @@
 #include <view/view.h>
 
 // Module object instance, this is not exported!
-PyObject* m = NULL;
+PyObject *m = NULL;
 
-PyObject* route_log = NULL;
-PyObject* route_warn = NULL;
-PyObject* ip_address = NULL;
-PyObject* invalid_status_error = NULL;
-PyObject* ws_cls = NULL;
-PyObject* ws_disconnect_err = NULL;
-PyObject* ws_err_cls = NULL;
-PyObject* default_headers = NULL;
+PyObject *route_log = NULL;
+PyObject *route_warn = NULL;
+PyObject *ip_address = NULL;
+PyObject *invalid_status_error = NULL;
+PyObject *ws_cls = NULL;
+PyObject *ws_disconnect_err = NULL;
+PyObject *ws_err_cls = NULL;
+PyObject *default_headers = NULL;
 
 /*
  * Register route logging functions.
@@ -49,19 +49,24 @@ PyObject* default_headers = NULL;
  * As of now, this stores only the route logger, and the
  * service warning function.
  */
-static PyObject* setup_route_log(PyObject* self, PyObject* args) {
-    PyObject* func;
-    PyObject* warn;
+static PyObject *
+setup_route_log(PyObject *self, PyObject *args)
+{
+    PyObject *func;
+    PyObject *warn;
 
-    if (!PyArg_ParseTuple(
-        args,
-        "OO",
-        &func,
-        &warn
-        ))
+    if (
+        !PyArg_ParseTuple(
+            args,
+            "OO",
+            &func,
+            &warn
+        )
+    )
         return NULL;
 
-    if (!PyCallable_Check(func)) {
+    if (!PyCallable_Check(func))
+    {
         PyErr_Format(
             PyExc_RuntimeError,
             "setup_route_log got non-function object: %R",
@@ -70,7 +75,8 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (!PyCallable_Check(warn)) {
+    if (!PyCallable_Check(warn))
+    {
         PyErr_Format(
             PyExc_RuntimeError,
             "setup_route_log got non-function object: %R",
@@ -82,13 +88,15 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     route_log = Py_NewRef(func);
     route_warn = Py_NewRef(warn);
 
-    if (PyModule_AddObject(m, "route_log", route_log) < 0) {
+    if (PyModule_AddObject(m, "route_log", route_log) < 0)
+    {
         Py_DECREF(route_log);
         Py_DECREF(route_warn);
         return NULL;
     }
 
-    if (PyModule_AddObject(m, "route_warn", route_warn) < 0) {
+    if (PyModule_AddObject(m, "route_warn", route_warn) < 0)
+    {
         Py_DECREF(route_warn);
         return NULL;
     }
@@ -96,30 +104,52 @@ static PyObject* setup_route_log(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
-    PyObject* cls;
-    PyObject* ws_disconnect_err_val;
-    PyObject* ws_err_cls_val;
+static PyObject *
+register_ws_cls(PyObject *self, PyObject *args)
+{
+    PyObject *cls;
+    PyObject *ws_disconnect_err_val;
+    PyObject *ws_err_cls_val;
 
-    if (!PyArg_ParseTuple(args, "OOO", &cls, &ws_disconnect_err_val, &
-        ws_err_cls_val))
+    if (
+        !PyArg_ParseTuple(
+            args,
+            "OOO",
+            &cls,
+            &ws_disconnect_err_val,
+            &
+            ws_err_cls_val
+        )
+    )
         return NULL;
 
-    if (!PyType_Check(cls)) {
-        PyErr_Format(PyExc_RuntimeError,
-            "register_ws_cls got non-type object: %R", cls);
+    if (!PyType_Check(cls))
+    {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "register_ws_cls got non-type object: %R",
+            cls
+        );
         return NULL;
     }
 
-    if (!PyType_Check(ws_disconnect_err_val)) {
-        PyErr_Format(PyExc_RuntimeError,
-            "register_ws_cls got non-type object: %R", cls);
+    if (!PyType_Check(ws_disconnect_err_val))
+    {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "register_ws_cls got non-type object: %R",
+            cls
+        );
         return NULL;
     }
 
-    if (!PyType_Check(ws_err_cls_val)) {
-        PyErr_Format(PyExc_RuntimeError,
-            "register_ws_cls got non-type object: %R", cls);
+    if (!PyType_Check(ws_err_cls_val))
+    {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "register_ws_cls got non-type object: %R",
+            cls
+        );
         return NULL;
     }
 
@@ -131,23 +161,28 @@ static PyObject* register_ws_cls(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-static PyObject* dummy_context(PyObject* self, PyObject* app) {
+static PyObject *
+dummy_context(PyObject *self, PyObject *app)
+{
     return context_from_data(app, NULL);
 }
 
-static PyMethodDef methods[] = {
+static PyMethodDef methods[] =
+{
     {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
     {"register_ws_cls", register_ws_cls, METH_VARARGS, NULL},
     {"dummy_context", dummy_context, METH_O, NULL},
     {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef_Slot module_slots[] = {
+static struct PyModuleDef_Slot module_slots[] =
+{
     {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
     {0, NULL}
 };
 
-static struct PyModuleDef module = {
+static struct PyModuleDef module =
+{
     PyModuleDef_HEAD_INIT,
     "_view",
     NULL,
@@ -163,12 +198,14 @@ static struct PyModuleDef module = {
  *
  * Don't use this directly! Use the VIEW_FATAL macro instead.
  */
-NORETURN void view_fatal(
-    const char* message,
-    const char* where,
-    const char* func,
+NORETURN void
+view_fatal(
+    const char *message,
+    const char *where,
+    const char *func,
     int lineno
-) {
+)
+{
     fprintf(
         stderr,
         "_view FATAL ERROR at [%s:%d] in %s: %s\n",
@@ -184,91 +221,116 @@ NORETURN void view_fatal(
     Py_FatalError("view.py core died");
 };
 
-PyMODINIT_FUNC PyInit__view() {
+PyMODINIT_FUNC
+PyInit__view()
+{
     m = PyModule_Create(&module);
 
-    if ((PyType_Ready(&PyAwaitable_Type) < 0) ||
+    if (
+        (PyType_Ready(&PyAwaitable_Type) < 0) ||
         (PyType_Ready(&ViewAppType) < 0) ||
         (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) ||
         (PyType_Ready(&ContextType) < 0) ||
         (PyType_Ready(&TCPublicType) < 0) ||
         (PyType_Ready(&WebSocketType) < 0) ||
-        (PyType_Ready(&HeaderDictType) < 0)) {
+        (PyType_Ready(&HeaderDictType) < 0)
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&PyAwaitable_Type);
 
-    if (PyModule_AddObject(
-        m,
-        "Awaitable",
-        (PyObject*) &PyAwaitable_Type
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "Awaitable",
+            (PyObject *) &PyAwaitable_Type
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&ViewAppType);
 
-    if (PyModule_AddObject(
-        m,
-        "ViewApp",
-        (PyObject*) &ViewAppType
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "ViewApp",
+            (PyObject *) &ViewAppType
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&_PyAwaitable_GenWrapper_Type);
-    if (PyModule_AddObject(
-        m,
-        "_GenWrapper",
-        (PyObject*) &_PyAwaitable_GenWrapper_Type
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "_GenWrapper",
+            (PyObject *) &_PyAwaitable_GenWrapper_Type
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&ContextType);
-    if (PyModule_AddObject(
-        m,
-        "Context",
-        (PyObject*) &ContextType
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "Context",
+            (PyObject *) &ContextType
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&TCPublicType);
-    if (PyModule_AddObject(
-        m,
-        "TCPublic",
-        (PyObject*) &TCPublicType
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "TCPublic",
+            (PyObject *) &TCPublicType
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&WebSocketType);
-    if (PyModule_AddObject(
-        m,
-        "ViewWebSocket",
-        (PyObject*) &WebSocketType
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "ViewWebSocket",
+            (PyObject *) &WebSocketType
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     Py_INCREF(&HeaderDictType);
-    if (PyModule_AddObject(m, "HeaderDict", (PyObject*) &HeaderDictType) < 0) {
+    if (PyModule_AddObject(m, "HeaderDict", (PyObject *) &HeaderDictType) < 0)
+    {
         Py_DECREF(m);
         return NULL;
     }
 
 
-    PyObject* ipaddress_mod = PyImport_ImportModule("ipaddress");
-    if (!ipaddress_mod) {
+    PyObject *ipaddress_mod = PyImport_ImportModule("ipaddress");
+    if (!ipaddress_mod)
+    {
         Py_DECREF(m);
         return NULL;
     }
@@ -277,7 +339,8 @@ PyMODINIT_FUNC PyInit__view() {
         ipaddress_mod,
         "ip_address"
     );
-    if (!ip_address) {
+    if (!ip_address)
+    {
         Py_DECREF(m);
         Py_DECREF(ipaddress_mod);
         return NULL;
@@ -286,7 +349,8 @@ PyMODINIT_FUNC PyInit__view() {
 
     // We want python to manage this memory, so we have to put it on the module.
     // This won't be on the type stub, though.
-    if (PyModule_AddObject(m, "ip_address", ip_address) < 0) {
+    if (PyModule_AddObject(m, "ip_address", ip_address) < 0)
+    {
         Py_DECREF(m);
         Py_DECREF(ip_address);
         return NULL;
@@ -297,30 +361,36 @@ PyMODINIT_FUNC PyInit__view() {
         PyExc_RuntimeError,
         NULL
     );
-    if (!invalid_status_error) {
+    if (!invalid_status_error)
+    {
         Py_DECREF(m);
         return NULL;
     }
 
-    if (PyModule_AddObject(
-        m,
-        "InvalidStatusError",
-        invalid_status_error
-        ) < 0) {
+    if (
+        PyModule_AddObject(
+            m,
+            "InvalidStatusError",
+            invalid_status_error
+        ) < 0
+    )
+    {
         Py_DECREF(m);
         Py_DECREF(invalid_status_error);
         return NULL;
     }
 
     default_headers = build_default_headers();
-    if (!default_headers) {
+    if (!default_headers)
+    {
         Py_DECREF(m);
         return NULL;
     }
 
     // Once again, reference management should be delegated to Python.
     // Will not be on the type stub either.
-    if (PyModule_AddObject(m, "default_headers", default_headers) < 0) {
+    if (PyModule_AddObject(m, "default_headers", default_headers) < 0)
+    {
         Py_DECREF(m);
         Py_DECREF(default_headers);
         return NULL;

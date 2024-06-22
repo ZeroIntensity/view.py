@@ -34,15 +34,17 @@
  *
  * If this fails, a MemoryError is raised.
  */
-route* route_new(
-    PyObject* callable,
+route *
+route_new(
+    PyObject *callable,
     Py_ssize_t inputs_size,
     Py_ssize_t cache_rate,
     bool has_body
-) {
-    route* r = PyMem_Malloc(sizeof(route));
+)
+{
+    route *r = PyMem_Malloc(sizeof(route));
     if (!r)
-        return (route*) PyErr_NoMemory();
+        return (route *) PyErr_NoMemory();
 
     r->cache = NULL;
     r->callable = Py_NewRef(callable);
@@ -74,9 +76,13 @@ route* route_new(
  * This function assumes that the inputs array has been allocated, and
  * is responsible for deallocating it with PyMem_Free()
  */
-void route_free(route* r) {
-    for (int i = 0; i < r->inputs_size; i++){
-        if (r->inputs[i]->route_data) {
+void
+route_free(route *r)
+{
+    for (int i = 0; i < r->inputs_size; i++)
+    {
+        if (r->inputs[i]->route_data)
+        {
             continue;
         }
         Py_XDECREF(r->inputs[i]->df);
@@ -85,7 +91,8 @@ void route_free(route* r) {
             r->inputs[i]->types_size
         );
 
-        for (int i = 0; i < r->inputs[i]->validators_size; i++){
+        for (int i = 0; i < r->inputs[i]->validators_size; i++)
+        {
             Py_DECREF(r->inputs[i]->validators[i]);
         }
     }
@@ -112,10 +119,12 @@ void route_free(route* r) {
  * Along with the rest of the path parts API, this function
  * should be considered very buggy and subject to change.
  */
-route* route_transport_new(route* r) {
-    route* rt = PyMem_Malloc(sizeof(route));
+route *
+route_transport_new(route *r)
+{
+    route *rt = PyMem_Malloc(sizeof(route));
     if (!rt)
-        return (route*)PyErr_NoMemory();
+        return (route *)PyErr_NoMemory();
     rt->cache = NULL;
     rt->callable = NULL;
     rt->cache_rate = 0;

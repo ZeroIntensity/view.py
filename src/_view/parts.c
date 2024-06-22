@@ -67,9 +67,12 @@
 #define TRANSPORT_MAP() map_new(2, (map_free_func) route_free)
 
 // Port of strsep for use on windows
-char* v_strsep(char** stringp, const char* delim) {
-    char* rv = *stringp;
-    if (rv) {
+char *
+v_strsep(char **stringp, const char *delim)
+{
+    char *rv = *stringp;
+    if (rv)
+    {
         *stringp += strcspn(
             *stringp,
             delim
@@ -87,38 +90,43 @@ char* v_strsep(char** stringp, const char* delim) {
  *
  * This is extremely buggy and will likely be rewritten - do not use this function.
  */
-int extract_parts(
-    ViewApp* self,
-    PyObject* awaitable,
-    map* target,
-    char* path,
-    const char* method_str,
-    Py_ssize_t* size,
-    route** out_r,
-    PyObject*** out_params
-) {
-    char* token;
-    route* rt = NULL;
+int
+extract_parts(
+    ViewApp *self,
+    PyObject *awaitable,
+    map *target,
+    char *path,
+    const char *method_str,
+    Py_ssize_t *size,
+    route **out_r,
+    PyObject ***out_params
+)
+{
+    char *token;
+    route *rt = NULL;
     bool did_save = false;
-    PyObject** params = calloc(
+    PyObject **params = calloc(
         1,
-        sizeof(PyObject*)
+        sizeof(PyObject *)
     );
-    if (!params) {
+    if (!params)
+    {
         PyErr_NoMemory();
         return -1;
     }
 
     bool skip = true; // skip leading /
-    route* last_r = NULL;
+    route *last_r = NULL;
 
-    while ((token = v_strsep(&path, "/"))) {
-        if (skip) {
+    while ((token = v_strsep(&path, "/")))
+    {
+        if (skip)
+        {
             skip = false;
             continue;
         }
         // TODO: optimize this
-        char* s = PyMem_Malloc(strlen(token) + 2);
+        char *s = PyMem_Malloc(strlen(token) + 2);
         sprintf(
             s,
             "/%s",
@@ -126,16 +134,18 @@ int extract_parts(
         );
         assert(target);
 
-        if ((!did_save && rt && rt->r) || last_r) {
+        if ((!did_save && rt && rt->r) || last_r)
+        {
             printf(
                 "last_r: %p\n",
                 last_r
             );
-            route* this_r = (last_r ? last_r : rt)->r;
+            route *this_r = (last_r ? last_r : rt)->r;
             last_r = this_r;
 
-            PyObject* unicode = PyUnicode_FromString(token);
-            if (!unicode) {
+            PyObject *unicode = PyUnicode_FromString(token);
+            if (!unicode)
+            {
                 for (int i = 0; i < *size; i++)
                     Py_DECREF(params[i]);
 
@@ -145,7 +155,7 @@ int extract_parts(
 
             params = realloc(
                 params,
-                (++(*size)) * sizeof(PyObject*)
+                (++(*size)) * sizeof(PyObject *)
             );
             params[*size - 1] = unicode;
             if (this_r->routes) target = this_r->routes;
@@ -160,22 +170,26 @@ int extract_parts(
         );
         PyMem_Free(s);
 
-        if (!rt) {
+        if (!rt)
+        {
             // the route doesnt exist!
             for (int i = 0; i < *size; i++)
                 Py_DECREF(params[i]);
 
             PyMem_Free(params);
-            if (fire_error(
-                self,
-                awaitable,
-                404,
-                NULL,
-                NULL,
-                NULL,
-                method_str,
-                true
-                ) < 0) {
+            if (
+                fire_error(
+                    self,
+                    awaitable,
+                    404,
+                    NULL,
+                    NULL,
+                    NULL,
+                    method_str,
+                    true
+                ) < 0
+            )
+            {
                 Py_DECREF(awaitable);
                 return -1;
             }
@@ -187,27 +201,32 @@ int extract_parts(
     }
 
     bool failed = false;
-    route* r = rt->r;
-    if (r && !r->callable) {
+    route *r = rt->r;
+    if (r && !r->callable)
+    {
         r = r->r; // edge case
         if (!r) failed = true;
     } else if (!r) failed = true;
 
-    if (failed) {
+    if (failed)
+    {
         for (int i = 0; i < *size; i++)
             Py_DECREF(params[i]);
 
         PyMem_Free(params);
-        if (fire_error(
-            self,
-            awaitable,
-            404,
-            NULL,
-            NULL,
-            NULL,
-            method_str,
-            true
-            ) < 0) {
+        if (
+            fire_error(
+                self,
+                awaitable,
+                404,
+                NULL,
+                NULL,
+                NULL,
+                method_str,
+                true
+            ) < 0
+        )
+        {
             return -1;
         }
 
@@ -220,19 +239,22 @@ int extract_parts(
  *
  * Private API - subject to change.
  */
-int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
+int
+load_parts(ViewApp *app, map *routes, PyObject *parts, route *r)
+{
     /*
      * This is a one-time cost, so performance is not super important
      * in this function.
      */
-    PyObject* iter = PyObject_GetIter(parts);
+    PyObject *iter = PyObject_GetIter(parts);
     if (!iter) return -1;
 
-    PyObject* item;
-    map* target = routes;
-    route* rt = NULL;
+    PyObject *item;
+    map *target = routes;
+    route *rt = NULL;
     Py_ssize_t size = PySequence_Size(parts);
-    if (size == -1) {
+    if (size == -1)
+    {
         Py_DECREF(iter);
         return -1;
     }
@@ -240,28 +262,37 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
     Py_ssize_t index = 0;
     bool set_r = false;
 
-    while ((item = PyIter_Next(iter))) {
+    while ((item = PyIter_Next(iter)))
+    {
         ++index;
 
-        if (PyUnicode_CheckExact(
-            item
-            )) {
+        if (
+            PyUnicode_CheckExact(
+                item
+            )
+        )
+        {
             // path part
-            const char* str = PyUnicode_AsUTF8(item);
-            if (!str) {
+            const char *str = PyUnicode_AsUTF8(item);
+            if (!str)
+            {
                 Py_DECREF(iter);
                 return -1;
-            };
-            route* found = map_get(
+            }
+            ;
+            route *found = map_get(
                 target,
                 str
             );
-            route* transport = route_transport_new(NULL);
-            if (!transport) {
+            route *transport = route_transport_new(NULL);
+            if (!transport)
+            {
                 Py_DECREF(iter);
                 return -1;
-            };
-            if (!found) {
+            }
+            ;
+            if (!found)
+            {
                 map_set(
                     target,
                     str,
@@ -269,16 +300,21 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
                 );
                 transport->routes = TRANSPORT_MAP();
                 target = transport->routes;
-                if (!target) {
+                if (!target)
+                {
                     Py_DECREF(iter);
                     return -1;
-                };
-            } else {
+                }
+                ;
+            } else
+            {
                 if (!found->routes) found->routes = TRANSPORT_MAP();
-                if (!found->routes) {
+                if (!found->routes)
+                {
                     Py_DECREF(iter);
                     return -1;
-                };
+                }
+                ;
                 target = found->routes;
                 map_set(
                     target,
@@ -287,13 +323,16 @@ int load_parts(ViewApp* app, map* routes, PyObject* parts, route* r) {
                 );
             }
             rt = transport;
-        } else {
+        } else
+        {
             app->has_path_params = true;
             if (!rt) VIEW_FATAL("first path param was part");
-            if (index == size) {
+            if (index == size)
+            {
                 rt->r = r;
                 set_r = true;
-            } else {
+            } else
+            {
                 rt->r = route_transport_new(NULL);
                 rt = rt->r;
             }

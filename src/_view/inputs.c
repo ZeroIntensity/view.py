@@ -25,8 +25,13 @@
 #include <view/view.h> // VIEW_FATAL
 
 typedef struct _app_parsers app_parsers;
-typedef PyObject** (* parserfunc)(app_parsers*, const char*, PyObject*,
-                                  route_input**, Py_ssize_t);
+typedef PyObject **(* parserfunc)(
+    app_parsers *,
+    const char *,
+    PyObject *,
+    route_input **,
+    Py_ssize_t
+);
 
 /*
  * PyAwaitable callback - do not call manually!
@@ -38,58 +43,69 @@ typedef PyObject** (* parserfunc)(app_parsers*, const char*, PyObject*,
  * After the body has been received, the route is sent to
  * the handler.
  */
-int body_inc_buf(PyObject* awaitable, PyObject* result) {
-    PyObject* body = PyDict_GetItemString(
+int
+body_inc_buf(PyObject *awaitable, PyObject *result)
+{
+    PyObject *body = PyDict_GetItemString(
         result,
         "body"
     );
 
-    if (!body) {
+    if (!body)
+    {
         return PyErr_BadASGI();
     }
 
-    PyObject* more_body = PyDict_GetItemString(
+    PyObject *more_body = PyDict_GetItemString(
         result,
         "more_body"
     );
-    if (!more_body) {
+    if (!more_body)
+    {
         Py_DECREF(body);
         return PyErr_BadASGI();
     }
 
-    char* buf_inc;
+    char *buf_inc;
     Py_ssize_t buf_inc_size;
 
-    if (PyBytes_AsStringAndSize(
-        body,
-        &buf_inc,
-        &buf_inc_size
-        ) < 0) {
+    if (
+        PyBytes_AsStringAndSize(
+            body,
+            &buf_inc,
+            &buf_inc_size
+        ) < 0
+    )
+    {
         Py_DECREF(body);
         Py_DECREF(more_body);
         return -1;
     }
 
-    char* buf;
-    Py_ssize_t* size;
-    Py_ssize_t* used;
-    char* query;
+    char *buf;
+    Py_ssize_t *size;
+    Py_ssize_t *used;
+    char *query;
 
-    if (PyAwaitable_UnpackArbValues(
-        awaitable,
-        &buf,
-        &size,
-        &used,
-        &query
-        ) < 0) {
+    if (
+        PyAwaitable_UnpackArbValues(
+            awaitable,
+            &buf,
+            &size,
+            &used,
+            &query
+        ) < 0
+    )
+    {
         Py_DECREF(body);
         Py_DECREF(more_body);
         return -1;
     }
 
-    char* nbuf = buf;
+    char *nbuf = buf;
 
-    while (((*used) + buf_inc_size) > (*size)) {
+    while (((*used) + buf_inc_size) > (*size))
+    {
         // The buffer would overflow, we need to reallocate it
         *size *= 2;
         nbuf = PyMem_Realloc(
@@ -97,7 +113,8 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
             (*size)
         );
 
-        if (!nbuf) {
+        if (!nbuf)
+        {
             Py_DECREF(body);
             Py_DECREF(more_body);
             PyErr_NoMemory();
@@ -117,28 +134,35 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
         nbuf
     );
 
-    PyObject* aw;
-    PyObject* receive;
+    PyObject *aw;
+    PyObject *receive;
 
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        &aw,
-        &receive
-        ) < 0) {
+    if (
+        PyAwaitable_UnpackValues(
+            awaitable,
+            &aw,
+            &receive
+        ) < 0
+    )
+    {
         Py_DECREF(more_body);
         Py_DECREF(body);
         return -1;
     }
 
-    if (PyObject_IsTrue(more_body)) {
-        PyObject* receive_coro = PyObject_CallNoArgs(receive);
+    if (PyObject_IsTrue(more_body))
+    {
+        PyObject *receive_coro = PyObject_CallNoArgs(receive);
 
-        if (PyAwaitable_AddAwait(
-            awaitable,
-            receive_coro,
-            body_inc_buf,
-            NULL
-            ) < 0) {
+        if (
+            PyAwaitable_AddAwait(
+                awaitable,
+                receive_coro,
+                body_inc_buf,
+                NULL
+            ) < 0
+        )
+        {
             Py_DECREF(more_body);
             Py_DECREF(body);
             Py_DECREF(receive_coro);
@@ -148,17 +172,22 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
         }
 
         Py_DECREF(receive_coro);
-    } else {
-        if (handle_route_impl(
-            aw,
-            nbuf,
-            query
-            ) < 0) {
+    } else
+    {
+        if (
+            handle_route_impl(
+                aw,
+                nbuf,
+                query
+            ) < 0
+        )
+        {
             Py_DECREF(more_body);
             Py_DECREF(body);
             PyMem_Free(nbuf);
             return -1;
-        };
+        }
+        ;
     }
 
     Py_DECREF(more_body);
@@ -170,43 +199,50 @@ int body_inc_buf(PyObject* awaitable, PyObject* result) {
 /*
  * Call a route without parsing the body.
  */
-int handle_route_query(PyObject* awaitable, char* query) {
-    ViewApp* self;
-    route* r;
-    PyObject** path_params;
-    Py_ssize_t* size;
-    PyObject* scope;
-    PyObject* receive;
-    PyObject* send;
+int
+handle_route_query(PyObject *awaitable, char *query)
+{
+    ViewApp *self;
+    route *r;
+    PyObject **path_params;
+    Py_ssize_t *size;
+    PyObject *scope;
+    PyObject *receive;
+    PyObject *send;
 
-    if (PyAwaitable_UnpackValues(
-        awaitable,
-        &self,
-        &scope,
-        &receive,
-        &send,
-        NULL
-        ) < 0)
+    if (
+        PyAwaitable_UnpackValues(
+            awaitable,
+            &self,
+            &scope,
+            &receive,
+            &send,
+            NULL
+        ) < 0
+    )
         return -1;
 
-    const char* method_str;
+    const char *method_str;
 
-    if (PyAwaitable_UnpackArbValues(
-        awaitable,
-        NULL,
-        NULL,
-        NULL,
-        &method_str
+    if (
+        PyAwaitable_UnpackArbValues(
+            awaitable,
+            NULL,
+            NULL,
+            NULL,
+            &method_str
         ) <
-        0)
+        0
+    )
         return -1;
 
-    PyObject* query_obj = query_parser(
+    PyObject *query_obj = query_parser(
         &self->parsers,
         query
     );
 
-    if (!query_obj) {
+    if (!query_obj)
+    {
         PyErr_Clear();
         return server_err(
             self,
@@ -218,13 +254,16 @@ int handle_route_query(PyObject* awaitable, char* query) {
         );
     }
 
-    if (PyAwaitable_UnpackArbValues(
-        awaitable,
-        &r,
-        &path_params,
-        &size,
-        NULL
-        ) < 0) {
+    if (
+        PyAwaitable_UnpackArbValues(
+            awaitable,
+            &r,
+            &path_params,
+            &size,
+            NULL
+        ) < 0
+    )
+    {
         Py_DECREF(query_obj);
         return -1;
     }
@@ -233,26 +272,30 @@ int handle_route_query(PyObject* awaitable, char* query) {
 
     if (size == NULL)
         size = &fake_size;
-    PyObject** params = PyMem_Calloc(
+    PyObject **params = PyMem_Calloc(
         r->inputs_size,
-        sizeof(PyObject*)
+        sizeof(PyObject *)
     );
-    if (!params) {
+    if (!params)
+    {
         Py_DECREF(query_obj);
         return -1;
     }
     Py_ssize_t final_size = 0;
 
-    for (int i = 0; i < r->inputs_size; i++) {
-        if (r->inputs[i]->route_data) {
-            PyObject* data = build_data_input(
+    for (int i = 0; i < r->inputs_size; i++)
+    {
+        if (r->inputs[i]->route_data)
+        {
+            PyObject *data = build_data_input(
                 r->inputs[i]->route_data,
-                (PyObject*) self,
+                (PyObject *) self,
                 scope,
                 receive,
                 send
             );
-            if (!data) {
+            if (!data)
+            {
                 for (int i = 0; i < r->inputs_size; i++)
                     Py_XDECREF(params[i]);
 
@@ -266,13 +309,15 @@ int handle_route_query(PyObject* awaitable, char* query) {
             continue;
         }
 
-        PyObject* item = PyDict_GetItemString(
+        PyObject *item = PyDict_GetItemString(
             query_obj,
             r->inputs[i]->name
         );
 
-        if (!item) {
-            if (r->inputs[i]->df) {
+        if (!item)
+        {
+            if (r->inputs[i]->df)
+            {
                 params[i] = r->inputs[i]->df;
                 ++final_size;
                 continue;
@@ -295,15 +340,17 @@ int handle_route_query(PyObject* awaitable, char* query) {
             );
         } else ++final_size;
 
-        if (item) {
-            PyObject* parsed_item = cast_from_typecodes(
+        if (item)
+        {
+            PyObject *parsed_item = cast_from_typecodes(
                 r->inputs[i]->types,
                 r->inputs[i]->types_size,
                 item,
                 self->parsers.json,
                 true
             );
-            if (!parsed_item) {
+            if (!parsed_item)
+            {
                 PyErr_Clear();
                 for (int i = 0; i < r->inputs_size; i++)
                     Py_XDECREF(params[i]);
@@ -325,12 +372,13 @@ int handle_route_query(PyObject* awaitable, char* query) {
         }
     }
 
-    PyObject** merged = PyMem_Calloc(
+    PyObject **merged = PyMem_Calloc(
         final_size + (*size),
-        sizeof(PyObject*)
+        sizeof(PyObject *)
     );
 
-    if (!merged) {
+    if (!merged)
+    {
         PyErr_NoMemory();
         return -1;
     }
@@ -341,7 +389,7 @@ int handle_route_query(PyObject* awaitable, char* query) {
     for (int i = 0; i < final_size; i++)
         merged[*size + i] = params[i];
 
-    PyObject* coro = PyObject_Vectorcall(
+    PyObject *coro = PyObject_Vectorcall(
         r->callable,
         merged,
         *size + final_size,
@@ -358,12 +406,15 @@ int handle_route_query(PyObject* awaitable, char* query) {
     if (!coro)
         return -1;
 
-    if (PyAwaitable_AddAwait(
-        awaitable,
-        coro,
-        r->is_http ? handle_route_callback : handle_route_websocket,
-        route_error
-        ) < 0) {
+    if (
+        PyAwaitable_AddAwait(
+            awaitable,
+            coro,
+            r->is_http ? handle_route_callback : handle_route_websocket,
+            route_error
+        ) < 0
+    )
+    {
         Py_DECREF(coro);
         return -1;
     }
@@ -375,18 +426,20 @@ int handle_route_query(PyObject* awaitable, char* query) {
 /*
  * Parse a query string into a Python dictionary.
  */
-PyObject* query_parser(
-    app_parsers* parsers,
-    const char* data
-) {
-    PyObject* py_str = PyUnicode_FromString(data);
+PyObject *
+query_parser(
+    app_parsers *parsers,
+    const char *data
+)
+{
+    PyObject *py_str = PyUnicode_FromString(data);
 
     if (!py_str)
         return NULL;
 
-    PyObject* obj = PyObject_Vectorcall(
+    PyObject *obj = PyObject_Vectorcall(
         parsers->query,
-        (PyObject*[]) { py_str },
+        (PyObject *[]) { py_str },
         1,
         NULL
     );
@@ -395,20 +448,25 @@ PyObject* query_parser(
     return obj; // no need for null check
 }
 
-PyObject* build_data_input(
+PyObject *
+build_data_input(
     int num,
-    PyObject* app,
-    PyObject* scope,
-    PyObject* receive,
-    PyObject* send
-) {
-    switch (num) {
-    case 1: return context_from_data(app, scope);
-    case 2: return ws_from_data(
-        scope,
-        send,
-        receive
-    );
+    PyObject *app,
+    PyObject *scope,
+    PyObject *receive,
+    PyObject *send
+)
+{
+    switch (num)
+    {
+    case 1:
+        return context_from_data(app, scope);
+    case 2:
+        return ws_from_data(
+            scope,
+            send,
+            receive
+        );
 
     default:
         VIEW_FATAL("got invalid route data number");
@@ -416,18 +474,20 @@ PyObject* build_data_input(
     return NULL; // to make editor happy
 }
 
-static PyObject* parse_body(
-    const char* data,
-    app_parsers* parsers,
-    PyObject* scope
-) {
-    PyObject* py_str = PyUnicode_FromString(data);
+static PyObject *
+parse_body(
+    const char *data,
+    app_parsers *parsers,
+    PyObject *scope
+)
+{
+    PyObject *py_str = PyUnicode_FromString(data);
     if (!py_str)
         return NULL;
 
-    PyObject* obj = PyObject_Vectorcall(
+    PyObject *obj = PyObject_Vectorcall(
         parsers->json,
-        (PyObject*[]) { py_str },
+        (PyObject *[]) { py_str },
         1,
         NULL
     );
@@ -436,42 +496,48 @@ static PyObject* parse_body(
     return obj;
 }
 
-PyObject** generate_params(
-    ViewApp* app,
-    app_parsers* parsers,
-    const char* data,
-    PyObject* query,
-    route_input** inputs,
+PyObject **
+generate_params(
+    ViewApp *app,
+    app_parsers *parsers,
+    const char *data,
+    PyObject *query,
+    route_input **inputs,
     Py_ssize_t inputs_size,
-    PyObject* scope,
-    PyObject* receive,
-    PyObject* send
-) {
-    PyObject* obj = parse_body(data, parsers, scope);
+    PyObject *scope,
+    PyObject *receive,
+    PyObject *send
+)
+{
+    PyObject *obj = parse_body(data, parsers, scope);
     if (!obj)
         return NULL;
 
-    PyObject** ob = PyMem_Calloc(
+    PyObject **ob = PyMem_Calloc(
         inputs_size,
-        sizeof(PyObject*)
+        sizeof(PyObject *)
     );
 
-    if (!ob) {
+    if (!ob)
+    {
         Py_DECREF(obj);
         return NULL;
     }
 
-    for (int i = 0; i < inputs_size; i++) {
-        route_input* inp = inputs[i];
-        if (inp->route_data) {
-            PyObject* data = build_data_input(
+    for (int i = 0; i < inputs_size; i++)
+    {
+        route_input *inp = inputs[i];
+        if (inp->route_data)
+        {
+            PyObject *data = build_data_input(
                 inp->route_data,
                 scope,
                 receive,
                 send,
-                (PyObject*) app
+                (PyObject *) app
             );
-            if (!data) {
+            if (!data)
+            {
                 Py_DECREF(obj);
                 PyMem_Free(ob);
                 return NULL;
@@ -481,11 +547,11 @@ PyObject** generate_params(
             continue;
         }
 
-        PyObject* raw_item = PyDict_GetItemString(
+        PyObject *raw_item = PyDict_GetItemString(
             inp->is_body ? obj : query,
             inp->name
         );
-        PyObject* item = cast_from_typecodes(
+        PyObject *item = cast_from_typecodes(
             inp->types,
             inp->types_size,
             raw_item,
@@ -493,20 +559,23 @@ PyObject** generate_params(
             true
         );
 
-        if (!item) {
+        if (!item)
+        {
             Py_DECREF(obj);
             PyMem_Free(ob);
             return NULL;
         }
 
-        for (int x = 0; x < inp->validators_size; x++) {
-            PyObject* o = PyObject_Vectorcall(
+        for (int x = 0; x < inp->validators_size; x++)
+        {
+            PyObject *o = PyObject_Vectorcall(
                 inp->validators[x],
-                (PyObject*[]) { item },
+                (PyObject *[]) { item },
                 1,
                 NULL
             );
-            if (!PyObject_IsTrue(o)) {
+            if (!PyObject_IsTrue(o))
+            {
                 Py_DECREF(o);
                 PyMem_Free(ob);
                 Py_DECREF(obj);
