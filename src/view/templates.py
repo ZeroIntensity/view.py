@@ -295,7 +295,6 @@ async def render(
     else:
         raise InvalidTemplateError(f"{engine!r} is not a supported template engine")
 
-
 async def template(
     name: str | Path,
     directory: str | Path | None = _ConfigSpecified,

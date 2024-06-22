@@ -142,6 +142,11 @@ static PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+static struct PyModuleDef_Slot module_slots[] = {
+    {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+    {0, NULL}
+};
+
 static struct PyModuleDef module = {
     PyModuleDef_HEAD_INIT,
     "_view",
@@ -149,11 +154,7 @@ static struct PyModuleDef module = {
     -1,
     methods,
     #if PY_MINOR_VERSION >= 12
-    {
-        {Py_mod_multiple_interpreters,
-         Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
-        {0, NULL}
-    }
+    .m_slots = module_slots
     #endif
 };
 

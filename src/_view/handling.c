@@ -294,7 +294,7 @@ int handle_route_callback(
         "__view_result__"
     );
     if (view_result) {
-        PyObject* context = context_from_data((PyObject*)self, scope);
+        PyObject* context = context_from_data((PyObject*) self, scope);
         if (!context) {
             Py_DECREF(view_result);
             return -1;
@@ -364,17 +364,18 @@ int handle_route_callback(
         "status",
         status,
         "headers",
-        headers);
+        headers
+    );
 
     if (!dc)
         return -1;
 
     PyObject* coro = PyObject_Vectorcall(
         send,
-        (PyObject*[]){dc},
+        (PyObject*[]) { dc },
         1,
-        NULL);
-
+        NULL
+    );
     Py_DECREF(dc);
 
     if (!coro)
@@ -382,8 +383,8 @@ int handle_route_callback(
 
     if (PyAwaitable_AWAIT(
         awaitable,
-        coro) < 0)
-    {
+        coro
+        ) < 0) {
         Py_DECREF(coro);
         return -1;
     };
@@ -394,16 +395,18 @@ int handle_route_callback(
         "type",
         "http.response.body",
         "body",
-        res_str);
+        res_str
+    );
 
     if (!dct)
         return -1;
 
     coro = PyObject_Vectorcall(
         send,
-        (PyObject*[]){dct},
+        (PyObject*[]) { dct },
         1,
-        NULL);
+        NULL
+    );
 
     Py_DECREF(dct);
     if (r->cache_rate <= 0)
@@ -413,8 +416,8 @@ int handle_route_callback(
 
     if (PyAwaitable_AWAIT(
         awaitable,
-        coro) < 0)
-    {
+        coro
+        ) < 0) {
         Py_DECREF(coro);
         return -1;
     }
@@ -434,8 +437,7 @@ int send_raw_text(
     PyObject* coro;
     PyObject* send_dict;
 
-    if (!headers)
-    {
+    if (!headers) {
         send_dict = Py_BuildValue(
             "{s:s,s:i,s:[[y,y]]}",
             "type",
@@ -454,9 +456,7 @@ int send_raw_text(
             (PyObject*[]){send_dict},
             1,
             NULL);
-    }
-    else
-    {
+    } else {
         send_dict = Py_BuildValue(
             "{s:s,s:i,s:O}",
             "type",
@@ -511,8 +511,8 @@ int send_raw_text(
 
     if (PyAwaitable_AWAIT(
         awaitable,
-        coro) < 0)
-    {
+        coro
+        ) < 0) {
         Py_DECREF(coro);
         return -1;
     }

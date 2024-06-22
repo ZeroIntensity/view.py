@@ -14,12 +14,9 @@ from typing_extensions import Self
 
 from _view import ViewWebSocket
 
-from ._logging import Service
-from .exceptions import (
-    WebSocketDisconnectError,
-    WebSocketExpectError,
-    WebSocketHandshakeError,
-)
+from ._logging import Internal, Service
+from .exceptions import (WebSocketDisconnectError, WebSocketExpectError,
+                         WebSocketHandshakeError)
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -91,6 +88,7 @@ class WebSocket:
                 "cannot receive from connection that is not open"
             )
         res: str = await self._socket.receive()
+        Internal.debug(f"received from socket: {res}")
 
         if res is None:
             raise WebSocketDisconnectError("socket disconnected")
@@ -141,6 +139,7 @@ class WebSocket:
                 await ws.send("Hello from the other side")
             ```
         """
+        Internal.debug(f"sending to websocket: {message}")
         if not self.open:
             raise WebSocketHandshakeError("cannot send to connection that is not open")
         if isinstance(message, (str, bytes)):

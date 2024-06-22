@@ -210,7 +210,7 @@ static int handle_result_impl(
             return 0;
         }
 
-        if (PyDict_CheckExact(third)) {
+        if (!PyDict_CheckExact(third)) {
             PyErr_Format(PyExc_TypeError,
                 "expected third value of response to be a dict, got %R",
                 third);

@@ -663,10 +663,12 @@ class LogPanel(Panel):
         console: Console,
         options: ConsoleOptions,
     ) -> RenderResult:
-        height = options.max_height
-        width = options.max_width
+        height = options.height
+        assert height is not None
 
-        while height < len(self._lines):
+        width = options.max_width - 2  # 2 panel characters
+
+        while height < (len(self._lines)):
             self._lines.pop(0)
             self._line_index -= 1
 
@@ -676,7 +678,7 @@ class LogPanel(Panel):
             if len(i) < (width - 3):  # - 3 because the ellipsis
                 final_lines.append(i)
             else:
-                final_lines.append(f"{i[:width - 7]}...")
+                final_lines.append(f"{i[:width - 3]}...")
 
         self.renderable = "\n".join(final_lines)
 

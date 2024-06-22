@@ -17,15 +17,9 @@ import aiofiles
 import ujson
 from typing_extensions import final
 
-from .components import DOMNode
 from .exceptions import InvalidResultError
-from .typing import (
-    BodyTranslateStrategy,
-    MaybeAwaitable,
-    SameSite,
-    SupportsViewResult,
-    ViewResult,
-)
+from .typing import (BodyTranslateStrategy, MaybeAwaitable, SameSite,
+                     SupportsViewResult, ViewResult)
 from .util import call_result, timestamp
 
 if TYPE_CHECKING:
@@ -48,7 +42,7 @@ __all__ = (
 )
 
 _Find = None
-HTMLContent = Union[TextIO, str, Path, DOMNode]
+HTMLContent = Union[TextIO, str, Path]
 
 
 class Response(Generic[T]):
@@ -233,7 +227,7 @@ class HTML(Response[HTMLContent]):
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
-            body, status, headers, body_translate="custom", content_type="text/html"
+            body, status, headers, body_translate="custom", content_type="text/html",
         )
 
     def translate_body(self, body: HTMLContent) -> str:
@@ -243,14 +237,12 @@ class HTML(Response[HTMLContent]):
             parsed_body = body.read_text()
         elif isinstance(body, str):
             parsed_body = body
-        elif isinstance(body, DOMNode):
-            parsed_body = body.data
         else:
             try:
                 parsed_body = body.read()
             except AttributeError:
                 raise TypeError(
-                    f"expected TextIO, str, Path, or DOMNode, not {type(body)}",  # noqa
+                    f"expected TextIO, str, Path, not {type(body)}",  # noqa
                 ) from None
 
         return parsed_body
@@ -320,8 +312,7 @@ async def _reactpy_bootstrap(self: Component, ctx: Context) -> ViewResult:
         )
     ) as layout:
         # this is especially ugly, but reactpy renders
-        # the first few nodes as nothing
-        # for whatever reason.
+        # the first few nodes as nothing for whatever reason.
         vdom: VdomJson = (await layout.render())["model"]["children"][0]["children"][0][
             "children"
         ][0]
@@ -347,6 +338,8 @@ async def _reactpy_bootstrap(self: Component, ctx: Context) -> ViewResult:
         "./client/dist/index.html",
         directory=Path("./"),
         engine="view",
+        prerender_head=prerender_head,
+        prerender_body=prerender_body,
     )
 
 
