@@ -1,7 +1,7 @@
 <div align="center">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ZeroIntensity/view.py/name-in-readme/assets/logo_theme_dark.png" alt="view.py logo (dark)"  width=250 height=auto>
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ZeroIntensity/view.py/name-in-readme/assets/logo_theme_light.png" alt="view.py logo (light)"  width=250 height=auto>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ZeroIntensity/view.py/name-in-readme/assets/logo_theme_dark.png" alt="view.py logo (dark)"  width=500 height=auto>
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ZeroIntensity/view.py/name-in-readme/assets/logo_theme_light.png" alt="view.py logo (light)"  width=500 height=auto>
       <img alt="view.py logo">
     </picture>
 </div>
