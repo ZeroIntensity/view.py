@@ -1,4 +1,10 @@
-<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/view_logo.png" alt="view.py logo" width=250 height=auto /></div>
+<div align="center">
+    <img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/view_logo.png" alt="view.py logo" width=250 height=auto />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/logo_theme_dark.png" alt="view.py logo (dark)">
+      <source media="(prefers-color-scheme: light)" src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/logo_theme_light.png" alt="view.py logo (light)">
+    </picture>
+</div>
 
 <div align="center"><h2>The Batteries-Detachable Web Framework</h2></div>
 
