@@ -270,12 +270,14 @@ handle_result_impl(
             PyTuple_SET_ITEM(header, 1, Py_NewRef(value));
 
             // this steals the reference, no need to decref
-            PyTuple_SET_ITEM(header_tup, pos, header);
+            PyTuple_SET_ITEM(header_tup, pos - 1, header);
         }
 
-        *headers_target = header_tup;
+
         *res_target = res_str;
         *status_target = status;
+        *headers_target = header_tup;
+        return 0;
     }
 
     *res_target = res_str;
@@ -324,6 +326,7 @@ handle_result(
         status_target,
         headers_target
     );
+
     if (res < 0)
         return -1;
     if (!route_log) return res;
@@ -338,12 +341,12 @@ handle_result(
     if (!args)
         return -1;
 
-
     PyObject *result = PyObject_Call(
         route_log,
         args,
         NULL
     );
+
     if (!result)
     {
         Py_DECREF(args);
