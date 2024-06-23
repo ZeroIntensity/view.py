@@ -9,6 +9,7 @@
 #include <view/headerdict.h>
 #include <view/results.h> // pymem_strdup
 #include <view/view.h> // COLD
+#define MAX_COOKIE_LENGTH 256
 
 typedef struct
 {
@@ -273,45 +274,104 @@ headerdict_from_list(PyObject *list, PyObject *cookies)
             return NULL;
         }
 
-        if (!strcmp(key_str, "cookie") && cookies)
+        if (cookies && !strcmp(key_str, "cookie"))
         {
             // It's a cookie
-            PyObject *sep = PyUnicode_FromStringAndSize("=", 1);
-            if (!sep)
+            // Value Format: key=value; key=value; ...
+            char *value_const_str;
+            Py_ssize_t value_size;
+
+            if (
+                PyBytes_AsStringAndSize(
+                    value,
+                    &value_const_str,
+                    &value_size
+                ) < 0
+            )
             {
+
                 PyMem_Free(key_str);
                 Py_DECREF(hd);
                 return NULL;
             }
 
-            PyObject *key_str_obj = PyUnicode_FromEncodedObject(
-                key,
-                "utf8",
-                "strict"
-            );
-            PyObject *parts = PyUnicode_Partition(key_str_obj, sep);
-            Py_DECREF(sep);
-            Py_DECREF(key_str_obj);
-            if (!parts)
+            char cookie_key_buf[MAX_COOKIE_LENGTH] = "";
+            char cookie_value_buf[MAX_COOKIE_LENGTH] = "";
+            char *buf = cookie_key_buf;
+
+            Py_ssize_t loc = 0;
+
+            // Using value_size + 1 as we want to include the NULL terminator
+            for (Py_ssize_t i = 0; i < (value_size + 1); ++i)
             {
+                char c = value_const_str[i];
+                buf[loc++] = c;
+                if (loc == MAX_COOKIE_LENGTH)
+                {
+                    PyErr_SetString(
+                        PyExc_SystemError,
+                        "client cookie is too long"
+                    );
+                    PyMem_Free(key_str);
+                    Py_DECREF(hd);
+                    return NULL;
+                }
+
+                if ((c == '=') && (buf == cookie_key_buf))
+                {
+                    buf[loc - 1] = '\0';
+                    buf = cookie_value_buf;
+                    loc = 0;
+                    continue;
+                }
+
+                if ((c == ';' || c == '\0') && (buf == cookie_value_buf))
+                {
+                    ++i; // Skip the trailing space
+                    buf[loc - 1] = '\0';
+                    PyObject *cookie_value_obj =
+                        PyUnicode_FromStringAndSize(cookie_value_buf, loc);
+
+                    if (!cookie_value_obj)
+                    {
+                        PyMem_Free(key_str);
+                        Py_DECREF(hd);
+                        return NULL;
+                    }
+
+                    if (
+                        PyDict_SetItemString(
+                            cookies,
+                            cookie_key_buf,
+                            cookie_value_obj
+                        ) < 0
+                    )
+                    {
+                        Py_DECREF(cookie_value_obj);
+                        PyMem_Free(key_str);
+                        Py_DECREF(hd);
+                        return NULL;
+                    }
+
+                    Py_DECREF(cookie_value_obj);
+
+                    buf = cookie_key_buf;
+                    loc = 0;
+                    continue;
+                }
+            }
+
+            if (loc != 0)
+            {
+                PyErr_Format(
+                    PyExc_SystemError,
+                    "problem in cookie parsing: expected loc to be 0, got %ld",
+                    loc
+                );
                 PyMem_Free(key_str);
                 Py_DECREF(hd);
                 return NULL;
-
             }
-
-            PyObject *cookie_key = PyTuple_GET_ITEM(parts, 0);
-            PyObject *cookie_value = PyTuple_GET_ITEM(parts, 2);
-
-            if (PyDict_SetItem(cookies, cookie_key, cookie_value) < 0)
-            {
-                Py_DECREF(parts);
-                PyMem_Free(key_str);
-                Py_DECREF(hd);
-                return NULL;
-            }
-
-            Py_DECREF(parts);
         }
 
         header_item *item = header_item_new(value_str);

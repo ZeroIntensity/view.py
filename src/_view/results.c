@@ -223,7 +223,7 @@ handle_result_impl(
             return 0;
         }
 
-        if (PyList_CheckExact(third))
+        if (PyList_CheckExact(third) || PyTuple_CheckExact(third))
         {
             /*
              * Undocumented because I don't want the user to touch it!

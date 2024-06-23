@@ -36,22 +36,24 @@
 
 #define STR_TO_OBJECT(str) PyUnicode_FromStringAndSize(str, sizeof(str))
 
-typedef struct {
+typedef struct
+{
     PyObject_HEAD
-    PyObject* app;
-    PyObject* scheme;
-    PyObject* headers;
-    PyObject* cookies;
-    PyObject* http_version;
-    PyObject* client;
-    PyObject* client_port;
-    PyObject* server;
-    PyObject* server_port;
-    PyObject* method;
-    PyObject* path;
+    PyObject *app;
+    PyObject *scheme;
+    PyObject *headers;
+    PyObject *cookies;
+    PyObject *http_version;
+    PyObject *client;
+    PyObject *client_port;
+    PyObject *server;
+    PyObject *server_port;
+    PyObject *method;
+    PyObject *path;
 } Context;
 
-static PyMemberDef members[] = {
+static PyMemberDef members[] =
+{
     {"app", T_OBJECT_EX, offsetof(Context, app), 0, NULL},
     {"scheme", T_OBJECT_EX, offsetof(Context, scheme), 0, NULL},
     {"headers", T_OBJECT_EX, offsetof(Context, headers), 0, NULL},
@@ -70,8 +72,10 @@ static PyMemberDef members[] = {
  * Python __repr__ for Context()
  * As of now, this is just a really long format string.
  */
-static PyObject* repr(PyObject* self) {
-    Context* ctx = (Context*) self;
+static PyObject *
+repr(PyObject *self)
+{
+    Context *ctx = (Context *) self;
     return PyUnicode_FromFormat(
         "Context(app=..., scheme=%R, headers=%R, cookies=%R, http_version=%R, client=%R, client_port=%R, server=%R, server_port=%R, method=%R, path=%R)",
         ctx->scheme,
@@ -88,7 +92,9 @@ static PyObject* repr(PyObject* self) {
 }
 
 /* The Context Deallocator */
-static void dealloc(Context* self) {
+static void
+dealloc(Context *self)
+{
     Py_XDECREF(self->app);
     Py_XDECREF(self->scheme);
     Py_XDECREF(self->headers);
@@ -100,7 +106,7 @@ static void dealloc(Context* self) {
     Py_XDECREF(self->server_port);
     Py_XDECREF(self->method);
     Py_XDECREF(self->path);
-    Py_TYPE(self)->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
 /*
@@ -112,19 +118,21 @@ static void dealloc(Context* self) {
  * Again, only the *attributes* for Context() are considered public.
  * This can change at any time!
  */
-static PyObject* Context_new(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs
-) {
-    Context* self = (Context*) type->tp_alloc(
+static PyObject *
+Context_new(
+    PyTypeObject *type,
+    PyObject *args,
+    PyObject *kwargs
+)
+{
+    Context *self = (Context *) type->tp_alloc(
         type,
         0
     );
     if (!self)
         return NULL;
 
-    return (PyObject*) self;
+    return (PyObject *) self;
 }
 
 /*
@@ -136,21 +144,24 @@ static PyObject* Context_new(
  *
  * Private API - no access from Python and unstable.
  */
-PyObject* context_from_data(PyObject* app, PyObject* scope) {
-    Context* context = (Context*) Context_new(
+PyObject *
+context_from_data(PyObject *app, PyObject *scope)
+{
+    Context *context = (Context *) Context_new(
         &ContextType,
         NULL,
         NULL
     );
-    PyObject* scheme;
-    PyObject* http_version;
-    PyObject* method;
-    PyObject* path;
-    PyObject* header_list;
-    PyObject* client;
-    PyObject* server;
+    PyObject *scheme;
+    PyObject *http_version;
+    PyObject *method;
+    PyObject *path;
+    PyObject *header_list;
+    PyObject *client;
+    PyObject *server;
 
-    if (scope != NULL) {
+    if (scope != NULL)
+    {
         scheme = Py_XNewRef(
             PyDict_GetItemString(
                 scope,
@@ -187,7 +198,8 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
             scope,
             "server"
         ); // [host, port/None]
-    } else {
+    } else
+    {
         // Default values for a dummy context
         scheme = STR_TO_OBJECT("http");
         http_version = STR_TO_OBJECT("view_test");
@@ -198,8 +210,11 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         server = Py_BuildValue("[s]", "localhost");
     }
 
-    if (!scheme || !header_list || !http_version || !client || !server ||
-        !path || !method) {
+    if (
+        !scheme || !header_list || !http_version || !client || !server ||
+        !path || !method
+    )
+    {
         Py_XDECREF(scheme);
         Py_XDECREF(http_version);
         Py_XDECREF(path);
@@ -215,8 +230,10 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
     context->method = method;
     context->path = path;
 
-    if (client != Py_None) {
-        if (PyTuple_Size(client) != 2) {
+    if (client != Py_None)
+    {
+        if (PyTuple_Size(client) != 2)
+        {
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
@@ -233,7 +250,8 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
                 1
             )
         );
-        if (PyErr_Occurred()) {
+        if (PyErr_Occurred())
+        {
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
@@ -243,16 +261,17 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
             return NULL;
         }
 
-        PyObject* address = PyObject_Vectorcall(
+        PyObject *address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) {
+            (PyObject *[]) {
             PyTuple_GET_ITEM(client, 0)
         },
             1,
             NULL
         );
 
-        if (!address) {
+        if (!address)
+        {
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
@@ -265,8 +284,10 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         context->client = address;
     } else context->client = NULL;
 
-    if (server != Py_None) {
-        if (PyTuple_Size(server) != 2) {
+    if (server != Py_None)
+    {
+        if (PyTuple_Size(server) != 2)
+        {
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
@@ -285,9 +306,9 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
             )
         );
         // no idea what uncrustify is smoking but lets roll with it
-        PyObject* address = PyObject_Vectorcall(
+        PyObject *address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) {
+            (PyObject *[]) {
             PyTuple_GET_ITEM(
                 server,
                 0
@@ -296,7 +317,8 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
             1,
             NULL
         );
-        if (!address) {
+        if (!address)
+        {
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
@@ -309,9 +331,10 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         context->server = address;
     } else context->server = NULL;
 
-    PyObject* cookies = PyDict_New();
+    PyObject *cookies = PyDict_New();
 
-    if (!cookies) {
+    if (!cookies)
+    {
         Py_DECREF(context);
         Py_DECREF(context);
         Py_DECREF(client);
@@ -326,7 +349,8 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
 
     context->cookies = cookies;
     context->headers = headerdict_from_list(header_list, context->cookies);
-    if (!context->headers) {
+    if (!context->headers)
+    {
         Py_DECREF(context);
         Py_DECREF(context);
         Py_DECREF(client);
@@ -340,10 +364,11 @@ PyObject* context_from_data(PyObject* app, PyObject* scope) {
         return NULL;
     }
     context->app = Py_NewRef(app);
-    return (PyObject*) context;
+    return (PyObject *) context;
 }
 
-PyTypeObject ContextType = {
+PyTypeObject ContextType =
+{
     PyVarObject_HEAD_INIT(
         NULL,
         0

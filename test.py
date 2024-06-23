@@ -4,7 +4,7 @@ import logging
 from fishhook import hook
 from reactpy import component, html, use_state
 
-from src.view import HTML, enable_debug, new_app
+from src.view import HTML, enable_debug, new_app, Response
 from src.view.integrations import page
 import os
 
@@ -29,8 +29,9 @@ def wonderful():
 
 @app.get("/")
 async def index():
-    return "test", 200, {"a": "b"}
+    res = Response("test");
+    res.cookie("hello", "world")
+    res.cookie("goodbye", "test")
+    return res
 
-print(os.getpid())
 app.run()
-
