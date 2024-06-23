@@ -278,7 +278,6 @@ PyInit__view(void)
         return NULL;
     }
     Py_DECREF(ipaddress_mod);
-
     // We want python to manage this memory, so we have to put it on the module.
     // This won't be on the type stub, though.
     if (PyModule_AddObject(m, "ip_address", ip_address) < 0)

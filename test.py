@@ -6,6 +6,7 @@ from reactpy import component, html, use_state
 
 from src.view import HTML, enable_debug, new_app
 from src.view.integrations import page
+import os
 
 app = new_app()
 
@@ -30,4 +31,6 @@ def wonderful():
 async def index():
     return "test", 200, {"a": "b"}
 
+print(os.getpid())
 app.run()
+

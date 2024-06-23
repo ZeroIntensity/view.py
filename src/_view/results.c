@@ -45,10 +45,12 @@
  * Technically speaking, this is more or less a copy
  * of CPython's private _PyMem_Strdup function.
  */
-char* pymem_strdup(const char* c, Py_ssize_t size) {
-    char* buf = PyMem_Malloc(size + 1); // Length with null terminator
+char *
+pymem_strdup(const char *c, Py_ssize_t size)
+{
+    char *buf = PyMem_Malloc(size + 1); // Length with null terminator
     if (!buf)
-        return (char*) PyErr_NoMemory();
+        return (char *) PyErr_NoMemory();
     memcpy(buf, c, size + 1);
     return buf;
 }
@@ -62,21 +64,29 @@ char* pymem_strdup(const char* c, Py_ssize_t size) {
  * This uses pymem_strdup(), so strings returned by this function
  * should be deallocated via PyMem_Free()
  */
-static char* handle_response_body(PyObject* target) {
-    if (PyUnicode_CheckExact(target)) {
+static char *
+handle_response_body(PyObject *target)
+{
+    if (PyUnicode_CheckExact(target))
+    {
         Py_ssize_t size;
-        const char* tmp = PyUnicode_AsUTF8AndSize(target, &size);
+        const char *tmp = PyUnicode_AsUTF8AndSize(target, &size);
         if (!tmp) return NULL;
         return pymem_strdup(tmp, size);
-    } else if (PyBytes_CheckExact(target)) {
+    } else if (PyBytes_CheckExact(target))
+    {
         Py_ssize_t size;
-        char* tmp;
+        char *tmp;
         if (PyBytes_AsStringAndSize(target, &tmp, &size) < 0)
             return NULL;
         return pymem_strdup(tmp, size);
-    } else {
-        PyErr_Format(PyExc_TypeError,
-            "expected a str or bytes response body, got %R", target);
+    } else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected a str or bytes response body, got %R",
+            target
+        );
         return NULL;
     }
 }
@@ -89,26 +99,31 @@ static char* handle_response_body(PyObject* target) {
  * only be called once per program, by the module initialization
  * function. The result is stored globally as `default_headers`.
  */
-PyObject* build_default_headers() {
-    PyObject* tup = PyTuple_New(1);
+PyObject *
+build_default_headers()
+{
+    PyObject *tup = PyTuple_New(1);
     if (!tup)
         return NULL;
 
-    PyObject* content_type = PyTuple_New(2);
-    if (!content_type) {
+    PyObject *content_type = PyTuple_New(2);
+    if (!content_type)
+    {
         Py_DECREF(tup);
         return NULL;
     }
 
-    PyObject* key = PyBytes_FromString("content-type");
-    if (!key) {
+    PyObject *key = PyBytes_FromString("content-type");
+    if (!key)
+    {
         Py_DECREF(tup);
         Py_DECREF(content_type);
         return NULL;
     }
 
-    PyObject* val = PyBytes_FromString("text/plain");
-    if (!val) {
+    PyObject *val = PyBytes_FromString("text/plain");
+    if (!val)
+    {
         Py_DECREF(key);
         Py_DECREF(tup);
         Py_DECREF(content_type);
@@ -127,23 +142,27 @@ PyObject* build_default_headers() {
  * Unlike the exported handle_result(), this does not write to
  * the route log.
  */
-static int handle_result_impl(
-    PyObject* result,
-    char** res_target,
-    int* status_target,
-    PyObject** headers_target
-) {
-    char* res_str = NULL;
+static int
+handle_result_impl(
+    PyObject *result,
+    char **res_target,
+    int *status_target,
+    PyObject **headers_target
+)
+{
+    char *res_str = NULL;
     int status = 200;
     PyErr_Clear();
 
     res_str = handle_response_body(result);
-    if (!res_str) {
+    if (!res_str)
+    {
         if (!PyTuple_CheckExact(result))
             return -1;
 
         PyErr_Clear();
-        if (PySequence_Size(result) > 3) {
+        if (PySequence_Size(result) > 3)
+        {
             PyErr_SetString(
                 PyExc_TypeError,
                 "returned tuple should not exceed 3 elements"
@@ -151,15 +170,15 @@ static int handle_result_impl(
             return -1;
         }
 
-        PyObject* first = PyTuple_GetItem(
+        PyObject *first = PyTuple_GetItem(
             result,
             0
         );
-        PyObject* second = PyTuple_GetItem(
+        PyObject *second = PyTuple_GetItem(
             result,
             1
         );
-        PyObject* third = PyTuple_GetItem(
+        PyObject *third = PyTuple_GetItem(
             result,
             2
         );
@@ -169,7 +188,8 @@ static int handle_result_impl(
         if (!res_str)
             return -1;
 
-        if (!second) {
+        if (!second)
+        {
             // exit early
             *res_target = res_str;
             *status_target = 200;
@@ -177,20 +197,25 @@ static int handle_result_impl(
             return 0;
         }
 
-        if (!PyLong_CheckExact(second)) {
-            PyErr_Format(PyExc_TypeError,
+        if (!PyLong_CheckExact(second))
+        {
+            PyErr_Format(
+                PyExc_TypeError,
                 "expected second value of response to be an int, got %R",
-                second);
+                second
+            );
             return -1;
         }
 
         status = PyLong_AsLong(second);
-        if (status == -1) {
+        if (status == -1)
+        {
             PyMem_Free(res_str);
             return -1;
         }
 
-        if (!third) {
+        if (!third)
+        {
             // exit early
             *res_target = res_str;
             *status_target = status;
@@ -198,7 +223,8 @@ static int handle_result_impl(
             return 0;
         }
 
-        if (PyList_CheckExact(third)) {
+        if (PyList_CheckExact(third))
+        {
             /*
              * Undocumented because I don't want the user to touch it!
              * This is a way for a route to return a raw ASGI header list, which allows
@@ -210,26 +236,32 @@ static int handle_result_impl(
             return 0;
         }
 
-        if (!PyDict_CheckExact(third)) {
-            PyErr_Format(PyExc_TypeError,
+        if (!PyDict_CheckExact(third))
+        {
+            PyErr_Format(
+                PyExc_TypeError,
                 "expected third value of response to be a dict, got %R",
-                third);
+                third
+            );
             return -1;
         }
 
-        PyObject* header_tup = PyTuple_New(PyDict_GET_SIZE(third));
-        if (!header_tup) {
+        PyObject *header_tup = PyTuple_New(PyDict_GET_SIZE(third));
+        if (!header_tup)
+        {
             PyMem_Free(res_str);
             return -1;
         }
 
-        PyObject* key;
-        PyObject* value;
+        PyObject *key;
+        PyObject *value;
         Py_ssize_t pos = 0;
 
-        while (PyDict_Next(third, &pos, &key, &value)) {
-            PyObject* header = PyTuple_New(2);
-            if (!header) {
+        while (PyDict_Next(third, &pos, &key, &value))
+        {
+            PyObject *header = PyTuple_New(2);
+            if (!header)
+            {
                 PyMem_Free(res_str);
                 Py_DECREF(header_tup);
                 return -1;
@@ -270,14 +302,16 @@ static int handle_result_impl(
  * If this function fails, the caller is not responsible for
  * deallocating or managing references of any of the parameters.
  */
-int handle_result(
-    PyObject* raw_result,
-    char** res_target,
-    int* status_target,
-    PyObject** headers_target,
-    PyObject* raw_path,
-    const char* method
-) {
+int
+handle_result(
+    PyObject *raw_result,
+    char **res_target,
+    int *status_target,
+    PyObject **headers_target,
+    PyObject *raw_path,
+    const char *method
+)
+{
     /*
      * This calls handle_result_impl() internally, but
      * this function is the actual interface for handling a return value.
@@ -294,7 +328,7 @@ int handle_result(
         return -1;
     if (!route_log) return res;
 
-    PyObject* args = Py_BuildValue(
+    PyObject *args = Py_BuildValue(
         "(iOs)",
         *status_target,
         raw_path,
@@ -304,14 +338,19 @@ int handle_result(
     if (!args)
         return -1;
 
-    if (!PyObject_Call(
+
+    PyObject *result = PyObject_Call(
         route_log,
         args,
         NULL
-        )) {
+    );
+    if (!result)
+    {
         Py_DECREF(args);
         return -1;
     }
+
+    Py_DECREF(result);
     Py_DECREF(args);
 
     return res;
