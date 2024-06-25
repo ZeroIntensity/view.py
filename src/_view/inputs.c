@@ -14,12 +14,12 @@
 #include <Python.h>
 #include <stdbool.h> // true
 
-#include <view/awaitable.h>
 #include <view/app.h> // ViewApp
 #include <view/context.h> // context_from_data
 #include <view/errors.h>
 #include <view/inputs.h> // app_parsers
 #include <view/handling.h> // handle_route_impl
+#include <view/pyawaitable.h>
 #include <view/typecodes.h>
 #include <view/ws.h> // ws_from_data
 #include <view/view.h> // VIEW_FATAL

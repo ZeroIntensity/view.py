@@ -23,6 +23,7 @@ a.py
 # Logs
 *.log
 vgcore.*
+valgrind.txt
 
 # JavaScript
 node_modules/

@@ -24,9 +24,9 @@
 #include <signal.h>
 
 #include <view/app.h> // ViewAppType
-#include <view/awaitable.h> // PyAwaitable_Type, _PyAwaitable_GenWrapper_Type
 #include <view/context.h> // ContextType
 #include <view/headerdict.h> // HeaderDictType
+#include <view/pyawaitable.h> // _PyAwaitableType, _PyAwaitableGenWrapperType
 #include <view/results.h> // build_default_headers
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
@@ -185,8 +185,37 @@ dummy_context(PyObject *self, PyObject *app)
     return context_from_data(app, NULL);
 }
 
+static PyObject *
+test_awaitable(PyObject *self, PyObject *args)
+{
+    PyObject *func;
+    if (!PyArg_ParseTuple(args, "O", &func))
+        return NULL;
+
+    PyObject *res = PyObject_CallNoArgs(func);
+    if (!res)
+        return NULL;
+
+    PyObject *awaitable = PyAwaitable_New();
+    if (!awaitable)
+    {
+        Py_DECREF(res);
+        return NULL;
+    }
+
+    if (PyAwaitable_AWAIT(awaitable, res) < 0)
+    {
+        Py_DECREF(awaitable);
+        Py_DECREF(res);
+        return NULL;
+    }
+
+    return awaitable;
+}
+
 static PyMethodDef methods[] =
 {
+    {"test_awaitable", test_awaitable, METH_VARARGS, NULL},
     {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
     {"register_ws_cls", register_ws_cls, METH_VARARGS, NULL},
     {"dummy_context", dummy_context, METH_O, NULL},
@@ -239,9 +268,7 @@ PyInit__view(void)
         return NULL;
 
     if (
-        (PyType_Ready(&PyAwaitable_Type) < 0) ||
         (PyType_Ready(&ViewAppType) < 0) ||
-        (PyType_Ready(&_PyAwaitable_GenWrapper_Type) < 0) ||
         (PyType_Ready(&ContextType) < 0) ||
         (PyType_Ready(&TCPublicType) < 0) ||
         (PyType_Ready(&WebSocketType) < 0) ||
@@ -252,9 +279,7 @@ PyInit__view(void)
         return NULL;
     }
 
-    ADD_TYPE(&PyAwaitable_Type, "Awaitable");
     ADD_TYPE(&ViewAppType, "ViewApp");
-    ADD_TYPE(&_PyAwaitable_GenWrapper_Type, "_GenWrapper");
     ADD_TYPE(&ContextType, "Context");
     ADD_TYPE(&TCPublicType, "TCPublic");
     ADD_TYPE(&WebSocketType, "ViewWebSocket");
@@ -324,6 +349,12 @@ PyInit__view(void)
     {
         Py_DECREF(m);
         Py_DECREF(default_headers);
+        return NULL;
+    }
+
+    if (PyAwaitable_VendorInit(m) < 0)
+    {
+        Py_DECREF(m);
         return NULL;
     }
 

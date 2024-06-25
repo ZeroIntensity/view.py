@@ -4,10 +4,10 @@
 #include <stdbool.h> // bool
 
 #include <view/app.h> // ViewApp
-#include <view/awaitable.h>
 #include <view/backport.h>
 #include <view/errors.h>
 #include <view/handling.h> // send_raw_text
+#include <view/pyawaitable.h>
 #include <view/results.h> // handle_result
 #include <view/route.h> // route
 #include <view/view.h> // invalid_status_error
@@ -414,7 +414,6 @@ run_err_cb(
             )
         )
         {
-            PyErr_Print();
             Py_DECREF(args);
             return -1;
         }
@@ -671,12 +670,11 @@ server_err(
 int
 route_error(
     PyObject *awaitable,
-    PyObject *tp,
-    PyObject *value,
-    PyObject *tb
+    PyObject *err
 )
 {
-    if (tp == ws_disconnect_err)
+    PyErr_Print();
+    if (((PyObject *) Py_TYPE(err)) == ws_disconnect_err)
     {
         // the socket prematurely disconnected, let's complain about it
         #if PY_MINOR_VERSION < 9
@@ -706,7 +704,6 @@ route_error(
             Py_DECREF(message);
             return -2;
         }
-        ;
         #endif
 
         return 0;
@@ -748,17 +745,17 @@ route_error(
     if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
-    if (tp == self->error_type)
+    if (((PyObject *) Py_TYPE(err)) == self->error_type)
     {
         PyObject *status_obj = PyObject_GetAttrString(
-            value,
+            err,
             "status"
         );
         if (!status_obj)
             return -2;
 
         PyObject *msg_obj = PyObject_GetAttrString(
-            value,
+            err,
             "message"
         );
 
@@ -818,7 +815,7 @@ route_error(
         PyObject *send_dict;
         if (self->dev)
         {
-            PyObject *str = PyObject_Str(value);
+            PyObject *str = PyObject_Str(err);
             if (!str)
                 return -1;
 
@@ -864,7 +861,7 @@ route_error(
         }
         Py_DECREF(coro);
 
-        PyErr_Restore(Py_NewRef(tp), Py_XNewRef(value), Py_XNewRef(tb));
+        PyErr_SetRaisedException(err);
         PyErr_Print();
 
         return 0;
@@ -877,7 +874,7 @@ route_error(
             500,
             r,
             &handler_was_called,
-            value,
+            err,
             method_str
         ) < 0
     )
@@ -887,11 +884,7 @@ route_error(
 
     if (!handler_was_called)
     {
-        PyErr_Restore(
-            tp,
-            value,
-            tb
-        );
+        PyErr_SetRaisedException(err);
         PyErr_Print();
     }
 

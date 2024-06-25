@@ -12,8 +12,7 @@ _PyObject_VectorcallBackport(
     PyObject *obj,
     PyObject **args,
     size_t nargsf,
-    PyObject *kwargs
-)
+    PyObject *kwargs)
 {
     PyObject *tuple = PyTuple_New(nargsf);
     if (!tuple)
@@ -43,10 +42,9 @@ PyErr_GetRaisedException(void)
     return val;
 }
 
-void
-PyErr_SetRaisedException(PyObject *err)
+void PyErr_SetRaisedException(PyObject *err)
 {
-    PyErr_Restore(err, NULL, NULL);
+    PyErr_Restore(Py_NewRef((PyObject *)Py_TYPE(err)), err, NULL);
 }
 
 #endif

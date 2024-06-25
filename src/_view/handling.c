@@ -9,12 +9,12 @@
 #include <stdbool.h> // bool
 
 #include <view/app.h> // ViewApp
-#include <view/awaitable.h>
 #include <view/backport.h>
 #include <view/context.h> // context_from_data
 #include <view/errors.h>  // route_error
 #include <view/handling.h>
 #include <view/inputs.h>  // route_input, body_inc_buf
+#include <view/pyawaitable.h>
 #include <view/results.h> // handle_result
 #include <view/view.h> // route_log
 
@@ -530,7 +530,7 @@ send_raw_text(
 
         coro = PyObject_Vectorcall(
             send,
-            (PyObject *[]){send_dict},
+            (PyObject *[]) { send_dict },
             1,
             NULL
         );
@@ -657,6 +657,13 @@ handle_route_websocket(PyObject *awaitable, PyObject *result)
         if (!args)
             return -1;
 
+        /*
+         * A lot of errors related to memory corruption are traced
+         * to here by debuggers.
+         *
+         * This is, more or less, a false positive! It's quite
+         * unlikely that the actual cause of the issue is here.
+         */
         if (
             !PyObject_Call(
                 route_log,

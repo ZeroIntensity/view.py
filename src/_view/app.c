@@ -33,13 +33,13 @@
 #include <signal.h>
 
 #include <view/app.h>
-#include <view/awaitable.h>
 #include <view/backport.h>
 #include <view/errors.h>
 #include <view/parts.h> // extract_parts, load_parts
 #include <view/results.h> // pymem_strdup
 #include <view/handling.h> // route_free, route_new, handle_route, handle_route_query
 #include <view/map.h>
+#include <view/pyawaitable.h>
 #include <view/view.h> // VIEW_FATAL
 
 #define LOAD_ROUTE(target)                        \
@@ -221,12 +221,12 @@ lifespan(PyObject *awaitable, PyObject *result)
     )
         return -1;
 
+    // Borrowed reference - do not DECREF
     PyObject *tp = PyDict_GetItemString(
         result,
         "type"
     );
     const char *type = PyUnicode_AsUTF8(tp);
-    Py_DECREF(tp);
 
     bool is_startup = !strcmp(
         type,
@@ -388,6 +388,7 @@ app(
     PyObject *receive = args[1];
     PyObject *send = args[2];
 
+    // Borrowed reference
     PyObject *tp = PyDict_GetItemString(
         scope,
         "type"
@@ -400,7 +401,6 @@ app(
     }
 
     const char *type = PyUnicode_AsUTF8(tp);
-    Py_DECREF(tp);
 
     PyObject *awaitable = PyAwaitable_New();
     if (!awaitable)

@@ -29,7 +29,7 @@
 #include <stddef.h> // offsetof
 
 #include <view/app.h> // PyErr_BadASGI
-#include <view/awaitable.h>
+#include <view/pyawaitable.h>
 #include <view/backport.h>
 #include <view/results.h> // handle_result
 #include <view/route.h> // route
@@ -314,9 +314,7 @@ run_ws_recv(PyObject *awaitable, PyObject *result)
 static int
 ws_err(
     PyObject *awaitable,
-    PyObject *tp,
-    PyObject *value,
-    PyObject *tb
+    PyObject *err
 )
 {
     /*
@@ -325,7 +323,7 @@ ws_err(
      * All this does is print the error and clear the error indicator, to
      * prevent the ASGI server from handling it weirdly.
      */
-    PyErr_Restore(tp, value, tb);
+    PyErr_SetRaisedException(err);
     PyErr_Print();
     PyErr_Clear();
     PyAwaitable_Cancel(awaitable);
