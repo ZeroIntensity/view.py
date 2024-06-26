@@ -12,7 +12,8 @@ _PyObject_VectorcallBackport(
     PyObject *obj,
     PyObject **args,
     size_t nargsf,
-    PyObject *kwargs)
+    PyObject *kwargs
+)
 {
     PyObject *tuple = PyTuple_New(nargsf);
     if (!tuple)
@@ -39,10 +40,12 @@ PyErr_GetRaisedException(void)
     Py_XDECREF(type);
     Py_XDECREF(tb);
     // technically some entry in the traceback might be lost; ignore that
+    assert(val != NULL);
     return val;
 }
 
-void PyErr_SetRaisedException(PyObject *err)
+void
+PyErr_SetRaisedException(PyObject *err)
 {
     PyErr_Restore(Py_NewRef((PyObject *)Py_TYPE(err)), err, NULL);
 }

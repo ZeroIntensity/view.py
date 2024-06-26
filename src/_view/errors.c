@@ -26,6 +26,22 @@
             );
 
 /*
+ * Print an error without clearing it.
+ */
+void
+show_error(bool dev)
+{
+    if (dev)
+    {
+        PyObject *err = PyErr_GetRaisedException();
+        Py_INCREF(err); // Save a reference to it
+        PyErr_SetRaisedException(err);
+        PyErr_Print();
+        PyErr_SetRaisedException(err);
+    } else PyErr_Clear();
+}
+
+/*
  * Mappings between error codes and their index.
  * 400 - 0
  * 401 - 1

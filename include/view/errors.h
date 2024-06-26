@@ -38,4 +38,7 @@ int load_errors(route *r, PyObject *dict);
 uint16_t hash_server_error(int status);
 uint16_t hash_client_error(int status);
 
+void
+show_error(bool dev);
+
 #endif

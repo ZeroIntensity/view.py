@@ -225,12 +225,19 @@ verify_list_typecodes(
             true
         );
 
+        // This is intentional, do not make this -1
         if (!item) return 1;
-        PyList_SET_ITEM(
-            list,
-            i,
-            item
-        );
+        if (
+            PyList_SetItem(
+                list,
+                i,
+                item
+            ) < 0
+        )
+        {
+            Py_DECREF(item);
+            return -1;
+        }
     }
 
     return 0;
@@ -282,6 +289,10 @@ cast_from_typecodes(
                 {
                     return Py_NewRef(item);
                 }
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Got non-string without casting enabled"
+                );
                 return NULL;
             }
             typecode_flags |= STRING_ALLOWED;
@@ -295,6 +306,10 @@ cast_from_typecodes(
                 {
                     return Py_NewRef(item);
                 }
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Got non-None without casting enabled"
+                );
                 return NULL;
             }
             typecode_flags |= NULL_ALLOWED;
@@ -309,7 +324,14 @@ cast_from_typecodes(
             )
             {
                 return Py_NewRef(item);
-            } else if (!allow_casting) return NULL;
+            } else if (!allow_casting)
+            {
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Got non-int without casting enabled"
+                );
+                return NULL;
+            }
 
             PyObject *py_int = PyLong_FromUnicodeObject(
                 item,
@@ -317,7 +339,6 @@ cast_from_typecodes(
             );
             if (!py_int)
             {
-                PyErr_Clear();
                 break;
             }
             return py_int;
@@ -329,10 +350,18 @@ cast_from_typecodes(
                     item
                 )
             ) return Py_NewRef(item);
-            else if (!allow_casting) return NULL;
+            else if (!allow_casting)
+            {
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Got non-bool without casting enabled"
+                );
+                return NULL;
+            }
             const char *str = PyUnicode_AsUTF8(item);
             PyObject *py_bool = NULL;
-            if (!str) return NULL;
+            if (!str)
+                return NULL;
             if (
                 strcmp(
                     str,
@@ -361,11 +390,17 @@ cast_from_typecodes(
                     item
                 )
             ) return Py_NewRef(item);
-            else if (!allow_casting) return NULL;
+            else if (!allow_casting)
+            {
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Got non-float without casting enabled"
+                );
+                return NULL;
+            }
             PyObject *flt = PyFloat_FromString(item);
             if (!flt)
             {
-                PyErr_Clear();
                 break;
             }
             return flt;
@@ -382,6 +417,10 @@ cast_from_typecodes(
                 obj = Py_NewRef(item);
             } else if (!allow_casting)
             {
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Got non-dict without casting enabled"
+                );
                 return NULL;
             } else
             {
@@ -394,7 +433,6 @@ cast_from_typecodes(
             }
             if (!obj)
             {
-                PyErr_Clear();
                 break;
             }
             int res = verify_dict_typecodes(
@@ -428,13 +466,19 @@ cast_from_typecodes(
                     )
                 )
                 {
+                    PyErr_Format(
+                        PyExc_ValueError,
+                        "Got non-%R instance without casting enabled",
+                        Py_TYPE(ti->ob)
+                    );
                     return NULL;
                 }
 
                 return Py_NewRef(item);
             }
             PyObject *kwargs = PyDict_New();
-            if (!kwargs) return NULL;
+            if (!kwargs)
+                return NULL;
             PyObject *obj;
             if (
                 PyDict_CheckExact(item) || Py_IS_TYPE(
@@ -456,7 +500,6 @@ cast_from_typecodes(
 
             if (!obj)
             {
-                PyErr_Clear();
                 Py_DECREF(kwargs);
                 break;
             }
@@ -479,10 +522,9 @@ cast_from_typecodes(
                             got_item = info->df;
                             if (PyCallable_Check(got_item))
                             {
-                                got_item = PyObject_CallNoArgs(got_item); // its a factory
+                                got_item = PyObject_CallNoArgs(got_item); // It's a factory
                                 if (!got_item)
                                 {
-                                    PyErr_Print();
                                     Py_DECREF(kwargs);
                                     Py_DECREF(obj);
                                     ok = false;
@@ -534,7 +576,6 @@ cast_from_typecodes(
                 ;
                 Py_DECREF(parsed_item);
             }
-            ;
 
             if (!ok) break;
 
@@ -559,7 +600,6 @@ cast_from_typecodes(
             Py_DECREF(kwargs);
             if (!built)
             {
-                PyErr_Print();
                 return NULL;
             }
 
@@ -588,7 +628,6 @@ cast_from_typecodes(
 
                 if (!list)
                 {
-                    PyErr_Clear();
                     break;
                 }
 
@@ -599,6 +638,11 @@ cast_from_typecodes(
                     )
                 )
                 {
+                    PyErr_Format(
+                        PyExc_TypeError,
+                        "Expected array, got %R",
+                        list
+                    );
                     break;
                 }
             }
@@ -635,10 +679,17 @@ cast_from_typecodes(
         }
         }
     }
+    PyObject *final_err = PyErr_GetRaisedException();
+
     if (
-        (CHECK(NULL_ALLOWED)) && (item == NULL || item ==
-                                  Py_None)
-    ) Py_RETURN_NONE;
+        (CHECK(NULL_ALLOWED)) &&
+        (item == NULL || item ==
+         Py_None)
+    )
+    {
+        Py_XDECREF(final_err);
+        Py_RETURN_NONE;
+    }
     if (CHECK(STRING_ALLOWED))
     {
         if (
@@ -647,9 +698,23 @@ cast_from_typecodes(
                 (PyObject *) &PyUnicode_Type
             )
         )
+        {
+            if (!final_err)
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "Expected string"
+                );
+            else
+                PyErr_SetRaisedException(final_err);
             return NULL;
+        }
+
+        Py_XDECREF(final_err);
         return Py_NewRef(item);
     }
+
+    assert(final_err != NULL);
+    PyErr_SetRaisedException(final_err);
     return NULL;
 }
 
@@ -1134,10 +1199,6 @@ cast_from_typecodes_public(PyObject *self, PyObject *args)
     );
     if (!res)
     {
-        PyErr_SetString(
-            PyExc_RuntimeError,
-            "cast_from_typecodes returned NULL"
-        );
         return NULL;
     }
 

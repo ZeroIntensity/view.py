@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Removed use of `escape()` in the message shown when a dependency is needed
 -   Query string client errors are now displayed during development mode
 -   `KeyboardInterrupt` is swallowed by the server coroutine, and a log message is now issued
+-   Typecode API now raises exceptions indicating a validation error (and now it's sent as a response with a query or body parse failure)
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous

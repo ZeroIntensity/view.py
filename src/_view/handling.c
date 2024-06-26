@@ -32,22 +32,6 @@
 #define INITIAL_BUF_SIZE 1024
 
 /*
- * Print an error without clearing it.
- */
-static void
-show_error(bool dev)
-{
-    if (dev)
-    {
-        PyObject *err = PyErr_GetRaisedException();
-        Py_INCREF(err); // Save a reference to it
-        PyErr_SetRaisedException(err);
-        PyErr_Print();
-        PyErr_SetRaisedException(err);
-    } else PyErr_Clear();
-}
-
-/*
  * Call a route object with both query and body parameters.
  */
 int

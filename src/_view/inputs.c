@@ -524,7 +524,9 @@ generate_params(
 {
     PyObject *obj = parse_body(data, parsers, scope);
     if (!obj)
+    {
         return NULL;
+    }
 
     PyObject **ob = PyMem_Calloc(
         inputs_size,
@@ -533,6 +535,7 @@ generate_params(
 
     if (!ob)
     {
+        PyErr_NoMemory();
         Py_DECREF(obj);
         return NULL;
     }
@@ -560,6 +563,7 @@ generate_params(
             continue;
         }
 
+        // Borrowed reference
         PyObject *raw_item = PyDict_GetItemString(
             inp->is_body ? obj : query,
             inp->name
@@ -574,6 +578,7 @@ generate_params(
 
         if (!item)
         {
+            assert(PyErr_Occurred());
             Py_DECREF(obj);
             PyMem_Free(ob);
             return NULL;
@@ -600,7 +605,6 @@ generate_params(
         ob[i] = item;
     }
 
-    // TODO: fix this reference leak
-    //Py_DECREF(obj);
+    Py_DECREF(obj);
     return ob;
 }
