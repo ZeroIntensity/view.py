@@ -1186,9 +1186,12 @@ class App(ViewApp):
         if (self.config.log.startup_message) and (not self.config.log.fancy):
             welcome()
 
+        if self.config.dev:
+            Service.warning("Development mode is enabled, do not expect high performance.")
+    
         async def subcoro():
             Service.info(
-                f"server running at http://{self.config.server.host}:{self.config.server.port} with backend {self.config.server.backend}"  # noqa
+                f"Server running at http://{self.config.server.host}:{self.config.server.port} with backend [bold green]{self.config.server.backend}[/]"  # noqa
             )
 
         await asyncio.gather(task, subcoro())
@@ -1219,7 +1222,12 @@ class App(ViewApp):
                 uvloop.install()
                 uvloop_enabled = True
 
-        start = start_target or asyncio.run
+        def start(coro: Coroutine[Any, Any, Any]) -> None:
+            try:
+                (start_target or asyncio.run)(coro)
+            except KeyboardInterrupt:
+                Service.info("CTRL+C received, closing server.")
+                exit()
 
         if server == "uvicorn":
             try:

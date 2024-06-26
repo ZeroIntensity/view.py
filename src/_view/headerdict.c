@@ -1,3 +1,12 @@
+/*
+ * view.py headerdict implementation
+ *
+ * A headerdict represents HTTP headers from the client.
+ * It's similar to a normal Python dictionary, but keys are always strings, and values
+ * can be either a string or a list.
+ *
+ * This implementation uses view.py's map, not a Python dictionary.
+ */
 #include <Python.h>
 #include <structmember.h> // PyMemberDef
 

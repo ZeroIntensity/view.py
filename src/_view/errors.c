@@ -546,7 +546,9 @@ fire_error(
     {
         index = hash_server_error(status);
         if (index == 600)
+        {
             return -1;
+        }
         if (r)
             handler = r->server_errors[index];
         if (!handler)
@@ -555,7 +557,9 @@ fire_error(
     {
         index = hash_client_error(status);
         if (index == 600)
+        {
             return -1;
+        }
         if (r)
             handler = r->client_errors[index];
         if (!handler)
@@ -608,12 +612,16 @@ server_err_exc(
 {
     const char *message = NULL;
     PyObject *msg_str = NULL;
+    PyErr_Clear();
 
     if (self->dev)
     {
+        assert(msg != NULL);
         msg_str = PyObject_Str(msg);
         if (!msg_str)
+        {
             return -1;
+        }
 
         message = PyUnicode_AsUTF8(msg_str);
         if (!message)
@@ -660,10 +668,9 @@ server_err(
         status,
         r,
         handler_was_called,
-        PyErr_Occurred(),
+        PyErr_GetRaisedException(),
         method_str
     );
-    PyErr_Clear();
     return res;
 }
 
@@ -673,7 +680,6 @@ route_error(
     PyObject *err
 )
 {
-    PyErr_Print();
     if (((PyObject *) Py_TYPE(err)) == ws_disconnect_err)
     {
         // the socket prematurely disconnected, let's complain about it

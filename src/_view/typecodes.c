@@ -168,9 +168,6 @@ verify_dict_typecodes(
     PyObject *key;
     PyObject *value;
 
-    printf("dict: ");
-    PyObject_Print(dict, stdout, Py_PRINT_RAW);
-    puts("");
     while (PyDict_Next(dict, &pos, &key, &value))
     {
         value = cast_from_typecodes(
