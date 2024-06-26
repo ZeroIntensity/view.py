@@ -7,6 +7,7 @@
 
 #include <view/backport.h>
 #include <view/pyawaitable.h>
+#include <view/view.h> // HOT
 
 PyTypeObject _PyAwaitableGenWrapperType; // Forward declaration
 /* Vendor of src/_pyawaitable/genwrapper.c */
@@ -100,10 +101,10 @@ genwrapper_fire_err_callback(
     return 0;
 }
 
-PyObject *
+HOT PyObject *
 genwrapper_next(PyObject *self)
 {
-    GenWrapperObject *g = (GenWrapperObject *)self;
+    GenWrapperObject *g = (GenWrapperObject *) self;
     PyAwaitableObject *aw = g->gw_aw;
 
     if (!aw)
@@ -161,7 +162,7 @@ genwrapper_next(PyObject *self)
         {
             if (
                 genwrapper_fire_err_callback(
-                    (PyObject *)aw,
+                    (PyObject *) aw,
                     g->gw_current_await,
                     cb
                 ) < 0

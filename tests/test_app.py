@@ -9,9 +9,9 @@ from typing_extensions import NotRequired
 
 from view import (JSON, BodyParam, Context, Response, body, context, get,
                   new_app, query)
-from view import route as route_impl
+from view import route as route_impl, WebSocket
 from view.typing import CallNext
-
+import asyncio
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -868,6 +868,41 @@ async def test_app_leaks():
     async def index():
         return "a"
 
-    for i in range(1000):
+    for i in range(10000):
         async with app.test() as test:
             await test.get("/")
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_stress():
+    app = new_app()
+
+    @app.get("/")
+    def index():
+        return "test"
+
+    @app.get("/async")
+    async def async_route():
+        return "async"
+
+    @app.get("/inputs")
+    async def inputs(x: str):
+        return x
+
+    @app.websocket("/ws")
+    async def ws_route(ws: WebSocket):
+        async with ws:
+            await ws.send("test")
+        
+
+    async with app.test() as test:
+        async def run():
+            assert (await test.get("/")).message == "test"
+            assert (await test.get("/async")).message == "async"
+            for i in range(5):
+                assert (await test.get("/", query={"x": str(i)})).message == str(i)
+
+            async with test.websocket("/ws") as sock:
+                assert (await sock.receive()) == "test"
+
+        await asyncio.gather(*[run() for _ in range(10000)])

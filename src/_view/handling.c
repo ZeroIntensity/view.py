@@ -1,9 +1,20 @@
 /*
  * view.py C route handling implementation
  *
- * This file contains the route allocators, and the general logic for calling
- * a route object. This is responsible for determining inputs, dealing with return
+ * This file contains the the general logic for calling
+ * a route object, and where to send their results.
+ *
+ * This is responsible for determining inputs, dealing with return
  * values, and dispatching the HTTP response to the ASGI server.
+ *
+ * Raw results returned from a route are one of three things:
+ *
+ * - A tuple containing a string and integer, and optionally a dictionary.
+ * - A string, solely denoting a body.
+ * - An object with a __view_result__(), which returns one of the two above.
+ *
+ * The handling implementation is only responsible for dealing with a __view_result__(), and
+ * the rest is sent to the route result implementation.
  */
 #include <Python.h>
 #include <stdbool.h> // bool
@@ -20,6 +31,9 @@
 
 #define INITIAL_BUF_SIZE 1024
 
+/*
+ * Call a route object with both query and body parameters.
+ */
 int
 handle_route_impl(
     PyObject *awaitable,
@@ -657,13 +671,6 @@ handle_route_websocket(PyObject *awaitable, PyObject *result)
         if (!args)
             return -1;
 
-        /*
-         * A lot of errors related to memory corruption are traced
-         * to here by debuggers.
-         *
-         * This is, more or less, a false positive! It's quite
-         * unlikely that the actual cause of the issue is here.
-         */
         if (
             !PyObject_Call(
                 route_log,

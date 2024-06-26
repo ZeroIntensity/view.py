@@ -327,8 +327,10 @@ handle_result(
         headers_target
     );
 
+    return res;
     if (res < 0)
         return -1;
+
     if (!route_log) return res;
 
     PyObject *args = Py_BuildValue(
@@ -341,6 +343,13 @@ handle_result(
     if (!args)
         return -1;
 
+    /*
+     * A lot of errors related to memory corruption are traced
+     * to here by debuggers.
+     *
+     * This is, more or less, a false positive! It's quite
+     * unlikely that the actual cause of the issue is here.
+     */
     PyObject *result = PyObject_Call(
         route_log,
         args,
