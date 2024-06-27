@@ -221,7 +221,8 @@ context_from_data(PyObject *app, PyObject *scope)
         Py_XDECREF(client);
         Py_XDECREF(method);
         Py_DECREF(context);
-        PyErr_BadASGI();
+        if (!PyErr_Occurred())
+            PyErr_BadASGI();
         return NULL;
     }
 

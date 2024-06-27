@@ -274,9 +274,7 @@ cast_from_typecodes(
 
     for (Py_ssize_t i = 0; i < len; i++)
     {
-        if (PyErr_Occurred())
-            break;
-
+        PyErr_Clear();
         type_info *ti = codes[i];
 
         switch (ti->typecode)
