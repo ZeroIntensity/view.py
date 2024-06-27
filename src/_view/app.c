@@ -42,54 +42,54 @@
 #include <view/pyawaitable.h>
 #include <view/view.h> // VIEW_FATAL
 
-#define LOAD_ROUTE(target)                        \
-        char *path;                               \
-        PyObject *callable;                       \
-        PyObject *inputs;                         \
-        Py_ssize_t cache_rate;                    \
-        PyObject *errors;                         \
-        PyObject *parts = NULL;                   \
-        if (!PyArg_ParseTuple(                    \
-    args,                                         \
-    "zOnOOO",                                     \
-    &path,                                        \
-    &callable,                                    \
-    &cache_rate,                                  \
-    &inputs,                                      \
-    &errors,                                      \
-    &parts                                        \
-            )) return NULL;                       \
-        route *r = route_new(                     \
-    callable,                                     \
-    PySequence_Size(inputs),                      \
-    cache_rate,                                   \
-    figure_has_body(inputs)                       \
-                   );                             \
-        if (!r) return NULL;                      \
-        if (load_typecodes(                       \
-    r,                                            \
-    inputs                                        \
-            ) < 0) {                              \
-            route_free(r);                        \
-            return NULL;                          \
-        }                                         \
-        if (load_errors(r, errors) < 0) {         \
-            route_free(r);                        \
-            return NULL;                          \
-        }                                         \
-        if (!map_get(self->all_routes, path)) {   \
-            int *num = PyMem_Malloc(sizeof(int)); \
-            if (!num) {                           \
-                PyErr_NoMemory();                 \
-                route_free(r);                    \
-                return NULL;                      \
-            }                                     \
-            *num = 1;                             \
-            map_set(self->all_routes, path, num); \
-        }                                         \
-        if (!PySequence_Size(parts))              \
-        map_set(self->target, path, r);           \
-        else if (load_parts(self, self->target, parts, r) < 0) return NULL;
+#define LOAD_ROUTE(target)                                                  \
+        char *path;                                                         \
+        PyObject *callable;                                                 \
+        PyObject *inputs;                                                   \
+        Py_ssize_t cache_rate;                                              \
+        PyObject *errors;                                                   \
+        PyObject *parts = NULL;                                             \
+        if (!PyArg_ParseTuple(                                              \
+    args,                                                                   \
+    "zOnOOO",                                                               \
+    &path,                                                                  \
+    &callable,                                                              \
+    &cache_rate,                                                            \
+    &inputs,                                                                \
+    &errors,                                                                \
+    &parts                                                                  \
+            )) return NULL;                                                 \
+        route *r = route_new(                                               \
+    callable,                                                               \
+    PySequence_Size(inputs),                                                \
+    cache_rate,                                                             \
+    figure_has_body(inputs)                                                 \
+                   );                                                       \
+        if (!r) return NULL;                                                \
+        if (load_typecodes(                                                 \
+    r,                                                                      \
+    inputs                                                                  \
+            ) < 0) {                                                        \
+            route_free(r);                                                  \
+            return NULL;                                                    \
+        }                                                                   \
+        if (load_errors(r, errors) < 0) {                                   \
+            route_free(r);                                                  \
+            return NULL;                                                    \
+        }                                                                   \
+        if (!map_get(self->all_routes, path)) {                             \
+            int *num = PyMem_Malloc(sizeof(int));                           \
+            if (!num) {                                                     \
+                PyErr_NoMemory();                                           \
+                route_free(r);                                              \
+                return NULL;                                                \
+            }                                                               \
+            *num = 1;                                                       \
+            map_set(self->all_routes, path, num);                           \
+        }                                                                   \
+        if (!PySequence_Size(parts))                                        \
+        map_set(self->target, path, r);                                     \
+        else if (load_parts(self, self->target, parts, r) < 0) return NULL; \
 
 #define ROUTE(target)             \
         static PyObject *target ( \
@@ -169,6 +169,9 @@ new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
         !self->put || !self->put || !self->get
     )
     {
+        // TODO: Fix these leaks!
+        // However, this is an unlikely case that will only happen
+        // if the interpreter is out of memory.
         return NULL;
     }
     ;
@@ -307,6 +310,7 @@ lifespan(PyObject *awaitable, PyObject *result)
 static void
 dealloc(ViewApp *self)
 {
+    puts("app is freeing");
     Py_XDECREF(self->cleanup);
     Py_XDECREF(self->startup);
     map_free(self->get);

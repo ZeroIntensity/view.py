@@ -57,7 +57,7 @@ route_new(
     r->has_body = has_body;
     r->is_http = true;
 
-    // transports
+    // Transport attributes
     r->routes = NULL;
     r->r = NULL;
 

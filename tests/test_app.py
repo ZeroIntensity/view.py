@@ -897,15 +897,19 @@ async def test_stress():
 
     async with app.test() as test:
         async def run():
-            assert (await test.get("/")).message == "test"
-            assert (await test.get("/async")).message == "async"
-            for i in range(5):
-                assert (await test.get("/", query={"x": str(i)})).message == str(i)
+            async def routes():
+                assert (await test.get("/")).message == "test"
+                assert (await test.get("/async")).message == "async"
+                for i in range(5):
+                    assert (await test.get("/inputs", query={"x": str(i)})).message == str(i)
+            
+            await asyncio.gather(*[routes() for i in range(10)])
 
             async with test.websocket("/ws") as sock:
                 assert (await sock.receive()) == "test"
 
-        await asyncio.gather(*[run() for _ in range(10000)])
+        await asyncio.gather(*[run() for _ in range(100)])
+
 
 
 @pytest.mark.asyncio

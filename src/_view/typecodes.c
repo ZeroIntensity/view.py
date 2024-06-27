@@ -382,6 +382,7 @@ cast_from_typecodes(
             }
 
             if (py_bool) return py_bool;
+            PyErr_Format(PyExc_ValueError, "Not bool-like: %R", item);
             break;
         }
         case TYPECODE_FLOAT:
@@ -534,6 +535,11 @@ cast_from_typecodes(
                             }
                         } else
                         {
+                            PyErr_Format(
+                                PyExc_ValueError,
+                                "Missing key: %S",
+                                info->ob
+                            );
                             ok = false;
                             Py_DECREF(kwargs);
                             Py_DECREF(obj);
@@ -574,7 +580,6 @@ cast_from_typecodes(
                     Py_DECREF(parsed_item);
                     return NULL;
                 }
-                ;
                 Py_DECREF(parsed_item);
             }
 
