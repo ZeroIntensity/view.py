@@ -1,19 +1,17 @@
 import asyncio
-from view import new_app, get
+from view import new_app
+from typing import List, Union, Dict
 
 app = new_app()
 
-@app.get("/")
-async def index():
-    return b"\x09 \x09"
-
-@app.get("/hi")
-async def hi():
-    return b"hi", 201, {"test": "test"}
+@app.get("/dict")
+@app.query("test", Dict[str, List[str]])
+async def d(test: Dict[str, List[str]]):
+    return test["a"][0]
 
 async def main():
     async with app.test() as test:
-        assert (await test.get("/")).content == b"\x09 \x09"
-        assert (await test.get("/hi")).content == b"hi"
-
+        print(
+            (await test.get("/dict", query={"test": {"a": ["1", "2", "3"]}})
+        ).message)
 asyncio.run(main())

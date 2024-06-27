@@ -164,25 +164,26 @@ verify_dict_typecodes(
     PyObject *json_parser
 )
 {
-    Py_ssize_t pos;
+    Py_ssize_t pos = 0;
     PyObject *key;
     PyObject *value;
 
     while (PyDict_Next(dict, &pos, &key, &value))
     {
-        value = cast_from_typecodes(
+        PyObject *casted_value = cast_from_typecodes(
             codes,
             len,
             value,
             json_parser,
             true
         );
-        if (!value) return -1;
+        if (!casted_value) return -1;
+
         if (
             PyDict_SetItem(
                 dict,
                 key,
-                value
+                casted_value
             ) < 0
         )
             return -1;
