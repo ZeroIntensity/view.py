@@ -547,10 +547,10 @@ generate_params(
         {
             PyObject *data = build_data_input(
                 inp->route_data,
+                (PyObject *) app,
                 scope,
                 receive,
-                send,
-                (PyObject *) app
+                send
             );
             if (!data)
             {
