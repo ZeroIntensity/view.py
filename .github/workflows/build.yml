@@ -13,6 +13,7 @@ concurrency:
     cancel-in-progress: true
 
 env:
+    VIEW_RELEASE: "1"
     CIBW_SKIP: >
         pp*
 

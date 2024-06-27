@@ -7,6 +7,8 @@ from setuptools import Extension, setup
 with open("./README.md") as f:
     long_desc: str = f.read()
 
+
+
 if __name__ == "__main__":
     with open("./pyproject.toml", "r") as f:
         data = toml.load(f)
@@ -21,7 +23,7 @@ if __name__ == "__main__":
             Extension(
                 "_view",
                 glob("./src/_view/*.c"),
-                extra_compile_flags=['-g3', '-O3']
+                extra_compile_flags=['-g3', '-O3'] if os.environ.get("VIEW_RELEASE") else ['-g3']
             )
         ],
         include_dirs=["./include"],

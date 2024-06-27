@@ -190,6 +190,7 @@ genwrapper_next(PyObject *self)
             // Coro is done
             if (!cb->callback)
             {
+                Py_DECREF(g->gw_current_await);
                 g->gw_current_await = NULL;
                 return genwrapper_next(self);
             }
@@ -212,6 +213,7 @@ genwrapper_next(PyObject *self)
             {
                 return NULL;
             }
+            Py_DECREF(g->gw_current_await);
             g->gw_current_await = NULL;
             return genwrapper_next(self);
         }
@@ -220,6 +222,7 @@ genwrapper_next(PyObject *self)
         {
             // Coroutine is done, but with a result.
             // We can disregard the result if theres no callback.
+            Py_DECREF(g->gw_current_await);
             g->gw_current_await = NULL;
             PyErr_Clear();
             return genwrapper_next(self);
@@ -288,6 +291,7 @@ genwrapper_next(PyObject *self)
         }
 
         cb->done = true;
+        Py_DECREF(g->gw_current_await);
         g->gw_current_await = NULL;
         return genwrapper_next(self);
     }
@@ -621,22 +625,18 @@ awaitable_next(PyObject *self)
 static void
 awaitable_dealloc(PyObject *self)
 {
-    PyAwaitableObject *aw = (PyAwaitableObject *)self;
-    for (int i = 0; i < VALUE_ARRAY_SIZE; ++i)
+    PyAwaitableObject *aw = (PyAwaitableObject *) self;
+    for (int i = 0; i < aw->aw_values_index; ++i)
     {
-        if (!aw->aw_values[i])
-            break;
         Py_DECREF(aw->aw_values[i]);
     }
 
     Py_XDECREF(aw->aw_gen);
     Py_XDECREF(aw->aw_result);
 
-    for (int i = 0; i < CALLBACK_ARRAY_SIZE; ++i)
+    for (int i = 0; i < aw->aw_callback_index; ++i)
     {
         pyawaitable_callback *cb = aw->aw_callbacks[i];
-        if (cb == NULL)
-            break;
 
         if (!cb->done)
             Py_DECREF(cb->coro);

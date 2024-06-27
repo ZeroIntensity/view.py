@@ -489,7 +489,6 @@ app(
         return NULL;
     }
 
-    Py_DECREF(raw_path_obj);
     bool is_http = !strcmp(
         type,
         "http"
@@ -780,7 +779,6 @@ app(
             PyMem_Free(path);
             return NULL;
         }
-        ;
 
         Py_DECREF(coro);
 
@@ -908,7 +906,6 @@ app(
             Py_DECREF(awaitable);
             return NULL;
         }
-        ;
 
         return awaitable;
     } else

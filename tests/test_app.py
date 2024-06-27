@@ -906,3 +906,17 @@ async def test_stress():
                 assert (await sock.receive()) == "test"
 
         await asyncio.gather(*[run() for _ in range(10000)])
+
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_cache_dealloc():
+    app = new_app()
+
+    @app.get("/", cache_rate=10)
+    async def index():
+        return "test"
+
+    async with app.test() as test:
+        for _ in range(100000):
+            await test.get("/")
