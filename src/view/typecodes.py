@@ -66,7 +66,7 @@ class TCValidator(TCPublic, Generic[T]):
         try:
             self._cast(obj, False)
             return True
-        except RuntimeError:
+        except (ValueError, TypeError):
             return False
 
     def is_compatible(self, obj: object) -> bool:
