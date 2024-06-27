@@ -274,6 +274,9 @@ cast_from_typecodes(
 
     for (Py_ssize_t i = 0; i < len; i++)
     {
+        if (PyErr_Occurred())
+            break;
+
         type_info *ti = codes[i];
 
         switch (ti->typecode)
@@ -358,30 +361,39 @@ cast_from_typecodes(
                     "Got non-bool without casting enabled"
                 );
                 return NULL;
-            }
-            const char *str = PyUnicode_AsUTF8(item);
-            PyObject *py_bool = NULL;
-            if (!str)
-                return NULL;
-            if (
-                strcmp(
-                    str,
-                    "true"
-                ) == 0
-            )
+            } else if (PyLong_CheckExact(item))
             {
-                py_bool = Py_NewRef(Py_True);
-            } else if (
-                strcmp(
-                    str,
-                    "false"
-                ) == 0
-            )
+                long val = PyLong_AsLong(item);
+                if (val == -1 && PyErr_Occurred())
+                    return NULL;
+                return PyBool_FromLong(val);
+            } else if (PyUnicode_CheckExact(item))
             {
-                py_bool = Py_NewRef(Py_False);
-            }
+                const char *str = PyUnicode_AsUTF8(item);
+                PyObject *py_bool = NULL;
+                if (!str)
+                    return NULL;
+                if (
+                    strcmp(
+                        str,
+                        "true"
+                    ) == 0
+                )
+                {
+                    py_bool = Py_NewRef(Py_True);
+                } else if (
+                    strcmp(
+                        str,
+                        "false"
+                    ) == 0
+                )
+                {
+                    py_bool = Py_NewRef(Py_False);
+                }
 
-            if (py_bool) return py_bool;
+                if (py_bool != NULL)
+                    return py_bool;
+            }
             PyErr_Format(PyExc_ValueError, "Not bool-like: %R", item);
             break;
         }
