@@ -259,17 +259,44 @@ handle_result_impl(
 
         while (PyDict_Next(third, &pos, &key, &value))
         {
+            PyObject *key_bytes = PyUnicode_AsEncodedString(
+                key,
+                "utf-8",
+                "strict"
+            );
+
+            if (!key_bytes)
+            {
+                PyMem_Free(res_str);
+                return -1;
+            }
+
+            PyObject *value_bytes = PyUnicode_AsEncodedString(
+                value,
+                "utf-8",
+                "strict"
+            );
+            if (!value_bytes)
+            {
+                PyMem_Free(res_str);
+                Py_DECREF(key_bytes);
+                return -1;
+            }
+
             PyObject *header = PyTuple_New(2);
             if (!header)
             {
+                Py_DECREF(key_bytes);
+                Py_DECREF(value_bytes);
                 PyMem_Free(res_str);
                 Py_DECREF(header_tup);
                 return -1;
             }
-            PyTuple_SET_ITEM(header, 0, Py_NewRef(key));
-            PyTuple_SET_ITEM(header, 1, Py_NewRef(value));
+            // PyTuple_SET_ITEM steals the reference, no need to Py_DECREF
+            PyTuple_SET_ITEM(header, 0, key_bytes);
+            PyTuple_SET_ITEM(header, 1, value_bytes);
 
-            // this steals the reference, no need to decref
+            // pos does not start at 0, it starts at 1
             PyTuple_SET_ITEM(header_tup, pos - 1, header);
         }
 
@@ -328,6 +355,7 @@ handle_result(
     );
 
     return res;
+    // Calling route_log is extremely slow
     if (res < 0)
         return -1;
 

@@ -89,7 +89,7 @@ class TCValidator(TCPublic, Generic[T]):
         try:
             self._cast(obj, True)
             return True
-        except RuntimeError:
+        except (ValueError, TypeError):
             return False
 
     def cast(self, obj: object) -> T:
@@ -113,7 +113,7 @@ class TCValidator(TCPublic, Generic[T]):
         """
         try:
             return self._cast(obj, True)
-        except RuntimeError:
+        except (ValueError, TypeError):
             raise TypeValidationError(f"{obj} is not assignable to {self.tp}") from None
 
 

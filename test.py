@@ -2,18 +2,18 @@ import asyncio
 from view import new_app, get
 
 app = new_app()
-count = 0
 
-@app.get("/param", cache_rate=10)
-async def param():
-    global count
-    count += 1
-    return str(count)
+@app.get("/")
+async def index():
+    return b"\x09 \x09"
+
+@app.get("/hi")
+async def hi():
+    return b"hi", 201, {"test": "test"}
 
 async def main():
     async with app.test() as test:
-        results = [(await test.get("/param")).message for _ in range(10)]
-        assert all(i == results[0] for i in results)
-
+        assert (await test.get("/")).content == b"\x09 \x09"
+        assert (await test.get("/hi")).content == b"hi"
 
 asyncio.run(main())
