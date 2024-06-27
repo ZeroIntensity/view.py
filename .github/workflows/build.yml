@@ -16,6 +16,8 @@ env:
     VIEW_RELEASE: "1"
     CIBW_SKIP: >
         pp*
+    PYTHONMALLOC: "malloc"
+    PYTHONDEVMODE: "1"
 
 jobs:
     binary-wheels-standard:
