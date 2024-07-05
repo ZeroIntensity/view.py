@@ -1,0 +1,39 @@
+.docs {
+    @apply flex flex-col space-y-2;
+}
+
+.docs h1 {
+    @apply text-5xl font-bold py-2;
+}
+
+.docs h2 {
+    @apply text-3xl py-2 font-semibold;
+}
+
+.docs h3 {
+    @apply text-xl py-2 font-semibold;
+}
+
+.docs code {
+    @apply bg-transparent;
+}
+
+.docs p code {
+    @apply rounded-md bg-zinc-950 border border-zinc-900 p-1 text-zinc-400;
+}
+
+.docs li code {
+    @apply rounded-md bg-zinc-950 border border-zinc-900 p-1 text-zinc-400;
+}
+
+.docs li {
+    @apply py-0.5;
+}
+
+.docs ul {
+    @apply list-disc text-white pl-4;
+}
+
+.docs a {
+    @apply text-sky-600 hover:text-sky-400 font-medium;
+}

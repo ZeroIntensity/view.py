@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    color-scheme: dark;
+}
+
+body {
+    @apply bg-black text-white;
+}
+
+a {
+    @apply text-zinc-500 hover:text-white transition-all;
+}
+
+h1 {
+    @apply text-4xl;
+}
