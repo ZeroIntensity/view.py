@@ -1,5 +1,5 @@
 .docs {
-    @apply flex flex-col space-y-2;
+    @apply flex flex-col space-y-2 text-lg;
 }
 
 .docs h1 {
@@ -15,15 +15,15 @@
 }
 
 .docs code {
-    @apply bg-transparent;
+    @apply bg-transparent text-base;
 }
 
 .docs p code {
-    @apply rounded-md bg-zinc-950 border border-zinc-900 p-1 text-zinc-400;
+    @apply rounded-md bg-zinc-950 border border-zinc-900 p-1 text-zinc-300;
 }
 
 .docs li code {
-    @apply rounded-md bg-zinc-950 border border-zinc-900 p-1 text-zinc-400;
+    @apply rounded-md bg-zinc-950 border border-zinc-900 p-1 text-zinc-300;
 }
 
 .docs li {
@@ -31,7 +31,7 @@
 }
 
 .docs ul {
-    @apply list-disc text-white pl-4;
+    @apply text-white pl-6 list-disc;
 }
 
 .docs a {

@@ -26,8 +26,8 @@ export default function Codeblock(props: CodeblockProps) {
             className="rounded-md bg-black border border-zinc-900"
             ref={elementRef}
         >
-            <div className="border-b border-zinc-900 p-3 flex items-center justify-between">
-                <div className="flex items-center space-x-1 text-base">
+            <div className="border-b border-zinc-900 p-3 flex items-center justify-between bg-zinc-950">
+                <div className="flex items-center space-x-1 text-base ">
                     {ICONS[ext] || ICONS[props.fileName]}
                     <code className="text-zinc-300 text-sm">
                         {props.fileName}

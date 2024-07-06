@@ -146,7 +146,7 @@ export default function Admonition(props: AdmonitionProps) {
         <div
             className={`border border-zinc-900 rounded-md bg-black ${LEVEL_BORDER_COLORS[level]} border-l-4 w-fit`}
         >
-            <div className="border-b border-zinc-900 w-full px-4 py-2">
+            <div className="border-b border-zinc-900 w-full px-4 py-2 bg-zinc-950">
                 <LevelTitle level={level} title={props.title} />
             </div>
             <div className="px-4 py-2">{props.children}</div>

@@ -18,7 +18,7 @@ $ view init
 ```
 </Codeblock>
 
-Alternatively, you can run `view init` with `pipx`:
+However, you probably don't want to create an entire new virtual environment (assuming you're using one, at least) just for running `view init`, since it will generate a second environment for your project. The easiest solution is to use `pipx`:
 
 <Codeblock fileName="bash">
 ```bash
@@ -27,7 +27,7 @@ $ pipx run view-py init
 </Codeblock>
 
 <Admonition title="Why view-py and not view.py?" level="question">
-This is out of view.py's control - pipx does not support ``.`` in a project name.
+This is out of view.py's control - pipx does not support `.` in a project name, so we have to use `view-py` instead of `view.py`.
 </Admonition>
 
 ## Manually
