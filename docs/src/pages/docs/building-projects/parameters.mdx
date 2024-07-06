@@ -1,3 +1,11 @@
+import MdxLayout from "../../../components/mdx-layout";
+import Codeblock from "../../../components/codeblock";
+import Admonition from "../../../components/admonition"
+
+export default function MDXPage({ children }) {
+    return <MdxLayout>{children}</MdxLayout>;
+}
+
 # Taking Parameters
 
 ## Query Strings and Bodies
@@ -33,6 +41,7 @@ For documentation purposes, only `query` variations will be used. However, **`bo
 
 The below code would expect a parameter in the query string named `hello` of type `int`:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 
@@ -44,36 +53,30 @@ async def index(hello: int):
     print(hello)
     return "hello"
 ```
+</Codeblock>
 
 The `query()` call can actually come before `get` due to the nature of the routing system. In fact, anything you decorate a route with does not have a specific order needed. For example, the following is completely valid:
 
+<Codeblock fileName="app.py">
 ```py
+from view import new_app
+
+app = new_app()
+
 @app.query("hello", int)  # query comes before get()
 @app.get("/")
 async def index(hello: int):
     ...
+
+app.run()
 ```
-
-!!! note
-
-    Route inputs are based on their order, and not the name of the input. For example, the following is valid:
-
-    ```py
-    from view import new_app
-
-    app = new_app()
-
-    @app.get("/")
-    @app.query("hello", str)
-    @app.query("world", str)
-    async def index(world: str, hello: str):  # the world parameter will get the "hello input", and vice versa
-        ...
-    ```
+</Codeblock>
 
 ### Automatically
 
 If you've used a library like [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with the concept of automatic inputs. Automatic inputs in terms of view.py are when you define route inputs without using a `query` or `body` decorator, and instead, just get input definitions through the function signature. This is the most basic example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 
@@ -85,25 +88,28 @@ async def index(hello: str):  # no @query needed
 
 app.run()
 ```
+</Codeblock>
 
 Note that automatic inputs create inputs for **query parameters only**.
 
-!!! note
+<Admonition level="note">
+When mixing automatic route inputs with decorators (e.g. `query` and `body`), view.py assumes that decorator inputs have the same name as the parameter. For example, the following will **not** work:
 
-    When mixing automatic route inputs with decorators (e.g. `query` and `body`), view.py assumes that decorator inputs have the same name as the parameter. For example, the following will not work:
+<Codeblock fileName="app.py">
+```py
+from view import new_app
 
-    ```py
-    from view import new_app
+app = new_app()
 
-    app = new_app()
+@app.get("/")
+@app.query("hello", str)
+async def index(hello_param: str, test: str):
+    ...
 
-    @app.get("/")
-    @app.query("hello", str)
-    async def index(hello_param: str, test: str):
-        ...
-
-    app.run()
-    ```
+app.run()
+```
+</Codeblock>
+</Admonition>
 
 ## Cast Semantics
 
@@ -120,6 +126,7 @@ View has this exact same behavior when it comes to route inputs. If you tell you
 
 Typing route inputs is very simple if you're already familiar with Python's type annotation system. Again, unions can be formed via passing multiple types instead of one. However, direct union types provided by Python are supported too. This includes both `typing.Union` and the newer `|` syntax.
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 from typing import Union
@@ -143,6 +150,7 @@ async def world(name: str | int):
 
 app.run()
 ```
+</Codeblock>
 
 The types supported are (all of which can be mixed and matched to your needs):
 
@@ -164,6 +172,7 @@ The types supported are (all of which can be mixed and matched to your needs):
 
 You can use lists and dictionaries in a few ways, the most simple being just passing the raw type (`list` and `dict`). In typing terms, view.py will assume that these mean `dict[str, Any]` (as all JSON keys have to be strings) and `list[Any]`. If you would like to enforce a type, simply replace `Any` with an available type. The typing variations of these types (`typing.Dict` and `typing.List`) are supported as well.
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 from typing import Dict
@@ -182,6 +191,7 @@ async def hello(name: dict):
 
 app.run()
 ```
+</Codeblock>
 
 Note that backport is **not possible** if you're using new typing features (such as the `dict[...]` or `list[...]`) as `from __future__ import annotations` does not affect parameters, meaning that the second value sent to the route input function (again, `query` or `body`) is not changed.
 
@@ -195,6 +205,7 @@ As listed about earlier, view.py supports a few different objects to be used as 
 
 Here's an example using `dataclasses`:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 from dataclasses import dataclass, field
@@ -213,9 +224,11 @@ class Person:
 async def index(me: Person):
     return f"Hello, {me.first} {me.last}"
 ```
+</Codeblock>
 
 If you would prefer to not use an object, View supports using a `TypedDict` to enforce parameters. It's subject to the same rules as normal objects, but is allowed to use `typing.NotRequired` to omit keys. Note that `TypedDict` **cannot** have default values.
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 from typing import TypedDict, NotRequired, List
@@ -232,20 +245,23 @@ class Person(TypedDict):
 async def index(me: Person):
     return f"Hello, {me['first']} {me['last']}"
 ```
+</Codeblock>
 
 ## Type Validation API
 
 You can use view.py's type validator on your own to do whatever you want. To create a validator for a type, use `compile_type`:
 
+<Codeblock fileName="app.py">
 ```py
 from view import compile_type
 
 validator = compile_type(str | int)
 ```
+</Codeblock>
 
-!!! danger
-
-    The above code uses the `|` syntax, which is only available to Python 3.9+
+<Admonition level="danger">
+The above code uses the `|` syntax, which is only available to Python 3.9+
+</Admonition>
 
 With a validator, you can do three things:
 
@@ -255,6 +271,7 @@ With a validator, you can do three things:
 
 `cast` will raise a `TypeValidationError` if the type is not compatible:
 
+<Codeblock fileName="app.py">
 ```py
 from view import compile_type
 
@@ -262,11 +279,13 @@ tp = compile_type(dict)
 tp.cast("{}")
 tp.cast("123")  # TypeValidationError
 ```
+</Codeblock>
 
 The difference between `check_type` and `is_compatible`, is that `check_type` is a [type guard](https://mypy.readthedocs.io/en/latest/type_narrowing.html), which `is_compatible` is not.
 
 This means that `check_type` will ensure that the object is _an instance_ of the type, while `is_compatible` checks whether it can be casted. For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import compile_type
 
@@ -283,6 +302,7 @@ if tp.is_compatible(y):
     reveal_type(y)  # Any
     # a type checker doesn't know that y is a dict
 ```
+</Codeblock>
 
 ## Body Protocol
 
@@ -294,13 +314,16 @@ If any of the above types do not support your needs, you may design your own typ
 
 Whichever way you choose, the `__view_body__` data must be accessed statically, **not in an instance**. The data should be a dictionary (containing only `str` keys, once again), but the values should be types, not instances. These types outline how view.py should parse it at runtime. For example, a `__view_body__` to create an object that has a key called `a`, which a `str` value would look like so:
 
+<Codeblock fileName="app.py">
 ```py
 class MyObject:
     __view_body__ = {"a": str}
 ```
+</Codeblock>
 
 View **does not** handle the initialization, so you must define a proper `__init__` for it. If you are already using the `__init__` for something else, you can define a `__view_construct__` class or static method and view.py will choose it over `__init__`.
 
+<Codeblock fileName="app.py">
 ```py
 class MyObject:
     __view_body__ = {"a": str}
@@ -310,11 +333,13 @@ class MyObject:
         self = cls()
         self.a: str = kwargs["a"]
 ```
+</Codeblock>
 
 ### Default Types and Unions
 
 `__view_body__` works the same as standard object types would work in the sense that types like `typing.Union` or the `|` syntax are supported, but you may also use a special value called `BodyParam`. `BodyParam` will allow you to pass union types in a tuple and set a default value. If you only want one type when using `BodyParam`, simply set `types` to a single value instead of a tuple. Here's an example of how it works, with the original object from above:
 
+<Codeblock fileName="app.py">
 ```py
 class MyObject:
     __view_body__ = {
@@ -328,19 +353,23 @@ class MyObject:
         self.a: str | int = kwargs["a"]
         self.a: str = kwargs["b"]
 ```
+</Codeblock>
 
 ## Client Semantics
 
-On the client side, sending data to view.py might be a bit unintuitive. For this part of the documentation, a JSON body will be used for simplicity. In the case of JSON, strings will be casted to a proper type if the route supports it. For example, if a route takes `a: str | int`, the following would be set to the integer `1`, not `"1"`.
+On the client side, sending data to view.py might be a bit unintuitive, depending on your background. For this part of the documentation, a JSON body will be used for simplicity. In the case of JSON, strings will be casted to a proper type if the route supports it. For example, if a route takes `a: str | int`, the following would be set to the integer `1`, not `"1"`.
 
+<Codeblock fileName="json">
 ```json
 {
     "a": "1"
 }
 ```
+</Codeblock>
 
 Objects are simply formatted in JSON as well. If you had an object under the parameter name `test` and that object had the key `a: str`, it would be sent to the server like so:
 
+<Codeblock fileName="app.py">
 ```py
 {
     "test": {
@@ -348,6 +377,7 @@ Objects are simply formatted in JSON as well. If you had an object under the par
     }
 }
 ```
+</Codeblock>
 
 ## Review
 

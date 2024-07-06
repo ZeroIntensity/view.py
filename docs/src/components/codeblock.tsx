@@ -3,6 +3,7 @@ import { FaPython } from "react-icons/fa";
 import { TbToml } from "react-icons/tb";
 import { FaHtml5 } from "react-icons/fa";
 import { SiGnubash } from "react-icons/si";
+import { VscJson } from "react-icons/vsc";
 
 interface CodeblockProps {
     children: React.ReactNode;
@@ -14,6 +15,7 @@ const ICONS: Record<string, React.ReactNode> = {
     html: <FaHtml5 className="size-5 text-zinc-300" />,
     toml: <TbToml className="size-5 text-zinc-300" />,
     bash: <SiGnubash className="size-5 text-zinc-300" />,
+    json: <VscJson className="size-5 text-zinc-300" />,
 };
 
 export default function Codeblock(props: CodeblockProps) {

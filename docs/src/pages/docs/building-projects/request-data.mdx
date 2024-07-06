@@ -1,3 +1,11 @@
+import MdxLayout from "../../../components/mdx-layout";
+import Codeblock from "../../../components/codeblock";
+import Admonition from "../../../components/admonition"
+
+export default function MDXPage({ children }) {
+    return <MdxLayout>{children}</MdxLayout>;
+}
+
 # Request Data
 
 ## The Context
@@ -13,9 +21,9 @@ The `Context` instance contains information about the incoming request, includin
 -   The URL path.
 -   The client and server address.
 
-!!! info
-
-    `Context` is an [extension type](https://docs.python.org/3/extending/newtypes_tutorial.html), and is defined in the `_view` module. It's Python signatures are defined in the `_view` type stub.
+<Admonition level="info">
+`Context` is an [extension type](https://docs.python.org/3/extending/newtypes_tutorial.html), and is defined in the `_view` module. It's Python signatures are defined in the `_view.pyi` type stub.
+</Admonition>
 
 ## Context Input
 
@@ -23,6 +31,7 @@ The context can be added to a route via a route input, which is done through the
 
 For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, context, Context
 
@@ -36,9 +45,11 @@ async def index(ctx: Context):
 
 app.run()
 ```
+</Codeblock>
 
 Since `context` is a route input, it can be used alongside other route inputs:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, Context
 
@@ -52,11 +63,13 @@ async def index(greeting: str, ctx: Context):
 
 app.run()
 ```
+</Codeblock>
 
 ### Automatic Input
 
-`Context` works well with the automatic input API (similar to how you would do it in [FastAPI](https://fastapi.tiangolo.com)), like so:
+`Context` works well with the automatic inputs API (similar to how you would do it in [FastAPI](https://fastapi.tiangolo.com)), like so:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, Context
 
@@ -68,15 +81,17 @@ async def index(ctx: Context):  # this is allowed
 
 app.run()
 ```
+</Codeblock>
 
 ## Detecting Tests
 
 `Context` can also be used to detect whether the route is being used via `App.test`, through the `http_version` attribute.
 
-!!! info
+<Admonition level="info">
 
     `App.test` is a more internal detail, but is available for public use. It looks like this:
 
+    <Codeblock fileName="app.py">
     ```py
     from view import new_app
     import asyncio
@@ -95,9 +110,12 @@ app.run()
     if __name__ == "__main__":
         asyncio.run(main())
     ```
+    </Codeblock>
+</Admonition>
 
 When a route is being used via `App.test`, `http_version` is set to `view_test`. For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, Context
 import asyncio
@@ -120,6 +138,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+</Codeblock>
 
 ## Cookies
 
@@ -127,6 +146,7 @@ Technically speaking, cookies in HTTP are done via [headers](https://developer.m
 
 Cookies can be viewed from the `cookies` attribute. However, since the `Context` is **not related** to the response, you must use `cookie` on a `Response` object to mutate a cookie. For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, Context, Response
 
@@ -142,6 +162,7 @@ async def index(ctx: Context):  # automatic route input
 
 app.run()
 ```
+</Codeblock>
 
 ## Server and Client Address
 
@@ -149,6 +170,7 @@ The `Context` also provides information about the servers binding address, as we
 
 Both `Context.client` and `Context.client_port` may be `None`, but note that **if either of them is not `None`, the other one will be non `None`**. For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, Context
 
@@ -163,17 +185,19 @@ async def index(ctx: Context):
 
 app.run()
 ```
+</Codeblock>
 
-!!! danger
-
-    The above is **not** type safe. The type checker will still believe the `port` is `int | None`.
+<Admonition level="danger">
+The above is **not** type safe. The type checker will still believe the `port` is `int | None`.
+</Admonition>
 
 ## Review
 
 `Context` is similiar to `Request` in other web frameworks, and is considered to be a route input in View, meaning you can add it to a route via the `context` decorator (or `App.context`, to prevent an extra import), or by the automatic route input system (i.e. adding a parameter annotated with type `Context`).
 
-`Context` contains eight attributes:
+`Context` contains nine attributes:
 
+-   The `App` instance
 -   `headers`, of type `dict[str, str]`.
 -   `cookies`, of type `dict[str, str]`.
 -   `client`, of type `ipaddress.IPv4Address`, `ipaddress.IPv6Address`, or `None`.

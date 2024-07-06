@@ -1,3 +1,11 @@
+import MdxLayout from "../../../components/mdx-layout";
+import Codeblock from "../../../components/codeblock";
+import Admonition from "../../../components/admonition"
+
+export default function MDXPage({ children }) {
+    return <MdxLayout>{children}</MdxLayout>;
+}
+
 # Routing
 
 ## Loaders
@@ -14,6 +22,7 @@ Routing is a big part of any web library, and there are many ways to do it. View
 
 If you're used to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with manual routing. Manual routing is considered to be letting the user do all of the loading themself, and not do any automatic import or load mechanics. There are two ways to do manual routing, directly calling on your `App` being the most robust. Here's an example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 
@@ -25,27 +34,30 @@ def index():
 
 app.run()
 ```
+</Codeblock>
 
 This type of function is called a **direct router**, and is what's recommended for small view.py projects. However, if you're more accustomed to JavaScript libraries, using the **standard routers** may be a good fit. When using manual routing, a standard router must be registered via a call to `App.load`.
 
-!!! question "What should I annotate as the return value?"
+<Admonition level="question" title="What should I annotate as the return value?">
+view.py is aimed at people who love type hints, so what type should a route return? Well, all router functions will automatically tell the type checker what a route should return (specifically, [ViewResult](https://view.zintensity.dev/reference/types/#view.typing.ViewResult)), but if you *really* want to specify the return value, you have two options:
 
-    view.py is aimed at people who love type hints, so what type should a route return? Well, all router functions will automatically tell the type checker what a route should return (specifically, [ViewResult](https://view.zintensity.dev/reference/types/#view.typing.ViewResult)), but if you *really* want to specify the return value, you have two options:
+- Use something route-specific, so something like `tuple[str, int]`, or just `str`
+- More robust, using `ViewResult`, as mentioned above.
 
-    - Use something route-specific, so something like `tuple[str, int]`, or just `str`
-    - More robust, using `ViewResult`, as mentioned above.
+The recommended way is to annotate the return value as `ViewResult`, but again, this is already known by the type checker:
 
-    The recommended way is to annotate the return value as `ViewResult`, but again, this is already known by the type checker:
+<Codeblock fileName="app.py">
+```py
+from view import new_app, ViewResult
 
-    ```py
-    from view import new_app, ViewResult
+@app.get("/")
+def index() -> ViewResult:
+    return "Hello, view.py!"
 
-    @app.get("/")
-    def index() -> ViewResult:
-        return "Hello, view.py!"
-
-    app.run()
-    ```
+app.run()
+```
+</Codeblock>
+</Admonition>
 
 ### Standard and Direct Routers
 
@@ -60,6 +72,7 @@ Here are all the routers (standard on left, direct on right):
 -   `view.delete` and `App.delete`
 -   `view.options` and `App.options`
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, get
 
@@ -72,12 +85,13 @@ def index():
 app.load([get])
 app.run()
 ```
+</Codeblock>
 
 This method may be a bit more versatile if you plan on writing a larger project using manual routing, as you can import your routes from other files, but if that's the case it's recommended that you use one of the other loaders.
 
-!!! tip
-
-    Use the direct variation if the `App` is already available, and use the standard version otherwise.
+<Admonition level="info">
+Use the direct variation if the `App` is already available, and use the standard version otherwise. It's discouraged to call `get_app()` and then use direct routing.
+</Admonition>
 
 ### Methodless Routing
 
@@ -85,6 +99,7 @@ So far, only routers that allow a single method are allowed. If you're familiar 
 
 For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, route
 
@@ -92,14 +107,16 @@ app = new_app()
 
 @route("/")
 async def index():
-    return "this can be accessed with any method!"
+    return "This can be accessed with any method!"
 
 app.load([index])
 app.run()
 ```
+</Codeblock>
 
 You can specify certain methods via the `methods` parameter:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 
@@ -107,17 +124,18 @@ app = new_app()
 
 @app.route("/", methods=("GET", "POST"))  # using the direct variation
 async def index():
-    return "this can be accessed with only GET and POST"
+    return "This can be accessed with only GET and POST"
 
 app.run()
 ```
+</Codeblock>
 
 ## Simple Routing
 
 Simple routing is similar to manual routing, but you tend to not use direct routers and don't have any call to `load()`. In your routes directory (`routes/` by default, `loader_path` setting), your routes will be held in any number of files. Simple loading is recursive, so you may also use folders. View will automatically extract any route objects created in these files.
 
+<Codeblock fileName="routes/foo.py">
 ```py
-# routes/foo.py
 from view import get
 
 @get("/foo")
@@ -128,6 +146,7 @@ def index():
 def bar():
     return "bar"
 ```
+</Codeblock>
 
 `/foo` and `/bar` will be loaded properly, no extra call to `App.load` is required. In fact, you don't even have to import these in your app file. **This is the recommended loader for larger view.py projects.**
 
@@ -137,13 +156,14 @@ If you have ever used [Django](https://djangoproject.com), you already know how 
 
 Pattern loading looks like this in view.py:
 
+<Codeblock fileName="something.py">
 ```py
-# something.py
-
 def my_route(hello: str):
     return f"{hello}, world!"
 ```
+</Codeblock>
 
+<Codeblock fileName="urls.py">
 ```py
 from view import path, query
 from something import my_route
@@ -153,6 +173,7 @@ patterns = (
     path("/another/thing", "/this/can/be/a/path/to/file.py")
 )
 ```
+</Codeblock>
 
 In the above example, we defined two routes via exporting a `tuple` of `Route` objects (generated by `path`). The name `patterns` was used as the variable name, but it may be any of the following:
 
@@ -163,10 +184,10 @@ In the above example, we defined two routes via exporting a `tuple` of `Route` o
 -   `urlpatterns`
 -   `url_patterns`
 
-!!! tip
-
-    Traditionally, Python constants are denoted via using the `SCREAMING_SNAKE_CASE` naming convention.
-    To follow Python convention, use `PATTERNS` or `URL_PATTERNS` when using the `patterns` loader.
+<Admonition level="info">
+Traditionally, Python constants are denoted via using the `SCREAMING_SNAKE_CASE` naming convention.
+To follow Python convention, use `PATTERNS` or `URL_PATTERNS` when using the `patterns` loader.
+</Admonition>
 
 ## Filesystem Routing
 
@@ -181,13 +202,16 @@ Filesystem routing comes with a few quirks.
 
 Here's an example of this in action:
 
+<Codeblock fileName="routes/_util.py">
 ```py
-# routes/_util.py
+# This file is prefixed with _, so it will not be loaded as a route
 
 def do_something():
     ...
 ```
+</Codeblock>
 
+<Codeblock fileName="routes/index.py">
 ```py
 # routes/index.py
 from view import get
@@ -198,11 +222,13 @@ def index():
     do_something()
     return "Hello, view.py!"
 ```
+</Codeblock>
 
 ## Custom Routing
 
 The `custom` loader is, you guessed it, a user-defined loader. To start, decorate a function with `custom_loader`:
 
+<Codeblock fileName="app.py">
 ```py
 from pathlib import Path
 from typing import Iterable
@@ -216,6 +242,7 @@ def my_loader(app: App, path: Path) -> Iterable[Route]:
 
 app.run()
 ```
+</Codeblock>
 
 As shown above, there are two parameters to the `custom_loader` callback:
 
@@ -224,30 +251,39 @@ As shown above, there are two parameters to the `custom_loader` callback:
 
 The `custom_loader` callback is expected to return a list (or any iterable) of collected routes.
 
-!!! tip "Don't reimplement router functions!"
+<Admonition level="info" title="Don't reimplement router functions!">
+You might be confused about the `Route` constructor. That's because it's undocumented, and still technically a private API (meaning it can change at any time, for no reason). Don't try and instantiate a route yourself! Instead, let router functions do it (e.g. `get` or `query`), and collect the functions (or really, `Route` instances.)
+</Admonition>
 
-    You might be confused about the `Route` constructor. That's because it's undocumented, and still technically a private API (meaning it can change at any time, for no reason). Don't try and instantiate a route yourself! Instead, let router functions do it (e.g. `get` or `query`), and collect the functions (or really, `Route` instances)
+For example, if you wanted to implement a loader that loaded routes from all files named `foo.py` from the `path`:
 
-For example, if you wanted to implement a loader that added one route:
-
+<Codeblock fileName="app.py">
 ```py
 from pathlib import Path
 from typing import Iterable
 from view import Route, new_app, get
+import runpy
 
 app = new_app()
 
 @app.custom_loader
 def my_loader(app: App, path: Path) -> Iterable[Route]:
-    # Disregarding the app and path here! Don't do that!
-    @get("/my_route")
-    def my_route():
-        return "Hello from my loader!"
+    routes: list[Route] = []
 
-    return [my_route]
+    for i in path.iterdir():
+        if str(i) != "foo.py":
+            continue
+
+        globls = runpy.run_path(i.absolute())
+        for name, value in globls.items():
+            if isinstance(value, Route):
+                routes.append(name)
+
+    return routes
 
 app.run()
 ```
+</Codeblock>
 
 ## Review
 

@@ -1,3 +1,11 @@
+import MdxLayout from "../../../components/mdx-layout";
+import Codeblock from "../../../components/codeblock";
+import Admonition from "../../../components/admonition"
+
+export default function MDXPage({ children }) {
+    return <MdxLayout>{children}</MdxLayout>;
+}
+
 # HTML Templating
 
 ## What is templating?
@@ -14,6 +22,7 @@ In View, the main template API entry point is the `template` function. Because t
 
 The only required argument to `template` is the name or path of the template to be used. For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, template
 
@@ -29,11 +38,13 @@ async def other():
 
 app.run()
 ```
+</Codeblock>
 
 The most notable difference about view.py's templating API is that parameters are automatically included from your scope (i.e. you don't have to pass them into the call to `template`). If you're against this behavior, you may disable it in the configuration via the `globals` and `locals` settings.
 
 You can override the template engine and settings via the `engine` and `directory` parameters. For example, if the engine was `view`, the below would use `mako`:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, template
 
@@ -45,9 +56,11 @@ async def index():
 
 app.run()
 ```
+</Codeblock>
 
 There's also a direct variation of `template` on `App`.
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 
@@ -59,6 +72,7 @@ async def index():
 
 app.run()
 ```
+</Codeblock>
 
 The following template engines are supported:
 
@@ -86,23 +100,28 @@ A `<view>` element can have any of the following attributes:
 
 `ref` can be used to take variables, but may also be used to display any Python expression. For example, if you had defined `hello = "world"`:
 
+<Codeblock fileName="templates/index.html">
 ```html
 <p>Hello, <view ref="hello" /></p>
 <p>The length of hello is <view ref="len(hello)" /></p>
 ```
+</Codeblock>
 
 If you had declared `my_list = [1, 2, 3]`, you could iterate through it like so:
 
+<Codeblock fileName="templates/index.html">
 ```html
 <view iter="my_list" item="i">
     <view ref="i" />
 </view>
 ```
+</Codeblock>
 
 The above would result in `123`
 
 `if`, `elif`, and `else` are only shown if their cases are met. So, for example:
 
+<Codeblock fileName="templates/index.html">
 ```html
 <view if="user.type == 'admin'">
     <view template="admin_panel" />
@@ -114,6 +133,7 @@ The above would result in `123`
     <p>You must be an admin to use the admin panel!</p>
 </view>
 ```
+</Codeblock>
 
 ## Using Other Engines
 
@@ -124,6 +144,7 @@ If you would like to use an unsupported engine (or use extra features of a suppo
 
 For example, if you wanted to customize [Jinja](https://jinja.palletsprojects.com/en/3.1.x/), you shouldn't use View's `template`, but instead just use it manually:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 from jinja2 import Environment
@@ -137,9 +158,11 @@ async def index():
 
 app.run()
 ```
+</Codeblock>
 
 However, if you would like to access the engine instance (such as Jinja's `Environment`), you can get it from `app.templaters`, or set the value yourself. For example:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app
 from jinja2 import Environment
@@ -154,11 +177,13 @@ async def index():
 
 app.run()
 ```
+</Codeblock>
 
 ## Markdown Rendering
 
 Many find writing raw HTML to be a hassle in many cases. For this, view.py provides the `markdown` function, which can turn markdown content into HTML, similar to how [MkDocs](https://mkdocs.org) does:
 
+<Codeblock fileName="app.py">
 ```py
 from view import new_app, markdown
 
@@ -170,6 +195,7 @@ async def index():
 
 app.run()
 ```
+</Codeblock>
 
 ## Review
 
