@@ -8,15 +8,36 @@ import bash from "highlight.js/lib/languages/bash";
 import { useEffect } from "react";
 import Image from "next/image";
 import { Spotlight } from "@/components/Spotlight";
+import Link from "next/link";
+import { PlaceholdersAndVanishInput } from "@/components/placeholders-and-vanish-input";
+
+export function PlaceholdersAndVanishInputDemo() {
+    const placeholders = [
+        "Click to search...",
+        "What is the airspeed velocity of an unladen swallow?",
+        "Search the documentation...",
+        "My hovercraft is full of eels...",
+    ];
+
+    return (
+        <div className="w-1/3">
+            <PlaceholdersAndVanishInput
+                placeholders={placeholders}
+                onChange={() => {}}
+                onSubmit={() => {}}
+            />
+        </div>
+    );
+}
 
 export default function MyApp({ Component, pageProps }: AppProps) {
     useEffect(() => {
         hljs.registerLanguage("py", python);
         hljs.registerLanguage("bash", bash);
-        hljs.highlightAll();
-    }, []);
+        hljs.initHighlighting();
+    });
     return (
-        <>
+        <div className="dark">
             <div className="hidden md:flex overflow-hidden">
                 <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" />
             </div>
@@ -29,8 +50,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                         alt="view.py"
                         className="h-32 w-64"
                     />
-                    <div className="flex md:flex-row flex-col md:space-x-3 items-center md:justify-center">
-                        <a
+                    <div className="flex md:flex-row flex-col py-2 lg:py-0 md:space-x-3 items-center md:justify-center">
+                        <Link
                             className="flex space-x-1 items-center p-2 rounded-lg hover:bg-zinc-900"
                             href="/"
                         >
@@ -49,8 +70,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                                 />
                             </svg>
                             <span>Home</span>
-                        </a>
-                        <a
+                        </Link>
+                        <Link
                             className="flex space-x-1 items-center p-2 rounded-lg hover:bg-zinc-900"
                             href="/docs"
                         >
@@ -70,7 +91,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                             </svg>
 
                             <span>Docs</span>
-                        </a>
+                        </Link>
                         <a
                             className="flex space-x-1 items-center p-2 rounded-lg hover:bg-zinc-900"
                             href="https://github.com/ZeroIntensity/view.py"
@@ -138,12 +159,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                             <span>Donate</span>
                         </a>{" "}
                     </div>
+                    <PlaceholdersAndVanishInputDemo />
                 </div>
                 <hr className="border-t border-zinc-800" />
             </nav>
             <main className={GeistSans.className}>
                 <Component {...pageProps} />
             </main>
-        </>
+        </div>
     );
 }

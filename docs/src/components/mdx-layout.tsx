@@ -2,6 +2,7 @@ import { usePathname } from "next/navigation";
 import styles from "./docs.module.css";
 import DocNav, { DocNavPage } from "./doc-nav";
 import { useRef, useEffect, useState } from "react";
+import Link from "next/link";
 
 type Section = Record<string, string>;
 type Nav = Record<string, Section>;
@@ -73,27 +74,26 @@ export default function MdxLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div
-            className="w-full dark:bg-black bg-white  dark:bg-grid-small-white/[0.2] bg-grid-small-black/[0.2] relative flex items-center justify-center"
+            className="w-full dark:bg-black bg-white dark:bg-grid-small-white/[0.2] bg-grid-small-black/[0.2] relative flex items-center"
             ref={mdRef}
         >
-            {/* Radial gradient for the container to give a faded look */}
-            <div className="absolute pointer-events-none inset-0 flex items-center justify-center dark:bg-black bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_80%,black)]"></div>
-            <div className="flex justify-between py-16">
+            <div className="flex w-full justify-between py-16 px-4 md:px-0">
                 <nav className="lg:w-1/4 hidden lg:flex pl-12 z-10 flex-col space-y-8">
                     {Object.entries(NAV).map(([title, section]) => (
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex flex-col space-y-1" key={title}>
                             <p className="uppercase font-bold text-white select-none">
                                 {title}
                             </p>
                             {Object.entries(section).map(([pageName, url]) => (
-                                <a
+                                <Link
+                                    key={url}
                                     href={url}
                                     className={
                                         url == path ? "text-sky-500" : ""
                                     }
                                 >
                                     {pageName}
-                                </a>
+                                </Link>
                             ))}
                         </div>
                     ))}
@@ -113,9 +113,10 @@ export default function MdxLayout({ children }: { children: React.ReactNode }) {
                             On this page
                         </p>
                         {query &&
-                            Array.from(query).map(element => {
+                            Array.from(query).map((element, index) => {
                                 return (
                                     <a
+                                        key={index}
                                         onClick={() => element.scrollIntoView()}
                                         className="cursor-pointer"
                                     >

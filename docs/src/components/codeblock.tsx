@@ -54,7 +54,7 @@ export default function Codeblock(props: CodeblockProps) {
                             viewBox="0 0 24 24"
                             strokeWidth={1.5}
                             stroke="currentColor"
-                            className="size-6 text-emerald-400"
+                            className="size-6 text-emerald-400 transition-all"
                         >
                             <path
                                 strokeLinecap="round"
@@ -69,7 +69,7 @@ export default function Codeblock(props: CodeblockProps) {
                             viewBox="0 0 24 24"
                             strokeWidth={1.5}
                             stroke="currentColor"
-                            className="size-6 text-zinc-300"
+                            className="size-6 text-zinc-300 transition-all"
                         >
                             <path
                                 strokeLinecap="round"

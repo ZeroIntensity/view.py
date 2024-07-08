@@ -16,6 +16,8 @@ view.py requires [CPython](https://python.org/downloads/) 3.8 or above.
     CPython is the reference/official implementation of Python. If you downloaded Python through [python.org](https://python.org) or some sort of system package manager (e.g. `apt`, `pacman`, `brew`), it's probably CPython.
 </Admonition>
 
+view.py does **not** officially support PyPy, nor any other implementation of Python. If you're looking for speed, rely on view.py's C extension to do the heavy lifting!
+
 ## Installing with Pipx (Recommended)
 
 [pipx](https://pipx.pypa.io/stable/) can install CLIs into isolated environments. view.py recommends using `pipx` for installation, and then using `view init` to initialize a virtual environment in projects. For example:

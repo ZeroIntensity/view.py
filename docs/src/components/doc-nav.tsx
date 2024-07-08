@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export type DocNavPage = {
     name: string;
     url: string;
@@ -12,7 +14,7 @@ export default function DocNav(props: DocNavProps) {
     return (
         <div className="flex items-center space-x-3 justify-between">
             {props.last ? (
-                <a
+                <Link
                     href={props.last.url}
                     className="flex space-x-1 items-center justify-center hover:scale-105 px-8 py-2 rounded-lg font-semibold bg-gradient-to-b from-sky-500 to-blue-600 !text-white focus:ring-2 hover:shadow-xl transition duration-200 focus:outline-none"
                 >
@@ -32,12 +34,12 @@ export default function DocNav(props: DocNavProps) {
                     </svg>
 
                     <p>{props.last.name}</p>
-                </a>
+                </Link>
             ) : (
                 <div></div>
             )}
             {props.next && (
-                <a
+                <Link
                     href={props.next.url}
                     className="flex space-x-1 items-center justify-center hover:scale-105 px-8 py-2 rounded-lg font-semibold bg-gradient-to-b from-sky-500 to-blue-600 !text-white focus:ring-2 hover:shadow-xl transition duration-200 focus:outline-none"
                 >
@@ -56,7 +58,7 @@ export default function DocNav(props: DocNavProps) {
                             d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3"
                         />
                     </svg>
-                </a>
+                </Link>
             )}
         </div>
     );
