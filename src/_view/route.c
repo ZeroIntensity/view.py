@@ -24,6 +24,7 @@
  * managed by a route pointer.
  */
 #include <Python.h>
+#include <view/backport.h>
 #include <view/route.h>
 
 /*
