@@ -34,7 +34,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     useEffect(() => {
         hljs.registerLanguage("py", python);
         hljs.registerLanguage("bash", bash);
-        hljs.initHighlighting();
+        hljs.highlightAll();
     });
     return (
         <div className="dark">
