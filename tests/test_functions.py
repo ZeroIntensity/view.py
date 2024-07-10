@@ -7,7 +7,8 @@ from leaks import limit_leaks
 from typing_extensions import Annotated
 
 from view import (App, BadEnvironmentError, Context, TypeValidationError,
-                  compile_type, env, get_app, new_app, to_response)
+                  call_result, compile_type, env, get_app, new_app,
+                  to_response)
 from view.typing import (CallNext, MaybeAwaitable, SupportsViewResult,
                          ViewResult)
 
@@ -180,3 +181,14 @@ async def test_supports_result_isinstance():
     assert isinstance(MyObject(), SupportsViewResult)
     assert issubclass(MyObject, SupportsViewResult)
     assert isinstance(MyObjectNoInherit(), SupportsViewResult)
+
+
+@pytest.mark.asyncio
+async def test_call_result():
+    class MyObject(SupportsViewResult):
+        async def __view_result__(
+            self, ctx: Context
+        ) -> MaybeAwaitable[ViewResult]:
+            return "hello"
+
+    assert (await call_result(MyObject())) == "hello"
