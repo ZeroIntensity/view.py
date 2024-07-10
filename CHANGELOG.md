@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed redirection and disabling of HTTP server logging
 -   C API is now compliant with [PEP 7](https://peps.python.org/pep-0007/)
 -   Added `-g3` and `-O3` flag to the `_view` extension module (debugging information and optimizations)
--   Removed use of `escape()` in the message shown when a dependency is needed
+-   Removed use of Rich `escape()` in the message shown when a dependency is needed
 -   Query string client errors are now displayed during development mode
 -   `KeyboardInterrupt` is swallowed by the server coroutine, and a log message is now issued
 -   Typecode API now raises exceptions indicating a validation error (and now it's sent as a response with a query or body parse failure)
