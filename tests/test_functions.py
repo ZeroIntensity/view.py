@@ -191,4 +191,19 @@ async def test_call_result():
         ) -> MaybeAwaitable[ViewResult]:
             return "hello"
 
+    class MyObjectUseCtx(SupportsViewResult):
+        async def __view_result__(
+            self, ctx: Context
+        ) -> MaybeAwaitable[ViewResult]:
+            return ctx.path
+
+    app = new_app()
     assert (await call_result(MyObject())) == "hello"
+
+    @app.get("/")
+    async def index(ctx: Context):
+        res = await call_result(MyObjectUseCtx(), ctx=ctx)
+        return res
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "/"
