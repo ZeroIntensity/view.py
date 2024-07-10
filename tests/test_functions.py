@@ -6,9 +6,10 @@ import pytest
 from leaks import limit_leaks
 from typing_extensions import Annotated
 
-from view import (App, BadEnvironmentError, TypeValidationError, compile_type,
-                  env, get_app, new_app, to_response)
-from view.typing import CallNext
+from view import (App, BadEnvironmentError, Context, TypeValidationError,
+                  compile_type, env, get_app, new_app, to_response)
+from view.typing import (CallNext, MaybeAwaitable, SupportsViewResult,
+                         ViewResult)
 
 
 @limit_leaks("1 MB")
@@ -161,3 +162,21 @@ async def test_to_response():
     async with app.test() as test:
         assert (await test.get("/")).message == "goodbye"
         assert (await test.get("/bytes")).message == "test"
+
+
+async def test_supports_result_isinstance():
+    class MyObject(SupportsViewResult):
+        async def __view_result__(
+            self, ctx: Context
+        ) -> MaybeAwaitable[ViewResult]:
+            return "hello"
+
+    class MyObjectNoInherit:
+        async def __view_result__(
+            self, ctx: Context
+        ) -> MaybeAwaitable[ViewResult]:
+            return "hello"
+
+    assert isinstance(MyObject(), SupportsViewResult)
+    assert issubclass(MyObject, SupportsViewResult)
+    assert isinstance(MyObjectNoInherit(), SupportsViewResult)
