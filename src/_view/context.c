@@ -186,18 +186,24 @@ context_from_data(PyObject *app, PyObject *scope)
                 "path"
             )
         );
-        header_list = PyDict_GetItemString(
-            scope,
-            "headers"
+        header_list = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "headers"
+            )
         );
-        client = PyDict_GetItemString(
-            scope,
-            "client"
-        ); // [host, port]
-        server = PyDict_GetItemString(
-            scope,
-            "server"
-        ); // [host, port/None]
+        client = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "client"
+            )
+        );  // [host, port]
+        server = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "server"
+            )
+        );  // [host, port/None]
     } else
     {
         // Default values for a dummy context
@@ -238,9 +244,6 @@ context_from_data(PyObject *app, PyObject *scope)
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
-            Py_DECREF(path);
-            Py_DECREF(method);
-            Py_DECREF(http_version);
             PyErr_BadASGI();
             return NULL;
         }
@@ -256,9 +259,6 @@ context_from_data(PyObject *app, PyObject *scope)
             Py_DECREF(context);
             Py_DECREF(client);
             Py_DECREF(server);
-            Py_DECREF(path);
-            Py_DECREF(method);
-            Py_DECREF(http_version);
             return NULL;
         }
 
@@ -270,15 +270,12 @@ context_from_data(PyObject *app, PyObject *scope)
             1,
             NULL
         );
+        Py_DECREF(client);
 
         if (!address)
         {
             Py_DECREF(context);
-            Py_DECREF(client);
             Py_DECREF(server);
-            Py_DECREF(path);
-            Py_DECREF(method);
-            Py_DECREF(http_version);
             return NULL;
         }
 
@@ -290,12 +287,7 @@ context_from_data(PyObject *app, PyObject *scope)
         if (PyTuple_Size(server) != 2)
         {
             Py_DECREF(context);
-            Py_DECREF(client);
             Py_DECREF(server);
-            Py_DECREF(path);
-            Py_DECREF(method);
-            Py_DECREF(http_version);
-            Py_XDECREF(context->client);
             PyErr_BadASGI();
             return NULL;
         }
@@ -306,7 +298,6 @@ context_from_data(PyObject *app, PyObject *scope)
                 1
             )
         );
-        // no idea what uncrustify is smoking but lets roll with it
         PyObject *address = PyObject_Vectorcall(
             ip_address,
             (PyObject *[]) {
@@ -318,15 +309,11 @@ context_from_data(PyObject *app, PyObject *scope)
             1,
             NULL
         );
+        Py_DECREF(server);
+
         if (!address)
         {
             Py_DECREF(context);
-            Py_DECREF(client);
-            Py_DECREF(server);
-            Py_DECREF(path);
-            Py_DECREF(method);
-            Py_DECREF(http_version);
-            Py_XDECREF(context->client);
             return NULL;
         }
         context->server = address;
@@ -337,14 +324,6 @@ context_from_data(PyObject *app, PyObject *scope)
     if (!cookies)
     {
         Py_DECREF(context);
-        Py_DECREF(context);
-        Py_DECREF(client);
-        Py_DECREF(server);
-        Py_DECREF(path);
-        Py_DECREF(method);
-        Py_DECREF(http_version);
-        Py_XDECREF(context->client);
-        Py_XDECREF(context->server);
         return NULL;
     }
 
@@ -353,15 +332,6 @@ context_from_data(PyObject *app, PyObject *scope)
     if (!context->headers)
     {
         Py_DECREF(context);
-        Py_DECREF(context);
-        Py_DECREF(client);
-        Py_DECREF(server);
-        Py_DECREF(path);
-        Py_DECREF(method);
-        Py_DECREF(http_version);
-        Py_XDECREF(context->client);
-        Py_XDECREF(context->server);
-        Py_DECREF(cookies);
         return NULL;
     }
     context->app = Py_NewRef(app);
