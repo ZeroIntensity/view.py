@@ -102,7 +102,8 @@ handle_response_body(PyObject *target)
 PyObject *
 build_default_headers()
 {
-    PyObject *tup = PyTuple_New(1);
+    // It's important that this is a list, since we use PyList_GET_ITEM downstream
+    PyObject *tup = PyList_New(1);
     if (!tup)
         return NULL;
 
@@ -132,7 +133,7 @@ build_default_headers()
 
     PyTuple_SET_ITEM(content_type, 0, key);
     PyTuple_SET_ITEM(content_type, 1, val);
-    PyTuple_SET_ITEM(tup, 0, content_type);
+    PyList_SET_ITEM(tup, 0, content_type);
     return tup;
 }
 

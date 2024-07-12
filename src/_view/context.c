@@ -34,7 +34,7 @@
 #include <view/headerdict.h> // headerdict_from_list
 #include <view/view.h> // ip_address
 
-#define STR_TO_OBJECT(str) PyUnicode_FromStringAndSize(str, sizeof(str))
+#define STR_TO_OBJECT(str) PyUnicode_FromStringAndSize(str, sizeof(str) - 1)
 
 typedef struct
 {
@@ -212,8 +212,11 @@ context_from_data(PyObject *app, PyObject *scope)
         method = STR_TO_OBJECT("GET");
         path = STR_TO_OBJECT("/???");
         header_list = Py_NewRef(default_headers);
-        client = Py_BuildValue("[s]", "localhost");
-        server = Py_BuildValue("[s]", "localhost");
+        // TODO: When Python 3.11 is EOL, remove the
+        // call to Py_NewRef() here, since Py_None is
+        // immortal on those versions.
+        client = Py_NewRef(Py_None);
+        server = Py_NewRef(Py_None);
     }
 
     if (
@@ -281,7 +284,6 @@ context_from_data(PyObject *app, PyObject *scope)
 
         context->client = address;
     } else context->client = NULL;
-
     if (server != Py_None)
     {
         if (PyTuple_Size(server) != 2)
@@ -318,7 +320,6 @@ context_from_data(PyObject *app, PyObject *scope)
         }
         context->server = address;
     } else context->server = NULL;
-
     PyObject *cookies = PyDict_New();
 
     if (!cookies)

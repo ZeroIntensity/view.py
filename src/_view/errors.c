@@ -707,7 +707,7 @@ route_error(
         if (!args)
             return -2;
 
-        if (!PyObject_Call(route_warn, args))
+        if (!PyObject_Call(route_warn, args, NULL))
         {
             Py_DECREF(args);
             return -2;
@@ -716,7 +716,7 @@ route_error(
         PyObject *message = PyUnicode_FromStringAndSize(
             "Unhandled WebSocket disconnect",
             sizeof(
-                "Unhandled WebSocket disconnect")
+                "Unhandled WebSocket disconnect") - 1
         );
         if (!message)
             return -2;
