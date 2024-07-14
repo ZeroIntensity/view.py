@@ -30,8 +30,8 @@ dependencies = [
 ]
 platforms = ["linux", "macos"]
 
-[envs.test.overrides]
-platform.windows.dependencies = [
+[envs.test.overrides.platform.windows]
+dependencies = [
     "coverage",
     "pytest",
     "pytest-asyncio",
