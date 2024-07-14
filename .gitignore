@@ -16,7 +16,6 @@ view_config.py
 
 # Testing Files
 *.test
-app.py
 test.py
 a.py
 

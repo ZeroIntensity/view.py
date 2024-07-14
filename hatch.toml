@@ -1,0 +1,44 @@
+[version]
+path = "src/view/__about__.py"
+
+[build.targets.sdist]
+only-include = ["src/", "_view.pyi"]
+
+[build.targets.wheel]
+packages = ["src/view"]
+
+[build.targets.wheel.force-include]
+"_view.pyi" = "_view.pyi"
+
+[build.targets.wheel.hooks.scikit-build]
+experimental = true
+
+[build.targets.wheel.hooks.scikit-build.cmake]
+verbose = true
+build-type = "Release"
+source-dir = "."
+
+[envs.test]
+features = ["full"]
+dev-mode = false
+dependencies = [
+    "coverage",
+    "pytest",
+    "pytest-memray",
+    "pytest-asyncio",
+    "pytest-rich",
+]
+platforms = ["linux", "macos"]
+
+[envs.test.overrides]
+platform.windows.dependencies = [
+    "coverage",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-rich",
+]
+
+[envs.test.scripts]
+no-cov = "pytest"
+memray = "pytest --enable-leak-tracking"
+cov = "coverage run -m pytest"

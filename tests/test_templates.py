@@ -23,7 +23,9 @@ async def test_view_rendering():
 
     l = [1, 2, 3]
     assert (await render('<view ref="len(l)" />')) == "3"
-    assert (await render('<view iter="l" item="i"><view ref="i" /></view>')) == "123"
+    assert (
+        await render('<view iter="l" item="i"><view ref="i" /></view>')
+    ) == "123"
     assert (await render('<view if="x == 2">hi</view>')) == "hi"
     assert (await render('<view if="x == 1">hi</view>')) == ""
     assert (
@@ -74,7 +76,9 @@ async def test_templating():
 
     @app.get("/markdown")
     async def md():
-        return await markdown("test.md", directory=Path.cwd() / "tests" / "templates")
+        return await markdown(
+            "test.md", directory=Path.cwd() / "tests" / "templates"
+        )
 
     async with app.test() as test:
         assert (await test.get("/")).message.replace("\n", "") == "hello"
@@ -86,7 +90,9 @@ async def test_templating():
 
 @pytest.mark.asyncio
 async def test_template_configuration_settings():
-    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "templates.toml")
+    app = new_app(
+        config_path=Path.cwd() / "tests" / "configs" / "templates.toml"
+    )
 
     @app.get("/")
     async def index():
@@ -99,7 +105,9 @@ async def test_template_configuration_settings():
 
 @pytest.mark.asyncio
 async def test_view_renderer_subtemplates():
-    app = new_app(config_path=Path.cwd() / "tests" / "configs" / "subtemplates.toml")
+    app = new_app(
+        config_path=Path.cwd() / "tests" / "configs" / "subtemplates.toml"
+    )
 
     @app.get("/")
     async def index():

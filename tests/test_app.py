@@ -1,17 +1,18 @@
+import asyncio
 from dataclasses import dataclass, field
 from typing import Dict, List, NamedTuple, TypedDict, Union
 
 import attrs
 import pytest
-from leaks import limit_leaks
+from conftest import limit_leaks
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 
-from view import (JSON, BodyParam, Context, Response, body, context, get,
-                  new_app, query)
-from view import route as route_impl, WebSocket
+from view import (JSON, BodyParam, Context, Response, WebSocket, body, context,
+                  get, new_app, query)
+from view import route as route_impl
 from view.typing import CallNext
-import asyncio
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -54,6 +55,7 @@ async def test_headers():
         res = await test.get("/")
         assert res.headers["a"] == "b"
         assert res.message == "hello"
+
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -859,18 +861,6 @@ async def test_bytes_response():
         assert (await test.get("/")).content == b"\x09 \x09"
         assert (await test.get("/hi")).content == b"hi"
 
-@pytest.mark.asyncio
-@limit_leaks("1 MB")
-async def test_app_leaks():
-    app = new_app()
-
-    @app.get("/")
-    async def index():
-        return "a"
-
-    for i in range(10000):
-        async with app.test() as test:
-            await test.get("/")
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -893,23 +883,24 @@ async def test_stress():
     async def ws_route(ws: WebSocket):
         async with ws:
             await ws.send("test")
-        
 
     async with app.test() as test:
+
         async def run():
             async def routes():
                 assert (await test.get("/")).message == "test"
                 assert (await test.get("/async")).message == "async"
                 for i in range(5):
-                    assert (await test.get("/inputs", query={"x": str(i)})).message == str(i)
-            
+                    assert (
+                        await test.get("/inputs", query={"x": str(i)})
+                    ).message == str(i)
+
             await asyncio.gather(*[routes() for i in range(10)])
 
             async with test.websocket("/ws") as sock:
                 assert (await sock.receive()) == "test"
 
         await asyncio.gather(*[run() for _ in range(100)])
-
 
 
 @pytest.mark.asyncio

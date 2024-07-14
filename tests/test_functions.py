@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 import pytest
-from leaks import limit_leaks
+from conftest import limit_leaks
 from typing_extensions import Annotated
 
 from view import (App, BadEnvironmentError, Context, TypeValidationError,

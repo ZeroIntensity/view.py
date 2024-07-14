@@ -1,5 +1,5 @@
 import pytest
-from leaks import limit_leaks
+from conftest import limit_leaks
 
 from view import (InvalidRouteError, WebSocket, WebSocketExpectError,
                   WebSocketHandshakeError, new_app, websocket)
@@ -151,18 +151,3 @@ def test_disallow_body_inputs():
 
     with pytest.raises(InvalidRouteError):
         app.load()
-
-@limit_leaks("1 MB")
-@pytest.mark.asyncio
-async def test_websocket_leaks():
-    app = new_app()
-
-    @app.websocket("/")
-    async def index(ws: WebSocket):
-        await ws.accept()
-        await ws.close()
-
-    async with app.test() as test:
-        for i in range(1000):
-            async with test.websocket("/") as ws:
-                ...

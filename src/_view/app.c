@@ -310,7 +310,6 @@ lifespan(PyObject *awaitable, PyObject *result)
 static void
 dealloc(ViewApp *self)
 {
-    puts("app is freeing");
     Py_XDECREF(self->cleanup);
     Py_XDECREF(self->startup);
     map_free(self->get);
