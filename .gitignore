@@ -18,6 +18,7 @@ view_config.py
 *.test
 test.py
 a.py
+.coverage
 
 # Logs
 *.log
