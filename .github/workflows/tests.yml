@@ -37,23 +37,11 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
 
-            - name:  Install PyTest
-              run:   |
-                     if [ "$RUNNER_OS" == "Windows" ]; then
-                          pip install pytest pytest-asyncio
-                     else
-                          pip install pytest pytest-asyncio pytest-memray
-                     fi
-              shell: bash
-    
+            - name: Install Hatch
+              run: pip install hatch
+
             - name: Build project
               run: pip install .[full]
 
-            - name:  Run tests
-              run:   |
-                     if [ "$RUNNER_OS" == "Windows" ]; then
-                          pytest
-                     else
-                          pytest --memray
-                     fi
-              shell: bash
+            - name: Run tests
+              run: hatch run test:no-cov

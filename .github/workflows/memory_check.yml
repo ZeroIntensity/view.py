@@ -1,4 +1,4 @@
-name: Memory Check
+name: Memory Problems
 
 on:
     push:
@@ -17,7 +17,7 @@ env:
 
 jobs:
     run:
-        name: Valgrind on Ubuntu
+        name: Run memory tests on Ubuntu
         runs-on: ubuntu-latest
 
         steps:
@@ -28,10 +28,8 @@ jobs:
               with:
                   python-version: 3.12
 
-            - name: Install PyTest
-              run: |
-                  pip install pytest pytest-asyncio
-              shell: bash
+            - name: Install Hatch
+              run: pip install hatch
 
             - name: Build project
               run: pip install .[full]
@@ -40,4 +38,7 @@ jobs:
               run: sudo apt-get -y install valgrind
 
             - name: Run tests with Valgrind
-              run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x
+              run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 hatch run test:no-cov
+
+            - name: Run tests with Memray
+              run: hatch run test:memray
