@@ -696,7 +696,7 @@ route_error(
     PyObject *err
 )
 {
-    if (((PyObject *) Py_TYPE(err)) == ws_disconnect_err)
+    if (PyErr_GivenExceptionMatches(err, ws_disconnect_err))
     {
         // the socket prematurely disconnected, let's complain about it
         #if PY_MINOR_VERSION < 9
@@ -767,7 +767,7 @@ route_error(
     if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
-    if (((PyObject *) Py_TYPE(err)) == self->error_type)
+    if (PyErr_GivenExceptionMatches(err, self->error_type))
     {
         PyObject *status_obj = PyObject_GetAttrString(
             err,
@@ -906,7 +906,8 @@ route_error(
 
     if (!handler_was_called)
     {
-        PyErr_SetRaisedException(err);
+        // err is a borrowed reference, and PyErr_SetRaisedException steals it!
+        PyErr_SetRaisedException(Py_NewRef(err));
         PyErr_Print();
     }
 

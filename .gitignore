@@ -19,6 +19,9 @@ view_config.py
 test.py
 a.py
 .coverage
+.pytest-cache/
+.ruff-cache/
+.cache/
 
 # Logs
 *.log

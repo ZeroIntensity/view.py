@@ -15,7 +15,6 @@ experimental = true
 
 [build.targets.wheel.hooks.scikit-build.cmake]
 verbose = true
-build-type = "Release"
 source-dir = "."
 
 [envs.test]

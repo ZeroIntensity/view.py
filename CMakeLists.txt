@@ -5,6 +5,7 @@ project(${SKBUILD_PROJECT_NAME} LANGUAGES C)
 file(GLOB _view_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/_view/*.c
 )
+MESSAGE(DEBUG ${_view_SRC})
 
 # Find Python
 find_package(
@@ -15,8 +16,10 @@ find_package(
 # Link Python
 python_add_library(_view MODULE ${_view_SRC} WITH_SOABI)
 
-# Add include directories
+# Compiler settings
 target_include_directories(_view PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/)
+target_compile_options(_view PUBLIC -g3)
 
+MESSAGE(STATUS "Everything looks good, let's install!")
 # Install extension module
 install(TARGETS _view DESTINATION .)

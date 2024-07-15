@@ -76,10 +76,8 @@ genwrapper_fire_err_callback(
 
     Py_INCREF(self);
     PyObject *err = PyErr_GetRaisedException();
-
     int e_res = cb->err_callback(self, err);
     cb->done = true;
-
     Py_DECREF(self);
 
     if (e_res < 0)
@@ -90,18 +88,21 @@ genwrapper_fire_err_callback(
         {
             PyErr_SetRaisedException(err);
         } else
+        {
             Py_DECREF(err);
+        }
 
         Py_DECREF(cb->coro);
         Py_XDECREF(await);
         return -1;
     }
 
+    Py_XDECREF(await);
     Py_DECREF(err);
     return 0;
 }
 
-HOT PyObject *
+PyObject *
 genwrapper_next(PyObject *self)
 {
     GenWrapperObject *g = (GenWrapperObject *) self;
@@ -211,9 +212,9 @@ genwrapper_next(PyObject *self)
                 ) < 0
             )
             {
+                g->gw_current_await = NULL;
                 return NULL;
             }
-            Py_DECREF(g->gw_current_await);
             g->gw_current_await = NULL;
             return genwrapper_next(self);
         }
@@ -286,12 +287,12 @@ genwrapper_next(PyObject *self)
                 ) < 0
             )
             {
+                g->gw_current_await = NULL;
                 return NULL;
             }
         }
 
         cb->done = true;
-        Py_DECREF(g->gw_current_await);
         g->gw_current_await = NULL;
         return genwrapper_next(self);
     }
@@ -362,7 +363,7 @@ awaitable_throw(PyObject *self, PyObject *args)
     {
         PyObject *err = PyObject_Vectorcall(
             type,
-            (PyObject *[]){value},
+            (PyObject *[]) { value },
             1,
             NULL
         );
@@ -395,7 +396,10 @@ awaitable_throw(PyObject *self, PyObject *args)
             return NULL;
 
         if (genwrapper_fire_err_callback(self, gw->gw_current_await, cb) < 0)
+        {
+            gw->gw_current_await = NULL;
             return NULL;
+        }
     } else
         return NULL;
 

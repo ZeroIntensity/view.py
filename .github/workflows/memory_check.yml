@@ -14,6 +14,7 @@ env:
     PYTHONIOENCODING: "utf8"
     PYTHONMALLOC: "malloc"
     PYTHONDEVMODE: "1"
+    HATCH_VERBOSE: "1"
 
 jobs:
     run:

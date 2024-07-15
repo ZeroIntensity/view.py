@@ -16,8 +16,8 @@ env:
     PYTHONUNBUFFERED: "1"
     FORCE_COLOR: "1"
     PYTHONIOENCODING: "utf8"
-    PYTHONMALLOC: "malloc"
     PYTHONDEVMODE: "1"
+    HATCH_VERBOSE: "1"
 
 jobs:
     run:
