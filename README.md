@@ -1,15 +1,22 @@
-<div align="center"><img src="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/html/logo.png" alt="view.py logo" width=250 height=auto /></div>
+<div align="center">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/assets/logo_theme_dark.png" alt="view.py logo (dark)"  width=450 height=auto>
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ZeroIntensity/view.py/master/assets/logo_theme_light.png" alt="view.py logo (light)"  width=450 height=auto>
+      <img alt="view.py logo">
+    </picture>
+</div>
 
 <div align="center"><h2>The Batteries-Detachable Web Framework</h2></div>
+
+<div align="center">
+    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/tests.yml/badge.svg" alt="Tests" width=auto height=auto />
+    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/memory_check.yml/badge.svg" alt="Valgrind" width=auto height=auto />
+    <img src="https://github.com/ZeroIntensity/view.py/actions/workflows/build.yml/badge.svg" alt="Build" width=auto height=auto />
+</div>
 
 > [!Warning]
 > view.py is currently in alpha, and may be lacking some features.
 > If you would like to follow development progress, be sure to join [the discord](https://discord.gg/tZAfuWAbm2).
-
-<div align="center">
-    <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=150 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
-    <h3>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h3>
-</div>
 
 -   [Docs](https://view.zintensity.dev)
 -   [Source](https://github.com/ZeroIntensity/view.py)
@@ -59,6 +66,10 @@ def create(name: str, books: dict[str, str]):
     return JSON({"message": "Successfully created user!"}), 201
 ```
 
+## There's C code in here, how do I know it's safe?
+
+view.py is put through [rigorous testing](https://github.com/ZeroIntensity/view.py/tree/master/tests), checked with [Valgrind](https://valgrind.org/), and checks for memory leaks, thanks to [Memray](https://github.com/bloomberg/memray). See the testing badges at the top.
+
 ## Installation
 
 **Python 3.8+ is required.**
@@ -80,3 +91,12 @@ $ pip install view.py
 ```console
 $ pipx install view.py
 ```
+
+## Copyright
+
+`view.py` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+
+<div align="center">
+    <a href="https://clientarea.space-hosting.net/aff.php?aff=303"><img width=150 height=auto src="https://cdn-dennd.nitrocdn.com/fygsTSpFNuiCdXWNTtgOTVMRlPWNnIZx/assets/images/optimized/rev-758b0f8/www.space-hosting.net/wp-content/uploads/2023/02/cropped-Icon.png"></a>
+    <h4>view.py is affiliated with <a href="https://clientarea.space-hosting.net/aff.php?aff=303">Space Hosting</a></h4>
+</div>
