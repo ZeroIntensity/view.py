@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   `KeyboardInterrupt` is swallowed by the server coroutine, and a log message is now issued
 -   Typecode API now raises exceptions indicating a validation error (and now it's sent as a response with a query or body parse failure)
 -   `hatchling` and `scikit-build-core` are now used for build instead of `setuptools`.
+-   Renamed the `view-admin` command to `view-py`
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous
