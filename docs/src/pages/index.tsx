@@ -183,8 +183,8 @@ export default function Home() {
                             >
                                 We provide everything you need, right out of the
                                 box, while including native support your
-                                favorite third-party libraries. Don't want to
-                                relearn anything? No problem.
+                                favorite third-party libraries. Don&apos;t want
+                                to relearn anything? No problem.
                             </Card>
                             <Card
                                 title="Written in C"
