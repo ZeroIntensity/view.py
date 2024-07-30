@@ -35,7 +35,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         hljs.registerLanguage("py", python);
         hljs.registerLanguage("bash", bash);
         hljs.highlightAll();
-    });
+    }, [Component]);
     return (
         <div className="dark">
             <div className="hidden md:flex overflow-hidden">

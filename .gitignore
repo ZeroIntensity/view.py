@@ -27,3 +27,5 @@ new_app/
 vgcore.*
 .vscode/
 *.test
+.next/
+.cache/

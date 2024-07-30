@@ -2,8 +2,8 @@ import { BackgroundBeams } from "@/components/background-beams";
 import React from "react";
 import { cn } from "@/utils/cn";
 import { AuroraBackground } from "@/components/aurora-background";
-import { BackgroundGradient } from "@/components/background-gradient";
 import { motion } from "framer-motion";
+import { StarsBackground } from "@/components/stars-background";
 
 export const Highlight = ({
     children,
@@ -32,17 +32,19 @@ function Card({
     children: React.ReactNode;
 }) {
     return (
-        <BackgroundGradient className="rounded-[22px] h-full w-full p-4 sm:p-10 bg-white dark:bg-zinc-950 hover:dark:bg-zinc-900 transition-all">
-            <a className="flex items-start flex-col text-left">
-                <p className="text-base sm:text-xl text-black mt-4 mb-2 dark:text-neutral-200">
+        <div className="rounded-lg h-full w-full p-4 sm:p-10 bg-black bg-opacity-25 transition-all backdrop-blur-xl border-zinc-950 border border-opacity-25">
+            <StarsBackground className="opacity-50 -z-20" />
+
+            <a className="flex items-start flex-col text-left z-20">
+                <p className="text-lg sm:text-2xl text-black mt-4 mb-2 dark:text-neutral-200 font-semibold">
                     {title}
                 </p>
 
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                <p className="text-base text-neutral-600 dark:text-neutral-400">
                     {children}
                 </p>
             </a>
-        </BackgroundGradient>
+        </div>
     );
 }
 
