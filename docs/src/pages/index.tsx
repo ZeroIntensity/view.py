@@ -4,6 +4,8 @@ import { cn } from "@/utils/cn";
 import { AuroraBackground } from "@/components/aurora-background";
 import { motion } from "framer-motion";
 import { StarsBackground } from "@/components/stars-background";
+import { Meteors } from "@/components/meteors";
+import FooterContent from "@/components/footer-content";
 
 export const Highlight = ({
     children,
@@ -27,23 +29,32 @@ export const Highlight = ({
 function Card({
     title,
     children,
+    icon,
 }: {
     title: string;
     children: React.ReactNode;
+    icon: React.ReactNode;
 }) {
     return (
-        <div className="rounded-lg h-full w-full p-4 sm:p-10 bg-black bg-opacity-25 transition-all backdrop-blur-xl border-zinc-950 border border-opacity-25">
-            <StarsBackground className="opacity-50 -z-20" />
+        <div className="w-full relative max-w-lg">
+            <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-zinc-700 to-zinc-900 transform scale-[0.80] rounded-full blur-3xl" />
+            <div className="relative shadow-xl px-4 py-8 overflow-hidden flex flex-col justify-between items-start rounded-2xl h-full w-full p-4 sm:p-10 bg-black bg-opacity-25 transition-all backdrop-blur-xl border-zinc-950 border border-opacity-25 space-y-3">
+                <StarsBackground className="opacity-50 -z-20" />
 
-            <a className="flex items-start flex-col text-left z-20">
-                <p className="text-lg sm:text-2xl text-black mt-4 mb-2 dark:text-neutral-200 font-semibold">
-                    {title}
-                </p>
+                <div className="flex items-center space-x-1 text-white">
+                    {icon}
+                    <p className="text-lg sm:text-2xl text-black dark:text-neutral-200 font-semibold flex items-center justify-center">
+                        {title}
+                    </p>
+                </div>
 
                 <p className="text-base text-neutral-600 dark:text-neutral-400">
                     {children}
                 </p>
-            </a>
+
+                {/* Meaty part - Meteor effect */}
+                <Meteors number={20} />
+            </div>
         </div>
     );
 }
@@ -131,7 +142,7 @@ export default function Home() {
                 <BackgroundBeams />
             </section>
             <section className="flex items-center justify-center flex-col space-y-6">
-                <AuroraBackground>
+                <AuroraBackground className="flex flex-col justify-between">
                     <motion.div
                         initial={{ opacity: 0.0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -151,11 +162,49 @@ export default function Home() {
                             </p>
                         </div>
                         <div className="grid auto-rows-fr grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-12 px-12">
-                            <Card title="Batteries Detachable">
-                                Everything you need, right out of the box, while
-                                natively supporting your favorite libraries.
+                            <Card
+                                title="Removable Batteries"
+                                icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={1.5}
+                                        stroke="currentColor"
+                                        className="size-9"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M21 10.5h.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125H21M4.5 10.5h6.75V15H4.5v-4.5ZM3.75 18h15A2.25 2.25 0 0 0 21 15.75v-6a2.25 2.25 0 0 0-2.25-2.25h-15A2.25 2.25 0 0 0 1.5 9.75v6A2.25 2.25 0 0 0 3.75 18Z"
+                                        />
+                                    </svg>
+                                }
+                            >
+                                We provide everything you need, right out of the
+                                box, while including native support your
+                                favorite third-party libraries. Don't want to
+                                relearn anything? No problem.
                             </Card>
-                            <Card title="Lightning Fast">
+                            <Card
+                                title="Written in C"
+                                icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={1.5}
+                                        stroke="currentColor"
+                                        className="size-8"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"
+                                        />
+                                    </svg>
+                                }
+                            >
                                 Powered by our own{" "}
                                 <a href="https://github.com/ZeroIntensity/pyawaitable">
                                     PyAwaitable
@@ -164,13 +213,33 @@ export default function Home() {
                                 framework to implement ASGI in pure C, without
                                 the use of transpilers.
                             </Card>
-                            <Card title="Developer Oriented">
-                                APIs are designed with the developer in mind.
-                                We&apos;ll give ourselves way more work in order
-                                to make things nice for you.
+                            <Card
+                                title="Developer Oriented"
+                                icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={1.5}
+                                        stroke="currentColor"
+                                        className="size-8"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+                                        />
+                                    </svg>
+                                }
+                            >
+                                view.py is written by developers, for
+                                developers, under the MIT license.
                             </Card>
                         </div>
                     </motion.div>
+                    <footer className="border-t border-zinc-900 bg-black z-30 bg-opacity-65 backdrop-blur-2xl border-opacity-25 w-full">
+                        <FooterContent />
+                    </footer>
                 </AuroraBackground>
             </section>
         </>

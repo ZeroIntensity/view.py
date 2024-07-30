@@ -2,6 +2,10 @@
     @apply flex flex-col space-y-2 text-lg;
 }
 
+.docs p {
+    @apply py-1;
+}
+
 .docs h1 {
     @apply text-5xl font-bold py-2;
 }
