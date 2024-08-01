@@ -9,26 +9,7 @@ import { useEffect } from "react";
 import Image from "next/image";
 import { Spotlight } from "@/components/Spotlight";
 import Link from "next/link";
-import { PlaceholdersAndVanishInput } from "@/components/placeholders-and-vanish-input";
-
-export function PlaceholdersAndVanishInputDemo() {
-    const placeholders = [
-        "Click to search...",
-        "What is the airspeed velocity of an unladen swallow?",
-        "Search the documentation...",
-        "My hovercraft is full of eels...",
-    ];
-
-    return (
-        <div className="w-1/3">
-            <PlaceholdersAndVanishInput
-                placeholders={placeholders}
-                onChange={() => {}}
-                onSubmit={() => {}}
-            />
-        </div>
-    );
-}
+import { SearchBar } from "@/components/search-bar";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
     useEffect(() => {
@@ -159,7 +140,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                             <span>Donate</span>
                         </a>{" "}
                     </div>
-                    <PlaceholdersAndVanishInputDemo />
+                    <SearchBar />
                 </div>
                 <hr className="border-t border-zinc-800" />
             </nav>
