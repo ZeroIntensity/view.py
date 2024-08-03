@@ -35,7 +35,7 @@ platform.windows.dependencies = [
     "coverage",
     "pytest",
     "pytest-asyncio",
-    "pytest-rich",
+    "pytest-pystack",
 ]
 
 [envs.test.scripts]
