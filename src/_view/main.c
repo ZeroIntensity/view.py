@@ -30,6 +30,7 @@
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
 
+#define PYAWAITABLE_THIS_FILE_INIT
 #include <pyawaitable.h>
 #define ADD_TYPE(tp, name) \
         Py_INCREF(tp);     \
