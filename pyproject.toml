@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.9.0", "hatchling"]
+requires = ["scikit-build-core>=0.9.0", "hatchling", "pyawaitable"]
 build-backend = "hatchling.build"
 
 [project]
@@ -28,6 +28,7 @@ dependencies = [
     "configzen",
     "aiofiles",
     "prompts.py",
+    "pyawaitable"
 ]
 dynamic = ["version", "license"]
 
@@ -73,7 +74,5 @@ view = "view.__main__:main"
 view-py = "view.__main__:main"
 
 [tool.pytest.ini_options]
-pystack_threshold=60
-pystack_path="custom-version-of-pystack"
-pystack_output_file="./pystack.log"
-pystack_args="--native"
+pystack_threshold = 60
+pystack_args = "--native"

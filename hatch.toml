@@ -10,6 +10,10 @@ packages = ["src/view"]
 [build.targets.wheel.force-include]
 "_view.pyi" = "_view.pyi"
 
+[metadata.hooks.custom]
+path = "hatch_build.py"
+enable-by-default = true
+
 [build.targets.wheel.hooks.scikit-build]
 experimental = true
 

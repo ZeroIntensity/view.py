@@ -39,8 +39,9 @@
 #include <view/results.h> // pymem_strdup
 #include <view/handling.h> // route_free, route_new, handle_route, handle_route_query
 #include <view/map.h>
-#include <view/pyawaitable.h>
 #include <view/view.h> // VIEW_FATAL
+
+#include <pyawaitable.h>
 
 #define LOAD_ROUTE(target)                                                  \
         char *path;                                                         \
@@ -265,9 +266,11 @@ lifespan(PyObject *awaitable, PyObject *result)
     Py_DECREF(send_dict);
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            send_coro
+            send_coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -763,9 +766,11 @@ app(
         }
 
         if (
-            PyAwaitable_AWAIT(
+            PyAwaitable_AddAwait(
                 awaitable,
-                coro
+                coro,
+                NULL,
+                NULL
             ) < 0
         )
         {
@@ -833,9 +838,11 @@ app(
         }
 
         if (
-            PyAwaitable_AWAIT(
+            PyAwaitable_AddAwait(
                 awaitable,
-                coro
+                coro,
+                NULL,
+                NULL
             ) < 0
         )
         {

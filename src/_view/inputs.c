@@ -26,10 +26,11 @@
 #include <view/errors.h>
 #include <view/inputs.h> // app_parsers
 #include <view/handling.h> // handle_route_impl
-#include <view/pyawaitable.h>
 #include <view/typecodes.h>
 #include <view/ws.h> // ws_from_data
 #include <view/view.h> // VIEW_FATAL
+
+#include <pyawaitable.h>
 
 typedef struct _app_parsers app_parsers;
 typedef PyObject **(* parserfunc)(
@@ -89,7 +90,7 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         return -1;
     }
 
-    char *buf;
+    char **buf;
     Py_ssize_t *size;
     Py_ssize_t *used;
     char *query;
@@ -109,7 +110,7 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         return -1;
     }
 
-    char *nbuf = buf;
+    char *nbuf = *buf;
 
     while (((*used) + buf_inc_size) > (*size))
     {
@@ -135,11 +136,8 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         buf_inc_size
     );
     *used += buf_inc_size;
-    PyAwaitable_SetArbValue(
-        awaitable,
-        0,
-        nbuf
-    );
+    // TODO: Add SetArbValue here
+    *buf = nbuf;
 
     PyObject *aw;
     PyObject *receive;

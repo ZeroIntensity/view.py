@@ -26,10 +26,11 @@
 #include <view/app.h> // ViewAppType
 #include <view/context.h> // ContextType
 #include <view/headerdict.h> // HeaderDictType
-#include <view/pyawaitable.h> // _PyAwaitableType, _PyAwaitableGenWrapperType
 #include <view/results.h> // build_default_headers
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
+
+#include <pyawaitable.h>
 #define ADD_TYPE(tp, name) \
         Py_INCREF(tp);     \
         if (               \
@@ -203,7 +204,7 @@ test_awaitable(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (PyAwaitable_AWAIT(awaitable, res) < 0)
+    if (PyAwaitable_AddAwait(awaitable, res, NULL, NULL) < 0)
     {
         Py_DECREF(awaitable);
         Py_DECREF(res);
@@ -352,7 +353,7 @@ PyInit__view(void)
         return NULL;
     }
 
-    if (PyAwaitable_VendorInit(m) < 0)
+    if (PyAwaitable_Init() < 0)
     {
         Py_DECREF(m);
         return NULL;

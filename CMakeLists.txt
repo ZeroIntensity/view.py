@@ -15,8 +15,12 @@ find_package(
 # Link Python
 python_add_library(_view MODULE ${_view_SRC} WITH_SOABI)
 
+# Settings
+add_compile_definitions(PYAWAITABLE_PYAPI)
+
 # Add include directories
 target_include_directories(_view PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/)
+target_include_directories(_view PUBLIC $ENV{PYAWAITABLE_INCLUDE_DIR})
 
 # Install extension module
 install(TARGETS _view DESTINATION .)

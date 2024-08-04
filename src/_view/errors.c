@@ -7,10 +7,11 @@
 #include <view/backport.h>
 #include <view/errors.h>
 #include <view/handling.h> // send_raw_text
-#include <view/pyawaitable.h>
 #include <view/results.h> // handle_result
 #include <view/route.h> // route
 #include <view/view.h> // invalid_status_error
+
+#include <pyawaitable.h>
 
 #define ER(code, str) \
         case code:    \
@@ -514,9 +515,11 @@ run_err_cb(
     }
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            new_awaitable
+            new_awaitable,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -872,9 +875,11 @@ route_error(
         Py_DECREF(send_dict);
 
         if (
-            PyAwaitable_AWAIT(
+            PyAwaitable_AddAwait(
                 awaitable,
-                coro
+                coro,
+                NULL,
+                NULL
             ) < 0
         )
         {
