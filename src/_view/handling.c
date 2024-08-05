@@ -269,6 +269,7 @@ handle_route(PyObject *awaitable, char *query)
         return -1;
     }
 
+
     if (
         PyAwaitable_SaveArbValues(
             aw,
