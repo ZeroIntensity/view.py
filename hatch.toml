@@ -19,7 +19,7 @@ experimental = true
 
 [build.targets.wheel.hooks.scikit-build.cmake]
 verbose = true
-build-type = "Release"
+build-type = "RelWithDebInfo"
 source-dir = "."
 
 [envs.test]
@@ -39,7 +39,6 @@ platform.windows.dependencies = [
     "coverage",
     "pytest",
     "pytest-asyncio",
-    "pytest-pystack",
 ]
 
 [envs.test.scripts]

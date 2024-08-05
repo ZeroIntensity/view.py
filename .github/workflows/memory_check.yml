@@ -28,12 +28,12 @@ jobs:
               with:
                   python-version: 3.12
 
-            - name: Install PyTest
+            - name: Install Pytest
               run: |
-                  pip install pytest pytest-asyncio
+                  pip install pytest pytest-asyncio pytest-memray
               shell: bash
 
-            - name: Build project
+            - name: Build view.py
               run: pip install .[full]
 
             - name: Install Valgrind
@@ -41,3 +41,6 @@ jobs:
 
             - name: Run tests with Valgrind
               run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x
+            
+            - name: Run tests with Memray
+              run: pytest --enable-leak-tracking

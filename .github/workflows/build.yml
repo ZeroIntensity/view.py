@@ -4,9 +4,6 @@ on:
     push:
         tags:
             - v*
-    pull_request:
-        branches:
-            - master
 
 concurrency:
     group: build-${{ github.head_ref }}
@@ -16,8 +13,6 @@ env:
     VIEW_RELEASE: "1"
     CIBW_SKIP: >
         pp*
-    PYTHONMALLOC: "malloc"
-    PYTHONDEVMODE: "1"
 
 jobs:
     binary-wheels-standard:
