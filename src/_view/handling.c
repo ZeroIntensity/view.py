@@ -30,7 +30,9 @@
 
 #include <pyawaitable.h>
 
-#define INITIAL_BUF_SIZE 1024
+// NOTE: This should be below 512 for PyMalloc to be effective
+// on the first call.
+#define INITIAL_BUF_SIZE 256
 
 /*
  * Call a route object with both query and body parameters.
@@ -274,7 +276,7 @@ handle_route(PyObject *awaitable, char *query)
         PyAwaitable_SaveArbValues(
             aw,
             4,
-            &buf,
+            buf,
             size,
             used,
             query

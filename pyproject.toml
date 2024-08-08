@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.9.0", "hatchling", "pyawaitable"]
+requires = ["scikit-build-core>=0.9.0", "hatchling>=1", "pyawaitable==1.2.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -21,14 +21,15 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "rich",
-    "click",
+    "rich>=13",
+    "click>=8",
     "typing_extensions",
-    "ujson",
-    "configzen",
-    "aiofiles",
-    "prompts.py",
-    "pyawaitable"
+    "ujson>=5",
+    "pydantic_settings>=2",
+    "toml~=0.10",
+    "aiofiles>=24",
+    "prompts.py~=0.1",
+    "pyawaitable==1.2.0"
 ]
 dynamic = ["version", "license"]
 
@@ -72,3 +73,8 @@ Funding = "https://github.com/sponsors/ZeroIntensity"
 [project.scripts]
 view = "view.__main__:main"
 view-py = "view.__main__:main"
+
+[tool.scikit-build]
+cmake.verbose = true
+cmake.build-type = "RelWithDebInfo"
+cmake.source-dir = "."

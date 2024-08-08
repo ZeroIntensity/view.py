@@ -38,6 +38,8 @@ show_error(bool dev)
         Py_INCREF(err); // Save a reference to it
         PyErr_SetRaisedException(err);
         PyErr_Print();
+        // PyErr_Print() clears the error indicator, so
+        // we need to reset it.
         PyErr_SetRaisedException(err);
     } else PyErr_Clear();
 }
@@ -699,6 +701,7 @@ route_error(
     PyObject *err
 )
 {
+    puts("1");
     if (((PyObject *) Py_TYPE(err)) == ws_disconnect_err)
     {
         // the socket prematurely disconnected, let's complain about it
@@ -740,6 +743,7 @@ route_error(
     PyObject *send;
     bool handler_was_called;
 
+    puts("2");
     if (
         PyAwaitable_UnpackValues(
             awaitable,
@@ -770,8 +774,10 @@ route_error(
     if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
+    puts("3");
     if (((PyObject *) Py_TYPE(err)) == self->error_type)
     {
+        puts("4");
         PyObject *status_obj = PyObject_GetAttrString(
             err,
             "status"
@@ -798,6 +804,7 @@ route_error(
             return -2;
         }
 
+        puts("5");
         const char *message = NULL;
 
         if (msg_obj != Py_None)
@@ -831,6 +838,7 @@ route_error(
 
         Py_DECREF(status_obj);
         Py_DECREF(msg_obj);
+        puts("6");
         return 0;
     }
 
@@ -894,6 +902,7 @@ route_error(
         return 0;
     }
 
+    puts("7");
     if (
         server_err_exc(
             self,
@@ -909,12 +918,14 @@ route_error(
         return -1;
     }
 
+    puts("8");
     if (!handler_was_called)
     {
         PyErr_SetRaisedException(err);
         PyErr_Print();
     }
 
+    puts("9");
     return 0;
 }
 

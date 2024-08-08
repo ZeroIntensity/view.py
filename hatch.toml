@@ -17,12 +17,10 @@ enable-by-default = true
 [build.targets.wheel.hooks.scikit-build]
 experimental = true
 
-[build.targets.wheel.hooks.scikit-build.cmake]
-verbose = true
-build-type = "RelWithDebInfo"
-source-dir = "."
+[envs.foo.scripts]
+x = "python -c 'import view'"
 
-[envs.test]
+[envs.hatch-test]
 features = ["full"]
 dev-mode = false
 dependencies = [
@@ -30,18 +28,12 @@ dependencies = [
     "pytest",
     "pytest-memray",
     "pytest-asyncio",
-    "pytest-rich",
 ]
 platforms = ["linux", "macos"]
 
-[envs.test.overrides]
+[envs.hatch-test.overrides]
 platform.windows.dependencies = [
     "coverage",
     "pytest",
     "pytest-asyncio",
 ]
-
-[envs.test.scripts]
-no-cov = "pytest"
-memray = "pytest --enable-leak-tracking"
-cov = "coverage run -m pytest"

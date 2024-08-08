@@ -13,33 +13,16 @@ from collections.abc import Awaitable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Generic,
-    Iterable,
-    Literal,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
+                    Union, overload)
 
 from typing_extensions import ParamSpec, TypeAlias
 
 from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MissingAppError, MistakeError
-from .typing import (
-    TYPE_CHECKING,
-    Middleware,
-    StrMethod,
-    Validator,
-    ValueType,
-    ViewResult,
-    ViewRoute,
-    WebSocketRoute,
-)
+from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
+                     ValueType, ViewResult, ViewRoute, WebSocketRoute)
 
 if TYPE_CHECKING:
     from .app import App
@@ -205,7 +188,7 @@ class Route(Generic[P], LoadChecker):
         if isinstance(result, Awaitable):
             return await result
 
-        # type checker still thinks its async for some reason
+        # The type checker still thinks it's asynchronous, for some reason
         return result  # type: ignore
 
 
@@ -266,7 +249,7 @@ def _method(
     if not util_path.startswith("/"):
         raise MistakeError(
             "paths must started with a slash",
-            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2),
+            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2,),
         )
 
     if util_path.endswith("/") and (len(util_path) != 1):

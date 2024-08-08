@@ -1,7 +1,7 @@
 /*
  * view.py route inputs implementation
  *
- * This file is responsible for parsing route inputs through query
+   // * This file is responsible for parsing route inputs through query
  * strings and body parameters.
  *
  * If a route has no inputs, then the parsing
@@ -70,7 +70,6 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
     );
     if (!more_body)
     {
-        Py_DECREF(body);
         return PyErr_BadASGI();
     }
 
@@ -85,12 +84,10 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         ) < 0
     )
     {
-        Py_DECREF(body);
-        Py_DECREF(more_body);
         return -1;
     }
 
-    char **buf;
+    char *buf;
     Py_ssize_t *size;
     Py_ssize_t *used;
     char *query;
@@ -105,17 +102,21 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         ) < 0
     )
     {
-        Py_DECREF(body);
-        Py_DECREF(more_body);
         return -1;
     }
 
-    char *nbuf = *buf;
+    char *nbuf = buf;
+    bool needs_realloc = false;
 
     while (((*used) + buf_inc_size) > (*size))
     {
         // The buffer would overflow, we need to reallocate it
         *size *= 2;
+        needs_realloc = true;
+    }
+
+    if (needs_realloc)
+    {
         nbuf = PyMem_Realloc(
             buf,
             (*size)
@@ -123,8 +124,6 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
 
         if (!nbuf)
         {
-            Py_DECREF(body);
-            Py_DECREF(more_body);
             PyErr_NoMemory();
             return -1;
         }
@@ -136,8 +135,11 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         buf_inc_size
     );
     *used += buf_inc_size;
-    // TODO: Add SetArbValue here
-    *buf = nbuf;
+    PyAwaitable_SetArbValue(
+        awaitable,
+        0,
+        nbuf
+    );
 
     PyObject *aw;
     PyObject *receive;
@@ -150,8 +152,6 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
         ) < 0
     )
     {
-        Py_DECREF(more_body);
-        Py_DECREF(body);
         return -1;
     }
 
@@ -168,8 +168,6 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
             ) < 0
         )
         {
-            Py_DECREF(more_body);
-            Py_DECREF(body);
             Py_DECREF(receive_coro);
             PyMem_Free(query);
             PyMem_Free(nbuf);
@@ -187,15 +185,12 @@ body_inc_buf(PyObject *awaitable, PyObject *result)
             ) < 0
         )
         {
-            Py_DECREF(more_body);
-            Py_DECREF(body);
             PyMem_Free(nbuf);
             return -1;
         }
-    }
 
-    Py_DECREF(more_body);
-    Py_DECREF(body);
+        PyMem_Free(nbuf);
+    }
 
     return 0;
 }
