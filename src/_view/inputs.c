@@ -1,7 +1,7 @@
 /*
  * view.py route inputs implementation
  *
-   // * This file is responsible for parsing route inputs through query
+ * This file is responsible for parsing route inputs through query
  * strings and body parameters.
  *
  * If a route has no inputs, then the parsing

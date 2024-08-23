@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.15...3.26)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES C)
 
+message(STATUS "CMAKE_BUILD_TYPE set to '${CMAKE_BUILD_TYPE}'")
+
 # Source code
 file(GLOB _view_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/_view/*.c
