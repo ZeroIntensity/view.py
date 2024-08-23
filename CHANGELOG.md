@@ -40,14 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Query string client errors are now displayed during development mode
 -   `KeyboardInterrupt` is swallowed by the server coroutine, and a log message is now issued
 -   Typecode API now raises exceptions indicating a validation error (and now it's sent as a response with a query or body parse failure)
--   `hatchling` and `scikit-build-core` are now used for build instead of `setuptools`.
+-   `hatchling` and `scikit-build-core` are now used for build instead of `setuptools`
 -   Renamed the `view-admin` command to `view-py`
 -   **Breaking Change:** Renamed `Error` to `HTTPError`
 -   **Breaking Change:** `__view_result__` is now given a `Context` parameter
 -   **Breaking Change:** `to_response` is now asynchronous
 -   **Breaking Change:** Renamed `Response._custom` to `Response.translate_body`
 -   **Breaking Change:** Removed the `hijack` configuration setting
--   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`.
+-   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`
 -   **Breaking Change:** `load()` now takes routes via variadic arguments, instead of a list of routes.
 
 ## [1.0.0-alpha10] - 2024-5-26

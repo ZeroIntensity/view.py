@@ -701,12 +701,7 @@ route_error(
     PyObject *err
 )
 {
-<<<<<<< HEAD
-    if (PyErr_GivenExceptionMatches(err, ws_disconnect_err))
-=======
-    puts("1");
     if (((PyObject *) Py_TYPE(err)) == ws_disconnect_err)
->>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
     {
         // the socket prematurely disconnected, let's complain about it
         #if PY_MINOR_VERSION < 9
@@ -778,12 +773,8 @@ route_error(
     if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
-<<<<<<< HEAD
-    if (PyErr_GivenExceptionMatches(err, self->error_type))
-=======
     puts("3");
     if (((PyObject *) Py_TYPE(err)) == self->error_type)
->>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
     {
         puts("4");
         PyObject *status_obj = PyObject_GetAttrString(

@@ -18,14 +18,12 @@ enable-by-default = true
 experimental = true
 
 [build.targets.wheel.hooks.scikit-build.cmake]
-verbose = true
 source-dir = "."
 build-type = "RelWithDebInfo"
-debug = true
+verbose = true
 
 [envs.foo.scripts]
 x = "python -c 'import view'"
-
 
 [envs.hatch-test]
 features = ["full"]
