@@ -25,11 +25,14 @@
 #include <view/errors.h>  // route_error
 #include <view/handling.h>
 #include <view/inputs.h>  // route_input, body_inc_buf
-#include <view/pyawaitable.h>
 #include <view/results.h> // handle_result
 #include <view/view.h> // route_log
 
-#define INITIAL_BUF_SIZE 1024
+#include <pyawaitable.h>
+
+// NOTE: This should be below 512 for PyMalloc to be effective
+// on the first call.
+#define INITIAL_BUF_SIZE 256
 
 /*
  * Call a route object with both query and body parameters.
@@ -268,6 +271,7 @@ handle_route(PyObject *awaitable, char *query)
         return -1;
     }
 
+
     if (
         PyAwaitable_SaveArbValues(
             aw,
@@ -309,9 +313,11 @@ handle_route(PyObject *awaitable, char *query)
     Py_DECREF(receive_coro);
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            aw
+            aw,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -458,9 +464,11 @@ handle_route_callback(
         return -1;
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -495,9 +503,11 @@ handle_route_callback(
         return -1;
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -571,9 +581,11 @@ send_raw_text(
         return -1;
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -607,9 +619,11 @@ send_raw_text(
         return -1;
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -720,7 +734,7 @@ handle_route_websocket(PyObject *awaitable, PyObject *result)
     }
 
     Py_DECREF(send_dict);
-    if (PyAwaitable_AWAIT(awaitable, coro) < 0)
+    if (PyAwaitable_AddAwait(awaitable, coro, NULL, NULL) < 0)
     {
         Py_DECREF(coro);
         return -1;

@@ -29,17 +29,31 @@ jobs:
               with:
                   python-version: 3.12
 
+<<<<<<< HEAD
             - name: Install Hatch
               run: pip install hatch
+=======
+            - name: Install Pytest
+              run: |
+                  pip install pytest pytest-asyncio pytest-memray
+              shell: bash
+>>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
 
-            - name: Build project
+            - name: Build view.py
               run: pip install .[full]
 
             - name: Install Valgrind
-              run: sudo apt-get -y install valgrind
+              run: sudo apt-get update && sudo apt-get -y install valgrind
 
             - name: Run tests with Valgrind
+<<<<<<< HEAD
               run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 hatch run test:no-cov
 
             - name: Run tests with Memray
               run: hatch run test:memray
+=======
+              run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x
+            
+            - name: Run tests with Memray
+              run: pytest --enable-leak-tracking
+>>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58

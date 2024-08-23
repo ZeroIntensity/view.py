@@ -7,10 +7,11 @@
 #include <view/backport.h>
 #include <view/errors.h>
 #include <view/handling.h> // send_raw_text
-#include <view/pyawaitable.h>
 #include <view/results.h> // handle_result
 #include <view/route.h> // route
 #include <view/view.h> // invalid_status_error
+
+#include <pyawaitable.h>
 
 #define ER(code, str) \
         case code:    \
@@ -37,6 +38,8 @@ show_error(bool dev)
         Py_INCREF(err); // Save a reference to it
         PyErr_SetRaisedException(err);
         PyErr_Print();
+        // PyErr_Print() clears the error indicator, so
+        // we need to reset it.
         PyErr_SetRaisedException(err);
     } else PyErr_Clear();
 }
@@ -514,9 +517,11 @@ run_err_cb(
     }
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            new_awaitable
+            new_awaitable,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -696,7 +701,12 @@ route_error(
     PyObject *err
 )
 {
+<<<<<<< HEAD
     if (PyErr_GivenExceptionMatches(err, ws_disconnect_err))
+=======
+    puts("1");
+    if (((PyObject *) Py_TYPE(err)) == ws_disconnect_err)
+>>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
     {
         // the socket prematurely disconnected, let's complain about it
         #if PY_MINOR_VERSION < 9
@@ -737,6 +747,7 @@ route_error(
     PyObject *send;
     bool handler_was_called;
 
+    puts("2");
     if (
         PyAwaitable_UnpackValues(
             awaitable,
@@ -767,8 +778,14 @@ route_error(
     if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
+<<<<<<< HEAD
     if (PyErr_GivenExceptionMatches(err, self->error_type))
+=======
+    puts("3");
+    if (((PyObject *) Py_TYPE(err)) == self->error_type)
+>>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
     {
+        puts("4");
         PyObject *status_obj = PyObject_GetAttrString(
             err,
             "status"
@@ -795,6 +812,7 @@ route_error(
             return -2;
         }
 
+        puts("5");
         const char *message = NULL;
 
         if (msg_obj != Py_None)
@@ -828,6 +846,7 @@ route_error(
 
         Py_DECREF(status_obj);
         Py_DECREF(msg_obj);
+        puts("6");
         return 0;
     }
 
@@ -872,9 +891,11 @@ route_error(
         Py_DECREF(send_dict);
 
         if (
-            PyAwaitable_AWAIT(
+            PyAwaitable_AddAwait(
                 awaitable,
-                coro
+                coro,
+                NULL,
+                NULL
             ) < 0
         )
         {
@@ -889,6 +910,7 @@ route_error(
         return 0;
     }
 
+    puts("7");
     if (
         server_err_exc(
             self,
@@ -904,6 +926,7 @@ route_error(
         return -1;
     }
 
+    puts("8");
     if (!handler_was_called)
     {
         // err is a borrowed reference, and PyErr_SetRaisedException steals it!
@@ -911,6 +934,7 @@ route_error(
         PyErr_Print();
     }
 
+    puts("9");
     return 0;
 }
 

@@ -140,7 +140,6 @@ BodyTranslateStrategy = Literal["str", "repr", "result", "custom"]
 
 DocsType = Dict[Tuple[Union[str, Tuple[str, ...]], str], "RouteDoc"]
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
-FileWriteMethod = Literal["only", "never", "both"]
 StrMethod = Literal[
     "get",
     "post",

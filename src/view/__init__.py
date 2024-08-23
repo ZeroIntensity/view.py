@@ -36,7 +36,6 @@ from .build import *
 from .default_page import *
 from .exceptions import *
 from .integrations import *
-from .logging import *
 from .patterns import *
 from .response import *
 from .routing import *

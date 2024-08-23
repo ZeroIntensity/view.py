@@ -5,24 +5,20 @@ This module contains `load_config`, `Config`, and all subcategories of `Config`.
 """
 
 from __future__ import annotations
-
-import importlib.util
-import sys
+import runpy
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union
-
-from configzen import ConfigField, ConfigModel, field_validator
+from pydantic import Field
+from pydantic_settings import BaseSettings
 from typing_extensions import TypeAlias
-
+import toml
 from .exceptions import ViewInternalError
-from .logging import FileWriteMethod, Urgency
 from .typing import TemplateEngine
 
 __all__ = (
     "AppConfig",
     "ServerConfig",
-    "UserLogConfig",
     "LogConfig",
     "MongoConfig",
     "PostgresConfig",
@@ -37,59 +33,28 @@ __all__ = (
 )
 
 
-# https://github.com/python/mypy/issues/11036
-class AppConfig(ConfigModel, env_prefix="view_app_"):  # type: ignore
+class AppConfig(BaseSettings):
     loader: Literal["manual", "simple", "filesystem", "patterns", "custom"] = "manual"
-    app_path: str = ConfigField("app.py:app")
+    app_path: str = "app.py:app"
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
 
-    @field_validator("loader")
-    @classmethod
-    def validate_loader(cls, loader: str):
-        return loader
-
-    @field_validator("loader_path")
-    @classmethod
-    def validate_loader_path(cls, loader_path: Path, values: dict):
-        loader = values["loader"]
-        if loader == "manual":
-            return loader_path
-
-        if (loader == "patterns") and (loader_path == Path("./routes")):
-            return Path("./urls.py").resolve()
-
-        return loader_path.resolve()
-
-
-class ServerConfig(ConfigModel, env_prefix="view_server_"):  # type: ignore
+class ServerConfig(BaseSettings):
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
     backend: Literal["uvicorn", "hypercorn", "daphne"] = "uvicorn"
-    extra_args: Dict[str, Any] = ConfigField(default_factory=dict)
+    extra_args: Dict[str, Any] = Field(default_factory=dict)
 
 
-class UserLogConfig(ConfigModel, env_prefix="view_user_log_"):  # type: ignore
-    urgency: Urgency = "info"
-    log_file: Union[Path, str, None] = None
-    show_time: bool = True
-    show_caller: bool = True
-    show_color: bool = True
-    show_urgency: bool = True
-    file_write: FileWriteMethod = "both"
-    strftime: str = "%H:%M:%S"
-
-
-class LogConfig(ConfigModel, env_prefix="view_log_"):  # type: ignore
+class LogConfig(BaseSettings):
     level: Union[Literal["debug", "info", "warning", "error", "critical"], int] = "info"
     fancy: bool = True
     server_logger: bool = False
     pretty_tracebacks: bool = True
-    user: UserLogConfig = ConfigField(default_factory=UserLogConfig)
     startup_message: bool = True
 
 
-class MongoConfig(ConfigModel, env_prefix="view_mongo_"):  # type: ignore
+class MongoConfig(BaseSettings):
     host: IPv4Address
     port: int
     username: str
@@ -97,7 +62,7 @@ class MongoConfig(ConfigModel, env_prefix="view_mongo_"):  # type: ignore
     database: str
 
 
-class PostgresConfig(ConfigModel, env_prefix="view_postgres_"):  # type: ignore
+class PostgresConfig(BaseSettings):
     database: str
     user: str
     password: str
@@ -105,26 +70,26 @@ class PostgresConfig(ConfigModel, env_prefix="view_postgres_"):  # type: ignore
     port: int
 
 
-class SQLiteConfig(ConfigModel, env_prefix="view_sqlite_"):  # type: ignore
+class SQLiteConfig(BaseSettings):
     file: Path
 
 
-class MySQLConfig(ConfigModel, env_prefix="view_mysql_"):  # type: ignore
+class MySQLConfig(BaseSettings):
     host: IPv4Address
     user: str
     password: str
     database: str
 
 
-class DatabaseConfig(ConfigModel, env_prefix="view_database_"):  # type: ignore
+class DatabaseConfig(BaseSettings):
     type: Literal["sqlite", "mysql", "postgres", "mongo"] = "sqlite"
     mongo: Union[MongoConfig, None] = None
     postgres: Union[PostgresConfig, None] = None
-    sqlite: Union[SQLiteConfig, None] = SQLiteConfig(file="view.db")
+    sqlite: Union[SQLiteConfig, None] = SQLiteConfig(file=Path("view.db"))
     mysql: Union[MySQLConfig, None] = None
 
 
-class TemplatesConfig(ConfigModel, env_prefix="view_templates_"):  # type: ignore
+class TemplatesConfig(BaseSettings):
     directory: Path = Path("./templates")
     locals: bool = True
     globals: bool = True
@@ -136,30 +101,30 @@ Platform: TypeAlias = Literal[
 ]
 
 
-class BuildStep(ConfigModel):  # type: ignore
+class BuildStep(BaseSettings):
     platform: Union[List[Platform], Platform, None] = None
-    requires: List[str] = ConfigField(default_factory=list)
+    requires: List[str] = Field(default_factory=list)
     command: Union[str, None, List[str]] = None
     script: Union[Path, None, List[Path]] = None
 
 
-class BuildConfig(ConfigModel, env_prefix="view_build_"):  # type: ignore
+class BuildConfig(BaseSettings):
     path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
-    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = ConfigField(
+    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = Field(
         default_factory=dict
     )
     parallel: bool = False
 
 
-class Config(ConfigModel):  # type: ignore
+class Config(BaseSettings):
     dev: bool = True
-    env: Dict[str, Any] = ConfigField(default_factory=dict)
-    app: AppConfig = ConfigField(default_factory=AppConfig)
-    server: ServerConfig = ConfigField(default_factory=ServerConfig)
-    log: LogConfig = ConfigField(default_factory=LogConfig)
-    templates: TemplatesConfig = ConfigField(default_factory=TemplatesConfig)
-    build: BuildConfig = ConfigField(default_factory=BuildConfig)
+    env: Dict[str, Any] = Field(default_factory=dict)
+    app: AppConfig = Field(default_factory=AppConfig)
+    server: ServerConfig = Field(default_factory=ServerConfig)
+    log: LogConfig = Field(default_factory=LogConfig)
+    templates: TemplatesConfig = Field(default_factory=TemplatesConfig)
+    build: BuildConfig = Field(default_factory=BuildConfig)
 
 
 B_OPEN = "{"
@@ -210,32 +175,10 @@ engine = "view" # Default template engine
     "log": {B_OC}
 {B_CLOSE}"""
 
-    if tp == "ini":
-        return f"""dev = 'true'
-
-[app]
-loader = {loader}
-
-[server]
-
-[log]
-"""
-
-    if tp in {"yml", "yaml"}:
-        return f"""
-app:
-    loader: "{loader}"
-"""
-
     if tp == "py":
-        return f"""dev = True
+        return """from view import Config
 
-app = {B_OPEN}
-    "loader": "{loader}"
-{B_CLOSE}
-
-server = {B_OC}
-log = {B_OC}"""
+CONFIG = Config()"""
 
     raise ViewInternalError("bad file type")
 
@@ -255,18 +198,15 @@ def load_config(
     paths = (
         "view.toml",
         "view.json",
-        "view.ini",
-        "view.yaml",
-        "view.yml",
         "view_config.py",
         "config.py",
     )
 
     if path:
         if directory:
-            return Config.load(directory / path)
-            # idk why someone would do this, but i guess its good to support it
-        return Config.load(path)
+            return Config.model_validate(toml.load(directory / path))
+            # Not sure why someone would do this, but it's good to support it
+        return Config.model_validate(toml.load(path))
 
     for i in paths:
         p = Path(i) if not directory else directory / i
@@ -275,15 +215,12 @@ def load_config(
             continue
 
         if p.suffix == ".py":
-            spec = importlib.util.spec_from_file_location(str(p))
-            assert spec, "spec is none"
-            mod = importlib.util.module_from_spec(spec)
-            assert mod, "mod is none"
-            sys.modules[p.stem] = mod
-            assert spec.loader, "spec.loader is none"
-            spec.loader.exec_module(mod)
-            return Config.wrap_module(mod)
+            glbls = runpy.run_path(str(p))
+            config = glbls.get("CONFIG")
+            if not isinstance(config, Config):
+                raise TypeError(f"{config!r} is not an instance of Config")
+            return config
 
-        return Config.load(p)
+        return Config.model_validate(toml.load(p))
 
     return Config()

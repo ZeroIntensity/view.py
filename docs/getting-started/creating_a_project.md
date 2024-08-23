@@ -1,4 +1,4 @@
-# Project Creation
+# Creating a Project
 
 ## Automatic
 

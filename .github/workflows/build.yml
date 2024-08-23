@@ -4,9 +4,6 @@ on:
     push:
         tags:
             - v*
-    pull_request:
-        branches:
-            - master
 
 concurrency:
     group: build-${{ github.head_ref }}
@@ -16,9 +13,12 @@ env:
     SKBUILD_CMAKE_BUILD_TYPE: "Release"
     CIBW_SKIP: >
         pp*
+<<<<<<< HEAD
     PYTHONMALLOC: "malloc"
     PYTHONDEVMODE: "1"
     HATCH_VERBOSE: "1"
+=======
+>>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
 
 jobs:
     binary-wheels-standard:

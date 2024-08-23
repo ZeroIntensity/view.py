@@ -10,6 +10,10 @@ packages = ["src/view"]
 [build.targets.wheel.force-include]
 "_view.pyi" = "_view.pyi"
 
+[metadata.hooks.custom]
+path = "hatch_build.py"
+enable-by-default = true
+
 [build.targets.wheel.hooks.scikit-build]
 experimental = true
 
@@ -19,7 +23,11 @@ source-dir = "."
 build-type = "RelWithDebInfo"
 debug = true
 
-[envs.test]
+[envs.foo.scripts]
+x = "python -c 'import view'"
+
+
+[envs.hatch-test]
 features = ["full"]
 dev-mode = false
 dependencies = [
@@ -27,7 +35,6 @@ dependencies = [
     "pytest",
     "pytest-memray",
     "pytest-asyncio",
-    "pytest-rich",
 ]
 platforms = ["linux", "macos"]
 
@@ -36,10 +43,4 @@ dependencies = [
     "coverage",
     "pytest",
     "pytest-asyncio",
-    "pytest-rich",
 ]
-
-[envs.test.scripts]
-no-cov = "pytest"
-memray = "pytest --enable-leak-tracking"
-cov = "coverage run -m pytest"

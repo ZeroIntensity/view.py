@@ -29,12 +29,13 @@
 #include <stddef.h> // offsetof
 
 #include <view/app.h> // PyErr_BadASGI
-#include <view/pyawaitable.h>
 #include <view/backport.h>
 #include <view/results.h> // handle_result
 #include <view/route.h> // route
 #include <view/ws.h> // WebSocketType
 #include <view/view.h>
+
+#include <pyawaitable.h>
 
 typedef struct
 {
@@ -201,9 +202,11 @@ run_ws_accept(PyObject *awaitable, PyObject *result)
         return -1;
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -533,9 +536,11 @@ WebSocket_close(
     }
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {
@@ -626,9 +631,11 @@ WebSocket_send(WebSocket *self, PyObject *args)
     }
 
     if (
-        PyAwaitable_AWAIT(
+        PyAwaitable_AddAwait(
             awaitable,
-            coro
+            coro,
+            NULL,
+            NULL
         ) < 0
     )
     {

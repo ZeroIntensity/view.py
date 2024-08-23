@@ -20,13 +20,14 @@ $ pip install .
 
 Congratulations, you have just started your development with view.py!
 
+Note that this cannot be an editable install (the `-e` flag), as `scikit-build-core` does not support it.
+
 ## Workflow
 
 First, you should create a new branch:
 
 ```
-$ git branch my_cool_feature
-$ git checkout my_cool_feature
+$ git switch -c my-cool-feature
 ```
 
 All of your code should be contained on this branch.
@@ -64,13 +65,12 @@ app.run()
 
 **Note:** Import from `view` internally _does not_ work when using `src.view`. Instead, your imports inside of view.py should look like `from .foo import bar`. For example, if you wanted to import `view.routing.get` from `src/view/app.py`, your import would look like `from .routing import get`
 
-For debugging purposes, you're also going to want to disable `fancy` and `hijack` in the configuration:
+For debugging purposes, you're also going to want to disable `fancy` and `server_logger` in the configuration:
 
 ```toml
 [log]
 fancy = false
 server_logger = true
-
 ```
 
 These settings will stop view.py's fancy output from showing, as well as stopping the hijack of the server's logger, and you'll get the raw server output.
