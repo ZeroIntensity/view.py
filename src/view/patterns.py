@@ -3,6 +3,7 @@ view.py patterns API
 
 This contains the `path()` function, which acts as the logic for the Django-like `patterns` loader.
 """
+
 from __future__ import annotations
 
 from ._util import run_path

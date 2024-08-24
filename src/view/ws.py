@@ -4,6 +4,7 @@ view.py WebSocket APIs
 It's unlikely that you need something from this module for anything other than typing purposes.
 The bulk of the WebSocket implementation is C code, and considered unstable.
 """
+
 from __future__ import annotations
 
 from types import TracebackType
@@ -15,8 +16,11 @@ from typing_extensions import Self
 from _view import ViewWebSocket
 
 from ._logging import Internal, Service
-from .exceptions import (WebSocketDisconnectError, WebSocketExpectError,
-                         WebSocketHandshakeError)
+from .exceptions import (
+    WebSocketDisconnectError,
+    WebSocketExpectError,
+    WebSocketHandshakeError,
+)
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -42,24 +46,19 @@ class WebSocket:
         """Whether the connection was accepted, and then closed."""
 
     @overload
-    async def receive(self, tp: type[str] = str) -> str:
-        ...
+    async def receive(self, tp: type[str] = str) -> str: ...
 
     @overload
-    async def receive(self, tp: type[bytes] = bytes) -> bytes:
-        ...
+    async def receive(self, tp: type[bytes] = bytes) -> bytes: ...
 
     @overload
-    async def receive(self, tp: type[dict] = dict) -> dict:
-        ...
+    async def receive(self, tp: type[dict] = dict) -> dict: ...
 
     @overload
-    async def receive(self, tp: type[int] = int) -> int:
-        ...
+    async def receive(self, tp: type[int] = int) -> int: ...
 
     @overload
-    async def receive(self, tp: type[bool] = bool) -> bool:
-        ...
+    async def receive(self, tp: type[bool] = bool) -> bool: ...
 
     async def receive(self, tp: type[WebSocketReceivable] = str) -> WebSocketReceivable:
         """
@@ -162,8 +161,7 @@ class WebSocket:
         *,
         tp: type[str] = str,
         recv_first: bool = False,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     async def pair(
@@ -172,8 +170,7 @@ class WebSocket:
         *,
         tp: type[bytes] = bytes,
         recv_first: bool = False,
-    ) -> bytes:
-        ...
+    ) -> bytes: ...
 
     @overload
     async def pair(
@@ -182,8 +179,7 @@ class WebSocket:
         *,
         tp: type[int] = int,
         recv_first: bool = False,
-    ) -> int:
-        ...
+    ) -> int: ...
 
     @overload
     async def pair(
@@ -192,8 +188,7 @@ class WebSocket:
         *,
         tp: type[dict] = dict,
         recv_first: bool = False,
-    ) -> dict:
-        ...
+    ) -> dict: ...
 
     @overload
     async def pair(
@@ -202,8 +197,7 @@ class WebSocket:
         *,
         tp: type[bool] = bool,
         recv_first: bool = False,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     async def pair(
         self,

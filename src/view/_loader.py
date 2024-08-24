@@ -5,8 +5,15 @@ import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
-                    get_args, get_type_hints)
+from typing import (
+    TYPE_CHECKING,
+    ForwardRef,
+    Iterable,
+    NamedTuple,
+    TypedDict,
+    get_args,
+    get_type_hints,
+)
 
 from _view import Context
 
@@ -25,11 +32,15 @@ from typing_extensions import get_origin
 
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
-from .exceptions import (DuplicateRouteError, InvalidBodyError,
-                         InvalidRouteError, LoaderWarning,
-                         UnknownBuildStepError, ViewInternalError)
-from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
-                      _NoDefault)
+from .exceptions import (
+    DuplicateRouteError,
+    InvalidBodyError,
+    InvalidRouteError,
+    LoaderWarning,
+    UnknownBuildStepError,
+    ViewInternalError,
+)
+from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired: Any = None
@@ -348,9 +359,7 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append(
-                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
-            )
+            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp)))
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -364,9 +373,7 @@ def _build_type_codes(
             key, value = get_args(tp)
 
             if key is not str:
-                raise InvalidBodyError(
-                    f"dictionary keys must be strings, not {key}"
-                )
+                raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
 
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
@@ -437,9 +444,7 @@ def finalize(routes: Iterable[Route], app: ViewApp):
 
         for step in route.steps or []:
             if step not in app.config.build.steps:
-                raise UnknownBuildStepError(
-                    f"build step {step!r} is not defined"
-                )
+                raise UnknownBuildStepError(f"build step {step!r} is not defined")
 
         if route.method:
             target = targets[route.method]
@@ -487,9 +492,7 @@ def finalize(routes: Iterable[Route], app: ViewApp):
                     route.inputs.insert(index, 1)
                     continue
 
-                default = (
-                    v.default if v.default is not inspect._empty else _NoDefault
-                )
+                default = v.default if v.default is not inspect._empty else _NoDefault
 
                 route.inputs.insert(
                     index,
@@ -584,9 +587,7 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(
-                        path_obj.parts[len(target_dir.parts) :]
-                    )  # noqa
+                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 

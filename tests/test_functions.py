@@ -6,11 +6,19 @@ import pytest
 from conftest import limit_leaks
 from typing_extensions import Annotated
 
-from view import (App, BadEnvironmentError, Context, TypeValidationError,
-                  call_result, compile_type, env, get_app, new_app,
-                  to_response)
-from view.typing import (CallNext, MaybeAwaitable, SupportsViewResult,
-                         ViewResult)
+from view import (
+    App,
+    BadEnvironmentError,
+    Context,
+    TypeValidationError,
+    call_result,
+    compile_type,
+    env,
+    get_app,
+    new_app,
+    to_response,
+)
+from view.typing import CallNext, MaybeAwaitable, SupportsViewResult, ViewResult
 
 
 @limit_leaks("1 MB")
@@ -167,15 +175,11 @@ async def test_to_response():
 
 async def test_supports_result_isinstance():
     class MyObject(SupportsViewResult):
-        async def __view_result__(
-            self, ctx: Context
-        ) -> MaybeAwaitable[ViewResult]:
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
             return "hello"
 
     class MyObjectNoInherit:
-        async def __view_result__(
-            self, ctx: Context
-        ) -> MaybeAwaitable[ViewResult]:
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
             return "hello"
 
     assert isinstance(MyObject(), SupportsViewResult)
@@ -186,15 +190,11 @@ async def test_supports_result_isinstance():
 @pytest.mark.asyncio
 async def test_call_result():
     class MyObject(SupportsViewResult):
-        async def __view_result__(
-            self, ctx: Context
-        ) -> MaybeAwaitable[ViewResult]:
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
             return "hello"
 
     class MyObjectUseCtx(SupportsViewResult):
-        async def __view_result__(
-            self, ctx: Context
-        ) -> MaybeAwaitable[ViewResult]:
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
             return ctx.path
 
     app = new_app()

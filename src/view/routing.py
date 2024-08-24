@@ -3,6 +3,7 @@ view.py public router APIs
 
 This module contains all the router functions (e.g. `get()`, `post()`, etc.).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -13,16 +14,33 @@ from collections.abc import Awaitable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (Any, Callable, Generic, Iterable, Literal, Type, TypeVar,
-                    Union, overload)
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    Literal,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from typing_extensions import ParamSpec, TypeAlias
 
 from ._logging import Service
 from ._util import LoadChecker, make_hint
 from .exceptions import InvalidRouteError, MissingAppError, MistakeError
-from .typing import (TYPE_CHECKING, Middleware, StrMethod, Validator,
-                     ValueType, ViewResult, ViewRoute, WebSocketRoute)
+from .typing import (
+    TYPE_CHECKING,
+    Middleware,
+    StrMethod,
+    Validator,
+    ValueType,
+    ViewResult,
+    ViewRoute,
+    WebSocketRoute,
+)
 
 if TYPE_CHECKING:
     from .app import App
@@ -249,7 +267,10 @@ def _method(
     if not util_path.startswith("/"):
         raise MistakeError(
             "paths must started with a slash",
-            hint=make_hint(f'This should be "/{util_path}" instead', back_lines=2,),
+            hint=make_hint(
+                f'This should be "/{util_path}" instead',
+                back_lines=2,
+            ),
         )
 
     if util_path.endswith("/") and (len(util_path) != 1):
@@ -752,15 +773,13 @@ def body(
 @overload
 def context(
     r_or_none: RouteOrCallable[P],
-) -> Route[P]:
-    ...
+) -> Route[P]: ...
 
 
 @overload
 def context(
     r_or_none: None = None,
-) -> Callable[[RouteOrCallable[P]], Route[P]]:
-    ...
+) -> Callable[[RouteOrCallable[P]], Route[P]]: ...
 
 
 def context(

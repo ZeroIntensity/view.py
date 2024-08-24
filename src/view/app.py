@@ -6,6 +6,7 @@ This module contains the `App` class, `new_app`, and `get_app`.
 Note that the actual ASGI functionality is stored under the `ViewApp`
 extension type, which `App` inherits from.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -1006,15 +1007,13 @@ class App(ViewApp):
     def context(
         self,
         r_or_none: RouteOrCallable[P],
-    ) -> Route[P]:
-        ...
+    ) -> Route[P]: ...
 
     @overload
     def context(
         self,
         r_or_none: None = None,
-    ) -> Callable[[RouteOrCallable[P]], Route[P]]:
-        ...
+    ) -> Callable[[RouteOrCallable[P]], Route[P]]: ...
 
     def context(
         self,
@@ -1149,8 +1148,10 @@ class App(ViewApp):
             welcome()
 
         if self.config.dev:
-            Service.warning("Development mode is enabled, do not expect high performance.")
-    
+            Service.warning(
+                "Development mode is enabled, do not expect high performance."
+            )
+
         async def subcoro():
             Service.info(
                 f"Server running at http://{self.config.server.host}:{self.config.server.port} with backend [bold green]{self.config.server.backend}[/]"  # noqa
@@ -1403,12 +1404,10 @@ class App(ViewApp):
             await ctx.stop()
 
     @overload
-    def docs(self, file: None = None) -> str:
-        ...
+    def docs(self, file: None = None) -> str: ...
 
     @overload
-    def docs(self, file: TextIO) -> None:
-        ...
+    def docs(self, file: TextIO) -> None: ...
 
     @overload
     def docs(
@@ -1417,8 +1416,7 @@ class App(ViewApp):
         *,
         encoding: str = "utf-8",
         overwrite: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def docs(
@@ -1427,8 +1425,7 @@ class App(ViewApp):
         *,
         encoding: str = "utf-8",
         overwrite: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def docs(
         self,

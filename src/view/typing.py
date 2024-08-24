@@ -61,8 +61,7 @@ MaybeAwaitable = Union[T, Awaitable[T]]
 
 @runtime_checkable
 class SupportsViewResult(Protocol):
-    def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
-        ...
+    def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]: ...
 
 
 ResponseBody = Union[StrResponseBody, SupportsViewResult]
@@ -112,8 +111,7 @@ class _SupportsViewBodyCV(Protocol):
 
 class _SupportsViewBodyF(Protocol):
     @staticmethod
-    def __view_body__() -> ViewBody:
-        ...
+    def __view_body__() -> ViewBody: ...
 
 
 ViewBodyLike = Union[_SupportsViewBodyCV, _SupportsViewBodyF]

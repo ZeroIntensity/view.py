@@ -6,6 +6,7 @@ The details of typecode internals are subject to change.
 
 Typecodes are used internally for quickly validating received query and body route inputs.
 """
+
 from __future__ import annotations
 
 from typing import Generic, Iterable, TypeVar

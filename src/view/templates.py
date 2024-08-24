@@ -8,6 +8,7 @@ This module contains all APIs related to rendering HTML through a template engin
     - Mako
     - Chameleon
 """
+
 from __future__ import annotations
 
 import inspect
@@ -294,6 +295,7 @@ async def render(
         return Template(source).render(Context(parameters))
     else:
         raise InvalidTemplateError(f"{engine!r} is not a supported template engine")
+
 
 async def template(
     name: str | Path,

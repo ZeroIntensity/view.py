@@ -50,11 +50,7 @@ async def test_returning_the_proper_status_code():
 
     async with app.test() as test:
         for status in [*STATUS_CODES, *ERROR_CODES]:
-            assert (
-                await test.get("/", query={"status": status})
-            ).status == status
+            assert (await test.get("/", query={"status": status})).status == status
 
         for status in ERROR_CODES:
-            assert (
-                await test.get("/error", query={"status": status})
-            ).status == status
+            assert (await test.get("/error", query={"status": status})).status == status

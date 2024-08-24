@@ -6,6 +6,7 @@ Most of these exist because they are used somewhere else in view.py, it's just n
 
 For example, `timestamp()` is used by `cookie()` in `Response`, but it could be useful to generate timestamps for other cases.
 """
+
 from __future__ import annotations
 
 import json

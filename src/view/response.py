@@ -4,6 +4,7 @@ view.py public response APIs
 This module contains the `Response` class, which is conventionally used as the base response in view.py
 All other classes that inherit from it are contained in this module.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -18,8 +19,13 @@ import ujson
 from typing_extensions import final
 
 from .exceptions import InvalidResultError
-from .typing import (BodyTranslateStrategy, MaybeAwaitable, SameSite,
-                     SupportsViewResult, ViewResult)
+from .typing import (
+    BodyTranslateStrategy,
+    MaybeAwaitable,
+    SameSite,
+    SupportsViewResult,
+    ViewResult,
+)
 from .util import call_result, timestamp
 
 if TYPE_CHECKING:
@@ -227,7 +233,11 @@ class HTML(Response[HTMLContent]):
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
-            body, status, headers, body_translate="custom", content_type="text/html",
+            body,
+            status,
+            headers,
+            body_translate="custom",
+            content_type="text/html",
         )
 
     def translate_body(self, body: HTMLContent) -> str:

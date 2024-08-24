@@ -4,6 +4,7 @@ view.py build APIs
 While this module is considered public, you likely don't need the functions in here.
 Instead, you should just let view.py do most of the work, such as through calling `build_app` upon startup.
 """
+
 from __future__ import annotations
 
 import asyncio

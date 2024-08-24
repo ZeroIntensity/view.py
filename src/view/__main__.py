@@ -115,8 +115,7 @@ def main(ctx: click.Context, debug: bool, version: bool) -> None:
 
 
 @main.group()
-def logs():
-    ...
+def logs(): ...
 
 
 @logs.command()

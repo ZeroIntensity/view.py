@@ -39,6 +39,7 @@ class AppConfig(BaseSettings):
     uvloop: Union[Literal["decide"], bool] = "decide"
     loader_path: Path = Path("./routes")
 
+
 class ServerConfig(BaseSettings):
     host: IPv4Address = IPv4Address("0.0.0.0")
     port: int = 5000
@@ -111,9 +112,7 @@ class BuildStep(BaseSettings):
 class BuildConfig(BaseSettings):
     path: Path = Path("./build")
     default_steps: Union[List[str], None] = None
-    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = Field(
-        default_factory=dict
-    )
+    steps: Dict[str, Union[BuildStep, List[BuildStep]]] = Field(default_factory=dict)
     parallel: bool = False
 
 
