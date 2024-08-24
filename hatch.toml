@@ -22,8 +22,8 @@ source-dir = "."
 build-type = "RelWithDebInfo"
 verbose = true
 
-[envs.foo.scripts]
-x = "python -c 'import view'"
+[build.targets.wheel.hooks.scikit-build.install]
+strip = false
 
 [envs.hatch-test]
 features = ["full"]
