@@ -16,8 +16,7 @@ if not TYPE_CHECKING:
     from typing import _eval_type
 else:
 
-    def _eval_type(*args) -> Any:
-        ...
+    def _eval_type(*args) -> Any: ...
 
 
 import inspect
@@ -299,11 +298,14 @@ def _build_type_codes(
             tps = {}
 
             for k, v in pydantic_fields.items():
+                outer_type = getattr(v, "outer_type_", None)
+                if not outer_type:
+                    outer_type = v.annotation
                 if (not v.default) and (not v.default_factory):
-                    tps[k] = v.outer_type_  # type: ignore
+                    tps[k] = outer_type
                 else:
                     tps[k] = BodyParam(
-                        v.outer_type_,  # type: ignore
+                        outer_type,
                         v.default or v.default_factory,
                     )
 
@@ -346,7 +348,9 @@ def _build_type_codes(
                 vbody_types = vbody
 
             doc = {}
-            codes.append((TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp)))
+            codes.append(
+                (TYPECODE_CLASS, tp, _format_body(vbody_types, doc, tp))
+            )
             setattr(tp, "_view_doc", doc)
             continue
 
@@ -360,7 +364,9 @@ def _build_type_codes(
             key, value = get_args(tp)
 
             if key is not str:
-                raise InvalidBodyError(f"dictionary keys must be strings, not {key}")
+                raise InvalidBodyError(
+                    f"dictionary keys must be strings, not {key}"
+                )
 
             tp_codes = _build_type_codes((value,))
             codes.append((TYPECODE_DICT, None, tp_codes))
@@ -431,7 +437,9 @@ def finalize(routes: Iterable[Route], app: ViewApp):
 
         for step in route.steps or []:
             if step not in app.config.build.steps:
-                raise UnknownBuildStepError(f"build step {step!r} is not defined")
+                raise UnknownBuildStepError(
+                    f"build step {step!r} is not defined"
+                )
 
         if route.method:
             target = targets[route.method]
@@ -479,7 +487,9 @@ def finalize(routes: Iterable[Route], app: ViewApp):
                     route.inputs.insert(index, 1)
                     continue
 
-                default = v.default if v.default is not inspect._empty else _NoDefault
+                default = (
+                    v.default if v.default is not inspect._empty else _NoDefault
+                )
 
                 route.inputs.insert(
                     index,
@@ -574,7 +584,9 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
                     )
                 else:
                     path_obj = Path(path)
-                    stripped = list(path_obj.parts[len(target_dir.parts) :])  # noqa
+                    stripped = list(
+                        path_obj.parts[len(target_dir.parts) :]
+                    )  # noqa
                     if stripped[-1] == "index.py":
                         stripped.pop(len(stripped) - 1)
 
@@ -594,7 +606,7 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
 def load_simple(app: ViewApp, target_dir: Path) -> None:
     """
     Simple loading implementation.
-    
+
     Simple loading is essentially searching a directory recursively
     for files, and then extracting Route instances from each file.
 
