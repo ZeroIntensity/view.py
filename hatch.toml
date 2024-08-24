@@ -19,7 +19,7 @@ experimental = true
 
 [build.targets.wheel.hooks.scikit-build.cmake]
 source-dir = "."
-build-type = "Debug"
+build-type = "RelWithDebInfo"
 verbose = true
 
 [envs.foo.scripts]
