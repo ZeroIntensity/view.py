@@ -8,6 +8,7 @@ __pycache__/
 # LSP
 .vscode/
 compile_flags.txt
+pyawaitable.h
 
 # View Configurations
 view.toml

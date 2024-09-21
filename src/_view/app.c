@@ -184,6 +184,7 @@ new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
         self->server_errors[i] = NULL;
 
     self->has_path_params = false;
+    self->error_type = NULL;
 
     return (PyObject *) self;
 }
@@ -230,6 +231,8 @@ lifespan(PyObject *awaitable, PyObject *result)
         result,
         "type"
     );
+    if (tp == NULL)
+        return PyErr_BadASGI();
     const char *type = PyUnicode_AsUTF8(tp);
 
     bool is_startup = !strcmp(
@@ -1191,6 +1194,7 @@ register_error(ViewApp *self, PyObject *args)
     }
 
     self->error_type = Py_NewRef(type);
+    printf("a self->error_type: %p\n", self->error_type);
     Py_RETURN_NONE;
 }
 

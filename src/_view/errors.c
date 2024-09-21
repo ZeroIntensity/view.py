@@ -329,7 +329,7 @@ finalize_err_cb(PyObject *awaitable, PyObject *result)
     PyObject *raw_path;
     const char *method_str;
     route *r;
-    int is_http;
+    long is_http;
 
     if (
         PyAwaitable_UnpackValues(
@@ -767,74 +767,77 @@ route_error(
     )
         return -1;
 
-    int is_http;
+    long is_http;
 
     if (PyAwaitable_UnpackIntValues(awaitable, &is_http) < 0)
         return -1;
 
-    if (PyErr_GivenExceptionMatches(err, self->error_type))
-    {
-        PyObject *status_obj = PyObject_GetAttrString(
-            err,
-            "status"
-        );
-        if (!status_obj)
-            return -2;
-
-        PyObject *msg_obj = PyObject_GetAttrString(
-            err,
-            "message"
-        );
-
-        if (!msg_obj)
+    if (self->error_type != NULL)
+        // Under general cirumstances, error_type should never
+        // be NULL. But, we might as well support it.
+        if (PyErr_GivenExceptionMatches(err, self->error_type))
         {
-            Py_DECREF(status_obj);
-            return -2;
-        }
+            PyObject *status_obj = PyObject_GetAttrString(
+                err,
+                "status"
+            );
+            if (!status_obj)
+                return -2;
 
-        int status = PyLong_AsLong(status_obj);
-        if ((status == -1) && PyErr_Occurred())
-        {
-            Py_DECREF(status_obj);
-            Py_DECREF(msg_obj);
-            return -2;
-        }
+            PyObject *msg_obj = PyObject_GetAttrString(
+                err,
+                "message"
+            );
 
-        const char *message = NULL;
+            if (!msg_obj)
+            {
+                Py_DECREF(status_obj);
+                return -2;
+            }
 
-        if (msg_obj != Py_None)
-        {
-            message = PyUnicode_AsUTF8(msg_obj);
-            if (!message)
+            int status = PyLong_AsLong(status_obj);
+            if ((status == -1) && PyErr_Occurred())
             {
                 Py_DECREF(status_obj);
                 Py_DECREF(msg_obj);
                 return -2;
             }
-        }
 
-        if (
-            fire_error(
-                self,
-                awaitable,
-                status,
-                r,
-                NULL,
-                message,
-                method_str,
-                is_http
-            ) < 0
-        )
-        {
+            const char *message = NULL;
+
+            if (msg_obj != Py_None)
+            {
+                message = PyUnicode_AsUTF8(msg_obj);
+                if (!message)
+                {
+                    Py_DECREF(status_obj);
+                    Py_DECREF(msg_obj);
+                    return -2;
+                }
+            }
+
+            if (
+                fire_error(
+                    self,
+                    awaitable,
+                    status,
+                    r,
+                    NULL,
+                    message,
+                    method_str,
+                    is_http
+                ) < 0
+            )
+            {
+                Py_DECREF(status_obj);
+                Py_DECREF(msg_obj);
+                return -2;
+            }
+
             Py_DECREF(status_obj);
             Py_DECREF(msg_obj);
-            return -2;
+            return 0;
         }
-
-        Py_DECREF(status_obj);
-        Py_DECREF(msg_obj);
-        return 0;
-    }
 
     if (!is_http)
     {

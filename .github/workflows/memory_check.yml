@@ -29,15 +29,10 @@ jobs:
               with:
                   python-version: 3.12
 
-<<<<<<< HEAD
-            - name: Install Hatch
-              run: pip install hatch
-=======
             - name: Install Pytest
               run: |
                   pip install pytest pytest-asyncio pytest-memray
               shell: bash
->>>>>>> b9b43de5bfda018d39bedd5d278e1e1db3c8bf58
 
             - name: Build view.py
               run: pip install .[full]
