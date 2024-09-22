@@ -1194,7 +1194,6 @@ register_error(ViewApp *self, PyObject *args)
     }
 
     self->error_type = Py_NewRef(type);
-    printf("a self->error_type: %p\n", self->error_type);
     Py_RETURN_NONE;
 }
 

@@ -174,17 +174,24 @@ async def test_to_response():
 
 
 async def test_supports_result_isinstance():
+    called = 0
+
     class MyObject(SupportsViewResult):
         async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+            nonlocal called
+            called += 1
             return "hello"
 
     class MyObjectNoInherit:
         async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+            nonlocal called
+            called += 1
             return "hello"
 
     assert isinstance(MyObject(), SupportsViewResult)
     assert issubclass(MyObject, SupportsViewResult)
     assert isinstance(MyObjectNoInherit(), SupportsViewResult)
+    assert called == 2
 
 
 @pytest.mark.asyncio
