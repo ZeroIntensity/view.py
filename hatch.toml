@@ -42,3 +42,10 @@ dependencies = [
     "pytest",
     "pytest-asyncio",
 ]
+
+[envs.docs]
+dependencies = ["mkdocs", "mkdocstrings[python]", "mkdocs-material", "mkdocs-git-revision-date-localized-plugin"]
+
+[envs.docs.scripts]
+build = "mkdocs build"
+serve = "mkdocs serve"
