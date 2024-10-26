@@ -307,19 +307,23 @@ def _build_type_codes(
         ) or getattr(tp, "model_fields", None)
         if pydantic_fields:
             tps = {}
+            try:
+                from pydantic_core import PydanticUndefined
+            except ImportError:
+                PydanticUndefined = None
 
             for k, v in pydantic_fields.items():
                 outer_type = getattr(v, "outer_type_", None)
                 if not outer_type:
                     outer_type = v.annotation
-                if (not v.default) and (not v.default_factory):
+                default_not_set = v.default in (None, PydanticUndefined)
+                if default_not_set and (not v.default_factory):
                     tps[k] = outer_type
                 else:
                     tps[k] = BodyParam(
                         outer_type,
-                        v.default or v.default_factory,
+                        v.default_factory if default_not_set else v.default,
                     )
-
             doc = {}
             codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
             setattr(tp, "_view_doc", doc)
