@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.9.0", "hatchling>=1", "pyawaitable"]
+requires = ["scikit-build-core>=0.9.0", "hatchling>=1", "pyawaitable==1.2.0"]
 build-backend = "hatchling.build"
 
 [project]
