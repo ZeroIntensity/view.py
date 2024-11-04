@@ -47,7 +47,7 @@ from rich import print
 from rich.traceback import install
 from typing_extensions import ParamSpec, TypeAlias
 
-from _view import InvalidStatusError, ViewApp, register_ws_cls
+from _view import InvalidStatusError, ViewApp
 
 from .__main__ import welcome
 from ._docs import markdown_docs
@@ -520,7 +520,6 @@ class WSError(BaseException):
         self.message = message
 
 
-register_ws_cls(WebSocket, WebSocketDisconnectError, WSError)
 _DefinedByConfig = None
 
 

@@ -102,39 +102,8 @@ handle_response_body(PyObject *target)
 PyObject *
 build_default_headers()
 {
-    // It's important that this is a list, since we use PyList_GET_ITEM downstream
-    PyObject *tup = PyList_New(1);
-    if (!tup)
-        return NULL;
-
-    PyObject *content_type = PyTuple_New(2);
-    if (!content_type)
-    {
-        Py_DECREF(tup);
-        return NULL;
-    }
-
-    PyObject *key = PyBytes_FromString("content-type");
-    if (!key)
-    {
-        Py_DECREF(tup);
-        Py_DECREF(content_type);
-        return NULL;
-    }
-
-    PyObject *val = PyBytes_FromString("text/plain");
-    if (!val)
-    {
-        Py_DECREF(key);
-        Py_DECREF(tup);
-        Py_DECREF(content_type);
-        return NULL;
-    }
-
-    PyTuple_SET_ITEM(content_type, 0, key);
-    PyTuple_SET_ITEM(content_type, 1, val);
-    PyList_SET_ITEM(tup, 0, content_type);
-    return tup;
+    // [("content-type", "text/plain")]
+    return Py_BuildValue("[(y, y)]", "content-type", "text/plain");
 }
 
 /*

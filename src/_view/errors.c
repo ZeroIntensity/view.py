@@ -701,10 +701,11 @@ route_error(
     PyObject *err
 )
 {
-    if (PyErr_GivenExceptionMatches(err, ws_disconnect_err))
-    {
+    /*
+       if (PyErr_GivenExceptionMatches(err, ws_disconnect_err))
+       {
         // the socket prematurely disconnected, let's complain about it
-        #if PY_MINOR_VERSION < 9
+     #if PY_MINOR_VERSION < 9
         PyObject *args = Py_BuildValue(
             "(s)",
             "Unhandled WebSocket disconnect"
@@ -717,7 +718,7 @@ route_error(
             Py_DECREF(args);
             return -2;
         }
-        #else
+     #else
         PyObject *message = PyUnicode_FromStringAndSize(
             "Unhandled WebSocket disconnect",
             sizeof(
@@ -731,10 +732,11 @@ route_error(
             Py_DECREF(message);
             return -2;
         }
-        #endif
+     #endif
 
         return 0;
-    }
+       }
+     */
 
     ViewApp *self;
     route *r;

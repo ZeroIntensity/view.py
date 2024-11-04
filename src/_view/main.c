@@ -32,31 +32,11 @@
 
 #define PYAWAITABLE_THIS_FILE_INIT
 #include <pyawaitable.h>
-#define ADD_TYPE(tp, name) \
-        Py_INCREF(tp);     \
-        if (               \
-    PyModule_AddObject(    \
-    m,                     \
-    name,                  \
-    (PyObject *) tp        \
-    ) < 0                  \
-        ) {                \
-            Py_DECREF(tp); \
-            Py_DECREF(m);  \
-            return NULL;   \
-        }
-
-
-// Module object instance, this is not exported!
-PyObject *m = NULL;
 
 PyObject *route_log = NULL;
 PyObject *route_warn = NULL;
 PyObject *ip_address = NULL;
 PyObject *invalid_status_error = NULL;
-PyObject *ws_cls = NULL;
-PyObject *ws_disconnect_err = NULL;
-PyObject *ws_err_cls = NULL;
 PyObject *default_headers = NULL;
 
 /*
@@ -104,79 +84,18 @@ setup_route_log(PyObject *self, PyObject *args)
     route_log = Py_NewRef(func);
     route_warn = Py_NewRef(warn);
 
-    if (PyModule_AddObject(m, "route_log", route_log) < 0)
+    if (PyModule_AddObject(self, "route_log", route_log) < 0)
     {
         Py_DECREF(route_log);
         Py_DECREF(route_warn);
         return NULL;
     }
 
-    if (PyModule_AddObject(m, "route_warn", route_warn) < 0)
+    if (PyModule_AddObject(self, "route_warn", route_warn) < 0)
     {
         Py_DECREF(route_warn);
         return NULL;
     }
-
-    Py_RETURN_NONE;
-}
-
-static PyObject *
-register_ws_cls(PyObject *self, PyObject *args)
-{
-    PyObject *cls;
-    PyObject *ws_disconnect_err_val;
-    PyObject *ws_err_cls_val;
-
-    if (
-        !PyArg_ParseTuple(
-            args,
-            "OOO",
-            &cls,
-            &ws_disconnect_err_val,
-            &
-            ws_err_cls_val
-        )
-    )
-        return NULL;
-
-    if (!PyType_Check(cls))
-    {
-        PyErr_Format(
-            PyExc_RuntimeError,
-            "register_ws_cls got non-type object: %R",
-            cls
-        );
-        return NULL;
-    }
-
-    if (!PyType_Check(ws_disconnect_err_val))
-    {
-        PyErr_Format(
-            PyExc_RuntimeError,
-            "register_ws_cls got non-type object: %R",
-            cls
-        );
-        return NULL;
-    }
-
-    if (!PyType_Check(ws_err_cls_val))
-    {
-        PyErr_Format(
-            PyExc_RuntimeError,
-            "register_ws_cls got non-type object: %R",
-            cls
-        );
-        return NULL;
-    }
-
-    ws_cls = cls;
-    ADD_TYPE(ws_cls, "_DownstreamWebSocket");
-
-    ws_disconnect_err = ws_disconnect_err_val;
-    ADD_TYPE(ws_disconnect_err, "_DownstreamWebSocketDisconnect");
-
-    ws_err_cls = ws_err_cls_val;
-    ADD_TYPE(ws_err_cls, "_DownstreamWSError");
 
     Py_RETURN_NONE;
 }
@@ -219,7 +138,6 @@ static PyMethodDef methods[] =
 {
     {"test_awaitable", test_awaitable, METH_VARARGS, NULL},
     {"setup_route_log", setup_route_log, METH_VARARGS, NULL},
-    {"register_ws_cls", register_ws_cls, METH_VARARGS, NULL},
     {"dummy_context", dummy_context, METH_O, NULL},
     {NULL, NULL, 0, NULL}
 };
@@ -261,104 +179,92 @@ view_fatal(
     Py_FatalError("view.py core died");
 };
 
-PyMODINIT_FUNC
-PyInit__view(void)
+int
+exec_module(PyObject *mod)
 {
-    m = PyModule_Create(&module);
-
-    if (!m)
-        return NULL;
-
-    if (
-        (PyType_Ready(&ViewAppType) < 0) ||
-        (PyType_Ready(&ContextType) < 0) ||
-        (PyType_Ready(&TCPublicType) < 0) ||
-        (PyType_Ready(&WebSocketType) < 0) ||
-        (PyType_Ready(&HeaderDictType) < 0)
-    )
+    if (PyModule_AddType(mod, &ViewAppType) < 0)
     {
-        Py_DECREF(m);
-        return NULL;
+        return -1;
     }
 
-    ADD_TYPE(&ViewAppType, "ViewApp");
-    ADD_TYPE(&ContextType, "Context");
-    ADD_TYPE(&TCPublicType, "TCPublic");
-    ADD_TYPE(&WebSocketType, "ViewWebSocket");
-    ADD_TYPE(&HeaderDictType, "HeaderDict");
-
-    PyObject *ipaddress_mod = PyImport_ImportModule("ipaddress");
-    if (!ipaddress_mod)
+    if (PyModule_AddType(mod, &ContextType) < 0)
     {
-        Py_DECREF(m);
-        return NULL;
+        return -1;
     }
 
-    ip_address = PyObject_GetAttrString(
-        ipaddress_mod,
-        "ip_address"
-    );
-    if (!ip_address)
+    if (PyModule_AddType(mod, &TCPublicType) < 0)
     {
-        Py_DECREF(m);
-        Py_DECREF(ipaddress_mod);
-        return NULL;
-    }
-    Py_DECREF(ipaddress_mod);
-    // We want python to manage this memory, so we have to put it on the module.
-    // This won't be on the type stub, though.
-    if (PyModule_AddObject(m, "ip_address", ip_address) < 0)
-    {
-        Py_DECREF(m);
-        Py_DECREF(ip_address);
-        return NULL;
+        return -1;
     }
 
-    invalid_status_error = PyErr_NewException(
-        "_view.InvalidStatusError",
-        PyExc_RuntimeError,
-        NULL
-    );
-    if (!invalid_status_error)
+    if (PyModule_AddType(mod, &WebSocketType) < 0)
     {
-        Py_DECREF(m);
-        return NULL;
+        return -1;
+    }
+
+    if (PyModule_AddType(mod, &HeaderDictType) < 0)
+    {
+        return -1;
     }
 
     if (
-        PyModule_AddObject(
-            m,
+        PyModule_Add(
+            mod,
             "InvalidStatusError",
-            invalid_status_error
+            PyErr_NewException(
+                "_view.InvalidStatusError",
+                PyExc_RuntimeError,
+                NULL
+            )
         ) < 0
     )
     {
-        Py_DECREF(m);
-        Py_DECREF(invalid_status_error);
-        return NULL;
+        return -1;
     }
 
     default_headers = build_default_headers();
-    if (!default_headers)
+    if (default_headers == NULL)
     {
-        Py_DECREF(m);
-        return NULL;
+        return -1;
     }
 
-    // Once again, reference management should be delegated to Python.
-    // Will not be on the type stub either.
-    if (PyModule_AddObject(m, "default_headers", default_headers) < 0)
+    if (PyModule_AddObject(mod, "default_headers", default_headers) < 0)
     {
-        Py_DECREF(m);
         Py_DECREF(default_headers);
-        return NULL;
+        return -1;
     }
 
     if (PyAwaitable_Init() < 0)
     {
-        Py_DECREF(m);
-        return NULL;
+        return -1;
     }
 
-    return m;
+    return 0;
+}
+
+static struct PyModuleDef_Slot slots[] =
+{
+    {Py_mod_exec, exec_module},
+#if PY_MINOR_VERSION >= 12
+    {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+#endif
+#if PY_MINOR_VERSION >= 13
+    {Py_mod_gil, Py_MOD_GIL_USED},
+#endif
+    {0, NULL},
+};
+
+PyModuleDef module_def =
+{
+    PyModuleDef_HEAD_INIT,
+    .m_name = "_view",
+    .m_size = 0, // TODO: Support subinterpreters
+    .m_methods = methods,
+    .m_slots = slots
+};
+
+PyMODINIT_FUNC
+PyInit__view(void)
+{
+    return PyModuleDef_Init(&module_def);
 }

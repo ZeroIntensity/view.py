@@ -108,7 +108,7 @@ ws_from_data(PyObject *scope, PyObject *send, PyObject *receive)
     }
 
     PyObject *py_ws = PyObject_Vectorcall(
-        ws_cls,
+        PyLong_FromLong(1),
         (PyObject *[]) { (PyObject *) ws },
         1,
         NULL

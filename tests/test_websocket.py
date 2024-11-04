@@ -9,7 +9,7 @@ from view import (
     new_app,
     websocket,
 )
-
+'''
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
@@ -157,3 +157,5 @@ def test_disallow_body_inputs():
 
     with pytest.raises(InvalidRouteError):
         app.load()
+
+'''

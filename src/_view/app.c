@@ -923,6 +923,8 @@ app(
         return awaitable;
     } else
     {
+        PyErr_SetString(PyExc_RuntimeError, "not right now");
+        return NULL;
         // If there are no inputs, we can skip parsing!
         if (!is_http) VIEW_FATAL("got a websocket without an input!");
 
