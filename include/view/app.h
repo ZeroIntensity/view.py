@@ -9,12 +9,6 @@
 
 typedef struct _route ViewRoute;
 
-typedef enum _request_type
-{
-    HTTP = 1 << 0,
-    WEBSOCKET = 1 << 1
-} ViewRequest_Type;
-
 typedef struct _app_state
 {
     bool dev;

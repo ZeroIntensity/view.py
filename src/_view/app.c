@@ -34,9 +34,23 @@
 #include <signal.h>
 
 #include <view/app.h>
+#include <view/request.h>
 #include <view/util.h>
 
 #define LOAD_ROUTE(target) \
+
+static inline PyObject *
+get_scope_item(PyObject *scope, const char *name)
+{
+    PyObject *res = PyDict_GetItemString(scope, name);
+    if (View_UNLIKELY(res == NULL))
+    {
+        PyErr_Format(PyExc_SystemError, "ASGI scope is missing '%s'", name);
+        return NULL;
+    }
+
+    return res;
+}
 
 /*
  * Allocate and initialize a new ViewApp object.
@@ -54,7 +68,7 @@ ViewApp_New(PyTypeObject *tp, PyObject *args, PyObject *kwds)
 }
 
 static int
-init(PyObject *self, PyObject *args, PyObject *kwds)
+ViewApp_Init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     PyErr_SetString(
         PyExc_TypeError,
@@ -72,9 +86,8 @@ lifespan(PyObject *awaitable, PyObject *result)
     return 0;
 }
 
-/* The ViewApp deallocator. */
 static void
-dealloc(ViewApp *self)
+ViewApp_Dealloc(ViewApp *self)
 {
     ViewApp_ClearErrorState(&self->errors);
 
@@ -85,6 +98,32 @@ dealloc(ViewApp *self)
     Py_TYPE(self)->tp_free(self);
 }
 
+ViewRoute *
+ViewApp_FindRoute(ViewRequest *request)
+{
+    assert(request != NULL);
+    ViewApp *app = request->app;
+    PyObject *path = request->common.unparsed_path;
+    assert(app != NULL);
+    assert(path != NULL);
+    const char *str = PyUnicode_AsUTF8(path);
+    if (View_UNLIKELY(str == NULL))
+    {
+        return NULL;
+    }
+
+#define METHOD(value)                                           \
+        do {                                                    \
+            if (!strcmp(str, #value)) {                         \
+                return ViewMap_Get(app->routes. ## value, str); \
+            }                                                   \
+        } while (0)
+    METHOD(get);
+
+    // TODO: Optimize this lookup
+#undef METHOD
+}
+
 /*
  * view.py ASGI implementation. This is where the magic happens!
  *
@@ -92,7 +131,7 @@ dealloc(ViewApp *self)
  *
  */
 View_HOT static PyObject *
-app(
+ViewApp_App(
     ViewApp *self,
     PyObject * const *args,
     Py_ssize_t nargs
@@ -122,15 +161,14 @@ app(
     PyObject *receive = args[1];
     PyObject *send = args[2];
 
-    // Borrowed reference
-    PyObject *tp = PyDict_GetItemString(
+    // Everything returned by get_scope_item() is a borrowed reference
+    PyObject *tp = get_scope_item(
         scope,
         "type"
     );
 
     if (View_UNLIKELY(tp == NULL))
     {
-        PyErr_BadASGI();
         return NULL;
     }
 
@@ -145,7 +183,11 @@ app(
         /* TODO: Lifespan */
     }
 
-    PyObject *url_route_object = PyDict_GetItemString(
+    /*
+     * At this point, we know it's a real HTTP or WebSocket request.
+     * Get the URL route from the scope.
+     */
+    PyObject *url_route_object = get_scope_item(
         scope,
         "path"
     );
@@ -153,7 +195,6 @@ app(
     if (View_UNLIKELY(url_route_object == NULL))
     {
         Py_DECREF(awaitable);
-        PyErr_BadASGI();
         return NULL;
     }
 
@@ -164,14 +205,68 @@ app(
         return NULL;
     }
 
+    /*
+     * Now, it's time to construct our request.
+     * This will hold all the data for the lifetime of the connection.
+     */
+    ViewRequest *request = View_AllocStructureCast(ViewRequest);
+    if (View_UNLIKELY(request == NULL))
+    {
+        Py_DECREF(awaitable);
+        return NULL;
+    }
+
+    /* Store a (borrowed) reference to the app */
+    request->app = self;
+
+    /* Store the request ASGI data */
+    request->asgi.awaitable = awaitable; // This steals our own reference
+    request->asgi.scope = Py_NewRef(scope);
+    request->asgi.receive = Py_NewRef(receive);
+    request->asgi.send = Py_NewRef(send);
+
+    /* Store common request data, such as the headers or query string */
+    request->common.unparsed_path = Py_NewRef(url_route_object);
+    request->common.headers = get_scope_item(scope, "headers");
+    if (View_UNLIKELY(request->common.headers == NULL))
+    {
+        ViewRequest_Free(request);
+        return NULL;
+    }
+
+    request->common.query = get_scope_item(scope, "query_string");
+    if (View_UNLIKELY(request->common.query == NULL))
+    {
+        ViewRequest_Free(request);
+        return NULL;
+    }
+
+    /*
+     * Now, find out what route we're going to.
+     */
+    ViewRoute *route = ViewApp_FindRoute(request);
+    if (route == NULL)
+    {
+        // Something failed, or it doesn't exist.
+        if (View_UNLIKELY(PyErr_Occurred() != NULL))
+        {
+            ViewRequest_Free(request);
+            return NULL;
+        }
+
+        /* TODO: Send a 404 */
+    }
+
     if (PyUnicode_CompareWithASCIIString(tp, "http"))
     {
+        request->type = HTTP;
         /*
          * TODO: Go for HTTP
          */
     } else
     {
         assert(PyUnicode_CompareWithASCIIString(tp, "websocket"));
+        request->type = WEBSOCKET;
         /*
          * TODO: Go for WebSocket
          */
@@ -203,97 +298,9 @@ websocket(ViewApp *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-/*
- * Adds a global error handler to the app.
- *
- * Note that this is for *status* codes only, not exceptions!
- * For example, if a route returned 400 without raising an exception,
- * then the handler for error 400 would be called.
- *
- * This is more or less undocumented, and subject to change.
- */
-static PyObject *
-err_handler(ViewApp *self, PyObject *args)
+static PyMethodDef ViewApp_Methods[] =
 {
-    PyObject *handler;
-    int status_code;
-
-    if (
-        !PyArg_ParseTuple(
-            args,
-            "iO",
-            &status_code,
-            &handler
-        )
-    ) return NULL;
-
-    if (status_code < 400 || status_code > 511)
-    {
-        PyErr_Format(
-            PyExc_ValueError,
-            "%d is not a valid status code",
-            status_code
-        );
-        return NULL;
-    }
-
-    if (status_code >= 500)
-    {
-        self->server_errors[status_code - 500] = Py_NewRef(handler);
-    } else
-    {
-        uint16_t index = hash_client_error(status_code);
-        if (index == 600)
-        {
-            PyErr_Format(
-                PyExc_ValueError,
-                "%d is not a valid status code",
-                status_code
-            );
-            return NULL;
-        }
-        self->client_errors[index] = Py_NewRef(handler);
-    }
-
-    Py_RETURN_NONE;
-}
-
-/*
- * Adds a global exception handler to the app.
- *
- * This is similar to err_handler(), but this
- * catches exceptions instead of error response codes.
- */
-static PyObject *
-exc_handler(ViewApp *self, PyObject *args)
-{
-    PyObject *dict;
-    if (
-        !PyArg_ParseTuple(
-            args,
-            "O!",
-            &PyDict_Type,
-            &dict
-        )
-    ) return NULL;
-    if (self->exceptions)
-    {
-        PyDict_Merge(
-            self->exceptions,
-            dict,
-            1
-        );
-    } else
-    {
-        self->exceptions = Py_NewRef(dict);
-    }
-
-    Py_RETURN_NONE;
-}
-
-static PyMethodDef methods[] =
-{
-    {"asgi_app_entry", (PyCFunction) app, METH_FASTCALL, NULL},
+    {"asgi_app_entry", (PyCFunction) ViewApp_App, METH_FASTCALL, NULL},
     {"_get", (PyCFunction) get, METH_VARARGS, NULL},
     {"_post", (PyCFunction) post, METH_VARARGS, NULL},
     {"_put", (PyCFunction) put, METH_VARARGS, NULL},
@@ -301,11 +308,10 @@ static PyMethodDef methods[] =
     {"_delete", (PyCFunction) delete, METH_VARARGS, NULL},
     {"_options", (PyCFunction) options, METH_VARARGS, NULL},
     {"_websocket", (PyCFunction) websocket, METH_VARARGS, NULL},
-    {"_err", (PyCFunction) err_handler, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
-PyTypeObject ViewAppType =
+PyTypeObject ViewApp_Type =
 {
     PyVarObject_HEAD_INIT(
         NULL,
@@ -313,9 +319,9 @@ PyTypeObject ViewAppType =
     )
     .tp_name = "_view.ViewApp",
     .tp_basicsize = sizeof(ViewApp),
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_init = (initproc) init,
-    .tp_methods = methods,
-    .tp_new = new,
-    .tp_dealloc = (destructor) dealloc
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
+    .tp_init = (initproc) ViewApp_Init,
+    .tp_methods = ViewApp_Methods,
+    .tp_new = ViewApp_New,
+    .tp_dealloc = (destructor) ViewApp_Dealloc
 };
