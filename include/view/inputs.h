@@ -3,53 +3,35 @@
 
 #include <Python.h> // PyObject, Py_ssize_t
 
-#include <view/typecodes.h> // type_info
+#include <view/array.h>
+#include <view/typecodes.h>
+#include <view/request.h>
 
-typedef struct _app_parsers
+int _ViewParse_IncrementBuf(PyObject *awaitable, PyObject *result);
+PyObject * ViewParse_Query(const char *data);
+
+typedef uint16_t ViewRouteInput_DataID;
+
+typedef struct _external_input
 {
-    PyObject *query;
-    PyObject *json;
-} app_parsers;
-
-int body_inc_buf(PyObject *awaitable, PyObject *result);
-
-PyObject * query_parser(
-    app_parsers *parsers,
-    const char *data
-);
-
-typedef struct _route_input
-{
-    int route_data; // If this is above 0, assume all other items are undefined.
-    type_info **types;
-    Py_ssize_t types_size;
-    PyObject *df;
-    PyObject **validators;
-    Py_ssize_t validators_size;
     char *name;
     bool is_body;
-} route_input;
+    ViewArray typecodes;
+    ViewArray validators;
+    PyObject *default_object;
+} ViewRouteInput_External;
 
-PyObject * build_data_input(
-    int num,
-    PyObject *app,
-    PyObject *scope,
-    PyObject *receive,
-    PyObject *send
+typedef union _route_input
+{
+    ViewRouteInput_DataID data;
+    ViewRouteInput_External external;
+} ViewRouteInput;
+
+PyObject * ViewRouteInput_BuildData(
+    int id,
+    ViewRequest *request
 );
 
-typedef struct _ViewApp ViewApp; // Including "app.h" is a circular dependency
-
-PyObject ** generate_params(
-    ViewApp *app,
-    app_parsers *parsers,
-    const char *data,
-    PyObject *query,
-    route_input **inputs,
-    Py_ssize_t inputs_size,
-    PyObject *scope,
-    PyObject *receive,
-    PyObject *send
-);
+PyObject ** ViewParse_GenerateRouteArgs(ViewRequest *request);
 
 #endif

@@ -5,40 +5,37 @@
 #include <stdbool.h> // bool
 #include <stdint.h> // uint16_t
 
-#include <view/app.h> // ViewApp
-#include <view/route.h> // route
+#include <view/request.h>
+#include <view/route.h>
 
-int route_error(
+int ViewRoute_HandleError(
     PyObject *awaitable,
     PyObject *err
 );
 
-int fire_error(
-    ViewApp *self,
-    PyObject *awaitable,
-    int status,
-    route *r,
-    bool *called,
+typedef struct _error_result
+{
+    uint16_t status;
+    bool handler_was_called;
+} ViewError_Result;
+
+int ViewError_Fire(
+    ViewRequest *request,
     const char *message,
-    const char *method_str,
-    bool is_http
+    ViewError_Result *result
 );
 
-int server_err(
-    ViewApp *self,
-    PyObject *awaitable,
-    uint16_t status,
-    route *r,
-    bool *handler_was_called,
-    const char *method_str
+int ViewError_SendServerSide(
+    ViewRequest *request,
+    ViewError_Result *result
 );
 
-int load_errors(route *r, PyObject *dict);
+int ViewError_LoadIntoRoute(ViewRoute *r, PyObject *dict);
 
-uint16_t hash_server_error(int status);
-uint16_t hash_client_error(int status);
+uint16_t ViewError_GetServerIndex(int status);
+uint16_t ViewError_GetClientIndex(int status);
 
 void
-show_error(bool dev);
+ViewError_Show(ViewRequest *request);
 
 #endif

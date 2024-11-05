@@ -3,38 +3,37 @@
 
 #include <stdint.h> // uint16_t
 
-#include <view/map.h> // map
-#include <view/inputs.h> // route_input
+#include <view/app.h>
+#include <view/array.h>
+#include <view/map.h>
+#include <view/inputs.h>
 
-typedef struct Route route;
+typedef struct _ViewRoute ViewRoute;
 
-struct Route {
-    PyObject* callable;
-    char* cache;
-    PyObject* cache_headers;
-    uint16_t cache_status;
-    Py_ssize_t cache_index;
-    Py_ssize_t cache_rate;
-    route_input** inputs;
-    Py_ssize_t inputs_size;
-    PyObject* client_errors[28];
-    PyObject* server_errors[11];
-    PyObject* exceptions;
-    bool has_body;
-    bool is_http;
+typedef struct _cache_state
+{
+    ViewResponse *response;
+    Py_ssize_t rate;
+    Py_ssize_t index;
+} ViewRoute_Cache;
 
-    // transport attributes
-    map* routes;
-    route* r;
+typedef enum _route_flags
+{
+    HAS_BODY = 1 << 0,
+    IS_HTTP = 1 << 1,
+} ViewRoute_Flags;
+
+struct _ViewRoute
+{
+    PyObject *route_callable;
+    ViewRoute_Cache cache;
+    ViewArray inputs;
+    ViewApp_ErrorState errors;
+    ViewRoute_Flags flags;
 };
 
-void route_free(route* r);
-route* route_new(
-    PyObject* callable,
-    Py_ssize_t inputs_size,
-    Py_ssize_t cache_rate,
-    bool has_body
-);
-route* route_transport_new(route* r);
+void ViewRoute_Free(ViewRoute *r);
+ViewRoute * ViewRoute_New();
+ViewRoute * ViewRoute_NewTransport(ViewRoute *r);
 
 #endif

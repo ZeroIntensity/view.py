@@ -3,7 +3,7 @@
 
 #include <Python.h> // PyObject
 
-int handle_result(
+int ViewResult_Handle(
     PyObject *raw_result,
     char **res_target,
     int *status_target,
@@ -11,7 +11,7 @@ int handle_result(
     PyObject *raw_path,
     const char *method
 );
-char * pymem_strdup(const char *c, Py_ssize_t size);
-PyObject * build_default_headers();
+char * ViewUtil_Strdup(const char *c, Py_ssize_t size);
+PyObject * ViewUtil_BuildDefaultHeaders();
 
 #endif

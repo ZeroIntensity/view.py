@@ -3,7 +3,7 @@
 
 #include <Python.h> // PyObject, PyTypeObject
 
-extern PyTypeObject HeaderDictType;
-PyObject* headerdict_from_list(PyObject* list, PyObject* cookies);
+extern PyTypeObject ViewHeaderDictType;
+PyObject * ViewHeaderDict_FromList(PyObject *list, PyObject *cookies);
 
 #endif

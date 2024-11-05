@@ -4,42 +4,41 @@
 #include <Python.h> // PyObject, PyTypeObject
 #include <stdbool.h> // bool
 
-typedef struct Route route; // route.h depends on this file
 extern PyTypeObject TCPublicType;
 
 typedef enum
 {
     STRING_ALLOWED = 1 << 0,
     NULL_ALLOWED = 2 << 0
-} typecode_flag;
+} ViewTypeCode_Flag;
 
-typedef struct _type_info type_info;
+typedef struct _TypeCode ViewTypeCode;
 
-struct _type_info
+struct _TypeCode
 {
     uint8_t typecode;
     PyObject *ob;
-    type_info **children;
+    ViewTypeCode **children;
     Py_ssize_t children_size;
     PyObject *df;
 };
 
-bool figure_has_body(PyObject *inputs);
+bool ViewRouteInput_HasBodyParameter(PyObject *inputs);
 
-int load_typecodes(
-    route *r,
+int ViewTypeCode_LoadIntoRoute(
+    ViewRoute *r,
     PyObject *target
 );
 
 PyObject *
-cast_from_typecodes(
-    type_info **codes,
+ViewTypeCode_CastObject(
+    ViewTypeCode **codes,
     Py_ssize_t len,
     PyObject *item,
     PyObject *json_parser,
     bool allow_casting
 );
-type_info ** build_type_codes(PyObject *type_codes, Py_ssize_t len);
-void free_type_codes(type_info **codes, Py_ssize_t len);
+ViewTypeCode ** ViewTypeCode_FromList(PyObject *type_codes, Py_ssize_t len);
+void ViewTypeCode_Free(ViewTypeCode **codes, Py_ssize_t len);
 
 #endif

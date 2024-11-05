@@ -4,37 +4,53 @@
 #include <Python.h> // PyObject, PyTypeObject
 #include <stdbool.h> // bool
 
-#include <view/inputs.h> // app_parsers
-#include <view/map.h> // map
+#include <view/map.h>
 
-#if defined(__LINE__) && defined(__FILE__)
-#define PyErr_BadASGI() view_PyErr_BadASGI(__FILE__, __LINE__)
-#else
-#define PyErr_BadASGI() view_PyErr_BadASGI("<unknown>.c", 0)
-#endif
+typedef struct _route ViewRoute;
 
-int view_PyErr_BadASGI(char *file, int lineno);
-
-typedef struct _ViewApp
+typedef enum _request_type
 {
-    PyObject_HEAD
-    PyObject *startup;
-    PyObject *cleanup;
-    map *get;
-    map *post;
-    map *put;
-    map *patch;
-    map *delete;
-    map *options;
-    map *websocket;
-    map *all_routes;
+    HTTP = 1 << 0,
+    WEBSOCKET = 1 << 1
+} ViewRequest_Type;
+
+typedef struct _app_state
+{
+    bool dev;
+} ViewApp_State;
+
+typedef struct _error_state
+{
     PyObject *client_errors[28];
     PyObject *server_errors[11];
-    bool dev;
-    PyObject *exceptions;
-    app_parsers parsers;
-    bool has_path_params;
-    PyObject *error_type;
+    PyObject *exceptions_dict;
+} ViewApp_ErrorState;
+
+typedef struct _route_state
+{
+    ViewMap *get;
+    ViewMap *post;
+    ViewMap *put;
+    ViewMap *patch;
+    ViewMap *delete;
+    ViewMap *options;
+    ViewMap *websocket;
+    ViewMap *all_routes;
+} ViewApp_RouteState;
+
+typedef struct _lifecycle_state
+{
+    PyObject *startup;
+    PyObject *cleanup;
+} ViewApp_LifecycleState;
+
+typedef struct _app
+{
+    PyObject_HEAD
+    ViewApp_State state;
+    ViewApp_LifecycleState lifecycle;
+    ViewApp_RouteState routes;
+    ViewApp_ErrorState errors;
 } ViewApp;
 
 #endif

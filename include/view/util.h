@@ -3,7 +3,7 @@
 
 #include <Python.h> // PyObject
 
-void view_fatal(
+void _ViewUtil_Fatal(
     const char *message,
     const char *where,
     const char *func,
@@ -11,9 +11,9 @@ void view_fatal(
 );
 
 #if defined(__LINE__) && defined(__FILE__)
-#define VIEW_FATAL(msg) view_fatal(msg, __FILE__, __func__, __LINE__)
+#define View_FatalError(msg) _ViewUtil_Fatal(msg, __FILE__, __func__, __LINE__)
 #else
-#define VIEW_FATAL(msg) fail(msg, "<unknown>.c", __func__, 0)
+#define View_FatalError(msg) _ViewUtil_Fatal(msg, "<unknown>.c", __func__, 0)
 #endif
 
 #ifdef __GNUC__
@@ -25,15 +25,15 @@ void view_fatal(
 
 // Optimization hints, only supported on GCC
 #ifdef __GNUC__
-#define HOT __attribute__((hot)) // Called often
-#define PURE __attribute__((pure)) // Depends only on input and memory state (i.e. makes no memory allocations)
-#define CONST __attribute__((const)) // Depends only on inputs
-#define COLD __attribute__((cold)) // Called rarely
+#define View_HOT __attribute__((hot)) // Called often
+#define View_PURE __attribute__((pure)) // Depends only on input and memory state (i.e. makes no memory allocations)
+#define View_CONST __attribute__((const)) // Depends only on inputs
+#define View_COLD __attribute__((cold)) // Called rarely
 #else
-#define PURE
-#define HOT
-#define CONST
-#define COLD
+#define View_HOT
+#define View_PURE
+#define View_CONST
+#define View_COLD
 #endif
 
 #endif

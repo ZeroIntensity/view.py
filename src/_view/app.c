@@ -39,7 +39,7 @@
 #include <view/results.h> // pymem_strdup
 #include <view/handling.h> // route_free, route_new, handle_route, handle_route_query
 #include <view/map.h>
-#include <view/view.h> // VIEW_FATAL
+#include <view/util.h>
 
 #include <pyawaitable.h>
 
@@ -122,7 +122,7 @@ view_PyErr_BadASGI(char *file, int lineno)
  * This builds all the route tables, and any other field on the ViewApp struct.
  */
 static PyObject *
-new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
+ViewApp_new(PyTypeObject *tp, PyObject *args, PyObject *kwds)
 {
     ViewApp *self = (ViewApp *) tp->tp_alloc(
         tp,
