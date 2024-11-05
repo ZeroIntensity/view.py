@@ -4,6 +4,8 @@
 #include <Python.h> // PyObject, PyTypeObject
 #include <stdbool.h> // bool
 
+typedef struct _route ViewRoute;
+
 extern PyTypeObject TCPublicType;
 
 typedef enum
@@ -12,9 +14,9 @@ typedef enum
     NULL_ALLOWED = 2 << 0
 } ViewTypeCode_Flag;
 
-typedef struct _TypeCode ViewTypeCode;
+typedef struct _typecode ViewTypeCode;
 
-struct _TypeCode
+struct _typecode
 {
     uint8_t typecode;
     PyObject *ob;

@@ -3,7 +3,7 @@
 
 #include <Python.h>
 
-#include <view/results.h>
+#include <view/request.h>
 
 extern PyTypeObject ViewWebSocket_Type;
 PyObject * ViewWebSocket_FromData(ViewRequest *request);

@@ -6,13 +6,13 @@
 typedef void (* ViewMap_FreeFunc)(void *);
 typedef void (* ViewMap_PrintFunc)(void *);
 
-typedef struct STRUCT_MAP_PAIR
+typedef struct _map_pair
 {
     char *key;
     void *value;
 } _ViewMap_Pair;
 
-typedef struct STRUCT_MAP
+typedef struct _map
 {
     Py_ssize_t len;
     Py_ssize_t capacity;

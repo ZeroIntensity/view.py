@@ -36,4 +36,7 @@ void _ViewUtil_Fatal(
 #define View_COLD
 #endif
 
+char * ViewUtil_Strdup(const char *c, Py_ssize_t size);
+PyObject * ViewUtil_BuildDefaultHeaders();
+
 #endif

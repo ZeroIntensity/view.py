@@ -4,6 +4,7 @@
 #include <Python.h> // PyObject, PyTypeObject
 #include <stdbool.h> // bool
 
+#include <view/backport.h>
 #include <view/map.h>
 
 typedef struct _route ViewRoute;

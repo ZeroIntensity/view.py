@@ -6,9 +6,9 @@
 #include <view/app.h>
 #include <view/array.h>
 #include <view/map.h>
-#include <view/inputs.h>
 
-typedef struct _ViewRoute ViewRoute;
+typedef struct _route ViewRoute;
+typedef struct _response ViewResponse;
 
 typedef struct _cache_state
 {
@@ -35,5 +35,13 @@ struct _ViewRoute
 void ViewRoute_Free(ViewRoute *r);
 ViewRoute * ViewRoute_New();
 ViewRoute * ViewRoute_NewTransport(ViewRoute *r);
+
+typedef struct _result
+{
+    PyObject *return_value;
+    char *response_body;
+    int status_code;
+    PyObject *headers;
+} ViewRoute_Result;
 
 #endif

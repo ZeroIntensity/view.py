@@ -5,22 +5,14 @@
 #include <stdbool.h> // bool
 
 #include <view/app.h>
-#include <view/route.h>
+#include <view/request.h>
 
-int ViewHandle_Callback(
+int ViewResponse_Callback(
     PyObject *awaitable,
     PyObject *result
 );
-int ViewHandle_Route(PyObject *awaitable, char *query);
-int _ViewHandle_RouteImpl(
-    PyObject *awaitable,
-    char *body,
-    char *query
-);
-int ViewHandle_RouteWithQuery(PyObject *awaitable, char *query);
-int ViewHandle_RouteWithWebsocket(PyObject *awaitable, PyObject *result);
 
-typedef struct
+typedef struct _response
 {
     ViewRequest *request;
     uint16_t status_code;
@@ -29,6 +21,5 @@ typedef struct
 } ViewResponse;
 
 int ViewResponse_Send(ViewResponse *response);
-
 
 #endif

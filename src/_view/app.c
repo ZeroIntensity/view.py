@@ -33,13 +33,6 @@
 #include <signal.h>
 
 #include <view/app.h>
-#include <view/backport.h>
-#include <view/errors.h>
-#include <view/parts.h> // extract_parts, load_parts
-#include <view/results.h> // pymem_strdup
-#include <view/handling.h> // route_free, route_new, handle_route, handle_route_query
-#include <view/map.h>
-#include <view/util.h>
 
 #include <pyawaitable.h>
 
