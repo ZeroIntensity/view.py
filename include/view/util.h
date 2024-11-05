@@ -41,11 +41,17 @@ void _View_Fatal(const char *message, View_Where *where);
 #define View_PURE __attribute__((pure)) // Depends only on input and memory state (i.e. makes no memory allocations)
 #define View_CONST __attribute__((const)) // Depends only on inputs
 #define View_COLD __attribute__((cold)) // Called rarely
+
+#define View_LIKELY(expr) __builtin_expect((expr), 1)
+#define View_UNLIKELY(expr) __builtin_expect((expr), 0)
 #else
 #define View_HOT
 #define View_PURE
 #define View_CONST
 #define View_COLD
+
+#define View_LIKELY(expr) (expr)
+#define View_UNLIKELY(expr) (expr)
 #endif
 
 char * View_Strdup(const char *c, Py_ssize_t size);

@@ -19,27 +19,8 @@
  *
  */
 #include <Python.h>
-#include <stdbool.h> // true
-
-#include <view/app.h> // ViewApp
-#include <view/context.h> // context_from_data
-#include <view/errors.h>
-#include <view/inputs.h> // app_parsers
-#include <view/handling.h> // handle_route_impl
-#include <view/typecodes.h>
-#include <view/ws.h> // ws_from_data
-#include <view/view.h> // VIEW_FATAL
-
+#include <stdbool.h>
 #include <pyawaitable.h>
-
-typedef struct _app_parsers app_parsers;
-typedef PyObject **(* parserfunc)(
-    app_parsers *,
-    const char *,
-    PyObject *,
-    route_input **,
-    Py_ssize_t
-);
 
 /*
  * PyAwaitable callback - do not call manually!
@@ -53,146 +34,146 @@ typedef PyObject **(* parserfunc)(
  */
 int
 body_inc_buf(PyObject *awaitable, PyObject *result)
+
+PyObject *body = PyDict_GetItemString(
+    result,
+    "body"
+);
+
+if (!body)
 {
-    PyObject *body = PyDict_GetItemString(
-        result,
-        "body"
-    );
+    return PyErr_BadASGI();
+}
 
-    if (!body)
-    {
-        return PyErr_BadASGI();
-    }
+PyObject *more_body = PyDict_GetItemString(
+    result,
+    "more_body"
+);
+if (!more_body)
+{
+    return PyErr_BadASGI();
+}
 
-    PyObject *more_body = PyDict_GetItemString(
-        result,
-        "more_body"
-    );
-    if (!more_body)
-    {
-        return PyErr_BadASGI();
-    }
+char *buf_inc;
+Py_ssize_t buf_inc_size;
 
-    char *buf_inc;
-    Py_ssize_t buf_inc_size;
+if (
+    PyBytes_AsStringAndSize(
+        body,
+        &buf_inc,
+        &buf_inc_size
+    ) < 0
+)
+{
+    return -1;
+}
 
-    if (
-        PyBytes_AsStringAndSize(
-            body,
-            &buf_inc,
-            &buf_inc_size
-        ) < 0
-    )
-    {
-        return -1;
-    }
+char *buf;
+Py_ssize_t *size;
+Py_ssize_t *used;
+char *query;
 
-    char *buf;
-    Py_ssize_t *size;
-    Py_ssize_t *used;
-    char *query;
-
-    if (
-        PyAwaitable_UnpackArbValues(
-            awaitable,
-            &buf,
-            &size,
-            &used,
-            &query
-        ) < 0
-    )
-    {
-        return -1;
-    }
-
-    char *nbuf = buf;
-    bool needs_realloc = false;
-
-    while (((*used) + buf_inc_size) > (*size))
-    {
-        // The buffer would overflow, we need to reallocate it
-        *size *= 2;
-        needs_realloc = true;
-    }
-
-    if (needs_realloc)
-    {
-        nbuf = PyMem_Realloc(
-            buf,
-            (*size)
-        );
-
-        if (!nbuf)
-        {
-            PyErr_NoMemory();
-            return -1;
-        }
-    }
-
-    strncat(
-        nbuf,
-        buf_inc,
-        buf_inc_size
-    );
-    *used += buf_inc_size;
-    PyAwaitable_SetArbValue(
+if (
+    PyAwaitable_UnpackArbValues(
         awaitable,
-        0,
-        nbuf
+        &buf,
+        &size,
+        &used,
+        &query
+    ) < 0
+)
+{
+    return -1;
+}
+
+char *nbuf = buf;
+bool needs_realloc = false;
+
+while (((*used) + buf_inc_size) > (*size))
+{
+    // The buffer would overflow, we need to reallocate it
+    *size *= 2;
+    needs_realloc = true;
+}
+
+if (needs_realloc)
+{
+    nbuf = PyMem_Realloc(
+        buf,
+        (*size)
     );
 
-    PyObject *aw;
-    PyObject *receive;
+    if (!nbuf)
+    {
+        PyErr_NoMemory();
+        return -1;
+    }
+}
+
+strncat(
+    nbuf,
+    buf_inc,
+    buf_inc_size
+);
+*used += buf_inc_size;
+PyAwaitable_SetArbValue(
+    awaitable,
+    0,
+    nbuf
+);
+
+PyObject *aw;
+PyObject *receive;
+
+if (
+    PyAwaitable_UnpackValues(
+        awaitable,
+        &aw,
+        &receive
+    ) < 0
+)
+{
+    return -1;
+}
+
+if (PyObject_IsTrue(more_body))
+{
+    PyObject *receive_coro = PyObject_CallNoArgs(receive);
 
     if (
-        PyAwaitable_UnpackValues(
+        PyAwaitable_AddAwait(
             awaitable,
-            &aw,
-            &receive
+            receive_coro,
+            body_inc_buf,
+            NULL
         ) < 0
     )
     {
+        Py_DECREF(receive_coro);
+        PyMem_Free(query);
+        PyMem_Free(nbuf);
         return -1;
     }
 
-    if (PyObject_IsTrue(more_body))
+    Py_DECREF(receive_coro);
+} else
+{
+    if (
+        handle_route_impl(
+            aw,
+            nbuf,
+            query
+        ) < 0
+    )
     {
-        PyObject *receive_coro = PyObject_CallNoArgs(receive);
-
-        if (
-            PyAwaitable_AddAwait(
-                awaitable,
-                receive_coro,
-                body_inc_buf,
-                NULL
-            ) < 0
-        )
-        {
-            Py_DECREF(receive_coro);
-            PyMem_Free(query);
-            PyMem_Free(nbuf);
-            return -1;
-        }
-
-        Py_DECREF(receive_coro);
-    } else
-    {
-        if (
-            handle_route_impl(
-                aw,
-                nbuf,
-                query
-            ) < 0
-        )
-        {
-            PyMem_Free(nbuf);
-            return -1;
-        }
-
         PyMem_Free(nbuf);
+        return -1;
     }
 
-    return 0;
+    PyMem_Free(nbuf);
+}
+
+return 0;
 }
 
 /*

@@ -46,7 +46,7 @@ char *
 View_Strdup(const char *c, Py_ssize_t size)
 {
     char *buf = PyMem_Malloc(size + 1); // Length with null terminator
-    if (!buf)
+    if (View_UNLIKELY(buf == NULL))
         return (char *) PyErr_NoMemory();
     memcpy(buf, c, size + 1);
     return buf;
@@ -56,7 +56,7 @@ void *
 View_AllocStructure(Py_ssize_t size)
 {
     void *ptr = PyMem_Calloc(1, size);
-    if (ptr == NULL)
+    if (View_UNLIKELY(ptr == NULL))
     {
         return PyErr_NoMemory();
     }

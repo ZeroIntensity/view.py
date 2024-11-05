@@ -64,7 +64,7 @@ flatten_dict(PyObject *dict, PyObject *tuple)
             "strict"
         );
 
-        if (!key_bytes)
+        if (View_UNLIKELY(key_bytes == NULL))
         {
             return -1;
         }
@@ -74,14 +74,14 @@ flatten_dict(PyObject *dict, PyObject *tuple)
             "utf-8",
             "strict"
         );
-        if (!value_bytes)
+        if (View_UNLIKELY(value_bytes == NULL))
         {
             Py_DECREF(key_bytes);
             return -1;
         }
 
         PyObject *header = PyTuple_New(2);
-        if (!header)
+        if (View_UNLIKELY(header == NULL))
         {
             Py_DECREF(key_bytes);
             Py_DECREF(value_bytes);
@@ -115,7 +115,7 @@ handle_result_impl(
     {
         // TODO: Cache this
         response->headers_list = View_BuildDefaultHeaders();
-        if (response->headers_list == NULL)
+        if (View_UNLIKELY(response->headers_list == NULL))
         {
             return -1;
         }
@@ -203,12 +203,12 @@ handle_result_impl(
     }
 
     PyObject *header_tup = PyTuple_New(PyDict_GET_SIZE(headers));
-    if (!header_tup)
+    if (View_UNLIKELY(header_tup == NULL))
     {
         return -1;
     }
 
-    if (flatten_dict(headers, header_tup) < 0)
+    if (View_UNLIKELY(flatten_dict(headers, header_tup) < 0))
     {
         Py_DECREF(header_tup);
         return -1;
