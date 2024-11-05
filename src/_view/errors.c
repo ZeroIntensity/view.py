@@ -111,7 +111,7 @@ hash_client_error(int status)
     }
 
     PyErr_Format(
-        invalid_status_error,
+        PyExc_RuntimeError,
         "%d is not a valid status code",
         status
     );
@@ -128,7 +128,7 @@ hash_server_error(int status)
     if ((index < 0) || (index > 10))
     {
         PyErr_Format(
-            invalid_status_error,
+            PyExc_RuntimeError,
             "%d is not a valid status code",
             status
         );
@@ -309,7 +309,7 @@ get_err_str(int status)
     }
 
     PyErr_Format(
-        invalid_status_error,
+        PyExc_RuntimeError,
         "invalid status code: %d",
         status
     );
@@ -972,7 +972,7 @@ load_errors(route *r, PyObject *dict)
             if (index == 600)
             {
                 PyErr_Format(
-                    invalid_status_error,
+                    PyExc_RuntimeError,
                     "%d is not a valid status code",
                     status_code
                 );

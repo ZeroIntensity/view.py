@@ -923,8 +923,6 @@ app(
         return awaitable;
     } else
     {
-        PyErr_SetString(PyExc_RuntimeError, "not right now");
-        return NULL;
         // If there are no inputs, we can skip parsing!
         if (!is_http) VIEW_FATAL("got a websocket without an input!");
 
@@ -1169,36 +1167,6 @@ supply_parsers(ViewApp *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-/*
- * Register the base class to be recognized as an HTTP error.
- */
-static PyObject *
-register_error(ViewApp *self, PyObject *args)
-{
-    PyObject *type;
-
-    if (
-        !PyArg_ParseTuple(
-            args,
-            "O",
-            &type
-        )
-    )
-        return NULL;
-
-    if (Py_TYPE(type) != &PyType_Type)
-    {
-        PyErr_SetString(
-            PyExc_RuntimeError,
-            "_register_error got an object that is not a type"
-        );
-        return NULL;
-    }
-
-    self->error_type = Py_NewRef(type);
-    Py_RETURN_NONE;
-}
-
 static PyMethodDef methods[] =
 {
     {"asgi_app_entry", (PyCFunction) app, METH_FASTCALL, NULL},
@@ -1212,7 +1180,6 @@ static PyMethodDef methods[] =
     {"_set_dev_state", (PyCFunction) set_dev_state, METH_VARARGS, NULL},
     {"_err", (PyCFunction) err_handler, METH_VARARGS, NULL},
     {"_supply_parsers", (PyCFunction) supply_parsers, METH_VARARGS, NULL},
-    {"_register_error", (PyCFunction) register_error, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

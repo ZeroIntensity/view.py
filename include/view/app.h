@@ -15,27 +15,28 @@ extern PyTypeObject ViewAppType;
 #define PyErr_BadASGI() view_PyErr_BadASGI("<unknown>.c", 0)
 #endif
 
-int view_PyErr_BadASGI(char* file, int lineno);
+int view_PyErr_BadASGI(char *file, int lineno);
 
-typedef struct _ViewApp {
+typedef struct _ViewApp
+{
     PyObject_HEAD
-    PyObject* startup;
-    PyObject* cleanup;
-    map* get;
-    map* post;
-    map* put;
-    map* patch;
-    map* delete;
-    map* options;
-    map* websocket;
-    map* all_routes;
-    PyObject* client_errors[28];
-    PyObject* server_errors[11];
+    PyObject *startup;
+    PyObject *cleanup;
+    map *get;
+    map *post;
+    map *put;
+    map *patch;
+    map *delete;
+    map *options;
+    map *websocket;
+    map *all_routes;
+    PyObject *client_errors[28];
+    PyObject *server_errors[11];
     bool dev;
-    PyObject* exceptions;
+    PyObject *exceptions;
     app_parsers parsers;
     bool has_path_params;
-    PyObject* error_type;
+    PyObject *error_type;
 } ViewApp;
 
 #endif

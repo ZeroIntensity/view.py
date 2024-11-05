@@ -69,7 +69,6 @@ from .exceptions import (
     InvalidCustomLoaderError,
     ViewError,
     ViewInternalError,
-    WebSocketDisconnectError,
 )
 from .response import HTML
 from .routing import Path as _RouteDeco
@@ -548,7 +547,6 @@ class App(ViewApp):
         self.templaters: dict[str, Any] = {}
         """Dictionary containing template engine instances."""
         self._reactive_sessions: dict[str, ReactPyComponent] = {}
-        self._register_error(HTTPError)
         self._user_loader: CustomLoader | None = None
         self._run_called = False
 
