@@ -1,13 +1,26 @@
+"""
+view.py WebSocket APIs
+
+It's unlikely that you need something from this module for anything other than typing purposes.
+The bulk of the WebSocket implementation is C code, and considered unstable.
+"""
+
 from __future__ import annotations
 
-from typing import Union, overload
+from types import TracebackType
+from typing import Any, Union, overload
 
 import ujson
 from typing_extensions import Self
 
-from _view import ViewWebSocket, register_ws_cls
+from _view import ViewWebSocket
 
-from .exceptions import WebSocketExpectError, WebSocketHandshakeError
+from ._logging import Internal, Service
+from .exceptions import (
+    WebSocketDisconnectError,
+    WebSocketExpectError,
+    WebSocketHandshakeError,
+)
 
 __all__ = "WebSocketSendable", "WebSocketReceivable", "WebSocket"
 
@@ -16,12 +29,21 @@ WebSocketReceivable = Union[str, bytes, dict, int, bool]
 
 
 class WebSocket:
-    """Object representing a WebSocket connection."""
+    """
+    Object representing a WebSocket connection.
+
+    It's highly unlikely that you need to create an instance of this class yourself!
+    The constructor of this class is considered unstable, do not expect API stability!
+
+    This class should only be directly referenced when using type hints.
+    """
 
     def __init__(self, socket: ViewWebSocket) -> None:
-        self.socket: ViewWebSocket = socket
+        self._socket: ViewWebSocket = socket
         self.open: bool = False
+        """Whether the connection is currently open."""
         self.done: bool = False
+        """Whether the connection was accepted, and then closed."""
 
     @overload
     async def receive(self, tp: type[str] = str) -> str: ...
@@ -39,18 +61,36 @@ class WebSocket:
     async def receive(self, tp: type[bool] = bool) -> bool: ...
 
     async def receive(self, tp: type[WebSocketReceivable] = str) -> WebSocketReceivable:
-        """Receive a message from the WebSocket.
+        """
+        Receive a message from the client.
 
         Args:
-            tp: Python type to cast the received message to."""
+            tp: Python type to cast the received message to. Supported types are `str`, `bytes`, `dict` (as JSON), `int`, and `bool`.
+
+        Raises:
+            WebSocketHandshakeError: The connection has already been closed.
+            WebSocketDisconnectError: The connection closed while receiving.
+            WebSocketExpectError: The received data could not be casted to the requested type.
+
+        Example:
+            ```py
+            from view import websocket, WebSocket
+
+            @websocket("/")
+            async def index(ws: WebSocket):
+                await ws.accept()
+                message = await ws.receive()
+            ```
+        """
         if not self.open:
             raise WebSocketHandshakeError(
                 "cannot receive from connection that is not open"
             )
-        res: str = await self.socket.receive()
+        res: str = await self._socket.receive()
+        Internal.debug(f"received from socket: {res}")
 
         if res is None:
-            raise WebSocketHandshakeError("socket disconnected")
+            raise WebSocketDisconnectError("socket disconnected")
 
         if tp is str:
             return res
@@ -78,20 +118,37 @@ class WebSocket:
         raise TypeError(f"expected type str, bytes, dict, int, or bool, but got {tp!r}")
 
     async def send(self, message: WebSocketSendable) -> None:
-        """Send a message to the client.
+        """
+        Send a message to the client.
 
         Args:
-            message: Message to send."""
+            message: Message to send to the client.
+
+        Raises:
+            WebSocketHandshakeError: The connection has already been closed.
+            TypeError: Type of `message` cannot be sent to the client.
+
+        Example:
+            ```py
+            from view import websocket, WebSocket
+
+            @websocket("/")
+            async def index(ws: WebSocket):
+                await ws.accept()
+                await ws.send("Hello from the other side")
+            ```
+        """
+        Internal.debug(f"sending to websocket: {message}")
         if not self.open:
             raise WebSocketHandshakeError("cannot send to connection that is not open")
         if isinstance(message, (str, bytes)):
-            await self.socket.send(message)
+            await self._socket.send(message)
         elif isinstance(message, dict):
-            await self.socket.send(ujson.dumps(message))
+            await self._socket.send(ujson.dumps(message))
         elif isinstance(message, bool):
-            await self.socket.send("true" if message else "false")
+            await self._socket.send("true" if message else "false")
         elif isinstance(message, int):
-            await self.socket.send(str(message))
+            await self._socket.send(str(message))
         else:
             raise TypeError(
                 f"expected object of type str, bytes, dict, int, or bool, but got {message!r}"
@@ -149,12 +206,24 @@ class WebSocket:
         tp: type[WebSocketReceivable] = str,
         recv_first: bool = False,
     ) -> WebSocketReceivable:
-        """Receive a message and send a message.
+        """
+        Receive a message and send a message.
 
         Args:
             message: Message to send. Equivalent to `message` in `send()`
             tp: Type to cast the result to. Equivalent to `tp` in `receive()`
             recv_first: Whether to receive the message before sending. If this is `False`, a message is sent first, then a message is received.
+
+        Example:
+            ```py
+            from view import websocket, WebSocket
+
+            @websocket("/")
+            async def index(ws: WebSocket):
+                await ws.accept()
+                response = await ws.pair("syn")
+                assert response == "ack"
+            ```
         """
         if not recv_first:
             await self.send(message)
@@ -165,21 +234,52 @@ class WebSocket:
             return res
 
     async def close(self) -> None:
-        """Close the connection."""
+        """
+        Close the connection.
+
+        Raises:
+            WebSocketHandshakeError: The connection has already been closed.
+
+        Example:
+            ```py
+            from view import websocket, WebSocket
+
+            @websocket("/")
+            async def index(ws: WebSocket):
+                # ...
+                await ws.close()  # Close the connection
+            ```
+        """
         if not self.open:
             raise WebSocketHandshakeError("cannot close connection that isn't open")
 
         self.open = False
         self.done = True
-        await self.socket.close()
+        await self._socket.close()
 
     async def accept(self) -> None:
-        """Open the connection."""
+        """
+        Open the connection.
+
+        Raises:
+            WebSocketHandshakeError: `accept()` has already been called on this object.
+
+
+        Example:
+            ```py
+            from view import websocket, WebSocket
+
+            @websocket("/")
+            async def index(ws: WebSocket):
+                await ws.accept()  # Open the connection
+                # ...
+            ```
+        """
         if self.done or self.open:
             raise WebSocketHandshakeError("connection was already opened")
 
         self.open = True
-        await self.socket.accept()
+        await self._socket.accept()
 
     async def expect(self, message: WebSocketSendable) -> None:
         msg = await self.receive(tp=type(message))
@@ -193,8 +293,18 @@ class WebSocket:
         await self.accept()
         return self
 
-    async def __aexit__(self, *_) -> None:
-        await self.close()
-
-
-register_ws_cls(WebSocket)
+    async def __aexit__(
+        self,
+        tp: type[BaseException] | BaseException | None,
+        val: Any,
+        tb: TracebackType | None,
+    ) -> None:
+        if tp == WebSocketDisconnectError:
+            self.open = False
+            Service.warning("Unhandled WebSocket disconnect")
+        elif tp:
+            self.open = False
+            # exception occurred, raise it so view.py can handle it
+            raise
+        elif self.open:
+            await self.close()

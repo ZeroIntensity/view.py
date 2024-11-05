@@ -1,3 +1,9 @@
+"""
+All view.py exceptions
+
+Everything in this module inherits from `ViewError` or `ViewWarning`.
+"""
+
 from __future__ import annotations
 
 from rich.console import RenderableType
@@ -30,6 +36,8 @@ __all__ = (
     "WebSocketExpectError",
     "WebSocketHandshakeError",
     "InvalidCustomLoaderError",
+    "WebSocketDisconnectError",
+    "MissingAppError",
 )
 
 
@@ -141,9 +149,17 @@ class WebSocketHandshakeError(WebSocketError):
     """WebSocket handshake went wrong somehow."""
 
 
+class WebSocketDisconnectError(WebSocketHandshakeError):
+    """WebSocket client disconnected unexpectedly."""
+
+
 class WebSocketExpectError(WebSocketError, AssertionError, TypeError):
     """WebSocket received unexpected message."""
 
 
 class InvalidCustomLoaderError(ViewError):
     """Custom loader is invalid."""
+
+
+class MissingAppError(ViewError):
+    """No view.py app was found."""

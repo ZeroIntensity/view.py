@@ -16,6 +16,8 @@ env:
     PYTHONUNBUFFERED: "1"
     FORCE_COLOR: "1"
     PYTHONIOENCODING: "utf8"
+    PYTHONDEVMODE: "1"
+    HATCH_VERBOSE: "1"
 
 jobs:
     run:
@@ -24,8 +26,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, windows-latest, macos-12]
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
         steps:
             - uses: actions/checkout@v2
@@ -35,23 +37,11 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
 
-            - name:  Install PyTest
-              run:   |
-                     if [ "$RUNNER_OS" == "Windows" ]; then
-                          pip install pytest pytest-asyncio
-                     else
-                          pip install pytest pytest-asyncio pytest-memray
-                     fi
-              shell: bash
-    
-            - name: Build project
+            - name: Install Pytest
+              run: pip install pytest pytest-asyncio
+
+            - name: Build view.py
               run: pip install .[full]
 
-            - name:  Run tests
-              run:   |
-                     if [ "$RUNNER_OS" == "Windows" ]; then
-                          pytest
-                     else
-                          pytest --memray
-                     fi
-              shell: bash
+            - name: Run tests
+              run: pytest -x

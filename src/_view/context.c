@@ -1,3 +1,28 @@
+/*
+ * view.py route context implementation
+ *
+ * This file provides the definition and logic of the Context() class. A context
+ * essentially wraps the ASGI scope, and contains a reference to the app instance.
+ *
+ * It contains information that someone might find useful, such as the headers,
+ * cookies, method, route, and so on. Use of the context's attributes should be
+ * avoided from C, since you have the ASGI scope in C. This is, more or less, a
+ * transport for passing those values to something like a route.
+ *
+ * Note that this also does some header parsing through the HeaderDict() class.
+ *
+ * The implementation of Context() is pretty simple. It's a simple extension type that
+ * uses PyMemberDef with T_OBJECT or T_OBJECT_EX for all the fields.
+ *
+ * The object is constructed at runtime by the exported context_from_data() function,
+ * which is called during route input generation. context_from_data() is responsible
+ * for unpacking all the values given the ASGI scope. For convenience, the app
+ * instance is stored on the object as well.
+ *
+ * Note that while this is part of the private _view module, fields of Context() are
+ * considered to be a public API. Make changes to those with caution! They have much
+ * less lenience than the rest of the C API.
+ */
 #include <Python.h>
 #include <structmember.h> // PyMemberDef
 
@@ -6,70 +31,53 @@
 #include <view/app.h> // PyErr_BadASGI
 #include <view/backport.h>
 #include <view/context.h>
+#include <view/headerdict.h> // headerdict_from_list
 #include <view/view.h> // ip_address
 
-typedef struct {
+#define STR_TO_OBJECT(str) PyUnicode_FromStringAndSize(str, sizeof(str) - 1)
+
+typedef struct
+{
     PyObject_HEAD
-    PyObject* scheme;
-    PyObject* headers;
-    PyObject* cookies;
-    PyObject* http_version;
-    PyObject* client;
-    PyObject* client_port;
-    PyObject* server;
-    PyObject* server_port;
-    PyObject* method;
-    PyObject* path;
+    PyObject *app;
+    PyObject *scheme;
+    PyObject *headers;
+    PyObject *cookies;
+    PyObject *http_version;
+    PyObject *client;
+    PyObject *client_port;
+    PyObject *server;
+    PyObject *server_port;
+    PyObject *method;
+    PyObject *path;
 } Context;
 
-static PyMemberDef members[] = {
-    {"scheme", T_OBJECT_EX, offsetof(
-        Context,
-        scheme
-     ), 0, NULL},
-    {"headers", T_OBJECT_EX, offsetof(
-        Context,
-        headers
-     ), 0, NULL},
-    {"cookies", T_OBJECT_EX, offsetof(
-        Context,
-        cookies
-     ), 0, NULL},
-    {"http_version", T_OBJECT_EX, offsetof(
-        Context,
-        http_version
-     ), 0, NULL},
-    {"client", T_OBJECT, offsetof(
-        Context,
-        client
-     ), 0, NULL},
-    {"client_port", T_OBJECT, offsetof(
-        Context,
-        client_port
-     ), 0, NULL},
-    {"server", T_OBJECT, offsetof(
-        Context,
-        server
-     ), 0, NULL},
-    {"server_port", T_OBJECT, offsetof(
-        Context,
-        server_port
-     ), 0, NULL},
-    {"method", T_OBJECT, offsetof(
-        Context,
-        method
-     ), 0, NULL},
-    {"path", T_OBJECT, offsetof(
-        Context,
-        path
-     ), 0, NULL},
-    {NULL}  /* Sentinel */
+static PyMemberDef members[] =
+{
+    {"app", T_OBJECT_EX, offsetof(Context, app), 0, NULL},
+    {"scheme", T_OBJECT_EX, offsetof(Context, scheme), 0, NULL},
+    {"headers", T_OBJECT_EX, offsetof(Context, headers), 0, NULL},
+    {"cookies", T_OBJECT_EX, offsetof(Context, cookies), 0, NULL},
+    {"http_version", T_OBJECT_EX, offsetof(Context, http_version), 0, NULL},
+    {"client", T_OBJECT, offsetof(Context, client), 0, NULL},
+    {"client_port", T_OBJECT, offsetof(Context, client_port), 0, NULL},
+    {"server", T_OBJECT, offsetof(Context, server), 0, NULL},
+    {"server_port", T_OBJECT, offsetof(Context, server_port), 0, NULL},
+    {"method", T_OBJECT, offsetof(Context, method), 0, NULL},
+    {"path", T_OBJECT, offsetof(Context, path), 0, NULL},
+    {NULL} // Sentinel
 };
 
-static PyObject* repr(PyObject* self) {
-    Context* ctx = (Context*) self;
+/*
+ * Python __repr__ for Context()
+ * As of now, this is just a really long format string.
+ */
+static PyObject *
+repr(PyObject *self)
+{
+    Context *ctx = (Context *) self;
     return PyUnicode_FromFormat(
-        "Context(scheme=%R, headers=%R, cookies=%R, http_version=%R, client=%R, client_port=%R, server=%R, server_port=%R, method=%R, path=%R)",
+        "Context(app=..., scheme=%R, headers=%R, cookies=%R, http_version=%R, client=%R, client_port=%R, server=%R, server_port=%R, method=%R, path=%R)",
         ctx->scheme,
         ctx->headers,
         ctx->cookies,
@@ -83,8 +91,11 @@ static PyObject* repr(PyObject* self) {
     );
 }
 
-
-static void dealloc(Context* self) {
+/* The Context Deallocator */
+static void
+dealloc(Context *self)
+{
+    Py_XDECREF(self->app);
     Py_XDECREF(self->scheme);
     Py_XDECREF(self->headers);
     Py_XDECREF(self->cookies);
@@ -95,75 +106,132 @@ static void dealloc(Context* self) {
     Py_XDECREF(self->server_port);
     Py_XDECREF(self->method);
     Py_XDECREF(self->path);
-    Py_TYPE(self)->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
-static PyObject* Context_new(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs
-) {
-    Context* self = (Context*) type->tp_alloc(
+/*
+ * Initializer for the Context() class.
+ *
+ * This shouldn't be called outside of this file, as the app
+ * generates Context() inputs through the exported context_from_data()
+ *
+ * Again, only the *attributes* for Context() are considered public.
+ * This can change at any time!
+ */
+static PyObject *
+Context_new(
+    PyTypeObject *type,
+    PyObject *args,
+    PyObject *kwargs
+)
+{
+    Context *self = (Context *) type->tp_alloc(
         type,
         0
     );
     if (!self)
         return NULL;
 
-    return (PyObject*) self;
+    return (PyObject *) self;
 }
 
-PyObject* context_from_data(PyObject* scope) {
-    Context* context = (Context*) Context_new(
+/*
+ * The actual interface for generating a Context() instance at runtime.
+ *
+ * This doesn't really do much other than unpack values from
+ * the ASGI scope and store them in the proper attributes, with
+ * the exception of calling headerdict_from_list() on the headers.
+ *
+ * Private API - no access from Python and unstable.
+ */
+PyObject *
+context_from_data(PyObject *app, PyObject *scope)
+{
+    Context *context = (Context *) Context_new(
         &ContextType,
         NULL,
         NULL
     );
-    PyObject* scheme = Py_XNewRef(
-        PyDict_GetItemString(
-            scope,
-            "scheme"
-        )
-    );
-    PyObject* http_version = Py_XNewRef(
-        PyDict_GetItemString(
-            scope,
-            "http_version"
-        )
-    );
-    PyObject* method = Py_XNewRef(
-        PyDict_GetItemString(
-            scope,
-            "method"
-        )
-    );
-    PyObject* path = Py_XNewRef(
-        PyDict_GetItemString(
-            scope,
-            "path"
-        )
-    );
-    PyObject* header_list = PyDict_GetItemString(
-        scope,
-        "headers"
-    );
-    PyObject* client = PyDict_GetItemString(
-        scope,
-        "client"
-    ); // [host, port]
-    PyObject* server = PyDict_GetItemString(
-        scope,
-        "server"
-    ); // [host, port/None]
+    PyObject *scheme;
+    PyObject *http_version;
+    PyObject *method;
+    PyObject *path;
+    PyObject *header_list;
+    PyObject *client;
+    PyObject *server;
 
-    if (!scheme || !header_list || !http_version || !client || !server ||
-        !path || !method) {
+    if (scope != NULL)
+    {
+        scheme = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "scheme"
+            )
+        );
+        http_version = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "http_version"
+            )
+        );
+        method = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "method"
+            )
+        );
+        path = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "path"
+            )
+        );
+        header_list = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "headers"
+            )
+        );
+        client = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "client"
+            )
+        );  // [host, port]
+        server = Py_XNewRef(
+            PyDict_GetItemString(
+                scope,
+                "server"
+            )
+        );  // [host, port/None]
+    } else
+    {
+        // Default values for a dummy context
+        scheme = STR_TO_OBJECT("http");
+        http_version = STR_TO_OBJECT("view_test");
+        method = STR_TO_OBJECT("GET");
+        path = STR_TO_OBJECT("/???");
+        header_list = Py_NewRef(default_headers);
+        // TODO: When Python 3.11 is EOL, remove the
+        // call to Py_NewRef() here, since Py_None is
+        // immortal on those versions.
+        client = Py_NewRef(Py_None);
+        server = Py_NewRef(Py_None);
+    }
+
+    if (
+        !scheme || !header_list || !http_version || !client || !server ||
+        !path || !method
+    )
+    {
         Py_XDECREF(scheme);
         Py_XDECREF(http_version);
         Py_XDECREF(path);
+        Py_XDECREF(client);
         Py_XDECREF(method);
         Py_DECREF(context);
-        PyErr_BadASGI();
+        if (!PyErr_Occurred())
+            PyErr_BadASGI();
         return NULL;
     }
 
@@ -172,9 +240,13 @@ PyObject* context_from_data(PyObject* scope) {
     context->method = method;
     context->path = path;
 
-    if (client != Py_None) {
-        if (PyTuple_Size(client) != 2) {
+    if (client != Py_None)
+    {
+        if (PyTuple_Size(client) != 2)
+        {
             Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
             PyErr_BadASGI();
             return NULL;
         }
@@ -185,31 +257,39 @@ PyObject* context_from_data(PyObject* scope) {
                 1
             )
         );
-        if (PyErr_Occurred()) {
+        if (PyErr_Occurred())
+        {
             Py_DECREF(context);
+            Py_DECREF(client);
+            Py_DECREF(server);
             return NULL;
         }
 
-        PyObject* address = PyObject_Vectorcall(
+        PyObject *address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) { PyTuple_GET_ITEM(
-                client,
-                0
-            ) },
+            (PyObject *[]) {
+            PyTuple_GET_ITEM(client, 0)
+        },
             1,
             NULL
         );
+        Py_DECREF(client);
 
-        if (!address) {
+        if (!address)
+        {
             Py_DECREF(context);
+            Py_DECREF(server);
             return NULL;
         }
 
         context->client = address;
     } else context->client = NULL;
-    if (server != Py_None) {
-        if (PyTuple_Size(server) != 2) {
+    if (server != Py_None)
+    {
+        if (PyTuple_Size(server) != 2)
+        {
             Py_DECREF(context);
+            Py_DECREF(server);
             PyErr_BadASGI();
             return NULL;
         }
@@ -220,137 +300,47 @@ PyObject* context_from_data(PyObject* scope) {
                 1
             )
         );
-        PyObject* address = PyObject_Vectorcall(
+        PyObject *address = PyObject_Vectorcall(
             ip_address,
-            (PyObject*[]) { PyTuple_GET_ITEM(
+            (PyObject *[]) {
+            PyTuple_GET_ITEM(
                 server,
                 0
-            ) },
+            )
+        },
             1,
             NULL
         );
+        Py_DECREF(server);
+
+        if (!address)
+        {
+            Py_DECREF(context);
+            return NULL;
+        }
         context->server = address;
     } else context->server = NULL;
+    PyObject *cookies = PyDict_New();
 
-    PyObject* headers = PyDict_New();
-
-    if (!headers) {
-        Py_DECREF(context);
-        return NULL;
-    }
-
-    context->headers = headers;
-    PyObject* cookies = PyDict_New();
-
-    if (!cookies) {
+    if (!cookies)
+    {
         Py_DECREF(context);
         return NULL;
     }
 
     context->cookies = cookies;
-
-    for (int i = 0; i < PyList_GET_SIZE(header_list); i++) {
-        PyObject* header = PyList_GET_ITEM(
-            header_list,
-            i
-        );
-
-        if (PyTuple_Size(header) != 2) {
-            Py_DECREF(context);
-            PyErr_BadASGI();
-            return NULL;
-        }
-
-        PyObject* key_bytes = PyTuple_GET_ITEM(
-            header,
-            0
-        );
-        PyObject* value_bytes = PyTuple_GET_ITEM(
-            header,
-            1
-        );
-        PyObject* key = PyUnicode_FromEncodedObject(
-            key_bytes,
-            "utf8",
-            "strict"
-        );
-        PyObject* value = PyUnicode_FromEncodedObject(
-            value_bytes,
-            "utf8",
-            "strict"
-        );
-
-        if (!key || !value) {
-            Py_XDECREF(key);
-            Py_XDECREF(value);
-            Py_DECREF(context);
-            return NULL;
-        }
-
-        if (PyUnicode_CompareWithASCIIString(
-            key,
-            "cookie"
-            ) == 0) {
-            PyObject* d = PyUnicode_FromString("=");
-
-            if (!d) {
-                Py_DECREF(context);
-                Py_DECREF(key);
-                Py_DECREF(value);
-                return NULL;
-            }
-
-            PyObject* parts = PyUnicode_Partition(
-                value,
-                d
-            );
-            PyObject* cookie_key = PyTuple_GET_ITEM(
-                parts,
-                0
-            );
-            PyObject* cookie_value = PyTuple_GET_ITEM(
-                parts,
-                2
-            );
-
-            if (PyDict_SetItem(
-                cookies,
-                cookie_key,
-                cookie_value
-                ) < 0) {
-                Py_DECREF(cookie_key);
-                Py_DECREF(cookie_value);
-                Py_DECREF(parts);
-                Py_DECREF(d);
-                Py_DECREF(context);
-                Py_DECREF(key);
-                Py_DECREF(value);
-                return NULL;
-            }
-
-            Py_DECREF(parts);
-            Py_DECREF(d);
-        } else {
-            if (PyDict_SetItem(
-                headers,
-                key,
-                value
-                ) < 0) {
-                Py_DECREF(key);
-                Py_DECREF(value);
-                Py_DECREF(context);
-                return NULL;
-            }
-        }
-
-        Py_DECREF(key);
-        Py_DECREF(value);
+    context->headers = headerdict_from_list(header_list, context->cookies);
+    if (!context->headers)
+    {
+        Py_DECREF(context);
+        return NULL;
     }
-
-    return (PyObject*) context;
+    context->app = Py_NewRef(app);
+    return (PyObject *) context;
 }
 
-PyTypeObject ContextType = {
+PyTypeObject ContextType =
+{
     PyVarObject_HEAD_INIT(
         NULL,
         0

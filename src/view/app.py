@@ -1,3 +1,12 @@
+"""
+view.py app implementation
+
+This module contains the `App` class, `new_app`, and `get_app`.
+
+Note that the actual ASGI functionality is stored under the `ViewApp`
+extension type, which `App` inherits from.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -12,40 +21,66 @@ import weakref
 from collections.abc import Iterable as CollectionsIterable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, partial
 from io import UnsupportedOperation
 from pathlib import Path
 from queue import Queue
 from threading import Thread
 from types import FrameType as Frame
 from types import TracebackType as Traceback
-from typing import (Any, AsyncIterator, Callable, Coroutine, Generic, Iterable,
-                    TextIO, TypeVar, get_type_hints, overload)
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Generic,
+    Iterable,
+    TextIO,
+    TypeVar,
+    get_type_hints,
+    overload,
+)
 from urllib.parse import urlencode
 
 import ujson
 from rich import print
 from rich.traceback import install
-from typing_extensions import ParamSpec, TypeAlias, Unpack
+from typing_extensions import ParamSpec, TypeAlias
 
 from _view import InvalidStatusError, ViewApp
 
 from .__main__ import welcome
 from ._docs import markdown_docs
 from ._loader import finalize, load_fs, load_patterns, load_simple
-from ._logging import (LOGS, Internal, Service, enter_server, exit_server,
-                       format_warnings)
+from ._logging import (
+    LOGS,
+    Hijack,
+    Internal,
+    Service,
+    enter_server,
+    exit_server,
+    format_warnings,
+)
 from ._parsers import supply_parsers
-from ._util import make_hint, needs_dep
-from .build import build_app, build_steps
+from ._util import needs_dep
 from .config import Config, load_config
-from .exceptions import (BadEnvironmentError, InvalidCustomLoaderError,
-                         ViewError, ViewInternalError)
-from .logging import _LogArgs, log
+from .exceptions import (
+    BadEnvironmentError,
+    InvalidCustomLoaderError,
+    ViewError,
+    ViewInternalError,
+)
 from .response import HTML
 from .routing import Path as _RouteDeco
-from .routing import (Route, RouteInput, RouteOrCallable, RouteOrWebsocket, V,
-                      _NoDefault, _NoDefaultType)
+from .routing import (
+    Route,
+    RouteInput,
+    RouteOrCallable,
+    RouteOrWebsocket,
+    V,
+    _NoDefault,
+    _NoDefaultType,
+)
 from .routing import body as body_impl
 from .routing import context as context_impl
 from .routing import delete, get, options, patch, post, put
@@ -53,27 +88,28 @@ from .routing import query as query_impl
 from .routing import route as route_impl
 from .routing import websocket
 from .templates import _CurrentFrame, _CurrentFrameType, markdown, template
-from .typing import Callback, DocsType, StrMethod, TemplateEngine
+from .typing import Callback, DocsType, ErrorStatusCode, StrMethod, TemplateEngine
 from .util import enable_debug
+from .ws import WebSocket
+
+ReactPyComponent: TypeAlias = Any
 
 get_type_hints = lru_cache(get_type_hints)  # type: ignore
 
-__all__ = "App", "new_app", "get_app", "Error", "ERROR_CODES"
+__all__ = "App", "new_app", "get_app", "HTTPError", "ERROR_CODES"
 
 S = TypeVar("S", int, str, dict, bool)
 A = TypeVar("A")
 T = TypeVar("T")
 P = ParamSpec("P")
 
-_ROUTES_WARN_MSG = (
-    "routes argument should only be passed when load strategy is manual"
-)
+_ROUTES_WARN_MSG = "routes argument should only be passed when load strategy is manual"
 _ConfigSpecified = None
 
 B = TypeVar("B", bound=BaseException)
 CustomLoader: TypeAlias = Callable[["App", Path], Iterable[Route]]
 
-ERROR_CODES: tuple[int, ...] = (
+ERROR_CODES: tuple[ErrorStatusCode, ...] = (
     400,
     401,
     402,
@@ -177,9 +213,7 @@ class VirtualWebSocket:
         self.send_queue.put_nowait(data)
 
     async def send(self, message: str) -> None:
-        self.recv_queue.put_nowait(
-            {"type": "websocket.receive", "text": message}
-        )
+        self.recv_queue.put_nowait({"type": "websocket.receive", "text": message})
 
     async def receive(self) -> str:
         data = await _to_thread(self.send_queue.get)
@@ -194,9 +228,7 @@ class VirtualWebSocket:
         return msg
 
     async def handshake(self) -> None:
-        assert (await _to_thread(self.send_queue.get))[
-            "type"
-        ] == "websocket.accept"
+        assert (await _to_thread(self.send_queue.get))["type"] == "websocket.accept"
 
 
 class TestingContext:
@@ -220,12 +252,9 @@ class TestingContext:
     async def stop(self) -> None:
         await self._lifespan.put("lifespan.shutdown")
 
-    def _gen_headers(
-        self, headers: dict[str, str]
-    ) -> list[tuple[bytes, bytes]]:
+    def _gen_headers(self, headers: dict[str, str]) -> list[tuple[bytes, bytes]]:
         return [
-            (key.encode(), value.encode())
-            for key, value in (headers or {}).items()
+            (key.encode(), value.encode()) for key, value in (headers or {}).items()
         ]
 
     def _truncate(self, route: str) -> str:
@@ -449,19 +478,42 @@ class RouteDoc:
 _LEVELS = dict((v, k) for k, v in LOGS.items())
 
 
-class Error(BaseException):
-    """Base class to act as a transport for raising HTTP exceptions."""
+class HTTPError(BaseException):
+    """
+    Base class to act as a transport for raising HTTP errors.
+    """
 
-    def __init__(self, status: int = 400, message: str | None = None) -> None:
+    def __init__(
+        self, status: ErrorStatusCode = 400, message: str | None = None
+    ) -> None:
         """
         Args:
             status: The status code for the resulting response.
             message: The (optional) message to send back to the client. If none, uses the default error message (e.g. `Bad Request` for status `400`).
         """
         if status not in ERROR_CODES:
-            raise InvalidStatusError(
-                "status code can only be a client or server error"
-            )
+            raise InvalidStatusError("status code can only be a client or server error")
+
+        self.status = status
+        self.message = message
+
+
+WS_CODES = (1000,)
+
+
+class WSError(BaseException):
+    """
+    Base class to act as a transport for raising WebSocket errors.
+    """
+
+    def __init__(self, status: int = 1000, message: str | None = None) -> None:
+        """
+        Args:
+            status: The status code for the resulting response.
+            message: The (optional) message to send back to the client. If none, uses the default error message.
+        """
+        if status not in WS_CODES:
+            raise InvalidStatusError(f"invalid websocket close code: {status}")
 
         self.status = status
         self.message = message
@@ -471,30 +523,32 @@ _DefinedByConfig = None
 
 
 class App(ViewApp):
-    """Public view.py app object."""
+    """
+    Main view.py app object.
 
-    def __init__(
-        self,
-        config: Config,
-        *,
-        error_class: type[Error] = Error,
-    ) -> None:
-        """
-        Args:
-            config: Configuration object to be used. Automatically generated by `new_app`.
-        """
+    You likely don't want to instantiate this class yourself, and should call `new_app()` instead.
+    The constructor of this class should be considered unstable - although, it will probably not change all that much.
+    """
+
+    def __init__(self, config: Config) -> None:
         supply_parsers(self)
         self.config = config
+        """Configuration object."""
+
         self._set_dev_state(config.dev)
         self._manual_routes: list[Route] = []
-        self.routes: list[Route] = []
         self.loaded: bool = False
+        """Whether load() has been called at least once."""
         self.running = False
+        """Whether the app is running."""
         self._docs: DocsType = {}
         self.loaded_routes: list[Route] = []
+        """Routes loaded into the app."""
         self.templaters: dict[str, Any] = {}
-        self._register_error(error_class)
+        """Dictionary containing template engine instances."""
+        self._reactive_sessions: dict[str, ReactPyComponent] = {}
         self._user_loader: CustomLoader | None = None
+        self._run_called = False
 
         os.environ.update({k: str(v) for k, v in config.env.items()})
 
@@ -525,9 +579,7 @@ class App(ViewApp):
                         print(value.hint)
 
                 if isinstance(value, ViewInternalError):
-                    print(
-                        "[bold dim red]This is an internal error, not your fault![/]"
-                    )
+                    print("[bold dim red]This is an internal error, not your fault![/]")
                     print(
                         "[bold dim red]Please report this at https://github.com/ZeroIntensity/view.py/issues[/]"
                     )
@@ -550,24 +602,16 @@ class App(ViewApp):
         if self.loaded:
             return
 
-        warnings.warn(
-            "load() was never called (did you forget to start the app?)"
-        )
-        split = self.config.app.app_path.split(":", maxsplit=1)
+        if not self._run_called:
+            warnings.warn("load() was never called (did you forget to start the app?)")
+            split = self.config.app.app_path.split(":", maxsplit=1)
 
-        if len(split) != 2:
-            return
-
-        app_name = split[1]
-
-        print(
-            make_hint(
-                "Add this to your code",
-                split[0],
-                line=-1,
-                prepend=f"\n{app_name}.run()",
+            if len(split) != 2:
+                return
+        else:
+            warnings.warn(
+                "run() was called, but the app never started. pass force=True to run() to fix this"
             )
-        )
 
     def _push_route(self, route: Route) -> None:
         if route in self._manual_routes:
@@ -585,7 +629,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a route that can be called with any method (or only specific methods).
+        """
+        Add a route that can be called with any method (or only specific methods).
 
         Args:
             path_or_route: The path to this route, or the route itself.
@@ -664,7 +709,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a GET route.
+        """
+        Add a GET route.
 
         Args:
             path: The path to this route.
@@ -684,9 +730,7 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(
-            path, doc, cache_rate, get, steps, parallel_build
-        )
+        return self._method_wrapper(path, doc, cache_rate, get, steps, parallel_build)
 
     def post(
         self,
@@ -697,7 +741,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a POST route.
+        """
+        Add a POST route.
 
         Args:
             path: The path to this route.
@@ -735,7 +780,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a DELETE route.
+        """
+        Add a DELETE route.
 
         Args:
             path: The path to this route.
@@ -773,7 +819,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a PATCH route.
+        """
+        Add a PATCH route.
 
         Args:
             path: The path to this route.
@@ -811,7 +858,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add a PUT route.
+        """
+        Add a PUT route.
 
         Args:
             path: The path to this route.
@@ -831,9 +879,7 @@ class App(ViewApp):
             app.run()
             ```
         """
-        return self._method_wrapper(
-            path, doc, cache_rate, put, steps, parallel_build
-        )
+        return self._method_wrapper(path, doc, cache_rate, put, steps, parallel_build)
 
     def options(
         self,
@@ -844,7 +890,8 @@ class App(ViewApp):
         steps: Iterable[str] | None = None,
         parallel_build: bool | None = _DefinedByConfig,
     ) -> _RouteDeco[P]:
-        """Add an OPTIONS route.
+        """
+        Add an OPTIONS route.
 
         Args:
             path: The path to this route.
@@ -868,43 +915,6 @@ class App(ViewApp):
             path, doc, cache_rate, options, steps, parallel_build
         )
 
-    def _set_log_arg(self, kwargs: _LogArgs, key: str) -> None:
-        if key not in kwargs:
-            kwargs[key] = getattr(self.config.log.user, key)  # type: ignore
-
-    def _splat_log_args(self, kwargs: _LogArgs) -> _LogArgs:
-        self._set_log_arg(kwargs, "log_file")
-        self._set_log_arg(kwargs, "show_time")
-        self._set_log_arg(kwargs, "show_caller")
-        self._set_log_arg(kwargs, "show_color")
-        self._set_log_arg(kwargs, "show_urgency")
-        self._set_log_arg(kwargs, "file_write")
-        self._set_log_arg(kwargs, "strftime")
-
-        if "caller_frame" not in kwargs:
-            frame = inspect.currentframe()
-            assert frame, "failed to get frame"
-            back = frame.f_back
-            assert back, "frame has no f_back"
-            kwargs["caller_frame"] = back
-
-        return kwargs
-
-    def debug(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
-        log(*messages, urgency="debug", **self._splat_log_args(kwargs))
-
-    def info(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
-        log(*messages, urgency="info", **self._splat_log_args(kwargs))
-
-    def warning(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
-        log(*messages, urgency="warning", **self._splat_log_args(kwargs))
-
-    def error(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
-        log(*messages, urgency="error", **self._splat_log_args(kwargs))
-
-    def critical(self, *messages: object, **kwargs: Unpack[_LogArgs]) -> None:
-        log(*messages, urgency="critical", **self._splat_log_args(kwargs))
-
     def query(
         self,
         name: str,
@@ -912,7 +922,8 @@ class App(ViewApp):
         doc: str | None = None,
         default: V | None | _NoDefaultType = _NoDefault,
     ) -> Callable[[RouteOrCallable[P]], Route[P]]:
-        """Set a query parameter.
+        """
+        Set a query parameter.
 
         Args:
             name: Name of the parameter.
@@ -922,9 +933,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(
-                func
-            )
+            route: Route[P] = query_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -937,7 +946,8 @@ class App(ViewApp):
         doc: str | None = None,
         default: V | None | _NoDefaultType = _NoDefault,
     ) -> Callable[[RouteOrCallable[P]], Route[P]]:
-        """Set a body parameter.
+        """
+        Set a body parameter.
 
         Args:
             name: Name of the parameter.
@@ -947,9 +957,7 @@ class App(ViewApp):
         """
 
         def inner(func: RouteOrCallable[P]) -> Route[P]:
-            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(
-                func
-            )
+            route: Route[P] = body_impl(name, *tps, doc=doc, default=default)(func)
             self._push_route(route)
             return route
 
@@ -963,7 +971,11 @@ class App(ViewApp):
         frame: Frame | None | _CurrentFrameType = _CurrentFrame,
         **parameters: Any,
     ) -> HTML:
-        """Render a template with the specified engine. This returns a view.py HTML response."""
+        """
+        Render a template with the specified engine.
+
+        This is the direct variation of `template()` to prevent an import.
+        """
         f: Frame | None
         if frame is _CurrentFrame:
             f = inspect.currentframe()
@@ -973,9 +985,7 @@ class App(ViewApp):
         else:
             f = frame  # type: ignore
 
-        return await template(
-            name, directory, engine, f, app=self, **parameters
-        )
+        return await template(name, directory, engine, f, app=self, **parameters)
 
     async def markdown(
         self,
@@ -983,7 +993,11 @@ class App(ViewApp):
         *,
         directory: str | Path | None = _ConfigSpecified,
     ) -> HTML:
-        """Convert a markdown file into HTML. This returns a view.py HTML response."""
+        """
+        Convert a markdown file into HTML.
+
+        This is the direct variation of `markdown()` to prevent an import.
+        """
         return await markdown(name, directory=directory, app=self)
 
     @overload
@@ -1008,7 +1022,9 @@ class App(ViewApp):
         return await self.asgi_app_entry(scope, receive, send)
 
     def load(self, *routes: Route) -> None:
-        """Load the app. This is automatically called most of the time and should only be called manually during manual loading.
+        """
+        Load the app.
+        This is automatically called most of the time, and should only be called manually during manual loading.
 
         Args:
             routes: Routes to load into the app.
@@ -1016,7 +1032,7 @@ class App(ViewApp):
         if self.loaded:
             if routes:
                 finalize(routes, self)
-            Internal.warning("load called twice")
+            Internal.warning("load called again")
             return
 
         if routes and (self.config.app.loader != "manual"):
@@ -1024,9 +1040,29 @@ class App(ViewApp):
 
         for index, i in enumerate(routes):
             if not isinstance(i, Route):
-                raise TypeError(
-                    f"(index {index}) expected Route object, got {i}"
-                )
+                raise TypeError(f"(index {index}) expected Route object, got {i}")
+
+        with suppress(ImportError):
+            import exceptiongroup
+            from reactpy.backend.hooks import ConnectionContext
+            from reactpy.core.layout import Layout
+            from reactpy.core.serve import serve_layout
+
+            @self.websocket("/_view/reactpy-stream")
+            @self.query("route", str)
+            async def reactpy_stream(ws: WebSocket, route: str):
+                try:
+                    page = self._reactive_sessions[route.strip("\n")]
+                except KeyError:
+                    return "Invalid route stream ID"
+
+                await ws.accept()
+                with suppress(exceptiongroup.ExceptionGroup):
+                    await serve_layout(
+                        Layout(ConnectionContext(page)),  # type: ignore
+                        ws.send,  # type: ignore
+                        partial(ws.receive, tp=dict),  # type: ignore
+                    )
 
         if self.config.app.loader == "filesystem":
             load_fs(self, self.config.app.loader_path)
@@ -1051,6 +1087,9 @@ class App(ViewApp):
 
         for r in self.loaded_routes:
             if not r.path:
+                continue
+
+            if r.path.startswith("/_view"):
                 continue
 
             body: dict[str, InputDoc] = {}
@@ -1105,9 +1144,14 @@ class App(ViewApp):
         if (self.config.log.startup_message) and (not self.config.log.fancy):
             welcome()
 
+        if self.config.dev:
+            Service.warning(
+                "Development mode is enabled, do not expect high performance."
+            )
+
         async def subcoro():
             Service.info(
-                f"server running at http://{self.config.server.host}:{self.config.server.port}"
+                f"Server running at http://{self.config.server.host}:{self.config.server.port} with backend [bold green]{self.config.server.backend}[/]"  # noqa
             )
 
         await asyncio.gather(task, subcoro())
@@ -1138,19 +1182,18 @@ class App(ViewApp):
                 uvloop.install()
                 uvloop_enabled = True
 
-        start = start_target or asyncio.run
+        def start(coro: Coroutine[Any, Any, Any]) -> None:
+            try:
+                (start_target or asyncio.run)(coro)
+            except KeyboardInterrupt:
+                Service.info("CTRL+C received, closing server.")
+                exit()
 
         if server == "uvicorn":
             try:
                 import uvicorn
             except ModuleNotFoundError as e:
                 needs_dep("uvicorn", e, "servers")
-
-            for log in (
-                logging.getLogger("uvicorn.error"),
-                logging.getLogger("uvicorn.access"),
-            ):
-                log.disabled = not self.config.log.server_logger
 
             config = uvicorn.Config(
                 self._app,
@@ -1163,6 +1206,16 @@ class App(ViewApp):
                 loop="uvloop" if uvloop_enabled else "asyncio",
                 **self.config.server.extra_args,
             )
+
+            for log in (
+                logging.getLogger("uvicorn"),
+                logging.getLogger("uvicorn.error"),
+                logging.getLogger("uvicorn.access"),
+                logging.getLogger("uvicorn.asgi"),
+            ):
+                if self.config.log.server_logger and self.config.log.fancy:
+                    log.addFilter(Hijack())
+                log.disabled = not self.config.log.server_logger
 
             uvicorn_server = uvicorn.Server(config)
             return start(self._spawn(uvicorn_server.serve()))
@@ -1177,6 +1230,8 @@ class App(ViewApp):
                 logging.getLogger("hypercorn.error"),
                 logging.getLogger("hypercorn.access"),
             ):
+                if self.config.log.server_logger and self.config.log.fancy:
+                    log.addFilter(Hijack())
                 log.disabled = not self.config.log.server_logger
 
             from hypercorn.asyncio import serve
@@ -1205,23 +1260,31 @@ class App(ViewApp):
                 port=self.config.server.port,
             )
 
-            logger = logging.getLogger("daphne.cli")
-            logger.disabled = not self.config.log.server_logger
-            # default daphne log configuration
-            level = (
-                _LEVELS[self.config.log.level]
-                if not isinstance(self.config.log.level, int)
-                else self.config.log.level
-            )
-            logger.setLevel(level)
-            logging.basicConfig(
-                level=level,
-                format="%(asctime)-15s %(levelname)-8s %(message)s",
-            )
+            for logger in (
+                logging.getLogger("daphne.cli"),
+                logging.getLogger("daphne.server"),
+                logging.getLogger("daphne.http_protocol"),
+            ):
+                logger.disabled = not self.config.log.server_logger
+                # default daphne log configuration
+                level = (
+                    _LEVELS[self.config.log.level]
+                    if not isinstance(self.config.log.level, int)
+                    else self.config.log.level
+                )
+                logger.setLevel(level)
 
-            daphne_server = Server(
-                self._app, server_name="view.py", endpoints=endpoints
-            )
+                if self.config.log.server_logger:
+                    logging.basicConfig(
+                        level=level,
+                        format="%(asctime)-15s %(levelname)-8s %(message)s",
+                    )
+
+                daphne_server = Server(
+                    self._app, server_name="view.py", endpoints=endpoints
+                )
+                if self.config.log.server_logger and self.config.log.fancy:
+                    logger.addFilter(Hijack())
             # mypy thinks asyncio.to_thread doesn't exist for some reason
             return start(
                 self._spawn(asyncio.to_thread(daphne_server.run))  # type: ignore
@@ -1229,8 +1292,15 @@ class App(ViewApp):
         else:
             raise NotImplementedError("viewserver is not implemented yet")
 
-    def run(self, *, fancy: bool | None = None) -> None:
-        """Run the app."""
+    def run(self, *, fancy: bool | None = None, force: bool = False) -> None:
+        """
+        Run the app.
+
+        args:
+            fancy: Override for the `fancy` parameter in configuration. It's useful to pass this parameter instead of modifying the configuration when debugging.
+            force: Force the app to run, regardless of environment.
+        """
+        self._run_called = True
         if fancy is not None:
             self.config.log.fancy = fancy
 
@@ -1247,23 +1317,43 @@ class App(ViewApp):
                 f"ran app from {base}, but app path is {fname} in config",
             )
 
-        if (not os.environ.get("_VIEW_RUN")) and (
-            back.f_globals.get("__name__") == "__main__"
+        if force:
+            Internal.info("forcing app start")
+
+        if force or (
+            (not os.environ.get("_VIEW_RUN"))
+            and (back.f_globals.get("__name__") == "__main__")
         ):
             self._run()
         else:
             Internal.info("called run, but env or scope prevented startup")
 
     async def build(self) -> None:
-        """Run the default build steps for the app."""
+        """
+        Run the default build steps for the app.
+        """
+        from .build import build_steps
+
         await build_steps(self)
 
     async def export(self, path: str | Path | None = None) -> None:
-        """Export the app as static HTML."""
+        """
+        Export the app as static HTML.
+
+        Args:
+            path: Path to export files to. This is passed to `build_app`.
+        """
+        from .build import build_app
+
         await build_app(self, path=Path(path) if path else None)
 
     def run_threaded(self, *, daemon: bool = True) -> Thread:
-        """Run the app in a thread."""
+        """
+        Run the app in a thread.
+
+        Args:
+            daemon: Equivalent to the `daemon` parameter on `threading.Thread`
+        """
         thread = Thread(target=self._run, daemon=daemon)
         thread.start()
         return thread
@@ -1272,14 +1362,24 @@ class App(ViewApp):
         self,
         loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
-        """Run the app in an event loop."""
+        """
+        Run the app in an event loop.
+
+        Args:
+            loop: `asyncio` event loop to use. If `None`, `asyncio.get_event_loop()` is called.
+        """
         self._run((loop or asyncio.get_event_loop()).run_until_complete)
 
     def run_task(
         self,
         loop: asyncio.AbstractEventLoop | None = None,
     ) -> asyncio.Task[None]:
-        """Run the app as a task."""
+        """
+        Run the app as an `asyncio` task.
+
+        Args:
+            loop: `asyncio` event loop to use. If `None`, `asyncio.get_event_loop()` is called.
+        """
         return self._run((loop or asyncio.get_event_loop()).create_task)
 
     start = run
@@ -1289,7 +1389,9 @@ class App(ViewApp):
 
     @asynccontextmanager
     async def test(self):
-        """Open the testing context."""
+        """
+        Open the testing context.
+        """
         self.load()
         await self.build()
         ctx = TestingContext(self.asgi_app_entry)
@@ -1354,9 +1456,6 @@ class App(ViewApp):
         return None
 
 
-_last_app: App | None = None
-
-
 def new_app(
     *,
     start: bool = False,
@@ -1365,9 +1464,9 @@ def new_app(
     app_dealloc: Callback | None = None,
     store: bool = True,
     config: Config | None = None,
-    error_class: type[Error] = Error,
 ) -> App:
-    """Create a new view app.
+    """
+    Create a new view app.
 
     Args:
         start: Should the app be started automatically? (In a new thread)
@@ -1376,14 +1475,24 @@ def new_app(
         app_dealloc: Callback to run when the App instance is freed from memory
         store: Whether to store the app, to allow use from get_app()
         config: Raw `Config` object to use instead of loading the config.
-        error_class: Class to be recognized as the view.py HTTP error object.
+
+    Example:
+        ```py
+        from view import new_app
+
+        app = new_app()
+
+        # ...
+
+        app.run()
+        ```
     """
     config = config or load_config(
         path=Path(config_path) if config_path else None,
         directory=Path(config_directory) if config_directory else None,
     )
 
-    app = App(config, error_class=error_class)
+    app = App(config)
 
     if start:
         app.run_threaded()
@@ -1399,14 +1508,15 @@ def new_app(
 
     if store:
         os.environ["_VIEW_APP_ADDRESS"] = str(id(app))
-        # id() on cpython returns the address, but it is
-        # implementation dependent however, view.py
-        # only supports cpython anyway
+        # id() on CPython returns the address, but it is
+        # implementation dependent.
+        # However, view.py only supports CPython anyway
 
     return app
 
 
-# this is forbidden pointers.py technology
+# This is forbidden pointers.py technology
+# If anyone has a better way to do it, let me know
 
 ctypes.pythonapi.Py_IncRef.argtypes = (ctypes.py_object,)
 

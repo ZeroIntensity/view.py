@@ -1,4 +1,4 @@
-name: Memory Check
+name: Memory Problems
 
 on:
     push:
@@ -12,10 +12,13 @@ env:
     PYTHONUNBUFFERED: "1"
     FORCE_COLOR: "1"
     PYTHONIOENCODING: "utf8"
+    PYTHONMALLOC: "malloc"
+    PYTHONDEVMODE: "1"
+    HATCH_VERBOSE: "1"
 
 jobs:
     run:
-        name: Valgrind on Ubuntu
+        name: Run memory tests on Ubuntu
         runs-on: ubuntu-latest
 
         steps:
@@ -26,16 +29,19 @@ jobs:
               with:
                   python-version: 3.12
 
-            - name: Install PyTest
+            - name: Install Pytest
               run: |
-                  pip install pytest pytest-asyncio
+                  pip install pytest pytest-asyncio pytest-memray
               shell: bash
 
-            - name: Build project
+            - name: Build view.py
               run: pip install .[full]
 
             - name: Install Valgrind
               run: sudo apt-get update && sudo apt-get -y install valgrind
 
             - name: Run tests with Valgrind
-              run: valgrind --suppressions=valgrind-python.supp --error-exitcode=1 pytest -x
+              run: valgrind --error-exitcode=1 pytest
+
+            - name: Run tests with Memray
+              run: pytest --enable-leak-tracking
