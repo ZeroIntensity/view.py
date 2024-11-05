@@ -8,43 +8,59 @@
 #endif
 
 #ifndef _PyObject_Vectorcall
-#define VIEW_NEEDS_VECTORCALL
-PyObject * _PyObject_VectorcallBackport(
+static PyObject *
+_PyObject_VectorcallBackport(
     PyObject *obj,
     PyObject **args,
     size_t nargsf,
     PyObject *kwargs
-);
+)
+{
+    assert(obj != NULL);
+    assert(nargsf >= 0);
+    PyObject *tuple = PyTuple_New(nargsf);
+    if (tuple == NULL)
+    {
+        return NULL;
+    }
+    for (size_t i = 0; i < nargsf; ++i)
+    {
+        Py_INCREF(args[i]);
+        PyTuple_SET_ITEM(tuple, i, args[i]);
+    }
+    PyObject *o = PyObject_Call(obj, tuple, kwargs);
+    Py_DECREF(tuple);
+    return o;
+}
 
 #define PyObject_CallNoArgs(o) PyObject_CallObject(o, NULL)
 #define PyObject_Vectorcall _PyObject_VectorcallBackport
 #define PyObject_VectorcallDict _PyObject_FastCallDict
 #endif
 
-#if PY_VERSION_HEX < 0x030c0000
-PyObject * PyErr_GetRaisedException(void);
-void PyErr_SetRaisedException(PyObject *err);
-#endif
-
 #ifndef Py_NewRef
-#define VIEW_NEEDS_NEWREF
-PyObject * Py_NewRef_Backport(PyObject *o);
-#define Py_NewRef Py_NewRef_Backport
+static PyObject *
+Py_NewRef(PyObject *o)
+{
+    assert(o != NULL);
+    Py_INCREF(o);
+    return o;
+}
+
 #endif
 
 #ifndef Py_XNewRef
-#define VIEW_NEEDS_XNEWREF
-PyObject * Py_XNewRef_Backport(PyObject *o);
-#define Py_XNewRef Py_XNewRef_Backport
+static PyObject *
+Py_XNewRef(PyObject *o)
+{
+    Py_XINCREF(o);
+    return o;
+}
+
 #endif
 
 #ifndef Py_IS_TYPE
 #define Py_IS_TYPE(o, type) (Py_TYPE(o) == type)
-#endif
-
-#if PY_MINOR_VERSION == 8
-#define PyObject_CallOneArg(func, val) \
-        PyObject_Vectorcall(func, (PyObject *[]) { val }, 1, NULL)
 #endif
 
 #if PY_MINOR_VERSION < 13
@@ -61,6 +77,28 @@ PyModule_Add(PyObject *module, const char *name, PyObject *value)
         return -1;
     }
     return 0;
+}
+
+#endif
+
+#if PY_VERSION_HEX < 0x030c0000
+static PyObject *
+PyErr_GetRaisedException(void)
+{
+    PyObject *type, *val, *tb;
+    PyErr_Fetch(&type, &val, &tb);
+    PyErr_NormalizeException(&type, &val, &tb);
+    Py_XDECREF(type);
+    Py_XDECREF(tb);
+    // technically some entry in the traceback might be lost; ignore that
+    assert(val != NULL);
+    return val;
+}
+
+static void
+PyErr_SetRaisedException(PyObject *err)
+{
+    PyErr_Restore((PyObject *) Py_TYPE(err), err, NULL);
 }
 
 #endif

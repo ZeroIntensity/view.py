@@ -7,8 +7,6 @@
 #include <view/inputs.h> // app_parsers
 #include <view/map.h> // map
 
-extern PyTypeObject ViewAppType;
-
 #if defined(__LINE__) && defined(__FILE__)
 #define PyErr_BadASGI() view_PyErr_BadASGI(__FILE__, __LINE__)
 #else

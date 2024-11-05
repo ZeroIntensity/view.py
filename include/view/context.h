@@ -4,6 +4,6 @@
 #include <Python.h> // PyObject, PyTypeObject
 
 extern PyTypeObject ContextType;
-PyObject * context_from_data(PyObject *app, PyObject *scope);
+PyObject * View_context_from_data(PyObject *app, PyObject *scope);
 
 #endif
