@@ -6,35 +6,10 @@
 #include <view/app.h>
 #include <view/array.h>
 #include <view/map.h>
+#include <view/util.h> // View_AllocStructureCast
 
 typedef struct _route ViewRoute;
 typedef struct _response ViewResponse;
-
-typedef struct _cache_state
-{
-    ViewResponse *response;
-    Py_ssize_t rate;
-    Py_ssize_t index;
-} ViewRoute_Cache;
-
-typedef enum _route_flags
-{
-    HAS_BODY = 1 << 0,
-    IS_HTTP = 1 << 1,
-} ViewRoute_Flags;
-
-struct _ViewRoute
-{
-    PyObject *route_callable;
-    ViewRoute_Cache cache;
-    ViewArray inputs;
-    ViewApp_ErrorState errors;
-    ViewRoute_Flags flags;
-};
-
-void ViewRoute_Free(ViewRoute *r);
-ViewRoute * ViewRoute_New();
-ViewRoute * ViewRoute_NewTransport(ViewRoute *r);
 
 typedef struct _result
 {
@@ -43,5 +18,17 @@ typedef struct _result
     int status_code;
     PyObject *headers;
 } ViewRoute_Result;
+
+#define ViewRoute_New() View_AllocStructureCast(ViewRoute)
+void ViewRoute_Free(ViewRoute *r);
+
+PyObject *
+ViewRoute_GetFunction(ViewRoute *route);
+
+int
+ViewRoute_Result_ToResponse(
+    PyObject *raw_result,
+    ViewResponse *response
+);
 
 #endif

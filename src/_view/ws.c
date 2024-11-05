@@ -27,14 +27,6 @@
  */
 #include <Python.h>
 #include <stddef.h> // offsetof
-
-#include <view/app.h> // PyErr_BadASGI
-#include <view/backport.h>
-#include <view/results.h> // handle_result
-#include <view/route.h> // route
-#include <view/ws.h> // WebSocketType
-#include <view/view.h>
-
 #include <pyawaitable.h>
 
 typedef struct

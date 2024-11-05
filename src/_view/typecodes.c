@@ -88,12 +88,8 @@
 #include <Python.h>
 #include <stdbool.h> // bool
 
-#include <view/backport.h>
-#include <view/inputs.h> // route_input
-#include <view/results.h> // pymem_strdup
-#include <view/route.h> // route
 #include <view/typecodes.h>
-#include <view/view.h> // VIEW_FATAL
+#include <view/util.h>
 
 #define CHECK(flags) ((typecode_flags & (flags)) == (flags))
 #define TYPECODE_ANY 0
@@ -116,7 +112,7 @@
 
 /* Deallocator for type info */
 static void
-free_type_info(type_info *ti)
+ViewTypeCode_Free(type_info *ti)
 {
     Py_XDECREF(ti->ob);
     if ((intptr_t) ti->df > 0) Py_DECREF(ti->df);
@@ -141,7 +137,7 @@ free_type_codes(type_info **codes, Py_ssize_t len)
  *
  * In a perfect world, this will never be called.
  */
-COLD static inline int
+View_COLD static inline int
 bad_input(const char *name)
 {
     PyErr_Format(
@@ -1239,7 +1235,9 @@ compile(PyObject *self, PyObject *args)
             &json_parser
         )
     )
+    {
         return NULL;
+    }
 
     if (!PySequence_Check(list))
     {
@@ -1252,7 +1250,9 @@ compile(PyObject *self, PyObject *args)
 
     Py_ssize_t size = PySequence_Size(list);
     if (size < 0)
+    {
         return NULL;
+    }
 
     type_info **info = build_type_codes(
         list,

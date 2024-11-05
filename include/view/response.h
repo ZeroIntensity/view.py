@@ -15,10 +15,20 @@ int ViewResponse_Callback(
 typedef struct _response
 {
     ViewRequest *request;
-    uint16_t status_code;
-    const char *response_text;
+    PyObject *status_code;
+    PyObject *body;
     PyObject *headers_list;
 } ViewResponse;
+
+static inline void
+ViewResponse_Clear(ViewResponse *response)
+{
+    assert(response != NULL);
+    Py_CLEAR(response->status_code);
+    Py_CLEAR(response->body);
+    Py_CLEAR(response->headers_list);
+    response->request = NULL;
+}
 
 int ViewResponse_Send(ViewResponse *response);
 

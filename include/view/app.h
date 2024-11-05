@@ -27,6 +27,19 @@ typedef struct _error_state
     PyObject *exceptions_dict;
 } ViewApp_ErrorState;
 
+static inline void
+ViewApp_ClearErrorState(ViewApp_ErrorState *errors)
+{
+    assert(errors != NULL);
+    for (int i = 0; i < 11; i++)
+        Py_CLEAR(errors->server_errors[i]);
+
+    for (int i = 0; i < 28; i++)
+        Py_CLEAR(errors->client_errors[i]);
+
+    Py_CLEAR(errors->exceptions_dict);
+}
+
 typedef struct _route_state
 {
     ViewMap *get;

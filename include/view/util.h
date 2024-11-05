@@ -3,23 +3,35 @@
 
 #include <Python.h> // PyObject
 
-void _ViewUtil_Fatal(
-    const char *message,
-    const char *where,
-    const char *func,
-    int lineno
-);
+typedef struct _where
+{
+    const char *file;
+    const char *function_name;
+    int line_number;
+} View_Where;
 
 #if defined(__LINE__) && defined(__FILE__)
-#define View_FatalError(msg) _ViewUtil_Fatal(msg, __FILE__, __func__, __LINE__)
+#define View_HERE()                                                 \
+        (View_Where)({ .file = __FILE__, .function_name = __func__, \
+                       .line_number = __LINE__})
 #else
-#define View_FatalError(msg) _ViewUtil_Fatal(msg, "<unknown>.c", __func__, 0)
+#define View_HERE()                               \
+        (View_Where)({ .file = "<unknown>.c",     \
+                       .function_name = __func__, \
+                       .line_number = 0 })
 #endif
 
+void _View_Fatal(const char *message, View_Where *where);
+#define View_Fatal(message)                        \
+        do {                                       \
+            _View_Where _where_here = View_HERE(); \
+            _View_Fatal(message, &_where_here);    \
+        } while (0)
+
 #ifdef __GNUC__
-#define NORETURN __attribute__((noreturn))
+#define View_NORETURN __attribute__((noreturn))
 #else
-#define NORETURN __declspec(noreturn)
+#define View_NORETURN __declspec(noreturn)
 #endif
 
 
@@ -36,7 +48,10 @@ void _ViewUtil_Fatal(
 #define View_COLD
 #endif
 
-char * ViewUtil_Strdup(const char *c, Py_ssize_t size);
-PyObject * ViewUtil_BuildDefaultHeaders();
+char * View_Strdup(const char *c, Py_ssize_t size);
+PyObject * View_BuildDefaultHeaders();
+void *View_AllocStructure(Py_ssize_t size);
+
+#define View_AllocStructureCast(tp) ((tp *)View_AllocStructure(sizeof(tp)))
 
 #endif

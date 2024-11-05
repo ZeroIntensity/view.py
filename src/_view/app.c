@@ -29,12 +29,12 @@
  */
 #include <Python.h>
 
+#include <pyawaitable.h>
 #include <stdbool.h>
 #include <signal.h>
 
 #include <view/app.h>
-
-#include <pyawaitable.h>
+#include <view/util.h>
 
 #define LOAD_ROUTE(target)                                                  \
         char *path;                                                         \
@@ -93,22 +93,6 @@
             LOAD_ROUTE(target);   \
             Py_RETURN_NONE;       \
         }
-
-/*
- * Something unexpected happened with the received ASGI data (e.g. the scope is missing a key).
- * Don't call this manually, use the PyErr_BadASGI macro, which passes the file and lineno.
- */
-COLD int
-view_PyErr_BadASGI(char *file, int lineno)
-{
-    PyErr_Format(
-        PyExc_RuntimeError,
-        "(%s:%d) problem with view.py's ASGI server (this is a bug!)",
-        file,
-        lineno
-    );
-    return -1;
-}
 
 /*
  * Allocate and initialize a new ViewApp object.

@@ -28,68 +28,8 @@
  */
 #include <Python.h>
 
-#include <view/backport.h>
-#include <view/results.h>
-#include <view/view.h> // route_log
-
-/*
- * Implementation of strdup() using PyMem_Malloc()
- *
- * Unlike strdup(), this takes a size parameter. Try
- * to avoid using strlen(), and use a function that includes
- * the string size, such as PyUnicode_AsUTF8AndSize()
- *
- * Strings that are returned by this function should
- * be freed using PyMem_Free(), not free()
- *
- * Technically speaking, this is more or less a copy
- * of CPython's private _PyMem_Strdup function.
- */
-char *
-pymem_strdup(const char *c, Py_ssize_t size)
-{
-    char *buf = PyMem_Malloc(size + 1); // Length with null terminator
-    if (!buf)
-        return (char *) PyErr_NoMemory();
-    memcpy(buf, c, size + 1);
-    return buf;
-}
-
-/*
- * Get a duplicated string of a Python string or bytes object.
- *
- * If the object is not a string or bytes, this throws a TypeError
- * and returns NULL.
- *
- * This uses pymem_strdup(), so strings returned by this function
- * should be deallocated via PyMem_Free()
- */
-static char *
-handle_response_body(PyObject *target)
-{
-    if (PyUnicode_CheckExact(target))
-    {
-        Py_ssize_t size;
-        const char *tmp = PyUnicode_AsUTF8AndSize(target, &size);
-        if (!tmp) return NULL;
-        return pymem_strdup(tmp, size);
-    } else if (PyBytes_CheckExact(target))
-    {
-        Py_ssize_t size;
-        char *tmp;
-        if (PyBytes_AsStringAndSize(target, &tmp, &size) < 0)
-            return NULL;
-        return pymem_strdup(tmp, size);
-    } else
-    {
-        PyErr_Format(
-            PyExc_TypeError,
-            "expected a str or bytes response body, got %R",
-            target
-        );
-        return NULL;
-    }
-}
+#include <view/util.h> // View_Strdup
+#include <view/response.h>
 
 /*
  * Generate the "default response headers" (i.e. headers that
@@ -100,10 +40,62 @@ handle_response_body(PyObject *target)
  * function. The result is stored globally as `default_headers`.
  */
 PyObject *
-build_default_headers()
+View_BuildDefaultHeaders()
 {
     // [("content-type", "text/plain")]
     return Py_BuildValue("[(y, y)]", "content-type", "text/plain");
+}
+
+/*
+ * Convert a dictionary of {key: value} pairs to a list of [(key, value)] pairs.
+ */
+static int
+flatten_dict(PyObject *dict, PyObject *tuple)
+{
+    PyObject *key;
+    PyObject *value;
+    Py_ssize_t pos = 0;
+
+    while (PyDict_Next(dict, &pos, &key, &value))
+    {
+        PyObject *key_bytes = PyUnicode_AsEncodedString(
+            key,
+            "utf-8",
+            "strict"
+        );
+
+        if (!key_bytes)
+        {
+            return -1;
+        }
+
+        PyObject *value_bytes = PyUnicode_AsEncodedString(
+            value,
+            "utf-8",
+            "strict"
+        );
+        if (!value_bytes)
+        {
+            Py_DECREF(key_bytes);
+            return -1;
+        }
+
+        PyObject *header = PyTuple_New(2);
+        if (!header)
+        {
+            Py_DECREF(key_bytes);
+            Py_DECREF(value_bytes);
+            return -1;
+        }
+        // PyTuple_SET_ITEM steals the reference, no need to Py_DECREF
+        PyTuple_SET_ITEM(header, 0, key_bytes);
+        PyTuple_SET_ITEM(header, 1, value_bytes);
+
+        // pos does not start at 0, it starts at 1
+        PyTuple_SET_ITEM(tuple, pos - 1, header);
+    }
+
+    return 0;
 }
 
 /*
@@ -115,253 +107,133 @@ build_default_headers()
 static int
 handle_result_impl(
     PyObject *result,
-    char **res_target,
-    int *status_target,
-    PyObject **headers_target
+    ViewResponse *response
 )
 {
-    char *res_str = NULL;
-    int status = 200;
-    PyErr_Clear();
-
-    res_str = handle_response_body(result);
-    if (!res_str)
+    assert(!PyErr_Occurred());
+    if (PyUnicode_CheckExact(result))
     {
-        if (!PyTuple_CheckExact(result))
-            return -1;
-
-        PyErr_Clear();
-        if (PySequence_Size(result) > 3)
+        // TODO: Cache this
+        response->headers_list = View_BuildDefaultHeaders();
+        if (response->headers_list == NULL)
         {
-            PyErr_SetString(
-                PyExc_TypeError,
-                "returned tuple should not exceed 3 elements"
-            );
             return -1;
         }
-
-        PyObject *first = PyTuple_GetItem(
-            result,
-            0
-        );
-        PyObject *second = PyTuple_GetItem(
-            result,
-            1
-        );
-        PyObject *third = PyTuple_GetItem(
-            result,
-            2
-        );
-
-        PyErr_Clear();
-        res_str = handle_response_body(first);
-        if (!res_str)
-            return -1;
-
-        if (!second)
-        {
-            // exit early
-            *res_target = res_str;
-            *status_target = 200;
-            *headers_target = Py_NewRef(default_headers);
-            return 0;
-        }
-
-        if (!PyLong_CheckExact(second))
-        {
-            PyErr_Format(
-                PyExc_TypeError,
-                "expected second value of response to be an int, got %R",
-                second
-            );
-            return -1;
-        }
-
-        status = PyLong_AsLong(second);
-        if (status == -1)
-        {
-            PyMem_Free(res_str);
-            return -1;
-        }
-
-        if (!third)
-        {
-            // exit early
-            *res_target = res_str;
-            *status_target = status;
-            *headers_target = Py_NewRef(default_headers);
-            return 0;
-        }
-
-        if (PyList_CheckExact(third) || PyTuple_CheckExact(third))
-        {
-            /*
-             * Undocumented because I don't want the user to touch it!
-             * This is a way for a route to return a raw ASGI header list, which allows
-             * for faster and multi-headers.
-             */
-            *res_target = res_str;
-            *status_target = status;
-            *headers_target = Py_NewRef(third);
-            return 0;
-        }
-
-        if (!PyDict_CheckExact(third))
-        {
-            PyErr_Format(
-                PyExc_TypeError,
-                "expected third value of response to be a dict, got %R",
-                third
-            );
-            return -1;
-        }
-
-        PyObject *header_tup = PyTuple_New(PyDict_GET_SIZE(third));
-        if (!header_tup)
-        {
-            PyMem_Free(res_str);
-            return -1;
-        }
-
-        PyObject *key;
-        PyObject *value;
-        Py_ssize_t pos = 0;
-
-        while (PyDict_Next(third, &pos, &key, &value))
-        {
-            PyObject *key_bytes = PyUnicode_AsEncodedString(
-                key,
-                "utf-8",
-                "strict"
-            );
-
-            if (!key_bytes)
-            {
-                PyMem_Free(res_str);
-                return -1;
-            }
-
-            PyObject *value_bytes = PyUnicode_AsEncodedString(
-                value,
-                "utf-8",
-                "strict"
-            );
-            if (!value_bytes)
-            {
-                PyMem_Free(res_str);
-                Py_DECREF(key_bytes);
-                return -1;
-            }
-
-            PyObject *header = PyTuple_New(2);
-            if (!header)
-            {
-                Py_DECREF(key_bytes);
-                Py_DECREF(value_bytes);
-                PyMem_Free(res_str);
-                Py_DECREF(header_tup);
-                return -1;
-            }
-            // PyTuple_SET_ITEM steals the reference, no need to Py_DECREF
-            PyTuple_SET_ITEM(header, 0, key_bytes);
-            PyTuple_SET_ITEM(header, 1, value_bytes);
-
-            // pos does not start at 0, it starts at 1
-            PyTuple_SET_ITEM(header_tup, pos - 1, header);
-        }
-
-
-        *res_target = res_str;
-        *status_target = status;
-        *headers_target = header_tup;
+        response->body = Py_NewRef(result);
+        response->status_code = PyLong_FromLong(200);
         return 0;
     }
 
-    *res_target = res_str;
-    *status_target = status;
-    *headers_target = Py_NewRef(default_headers);
+    if (!PyTuple_CheckExact(result))
+    {
+        // TODO: Debugging
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected a route to return a string or tuple, got %R",
+            result
+        );
+        return -1;
+    }
+
+    assert(PyTuple_CheckExact(result));
+    if (PyTuple_GET_SIZE(result) > 3 || PyTuple_GET_SIZE(result) < 2)
+    {
+        // TODO: Display tuple
+        PyErr_SetString(
+            PyExc_TypeError,
+            "returned tuple should be between 2 and 3 elements"
+        );
+        return -1;
+    }
+
+    PyObject *body = PyTuple_GET_ITEM(
+        result,
+        0
+    );
+    PyObject *status = PyTuple_GET_ITEM(
+        result,
+        1
+    );
+    response->body = Py_NewRef(body);
+    response->status_code = Py_NewRef(status);
+
+    assert(!PyErr_Occurred());
+    if (!PyLong_CheckExact(status))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected second value of response to be an int, got %R",
+            status
+        );
+        return -1;
+    }
+
+    if (PyTuple_GET_SIZE(result) == 2)
+    {
+        response->headers_list = View_BuildDefaultHeaders();
+        if (response->headers_list == NULL)
+        {
+            return -1;
+        }
+        return 0;
+    }
+
+    assert(PyTuple_GET_SIZE(result) == 3);
+    PyObject *headers = PyTuple_GET_ITEM(result, 3);
+
+    if (PyList_CheckExact(headers) || PyTuple_CheckExact(headers))
+    {
+        /*
+         * Undocumented because I don't want the user to touch it!
+         * This is a way for a route to return a raw ASGI header list, which allows
+         * for faster and multi-headers.
+         */
+        response->headers_list = Py_NewRef(headers);
+        return 0;
+    }
+
+    if (!PyDict_CheckExact(headers))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected third value of response to be a dict, got %R",
+            headers
+        );
+        return -1;
+    }
+
+    PyObject *header_tup = PyTuple_New(PyDict_GET_SIZE(headers));
+    if (!header_tup)
+    {
+        return -1;
+    }
+
+    if (flatten_dict(headers, header_tup) < 0)
+    {
+        Py_DECREF(header_tup);
+        return -1;
+    }
+
     return 0;
 }
 
 /*
  * Generate HTTP response components (i.e. the body, status, and headers) from
  * a route return value.
- *
- * The result passed should be a tuple, or body string. This function
- * does not call __view_result__(), as that is up to the caller.
- *
- * The body output parameter will be a string on the heap,
- * and is responsible for deallocating it with PyMem_Free()
- *
- * The status output parameter can be *any* integer (including non-HTTP
- * status codes). Validation is up to the caller.
- *
- * The headers will always be an ASGI headers iterable [(bytes_key, bytes_value), ...]
- *
- * If this function fails, the caller is not responsible for
- * deallocating or managing references of any of the parameters.
  */
 int
-handle_result(
+ViewResult_ToResponse(
     PyObject *raw_result,
-    char **res_target,
-    int *status_target,
-    PyObject **headers_target,
-    PyObject *raw_path,
-    const char *method
+    ViewResponse *response
 )
 {
-    /*
-     * This calls handle_result_impl() internally, but
-     * this function is the actual interface for handling a return value.
-     *
-     * The only extra thing that this does is write to the route log.
-     */
-    int res = handle_result_impl(
-        raw_result,
-        res_target,
-        status_target,
-        headers_target
-    );
+    assert(raw_result != NULL);
+    assert(response != NULL);
+    assert(response->request != NULL);
+    Py_INCREF(raw_result);
+    int res = handle_result_impl(raw_result, response);
+    Py_DECREF(raw_result);
 
-    return res;
-    // Calling route_log is extremely slow
-    if (res < 0)
-        return -1;
-
-    if (!route_log) return res;
-
-    PyObject *args = Py_BuildValue(
-        "(iOs)",
-        *status_target,
-        raw_path,
-        method
-    );
-
-    if (!args)
-        return -1;
-
-    /*
-     * A lot of errors related to memory corruption are traced
-     * to here by debuggers.
-     *
-     * This is, more or less, a false positive! It's quite
-     * unlikely that the actual cause of the issue is here.
-     */
-    PyObject *result = PyObject_Call(
-        route_log,
-        args,
-        NULL
-    );
-
-    if (!result)
-    {
-        Py_DECREF(args);
-        return -1;
-    }
-
-    Py_DECREF(result);
-    Py_DECREF(args);
-
+    // TODO: Implement route logging here.
     return res;
 }

@@ -24,126 +24,57 @@
  * managed by a route pointer.
  */
 #include <Python.h>
-#include <view/backport.h>
+
 #include <view/route.h>
+#include <view/response.h> // ViewResponse
 
-/*
- * Allocator for routes.
- *
- * This function does not allocate the inputs array, regardless
- * of the `inputs_size` parameter.
- *
- * If this fails, a MemoryError is raised.
- */
-route *
-route_new(
-    PyObject *callable,
-    Py_ssize_t inputs_size,
-    Py_ssize_t cache_rate,
-    bool has_body
-)
+typedef struct _cache_state
 {
-    route *r = PyMem_Malloc(sizeof(route));
-    if (!r)
-        return (route *) PyErr_NoMemory();
+    ViewResponse *response;
+    Py_ssize_t rate;
+    Py_ssize_t index;
+} ViewRoute_Cache;
 
-    r->cache = NULL;
-    r->callable = Py_NewRef(callable);
-    r->cache_rate = cache_rate;
-    r->cache_index = 0;
-    r->cache_headers = NULL;
-    r->cache_status = 0;
-    r->inputs = NULL;
-    r->inputs_size = inputs_size;
-    r->has_body = has_body;
-    r->is_http = true;
+typedef enum _route_flags
+{
+    HAS_BODY = 1 << 0,
+    IS_HTTP = 1 << 1,
+} ViewRoute_Flags;
 
-    // Transport attributes
-    r->routes = NULL;
-    r->r = NULL;
+struct _route
+{
+    PyObject *route_callable;
+    ViewRoute_Cache cache;
+    ViewArray inputs;
+    ViewApp_ErrorState errors;
+    ViewRoute_Flags flags;
+};
 
-    for (int i = 0; i < 28; i++)
-        r->client_errors[i] = NULL;
-
-    for (int i = 0; i < 11; i++)
-        r->server_errors[i] = NULL;
-
-    return r;
+static void
+clear_cache(ViewRoute_Cache *cache)
+{
+    if (cache->response == NULL)
+    {
+        // Nothing to clear
+        return;
+    }
+    Py_XDECREF(cache->response->headers_list);
 }
 
-/*
- * Deallocator for routes.
- *
- * This function assumes that the inputs array has been allocated, and
- * is responsible for deallocating it with PyMem_Free()
- */
 void
-route_free(route *r)
+ViewRoute_Free(ViewRoute *r)
 {
-    for (int i = 0; i < r->inputs_size; i++)
-    {
-        if (r->inputs[i]->route_data)
-        {
-            continue;
-        }
-        Py_XDECREF(r->inputs[i]->df);
-        free_type_codes(
-            r->inputs[i]->types,
-            r->inputs[i]->types_size
-        );
-
-        for (int i = 0; i < r->inputs[i]->validators_size; i++)
-        {
-            Py_DECREF(r->inputs[i]->validators[i]);
-        }
-    }
-
-    PyMem_Free(r->inputs);
-
-    Py_XDECREF(r->cache_headers);
-    Py_DECREF(r->callable);
-
-    for (int i = 0; i < 11; i++)
-        Py_XDECREF(r->server_errors[i]);
-
-    for (int i = 0; i < 28; i++)
-        Py_XDECREF(r->client_errors[i]);
-
-    if (r->cache)
-        PyMem_Free(r->cache);
+    ViewArray_Clear(&r->inputs);
+    clear_cache(&r->cache);
+    ViewApp_ClearErrorState(&r->errors);
     PyMem_Free(r);
 }
 
-/*
- * Allocator for a "route transport," per the path parts API.
- *
- * Along with the rest of the path parts API, this function
- * should be considered very buggy and subject to change.
- */
-route *
-route_transport_new(route *r)
+PyObject *
+ViewRoute_GetFunction(ViewRoute *route)
 {
-    route *rt = PyMem_Malloc(sizeof(route));
-    if (!rt)
-        return (route *)PyErr_NoMemory();
-    rt->cache = NULL;
-    rt->callable = NULL;
-    rt->cache_rate = 0;
-    rt->cache_index = 0;
-    rt->cache_headers = NULL;
-    rt->cache_status = 0;
-    rt->inputs = NULL;
-    rt->inputs_size = 0;
-    rt->has_body = false;
-    rt->is_http = false;
-
-    for (int i = 0; i < 28; i++)
-        rt->client_errors[i] = NULL;
-
-    for (int i = 0; i < 11; i++)
-        rt->server_errors[i] = NULL;
-
-    rt->routes = NULL;
-    rt->r = r;
-    return rt;
+    assert(route != NULL);
+    assert(route->route_callable != NULL);
+    assert(PyCallable_Check(route->route_callable));
+    return Py_NewRef(route->route_callable);
 }
