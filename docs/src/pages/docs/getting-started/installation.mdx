@@ -1,0 +1,72 @@
+import MdxLayout from "../../../components/mdx-layout";
+import Codeblock from "../../../components/codeblock";
+import Admonition from "../../../components/admonition"
+
+export default function MDXPage({ children }) {
+    return <MdxLayout>{children}</MdxLayout>;
+}
+
+# Installation
+
+## System Requirements
+
+view.py requires [CPython](https://python.org/downloads/) 3.8 or above.
+
+<Admonition level="question" title="What is CPython?">
+    CPython is the reference/official implementation of Python. If you downloaded Python through [python.org](https://python.org) or some sort of system package manager (e.g. `apt`, `pacman`, `brew`), it's probably CPython.
+</Admonition>
+
+view.py does **not** officially support PyPy, nor any other implementation of Python. If you're looking for speed, rely on view.py's C extension to do the heavy lifting!
+
+## Installing with Pipx (Recommended)
+
+[pipx](https://pipx.pypa.io/stable/) can install CLIs into isolated environments. view.py recommends using `pipx` for installation, and then using `view init` to initialize a virtual environment in projects. For example:
+
+<Codeblock fileName="bash">
+```bash
+$ pipx install view.py
+... pipx output
+$ view init
+```
+</Codeblock>
+
+## Installing via Pip
+
+<Codeblock fileName="bash">
+```bash
+$ pip install view.py
+```
+</Codeblock>
+
+
+## Development Version
+
+<Codeblock fileName="bash">
+```bash
+$ pip install git+https://github.com/ZeroIntensity/view.py
+```
+</Codeblock>
+
+## Finalizing
+
+To ensure you've installed view.py correctly, run the `view` command:
+
+<Codeblock fileName="bash">
+```bash
+$ view
+```
+</Codeblock>
+
+<Admonition level="danger" title="Linux Problem">
+    On Linux, `view` is already a command! Read about it [here](https://www.ibm.com/docs/zh/aix/7.2?topic=v-view-command), but in short, it opens `vi` in read only mode. You can either shadow this command with view.py's CLI, or use the `view-admin` command instead, which is an alias. This documentation will assume you use `view` instead of `view-admin`, but note that they do the exact same thing.
+</Admonition>
+
+If this doesn't work properly, try executing via Python:
+
+<Codeblock fileName="bash">
+```bash
+$ python3 -m view
+# OR, view-admin, as shown above
+$ python3 -m view-admin
+```
+</Codeblock>

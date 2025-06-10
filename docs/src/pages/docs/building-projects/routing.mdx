@@ -1,0 +1,296 @@
+import MdxLayout from "../../../components/mdx-layout";
+import Codeblock from "../../../components/codeblock";
+import Admonition from "../../../components/admonition"
+
+export default function MDXPage({ children }) {
+    return <MdxLayout>{children}</MdxLayout>;
+}
+
+# Routing
+
+## Loaders
+
+Routing is a big part of any web library, and there are many ways to do it. View does it's best to support as many methods as possible to give you a well-rounded approach to routing. In view, your choice of routing is called the loader/loader strategy, and there are five of them:
+
+-   `manual`
+-   `simple`
+-   `filesystem`
+-   `patterns`
+-   `custom`
+
+## Manually Routing
+
+If you're used to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com), then you're probably already familiar with manual routing. Manual routing is considered to be letting the user do all of the loading themself, and not do any automatic import or load mechanics. There are two ways to do manual routing, directly calling on your `App` being the most robust. Here's an example:
+
+<Codeblock fileName="app.py">
+```py
+from view import new_app
+
+app = new_app()
+
+@app.get("/")
+def index():
+    return "Hello, view.py!"
+
+app.run()
+```
+</Codeblock>
+
+This type of function is called a **direct router**, and is what's recommended for small view.py projects. However, if you're more accustomed to JavaScript libraries, using the **standard routers** may be a good fit. When using manual routing, a standard router must be registered via a call to `App.load`.
+
+<Admonition level="question" title="What should I annotate as the return value?">
+view.py is aimed at people who love type hints, so what type should a route return? Well, all router functions will automatically tell the type checker what a route should return (specifically, [ViewResult](https://view.zintensity.dev/reference/types/#view.typing.ViewResult)), but if you *really* want to specify the return value, you have two options:
+
+- Use something route-specific, so something like `tuple[str, int]`, or just `str`
+- More robust, using `ViewResult`, as mentioned above.
+
+The recommended way is to annotate the return value as `ViewResult`, but again, this is already known by the type checker:
+
+<Codeblock fileName="app.py">
+```py
+from view import new_app, ViewResult
+
+@app.get("/")
+def index() -> ViewResult:
+    return "Hello, view.py!"
+
+app.run()
+```
+</Codeblock>
+</Admonition>
+
+### Standard and Direct Routers
+
+Standard routers and direct routers have **the exact same** API (i.e. they are called the same way). The only difference is that direct routers automatically register a route onto the app, while standard routes do not. Direct routers tend to be used in small projects under manual loading, but standard routers are used in larger applications with one of the other loaders.
+
+Here are all the routers (standard on left, direct on right):
+
+-   `view.get` and `App.get`
+-   `view.post` and `App.post`
+-   `view.put` and `App.put`
+-   `view.patch` and `App.patch`
+-   `view.delete` and `App.delete`
+-   `view.options` and `App.options`
+
+<Codeblock fileName="app.py">
+```py
+from view import new_app, get
+
+app = new_app()
+
+@get("/")
+def index():
+    return "Hello, view.py!"
+
+app.load([get])
+app.run()
+```
+</Codeblock>
+
+This method may be a bit more versatile if you plan on writing a larger project using manual routing, as you can import your routes from other files, but if that's the case it's recommended that you use one of the other loaders.
+
+<Admonition level="info">
+Use the direct variation if the `App` is already available, and use the standard version otherwise. It's discouraged to call `get_app()` and then use direct routing.
+</Admonition>
+
+### Methodless Routing
+
+So far, only routers that allow a single method are allowed. If you're familiar with the [Flask](https://flask.palletsprojects.com) framework, you've likely tried the `route` method that lets any a route be accessed with any method. View supports the same thing, via the `route` router function, and the `App.route` direct variation.
+
+For example:
+
+<Codeblock fileName="app.py">
+```py
+from view import new_app, route
+
+app = new_app()
+
+@route("/")
+async def index():
+    return "This can be accessed with any method!"
+
+app.load([index])
+app.run()
+```
+</Codeblock>
+
+You can specify certain methods via the `methods` parameter:
+
+<Codeblock fileName="app.py">
+```py
+from view import new_app
+
+app = new_app()
+
+@app.route("/", methods=("GET", "POST"))  # using the direct variation
+async def index():
+    return "This can be accessed with only GET and POST"
+
+app.run()
+```
+</Codeblock>
+
+## Simple Routing
+
+Simple routing is similar to manual routing, but you tend to not use direct routers and don't have any call to `load()`. In your routes directory (`routes/` by default, `loader_path` setting), your routes will be held in any number of files. Simple loading is recursive, so you may also use folders. View will automatically extract any route objects created in these files.
+
+<Codeblock fileName="routes/foo.py">
+```py
+from view import get
+
+@get("/foo")
+def index():
+    return "foo"
+
+@get("/bar")
+def bar():
+    return "bar"
+```
+</Codeblock>
+
+`/foo` and `/bar` will be loaded properly, no extra call to `App.load` is required. In fact, you don't even have to import these in your app file. **This is the recommended loader for larger view.py projects.**
+
+## URL Pattern Routing
+
+If you have ever used [Django](https://djangoproject.com), you already know how URL pattern routing works. Instead of defining your routes all over the place, all routes are defined and imported into one central file. Traditionally, this file is called `urls.py`, but you can play around with the name via the `loader_path` configuration option.
+
+Pattern loading looks like this in view.py:
+
+<Codeblock fileName="something.py">
+```py
+def my_route(hello: str):
+    return f"{hello}, world!"
+```
+</Codeblock>
+
+<Codeblock fileName="urls.py">
+```py
+from view import path, query
+from something import my_route
+
+patterns = (
+    path("/", my_route, query("hello")),  # this is a route input, you'll learn about this later
+    path("/another/thing", "/this/can/be/a/path/to/file.py")
+)
+```
+</Codeblock>
+
+In the above example, we defined two routes via exporting a `tuple` of `Route` objects (generated by `path`). The name `patterns` was used as the variable name, but it may be any of the following:
+
+-   `PATTERNS`
+-   `patterns`
+-   `URLPATTERNS`
+-   `URL_PATTERNS`
+-   `urlpatterns`
+-   `url_patterns`
+
+<Admonition level="info">
+Traditionally, Python constants are denoted via using the `SCREAMING_SNAKE_CASE` naming convention.
+To follow Python convention, use `PATTERNS` or `URL_PATTERNS` when using the `patterns` loader.
+</Admonition>
+
+## Filesystem Routing
+
+Finally, if you're familiar with JavaScript frameworks like [NextJS](https://nextjs.org), you're likely already familiar with filesystem routing. If that's the case, this may be the proper loader for you. The filesystem loader works by recursively searching your `loader_path` (again, `routes/` by default) and assigning each found file to a route. You do not have to pass an argument for the path when using filesystem routing.
+
+Filesystem routing comes with a few quirks.
+
+-   There should only be one route per file.
+-   The upper directory structure is ignored, so `/home/user/app/routes/foo.py`, the assigned route would be `/foo`.
+-   If a file is named `index.py`, the route is not named `index`, but instead the parent (e.g. `foo/hello/index.py` would be assigned to `foo/hello`).
+-   If a file is prefixed with `_` (e.g. `_hello.py`), then it will be skipped entirely and not loaded. Files like this should be used for utilities and such.
+
+Here's an example of this in action:
+
+<Codeblock fileName="routes/_util.py">
+```py
+# This file is prefixed with _, so it will not be loaded as a route
+
+def do_something():
+    ...
+```
+</Codeblock>
+
+<Codeblock fileName="routes/index.py">
+```py
+# routes/index.py
+from view import get
+from _util import do_something
+
+@get()
+def index():
+    do_something()
+    return "Hello, view.py!"
+```
+</Codeblock>
+
+## Custom Routing
+
+The `custom` loader is, you guessed it, a user-defined loader. To start, decorate a function with `custom_loader`:
+
+<Codeblock fileName="app.py">
+```py
+from pathlib import Path
+from typing import Iterable
+from view import Route, new_app
+
+app = new_app()
+
+@app.custom_loader
+def my_loader(app: App, path: Path) -> Iterable[Route]:
+    return [...]
+
+app.run()
+```
+</Codeblock>
+
+As shown above, there are two parameters to the `custom_loader` callback:
+
+- The `App` instance.
+- The `Path` set by the `loader_path` config setting.
+
+The `custom_loader` callback is expected to return a list (or any iterable) of collected routes.
+
+<Admonition level="info" title="Don't reimplement router functions!">
+You might be confused about the `Route` constructor. That's because it's undocumented, and still technically a private API (meaning it can change at any time, for no reason). Don't try and instantiate a route yourself! Instead, let router functions do it (e.g. `get` or `query`), and collect the functions (or really, `Route` instances.)
+</Admonition>
+
+For example, if you wanted to implement a loader that loaded routes from all files named `foo.py` from the `path`:
+
+<Codeblock fileName="app.py">
+```py
+from pathlib import Path
+from typing import Iterable
+from view import Route, new_app, get
+import runpy
+
+app = new_app()
+
+@app.custom_loader
+def my_loader(app: App, path: Path) -> Iterable[Route]:
+    routes: list[Route] = []
+
+    for i in path.iterdir():
+        if str(i) != "foo.py":
+            continue
+
+        globls = runpy.run_path(i.absolute())
+        for name, value in globls.items():
+            if isinstance(value, Route):
+                routes.append(name)
+
+    return routes
+
+app.run()
+```
+</Codeblock>
+
+## Review
+
+In view, a loader is defined as the method of routing used. There are three loaders in view.py: `manual`, `simple`, and `filesystem`.
+
+-   `manual` is good for small projects that are similar to Python libraries like [Flask](https://flask.palletsprojects.com/en/3.0.x/) or [FastAPI](https://fastapi.tiangolo.com).
+-   `simple` routing is the recommended loader for full-scale view.py applications.
+-   `filesystem` routing is similar to how JavaScript frameworks like [NextJS](https://nextjs.org) handle routing.
+-   `patterns` is similar to [Django](https://djangoproject.com/) routing.
+-   `custom` let's you decide - you can make your own loader and figure it out as you please.
