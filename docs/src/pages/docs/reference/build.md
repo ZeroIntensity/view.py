@@ -1,3 +1,0 @@
-# Build Reference
-
-::: view.build

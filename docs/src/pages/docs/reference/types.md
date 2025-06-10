@@ -1,3 +1,0 @@
-# Types Reference
-
-::: view.typing

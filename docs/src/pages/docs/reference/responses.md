@@ -1,3 +1,0 @@
-# Responses Reference
-
-::: view.response
