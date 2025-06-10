@@ -53,7 +53,7 @@ export const StarsBackground: React.FC<StarsBackgroundProps> = ({
     className,
 }) => {
     const [stars, setStars] = useState<StarProps[]>([]);
-    const containerRef: RefObject<HTMLDivElement> =
+    const containerRef: RefObject<HTMLDivElement | null> =
         useRef<HTMLDivElement>(null);
 
     const generateStars = useCallback(
@@ -70,7 +70,7 @@ export const StarsBackground: React.FC<StarsBackgroundProps> = ({
                     opacity: Math.random() * 0.5 + 0.5,
                     twinkleSpeed: shouldTwinkle
                         ? minTwinkleSpeed +
-                          Math.random() * (maxTwinkleSpeed - minTwinkleSpeed)
+                        Math.random() * (maxTwinkleSpeed - minTwinkleSpeed)
                         : null,
                 };
             });
