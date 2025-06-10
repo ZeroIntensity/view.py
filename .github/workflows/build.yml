@@ -1,18 +1,16 @@
-name: CI
+name: Build
 
 on:
     push:
         tags:
             - v*
-    pull_request:
-        branches:
-            - master
 
 concurrency:
     group: build-${{ github.head_ref }}
     cancel-in-progress: true
 
 env:
+    SKBUILD_CMAKE_BUILD_TYPE: "Release"
     CIBW_SKIP: >
         pp*
 

@@ -1,3 +1,0 @@
-graft include
-prune tests
-prune build

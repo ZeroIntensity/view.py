@@ -19,8 +19,7 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.progress import (BarColumn, Progress, Task, TaskProgressColumn,
-                           TextColumn)
+from rich.progress import BarColumn, Progress, Task, TaskProgressColumn, TextColumn
 from rich.progress_bar import ProgressBar
 from rich.table import Table
 from rich.text import Text
@@ -31,9 +30,8 @@ from ._util import shell_hint
 from .exceptions import ViewInternalError
 from .typing import LogLevel
 
-# see https://github.com/Textualize/rich/issues/433
 
-
+# See https://github.com/Textualize/rich/issues/433
 def _showwarning(
     message: Warning | str,
     category: type[Warning],
@@ -133,6 +131,7 @@ class RouteInfo(NamedTuple):
     status: int | str  # str for websocket states
     route: str
     method: str
+    closed: bool = False
 
 
 class QueueItem(NamedTuple):
@@ -624,6 +623,20 @@ _LOG_COLORS: dict[LogLevel, str] = {
     "critical": "dim red",
 }
 
+LMAPPINGS = {
+    logging.DEBUG: Service.debug,
+    logging.INFO: Service.info,
+    logging.WARNING: Service.warning,
+    logging.ERROR: Service.error,
+    logging.CRITICAL: Service.critical,
+}
+
+
+class Hijack(logging.Filter):
+    def filter(self, record: logging.LogRecord):
+        LMAPPINGS[record.levelno](record.getMessage())
+        return False
+
 
 class LogPanel(Panel):
     """Panel with limit on number of lines relative to the terminal size."""
@@ -650,10 +663,12 @@ class LogPanel(Panel):
         console: Console,
         options: ConsoleOptions,
     ) -> RenderResult:
-        height = options.max_height
-        width = options.max_width
+        height = options.height
+        assert height is not None
 
-        while height < len(self._lines):
+        width = options.max_width - 2  # 2 panel characters
+
+        while height < (len(self._lines)):
             self._lines.pop(0)
             self._line_index -= 1
 
@@ -663,7 +678,7 @@ class LogPanel(Panel):
             if len(i) < (width - 3):  # - 3 because the ellipsis
                 final_lines.append(i)
             else:
-                final_lines.append(f"{i[:width - 7]}...")
+                final_lines.append(f"{i[:width - 3]}...")
 
         self.renderable = "\n".join(final_lines)
 
@@ -687,7 +702,9 @@ class LogTable(Table):
 
 
 class Dataset:
-    """Dataset in a graph."""
+    """
+    Dataset in a graph.
+    """
 
     def __init__(self, name: str, point_limit: int | None = None) -> None:
         """
@@ -740,7 +757,9 @@ def _heat_color(amount: float) -> str:
 
 
 class HeatedProgress(Progress):
-    """Progress that changes color based on how close the bar is to completion."""
+    """
+    Progress that changes color based on how close the bar is to completion.
+    """
 
     def make_tasks_table(self, tasks: Iterable[Task]) -> Table:
         result = super().make_tasks_table(tasks)
@@ -1000,11 +1019,24 @@ def _server_logger():
                 info = result.route
                 assert info, "result has no route"
 
-                table.add_row(
-                    f"[bold {_METHOD_COLORS[info.method]}]{info.method}[/]",
-                    info.route,
-                    f"[bold {_status_color(info.status)}]{info.status}[/]",
-                )
+                if info.method == "websocket":
+                    table.add_row(
+                        f"[bold {_METHOD_COLORS['websocket']}]websocket[/]",
+                        info.route,
+                        f"[bold green]opened[/]",
+                    )
+                elif info.method == "websocket_closed":
+                    table.add_row(
+                        f"[bold {_METHOD_COLORS['websocket']}]websocket[/]",
+                        info.route,
+                        f"[bold red]closed[/]",
+                    )
+                else:
+                    table.add_row(
+                        f"[bold {_METHOD_COLORS[info.method]}]{info.method}[/]",
+                        info.route,
+                        f"[bold {_status_color(info.status)}]{info.status}[/]",
+                    )
 
             live.update(Align.center(layout))
 
@@ -1016,13 +1048,24 @@ def _write_route(status: int | str, route: str, method_raw: str) -> None:
     if _LIVE:
         _QUEUE.put_nowait(QueueItem(True, True, "info", "", info))
     else:
-        Service.info(
-            f"[{_METHOD_COLORS[method]}]{method.lower()}[/] [white]{route}[/] [{_status_color(status)}]{status}[/]",
-            highlight=False,
-        )
+        if method == "websocket_closed":
+            Service.info(
+                f"[{_METHOD_COLORS['websocket']}]websocket[/] [white]{route}[/] [bold red]closed[/]",
+                highlight=False,
+            )
+        elif method == "websocket":
+            Service.info(
+                f"[{_METHOD_COLORS['websocket']}]websocket[/] [white]{route}[/] [bold green]open[/]",
+                highlight=False,
+            )
+        else:
+            Service.info(
+                f"[{_METHOD_COLORS[method]}]{method.lower()}[/] [white]{route}[/] [{_status_color(status)}]{status}[/]",
+                highlight=False,
+            )
 
 
-setup_route_log(_write_route)
+setup_route_log(_write_route, Service.warning)
 
 
 def enter_server():

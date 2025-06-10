@@ -15,7 +15,6 @@ from prompts.integration import PrettyOption
 
 from .__about__ import __version__
 from ._logging import VIEW_TEXT
-from .build import build_app
 from .exceptions import AppNotFoundError, BuildError
 
 B_OPEN = "{"
@@ -205,12 +204,24 @@ def prod():
 
 @main.command()
 @click.option(
-    "--target",
-    type=click.Choice(("replit", "heroku", "nginx")),
-    prompt="Where to deploy to",
+    "--path",
+    "-p",
+    type=click.Path(
+        exists=True,
+        file_okay=False,
+        resolve_path=True,
+        path_type=Path,
+        readable=True,
+    ),
+    default="./",
 )
-def deploy(target: str):
-    raise NotImplementedError
+def dev(path: Path):
+    try:
+        from watchfiles import run_process
+    except ImportError:
+        error("Module `watchfiles` is not installed!")
+
+    run_process(path, target=_run)
 
 
 @main.command()
@@ -239,6 +250,8 @@ def build(path: Path):
         info(" ".join([str(i) for i in msg]))
 
     Internal.info = info_hook  # type: ignore
+
+    from .build import build_app
 
     try:
         asyncio.run(build_app(app, path=path))

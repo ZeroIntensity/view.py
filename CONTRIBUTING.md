@@ -20,13 +20,14 @@ $ pip install .
 
 Congratulations, you have just started your development with view.py!
 
+Note that this cannot be an editable install (the `-e` flag), as `scikit-build-core` does not support it.
+
 ## Workflow
 
 First, you should create a new branch:
 
 ```
-$ git branch my_cool_feature
-$ git checkout my_cool_feature
+$ git switch -c my-cool-feature
 ```
 
 All of your code should be contained on this branch.
@@ -72,7 +73,7 @@ fancy = false
 server_logger = true
 ```
 
-These settings will stop view.py's fancy output from showing, as well as stopping the hijack of the ASGI logger, and you'll get the raw output.
+These settings will stop view.py's fancy output from showing, as well as stopping the hijack of the server's logger, and you'll get the raw server output.
 
 ## Writing Tests
 

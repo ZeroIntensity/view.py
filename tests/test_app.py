@@ -1,14 +1,25 @@
+import asyncio
 from dataclasses import dataclass, field
 from typing import Dict, List, NamedTuple, TypedDict, Union
 
 import attrs
 import pytest
-from leaks import limit_leaks
+from conftest import limit_leaks
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired
 
-from view import (JSON, BodyParam, Context, Response, body, context, get,
-                  new_app, query)
+from view import (
+    JSON,
+    BodyParam,
+    Context,
+    Response,
+    WebSocket,
+    body,
+    context,
+    get,
+    new_app,
+    query,
+)
 from view import route as route_impl
 from view.typing import CallNext
 
@@ -48,7 +59,7 @@ async def test_headers():
 
     @app.get("/")
     async def index():
-        return "hello", {"a": "b"}
+        return "hello", 200, {"a": "b"}
 
     async with app.test() as test:
         res = await test.get("/")
@@ -58,27 +69,11 @@ async def test_headers():
 
 @pytest.mark.asyncio
 @limit_leaks("1 MB")
-async def test_combination_of_headers_responses_and_status_codes():
-    app = new_app()
-
-    @app.get("/")
-    async def index():
-        return 201, "123", {"a": "b"}
-
-    async with app.test() as test:
-        res = await test.get("/")
-        assert res.status == 201
-        assert res.message == "123"
-        assert res.headers["a"] == "b"
-
-
-@pytest.mark.asyncio
-@limit_leaks("1 MB")
 async def test_result_protocol():
     app = new_app()
 
     class MyObject:
-        def __view_result__(self):
+        def __view_result__(self, ctx: Context):
             return "hello", 200
 
     @app.get("/")
@@ -130,13 +125,9 @@ async def test_body_type_validation():
     async with app.test() as test:
         assert (await test.get("/", body={"name": "hi"})).message == "hi"
         assert (await test.get("/status", body={"status": 404})).status == 404
-        assert (
-            await test.get("/status", body={"status": "hi"})
-        ).status == 400  # noqa
+        assert (await test.get("/status", body={"status": "hi"})).status == 400  # noqa
         assert (await test.get("/union", body={"test": "a"})).status == 400
-        assert (
-            await test.get("/union", body={"test": "true"})
-        ).message == "1"  # noqa
+        assert (await test.get("/union", body={"test": "true"})).message == "1"  # noqa
         assert (await test.get("/union", body={"test": "2"})).message == "2"
         res = await test.get("/multi", body={"status": 404, "name": "test"})
         assert res.status == 404
@@ -177,13 +168,9 @@ async def test_query_type_validation():
     async with app.test() as test:
         assert (await test.get("/", query={"name": "hi"})).message == "hi"
         assert (await test.get("/status", query={"status": 404})).status == 404
-        assert (
-            await test.get("/status", query={"status": "hi"})
-        ).status == 400  # noqa
+        assert (await test.get("/status", query={"status": "hi"})).status == 400  # noqa
         assert (await test.get("/union", query={"test": "a"})).status == 400
-        assert (
-            await test.get("/union", query={"test": "true"})
-        ).message == "1"  # noqa
+        assert (await test.get("/union", query={"test": "true"})).message == "1"  # noqa
         assert (await test.get("/union", query={"test": "2"})).message == "2"
         res = await test.get("/multi", query={"status": 404, "name": "test"})
         assert res.status == 404
@@ -207,12 +194,8 @@ async def test_queries_directly_from_app_and_body():
 
     async with app.test() as test:
         assert (await test.get("/", query={"name": "test"})).message == "test"
-        assert (
-            await test.get("/body", body={"name": "test"})
-        ).message == "test"
-        assert (
-            await test.get("/body", body={"name": "test"})
-        ).message == "test"
+        assert (await test.get("/body", body={"name": "test"})).message == "test"
+        assert (await test.get("/body", body={"name": "test"})).message == "test"
 
 
 @pytest.mark.asyncio
@@ -328,53 +311,35 @@ async def test_object_validation():
 
     async with app.test() as test:
         assert (
-            await test.get(
-                "/td", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
-            )
+            await test.get("/td", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
         ).message == "hello"
         assert (
-            await test.get(
-                "/dc", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
-            )
+            await test.get("/dc", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
         ).message == "hello"
         assert (
-            await test.get(
-                "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
-            )
+            await test.get("/pd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
         ).message == "world"
         assert (
-            await test.get(
-                "/nd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}}
-            )
+            await test.get("/nd", query={"data": {"a": "1", "b": 2, "c": {"3": 4}}})
         ).message == "foo"
         assert (
-            await test.get(
-                "/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}}
-            )
+            await test.get("/pd", query={"data": {"a": "1", "b": 2, "c": {"3": "4"}}})
         ).status == 200
         assert (
             await test.get("/vb", query={"data": {"hello": "world"}})
         ).message == "yay"
+        assert (await test.get("/vb", query={"data": {"hello": 2}})).status == 400
         assert (
-            await test.get("/vb", query={"data": {"hello": 2}})
+            await test.get("/vb", query={"data": {"hello": "world", "world": {}}})
         ).status == 400
         assert (
-            await test.get(
-                "/vb", query={"data": {"hello": "world", "world": {}}}
-            )
-        ).status == 400
-        assert (
-            await test.get(
-                "/nested", query={"data": {"a": {"b": {"c": "hello"}}}}
-            )
+            await test.get("/nested", query={"data": {"a": {"b": {"c": "hello"}}}})
         ).message == "hello"
         assert (
             await test.get("/nested", query={"data": {"a": {"b": {"c": 1}}}})
         ).message == "hello"
         assert (
-            await test.get(
-                "/dc", query={"data": {"a": "1", "b": True, "c": {"3": 4}}}
-            )
+            await test.get("/dc", query={"data": {"a": "1", "b": True, "c": {"3": 4}}})
         ).status == 400
 
 
@@ -465,12 +430,8 @@ async def test_list_validation():
 
     async with app.test() as test:
         assert (await test.get("/", query={"test": [1, 2, 3]})).message == "1"
-        assert (
-            await test.get("/union", query={"test": [1, "2", 3]})
-        ).message == "1"
-        assert (
-            await test.get("/", query={"test": [1, "2", True]})
-        ).status == 400
+        assert (await test.get("/union", query={"test": [1, "2", 3]})).message == "1"
+        assert (await test.get("/", query={"test": [1, "2", True]})).status == 400
         assert (
             await test.get("/dict", query={"test": {"a": ["1", "2", "3"]}})
         ).message == "1"
@@ -646,7 +607,9 @@ async def test_request_data():
     @app.get("/")
     @context()
     async def index(ctx: Context):
-        return ctx.headers["hello"]
+        header = ctx.headers["hello"]
+        assert isinstance(header, str)
+        return header
 
     @app.get("/scheme")
     @app.context
@@ -673,9 +636,7 @@ async def test_request_data():
         return ctx.cookies["hello"]
 
     async with app.test() as test:
-        assert (
-            await test.get("/", headers={"hello": "world"})
-        ).message == "world"
+        assert (await test.get("/", headers={"hello": "world"})).message == "world"
         assert (await test.get("/scheme")).message == "http"
         assert (await test.get("/method")).message == "GET"
         assert (await test.post("/method")).message == "POST"
@@ -695,13 +656,13 @@ async def test_context_alongside_other_inputs():
     @app.context
     @app.body("c", str)
     async def index(a: str, ctx: Context, c: str):
-        return a + ctx.headers["b"] + c
+        b = ctx.headers["b"]
+        assert isinstance(b, str)
+        return a + b + c
 
     async with app.test() as test:
         assert (
-            await test.get(
-                "/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"}
-            )
+            await test.get("/", query={"a": "a"}, headers={"b": "b"}, body={"c": "c"})
         ).message == "abc"
 
 
@@ -748,9 +709,7 @@ async def test_middleware_with_parameters():
         return "hello"
 
     @both.middleware
-    async def both_middleware(
-        call_next: CallNext, a: str, ctx: Context, b: str
-    ):
+    async def both_middleware(call_next: CallNext, a: str, ctx: Context, b: str):
         assert a + b == "ab"
         assert ctx.http_version == "view_test"
         return await call_next()
@@ -842,7 +801,7 @@ async def test_body_translate_strategies():
         def __init__(self, body: list) -> None:
             super().__init__(body, body_translate="custom")
 
-        def _custom(self, body: list) -> str:
+        def translate_body(self, body: list) -> str:
             return " ".join(body)
 
     @app.get("/custom")
@@ -871,3 +830,44 @@ async def test_bytes_response():
     async with app.test() as test:
         assert (await test.get("/")).content == b"\x09 \x09"
         assert (await test.get("/hi")).content == b"hi"
+
+
+@pytest.mark.asyncio
+@limit_leaks("1 MB")
+async def test_stress():
+    app = new_app()
+
+    @app.get("/")
+    def index():
+        return "test"
+
+    @app.get("/async")
+    async def async_route():
+        return "async"
+
+    @app.get("/inputs")
+    async def inputs(x: str):
+        return x
+
+    @app.websocket("/ws")
+    async def ws_route(ws: WebSocket):
+        async with ws:
+            await ws.send("test")
+
+    async with app.test() as test:
+
+        async def run():
+            async def routes():
+                assert (await test.get("/")).message == "test"
+                assert (await test.get("/async")).message == "async"
+                for i in range(5):
+                    assert (
+                        await test.get("/inputs", query={"x": str(i)})
+                    ).message == str(i)
+
+            await asyncio.gather(*[routes() for i in range(10)])
+
+            async with test.websocket("/ws") as sock:
+                assert (await sock.receive()) == "test"
+
+        await asyncio.gather(*[run() for _ in range(100)])

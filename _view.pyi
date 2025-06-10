@@ -1,7 +1,12 @@
 # flake8: noqa
-# NOTE: anything in this file that is defined solely for typing purposes should be
-# prefixed with __ to tell the developer that its not an actual symbol defined by
-# the extension module
+
+"""
+_view - Type stubs for the view.py extension module.
+
+Anything in this file that is defined solely for typing purposes should be
+prefixed with __ to tell the developer that its not an actual symbol defined by
+the extension module.
+"""
 
 from ipaddress import IPv4Address as __IPv4Address
 from ipaddress import IPv6Address as __IPv6Address
@@ -14,6 +19,7 @@ from typing import Literal as __Literal
 from typing import NoReturn as __NoReturn
 from typing import TypeVar as __TypeVar
 
+from view.app import App
 from view.routing import RouteData as __RouteData
 from view.typing import AsgiDict as __AsgiDict
 from view.typing import AsgiReceive as __AsgiReceive
@@ -119,13 +125,16 @@ class ViewApp:
     def _supply_parsers(self, query: __Parser, json: __Parser, /) -> None: ...
     def _register_error(self, error: type, /) -> None: ...
 
-def test_awaitable(coro: __Coroutine[__Any, __Any, __T], /) -> __Awaitable[__T]: ...
+def test_awaitable(
+    coro: __Coroutine[__Any, __Any, __T], /
+) -> __Awaitable[__T]: ...
 
 class Context:
     def __init__(self) -> __NoReturn: ...
 
+    app: App
     cookies: dict[str, str]
-    headers: dict[str, str]
+    headers: HeaderDict
     client: __IPv4Address | __IPv6Address | None
     server: __IPv4Address | __IPv6Address | None
     method: __StrMethodASGI
@@ -152,5 +161,14 @@ class ViewWebSocket:
 class InvalidStatusError(RuntimeError): ...
 class WebSocketHandshakeError(RuntimeError): ...
 
-def setup_route_log(func: __Callable[[int | str, str, str], None]) -> None: ...
-def register_ws_cls(tp: type[__Any]) -> None: ...
+def setup_route_log(func: __Callable[[int | str, str, str], None], warn: __Callable[[str], None], /) -> None: ...
+def register_ws_cls(
+    tp: type[__Any], ws_handshake_err: type[__Any], ws_err: type[__Any], /,
+) -> None: ...
+
+class HeaderDict:
+    def __init__(self) -> __NoReturn: ...
+    def __setitem__(self, key: str, value: str, /) -> None: ...
+    def __getitem__(self, key: str, /) -> str | list[str]: ...
+
+def dummy_context(app: ViewApp | None) -> Context: ...

@@ -1,3 +1,14 @@
+"""
+view.py templating APIs
+
+This module contains all APIs related to rendering HTML through a template engine. As of this docstring being written, view.py supports the following engines:
+    - view.py's own template engine
+    - Jinja2
+    - Django's template engine
+    - Mako
+    - Chameleon
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -39,7 +50,7 @@ sys.modules["_view_django"] = _DJANGO_HOOK
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "_view_django")
 
 
-class ViewRenderer:
+class _ViewRenderer:
     def __init__(self, parameters: dict[str, Any]):
         self.parameters = parameters
         self._last_if: bool | None = None
@@ -58,7 +69,14 @@ class ViewRenderer:
             else:
                 result.append(child)
 
-    async def _tag(self, view: Tag, *, defer: bool = False) -> Tag | str | None:
+    async def _tag(
+        self,
+        view: Tag,
+        *,
+        defer: bool = False,
+    ) -> Tag | str | None:
+        from bs4 import BeautifulSoup
+
         if not view.attrs:
             raise InvalidTemplateError("<view> tags must have at least one attribute")
 
@@ -77,14 +95,24 @@ class ViewRenderer:
             nonlocal iterator_name
             iterator_name = item
 
-        result: list[str] = []
+        result: list[str | Tag] = []
 
         for key, value in view.attrs.items():
             if key == "ref":
-                result.append(str(eval(value, self.parameters)))
+                func = repr if "repr" in view.attrs else str
+                ref: str = func(eval(value, self.parameters))
+                if "nosanitize" in view.attrs:
+                    result.append(BeautifulSoup(ref, "html.parser"))
+                else:
+                    result.append(ref)
+            elif key in {"nosanitize", "repr"}:
+                if "ref" not in view.attrs:
+                    raise InvalidTemplateError(
+                        "f{key} can only be used with a ref attribute in <view> tag"
+                    )
             elif key == "template":
                 html = await template(value)
-                body = html._custom(html.body)
+                body = html.translate_body(html.body)
                 result.append(body)
             elif key == "if":
                 self._last_if = bool(eval(value, self.parameters))
@@ -117,7 +145,7 @@ class ViewRenderer:
                 item = view.attrs.get("item")
                 if not item:
                     raise InvalidTemplateError(
-                        f'<view> tags with an "iter" attribute must have an "item" attribute'
+                        '<view> tags with an "iter" attribute must have an "item" attribute'
                     )  # noqa
 
                 _iter_render(value, item)
@@ -125,12 +153,12 @@ class ViewRenderer:
                 iter_name = view.attrs.get("iter")
                 if not iter_name:
                     raise InvalidTemplateError(
-                        f'<view> tags with an "item" attribute must have an "iter" attribute'
+                        '<view> tags with an "item" attribute must have an "iter" attribute'
                     )  # noqa
 
                 _iter_render(iter_name, value)
             else:
-                raise InvalidTemplateError(f"unknown key {key!r} in <view> tag")
+                raise InvalidTemplateError(f"unknown attribute {key!r} in <view> tag")
 
         if iterator_obj:
             assert iterator_name, "iterator_name is None (this is a bug!)"
@@ -143,7 +171,11 @@ class ViewRenderer:
         else:
             await self._render_children(view, result)
 
-        return view.replace_with(*result) if not defer else "\n".join(result)
+        return (
+            view.replace_with(*result)
+            if not defer
+            else "\n".join([str(i) for i in result])
+        )
 
     async def render(self, content: str) -> str:
         try:
@@ -167,7 +199,30 @@ async def render(
     *,
     app: App | None = None,
 ) -> str:
-    """Render a template from the source instead of a filename. Generally should be used internally."""
+    """
+    Render a template from the source instead of a filename.
+    Generally should be used internally, but is considered stable.
+
+    This function does not require that an app has been created, but will attempt to get an app with `get_app()` regardless.
+    If `get_app()` fails, template engine instances are not stored.
+
+    Args:
+        source: Source code to pass to the template engine.
+        engine: Template engine to use. Unlike `template()`, this does not try and load the default template engine from the config.
+        parameters: Variables to pass to the template engine for use in templates. By default, this will attempt to steal locals from the callers frame.
+        app: App to store engines on. If `None`, will attempt to call `get_app()`.
+
+    Example:
+        ```py
+        import aiofiles
+        from view import render
+
+
+        async def main():
+            async with aiofiles.open("template.html") as f:
+                html = await render(await f.read(), engine="jinja")
+        ```
+    """
     from .app import get_app
 
     if parameters is _CurrentFrame:
@@ -189,7 +244,7 @@ async def render(
         templaters = {}
 
     if engine == "view":
-        view = ViewRenderer(parameters or {})  # type: ignore
+        view = _ViewRenderer(parameters or {})  # type: ignore
         return await view.render(source)
     elif engine == "jinja":
         try:
@@ -250,7 +305,26 @@ async def template(
     app: App | None = None,
     **parameters: Any,
 ) -> HTML:
-    """Render a template with the specified engine. This returns a view.py HTML response."""
+    """
+    Render a template with the specified engine.
+
+    Args:
+        name: A string, which is appended the `.html` suffix (if it doesn't have it already), or a `Path` object, representing a file containing an HTML template.
+        directory: Directory to search for templates. If this is `None`, the directory specified in the configuration is used.
+        engine: Template engine to choose. If this is `None`, the default engine specified in the configuration is used.
+        frame: Frame to steal locals from for parameters. This will use the callers frame by default. If this is `None`, then no locals are sent to the template engine.
+        app: App instance to store template engine instances on. If this is `None`, `get_app` is called.
+        parameters: Extra values to send to the template engine as variables.
+
+    Example:
+        ```py
+        from view import get, template
+
+        @get("/")
+        async def index():
+            return await template("test")
+        ```
+    """
     from .app import get_app
 
     try:
@@ -299,7 +373,17 @@ async def markdown(
     directory: str | Path | None = _ConfigSpecified,
     app: App | None = None,
 ) -> HTML:
-    """Convert a markdown file into HTML. This returns a view.py HTML response."""
+    """
+    Convert a markdown file into HTML.
+
+    Args:
+        name: Equivalent to `name` in `template()`, with the exception of using the `.md` suffix instead of `.html`.
+        directory: Equivalent to `directory` in `template()`.
+        app: Equivalent to `app` in `template()`.
+
+    Raises:
+        NeedsDependencyError: `markdown` module is not installed.
+    """
     from .app import get_app
 
     try:

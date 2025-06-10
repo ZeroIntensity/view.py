@@ -13,6 +13,8 @@ from encodings.utf_8 import StreamReader as UTF8StreamReader
 from html.parser import HTMLParser
 from io import StringIO
 
+__all__ = ("codec_info",)
+
 Input = Union[bytes, bytearray, memoryview]
 
 UTF8 = encodings.search_function("utf-8")
@@ -134,20 +136,16 @@ class IncrementalDecoder(codecs.BufferedIncrementalDecoder):
 class StreamReader(UTF8StreamReader):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-
+        print("abc")
         self.stream: StringIO = transform_stream(self.stream)
 
 
-codecs.register(
-    {
-        "view": codecs.CodecInfo(
-            UTF8.encode,
-            view_decode,
-            name="view",
-            streamreader=StreamReader,
-            streamwriter=UTF8.streamwriter,
-            incrementalencoder=UTF8.incrementalencoder,
-            incrementaldecoder=IncrementalDecoder,
-        )
-    }.get
+codec_info = codecs.CodecInfo(
+    UTF8.encode,
+    view_decode,
+    name="view",
+    streamreader=StreamReader,
+    streamwriter=UTF8.streamwriter,
+    incrementalencoder=UTF8.incrementalencoder,
+    incrementaldecoder=IncrementalDecoder,
 )

@@ -3,12 +3,22 @@ from dataclasses import dataclass
 from typing import Dict
 
 import pytest
-from leaks import limit_leaks
+from conftest import limit_leaks
 from typing_extensions import Annotated
 
-from view import (App, BadEnvironmentError, TypeValidationError, compile_type,
-                  env, get_app, new_app, to_response)
-from view.typing import CallNext
+from view import (
+    App,
+    BadEnvironmentError,
+    Context,
+    TypeValidationError,
+    call_result,
+    compile_type,
+    env,
+    get_app,
+    new_app,
+    to_response,
+)
+from view.typing import CallNext, MaybeAwaitable, SupportsViewResult, ViewResult
 
 
 @limit_leaks("1 MB")
@@ -140,11 +150,11 @@ async def test_to_response():
 
     @app.get("/bytes")
     async def other():
-        return b"test", {"hello": "world"}
+        return b"test", 200, {"hello": "world"}
 
     @index.middleware
     async def middleware(call_next: CallNext):
-        res = to_response(await call_next())
+        res = await to_response(await call_next())
         assert res.body == "hello"
         assert res.status == 201
         assert res.headers == {"a": "b"}
@@ -153,7 +163,7 @@ async def test_to_response():
 
     @other.middleware
     async def other_middleware(call_next: CallNext):
-        res = to_response(await call_next())
+        res = await to_response(await call_next())
         assert res.body == b"test"
         assert res.headers == {"hello": "world"}
         return res
@@ -161,3 +171,46 @@ async def test_to_response():
     async with app.test() as test:
         assert (await test.get("/")).message == "goodbye"
         assert (await test.get("/bytes")).message == "test"
+
+
+async def test_supports_result_isinstance():
+    called = 0
+
+    class MyObject(SupportsViewResult):
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+            nonlocal called
+            called += 1
+            return "hello"
+
+    class MyObjectNoInherit:
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+            nonlocal called
+            called += 1
+            return "hello"
+
+    assert isinstance(MyObject(), SupportsViewResult)
+    assert issubclass(MyObject, SupportsViewResult)
+    assert isinstance(MyObjectNoInherit(), SupportsViewResult)
+    assert called == 2
+
+
+@pytest.mark.asyncio
+async def test_call_result():
+    class MyObject(SupportsViewResult):
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+            return "hello"
+
+    class MyObjectUseCtx(SupportsViewResult):
+        async def __view_result__(self, ctx: Context) -> MaybeAwaitable[ViewResult]:
+            return ctx.path
+
+    app = new_app()
+    assert (await call_result(MyObject())) == "hello"
+
+    @app.get("/")
+    async def index(ctx: Context):
+        res = await call_result(MyObjectUseCtx(), ctx=ctx)
+        return res
+
+    async with app.test() as test:
+        assert (await test.get("/")).message == "/"

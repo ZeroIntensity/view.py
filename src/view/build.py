@@ -1,3 +1,10 @@
+"""
+view.py build APIs
+
+While this module is considered public, you likely don't need the functions in here.
+Instead, you should just let view.py do most of the work, such as through calling `build_app` upon startup.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,18 +21,24 @@ import aiofiles
 import aiofiles.os
 
 from ._logging import Internal
+from .app import App
 from .typing import ViewResult
 
 if TYPE_CHECKING:
-    from .app import App
+    from .config import Config
 
 import platform
 
 from .config import BuildStep, Platform
-from .exceptions import (BuildError, BuildWarning, MissingRequirementError,
-                         PlatformNotSupportedError, UnknownBuildStepError,
-                         ViewInternalError)
-from .response import to_response
+from .exceptions import (
+    BuildError,
+    BuildWarning,
+    MissingRequirementError,
+    PlatformNotSupportedError,
+    UnknownBuildStepError,
+    ViewInternalError,
+)
+from .util import to_response
 
 __all__ = "build_steps", "build_app"
 
@@ -272,9 +285,21 @@ def _find_step(name: str, steps: list[BuildStep]) -> _BuildStepWithName:
     return platform_step
 
 
-async def run_step(app: App, name: str) -> None:
-    """Run an individual build step."""
-    step_conf = app.config.build.steps.get(name)
+async def run_step(app_or_config: App | Config, name: str) -> None:
+    """
+    Run an individual build step.
+
+    Args:
+        app: App object or configuration to load build steps from.
+        name: Name of the build step.
+
+    Raises:
+        UnknownBuildStepError: The step does not exist.
+    """
+    if isinstance(app_or_config, App):
+        step_conf = app_or_config.config.build.steps.get(name)
+    else:
+        step_conf = app_or_config.build.steps.get(name)
 
     if not step_conf:
         raise UnknownBuildStepError(f"no step named {name!r}")
@@ -287,9 +312,18 @@ async def run_step(app: App, name: str) -> None:
     await _build_step(step)
 
 
-async def build_steps(app: App) -> None:
-    """Run the default build steps for a given application."""
-    build = app.config.build
+async def build_steps(app_or_config: App | Config) -> None:
+    """
+    Run the default build steps for a given application or configuration. This is called upon starting a server.
+
+    Args:
+        app_or_config: App or configuration object to read build steps from.
+    """
+    if isinstance(app_or_config, App):
+        build = app_or_config.config.build
+    else:
+        build = app_or_config.build
+
     cache: list[str] = []
     steps: list[_BuildStepWithName] = []
 
@@ -304,7 +338,7 @@ async def build_steps(app: App) -> None:
 
     Internal.info("Starting build steps")
 
-    if app.config.build.parallel:
+    if build.parallel:
         coros = [_build_step(step) for step in steps]
         await asyncio.gather(*coros)
     else:
@@ -312,8 +346,8 @@ async def build_steps(app: App) -> None:
             await _build_step(step)
 
 
-def _handle_result(res: ViewResult) -> str | bytes:
-    response = to_response(res)
+async def _handle_result(res: ViewResult) -> str | bytes:
+    response = await to_response(res)
     return response.body
 
 
@@ -344,16 +378,23 @@ async def _compile_routes(
 
         res = i.func()  # type: ignore
 
+        # I'm unsure if I'm doing this right.
+        # Reviewers, correct this if I'm wrong!
         if isinstance(res, Coroutine):
             if should_await:
-                results[i.path[1:]] = _handle_result(await res)
+                results[i.path[1:]] = await _handle_result(await res)
             else:
                 task = asyncio.create_task(res)
 
                 def cb(fut: asyncio.Task[ViewResult]):
                     text = fut.result()
-                    assert i.path is not None
-                    results[i.path[1:]] = _handle_result(text)
+
+                    def cb_2(fut2: asyncio.Task[str | bytes]):
+                        assert i.path is not None
+                        results[i.path[1:]] = fut2.result()
+
+                    task2 = asyncio.create_task(_handle_result(text))
+                    task2.add_done_callback(cb_2)
 
                 task.add_done_callback(cb)
                 coros.append(res)
@@ -365,7 +406,13 @@ async def _compile_routes(
 
 
 async def build_app(app: App, *, path: Path | None = None) -> None:
-    """Compile an app into static HTML, including running all of it's build steps."""
+    """
+    Compile an app into static HTML, including running all of it's build steps.
+
+    Args:
+        app: App object to build.
+        path: Output path for files.
+    """
     Internal.info("Starting build process!")
     await build_steps(app)
 

@@ -5,8 +5,15 @@ import sys
 import warnings
 from dataclasses import _MISSING_TYPE, Field, dataclass
 from pathlib import Path
-from typing import (TYPE_CHECKING, ForwardRef, Iterable, NamedTuple, TypedDict,
-                    get_args, get_type_hints)
+from typing import (
+    TYPE_CHECKING,
+    ForwardRef,
+    Iterable,
+    NamedTuple,
+    TypedDict,
+    get_args,
+    get_type_hints,
+)
 
 from _view import Context
 
@@ -25,11 +32,15 @@ from typing_extensions import get_origin
 
 from ._logging import Internal
 from ._util import docs_hint, is_annotated, is_union, set_load
-from .exceptions import (DuplicateRouteError, InvalidBodyError,
-                         InvalidRouteError, LoaderWarning,
-                         UnknownBuildStepError, ViewInternalError)
-from .routing import (BodyParam, Method, Route, RouteData, RouteInput,
-                      _NoDefault)
+from .exceptions import (
+    DuplicateRouteError,
+    InvalidBodyError,
+    InvalidRouteError,
+    LoaderWarning,
+    UnknownBuildStepError,
+    ViewInternalError,
+)
+from .routing import BodyParam, Method, Route, RouteData, RouteInput, _NoDefault
 from .typing import Any, RouteInputDict, TypeInfo, ValueType
 
 ExtNotRequired: Any = None
@@ -169,8 +180,6 @@ class LoaderDoc:
 class _NotSet:
     """Sentinel value for default being not set in _build_type_codes."""
 
-    ...
-
 
 def _build_type_codes(
     inp: Iterable[type[ValueType]],
@@ -298,16 +307,23 @@ def _build_type_codes(
         ) or getattr(tp, "model_fields", None)
         if pydantic_fields:
             tps = {}
+            try:
+                from pydantic_core import PydanticUndefined
+            except ImportError:
+                PydanticUndefined = None
 
             for k, v in pydantic_fields.items():
-                if (not v.default) and (not v.default_factory):
-                    tps[k] = v.outer_type_  # type: ignore
+                outer_type = getattr(v, "outer_type_", None)
+                if not outer_type:
+                    outer_type = v.annotation
+                default_not_set = v.default in (None, PydanticUndefined)
+                if default_not_set and (not v.default_factory):
+                    tps[k] = outer_type
                 else:
                     tps[k] = BodyParam(
-                        v.outer_type_,  # type: ignore
-                        v.default or v.default_factory,
+                        outer_type,
+                        v.default_factory if default_not_set else v.default,
                     )
-
             doc = {}
             codes.append((TYPECODE_CLASS, tp, _format_body(tps, doc, tp)))
             setattr(tp, "_view_doc", doc)
@@ -377,8 +393,10 @@ def _build_type_codes(
 def _format_inputs(
     inputs: list[RouteInput | RouteData],
 ) -> list[RouteInputDict | RouteData]:
-    """Convert a list of route inputs to a proper dictionary that the C loader can handle.
-    This function also will generate the typecodes for the input."""
+    """
+    Convert a list of route inputs to a proper dictionary that the C loader can handle.
+    This function also will generate the typecodes for the input.
+    """
     result: list[RouteInputDict | RouteData] = []
 
     for i in inputs:
@@ -402,7 +420,8 @@ def _format_inputs(
 
 
 def finalize(routes: Iterable[Route], app: ViewApp):
-    """Attach list of routes to an app and validate all parameters.
+    """
+    Attach list of routes to an app and validate all parameters.
 
     Args:
         routes: List of routes.
@@ -524,11 +543,12 @@ def finalize(routes: Iterable[Route], app: ViewApp):
 
 
 def load_fs(app: ViewApp, target_dir: Path) -> None:
-    """Filesystem loading implementation.
-    Similiar to NextJS's routing system. You take `target_dir` and search it,
-    if a file is found and not prefixed with _, then convert the directory structure
-    to a path. For example, target_dir/hello/world/index.py would be converted to a
-    route for /hello/world
+    """
+    Filesystem loading implementation, similiar to NextJS's "pages" routing system.
+
+    You take `target_dir` and search it, if a file is found and not prefixed with _, then convert
+    the directory structure to a path. For example, target_dir/hello/world/index.py would be converted
+    to a route for /hello/world
 
     Args:
         app: App to attach routes to.
@@ -589,7 +609,9 @@ def load_fs(app: ViewApp, target_dir: Path) -> None:
 
 
 def load_simple(app: ViewApp, target_dir: Path) -> None:
-    """Simple loading implementation.
+    """
+    Simple loading implementation.
+
     Simple loading is essentially searching a directory recursively
     for files, and then extracting Route instances from each file.
 
@@ -624,7 +646,7 @@ def load_simple(app: ViewApp, target_dir: Path) -> None:
             for route in mini_routes:
                 if not route.path:
                     raise InvalidRouteError(
-                        "omitting path is only supported" " on filesystem loading",
+                        "omitting path is only supported on filesystem loading",
                     )
 
                 routes.append(route)
@@ -646,7 +668,7 @@ def load_patterns(app: ViewApp, target_path: Path) -> None:
 
     if not patterns:
         raise InvalidRouteError(
-            f"{target_path} did not define a PATTERNS, URL_PATTERNS, URLPATTERNS, urlpatterns, or patterns variable",
+            f"{target_path} did not define a PATTERNS variable",
             hint=docs_hint(
                 "https://view.zintensity.dev/building-projects/routing/#url-pattern-routing"
             ),

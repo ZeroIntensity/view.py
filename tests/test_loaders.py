@@ -3,8 +3,18 @@ from typing import List
 
 import pytest
 
-from view import (App, InvalidCustomLoaderError, Route, delete, get, new_app,
-                  options, patch, post, put)
+from view import (
+    App,
+    InvalidCustomLoaderError,
+    Route,
+    delete,
+    get,
+    new_app,
+    options,
+    patch,
+    post,
+    put,
+)
 
 
 @pytest.mark.asyncio
