@@ -1,3 +1,0 @@
-[app]
-loader = "patterns"
-loader_path = "tests/patterns_routes/urls.py"
