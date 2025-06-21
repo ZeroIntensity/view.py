@@ -7,48 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
--   Added the `default_page` function
--   Made `default_page` the example response in `view init`
--   Added `.gitignore` generation to `view init`
--   Added support for coroutines in `PyAwaitable` (vendored)
--   Finished websocket implementation
--   Added the `custom` loader
--   Added support for returning `bytes` objects in the body
--   Added `nosanitize` and `repr` to the `ref` attribute of `<view>` tags in view template rendering
--   `WebSocketDisconnect` is now raised instead of `WebSocketHandshakeError` in an unexpected WebSocket disconnect
--   Added many, _many_, more docstrings
--   Added the `app` attribute to `Context`
--   Switched to PyMalloc under the hood
--   Deprecated the `run()` utility
--   Added support for asynchronous `__view_result__` functions
--   Removed unstable `components` functions from top-level `view` module
--   Added native support for `ReactPy` component routes
--   Added the `expect_errors` utility
--   Added the `HeaderDict` class
--   Changed the `headers` attribute on `Context` to a `HeaderDict` instance of a `dict`
--   Added the `call_result` utility
--   Added the `ctx` parameter to `to_response`
--   Removed broken hint when forgetting to call `load()`
--   Added support for `isinstance` to `SupportsViewResult`
--   Moved `to_response` to the `view.utils` module
--   Added the `force` parameter to `run`
--   Added the `view dev` command (live reload)
--   Fixed redirection and disabling of HTTP server logging
--   C API is now compliant with [PEP 7](https://peps.python.org/pep-0007/)
--   Added `-g3` and `-O3` flag to the `_view` extension module (debugging information and optimizations)
--   Removed use of Rich `escape()` in the message shown when a dependency is needed
--   Query string client errors are now displayed during development mode
--   `KeyboardInterrupt` is swallowed by the server coroutine, and a log message is now issued
--   Typecode API now raises exceptions indicating a validation error (and now it's sent as a response with a query or body parse failure)
--   `hatchling` and `scikit-build-core` are now used for build instead of `setuptools`
--   Renamed the `view-admin` command to `view-py`
--   **Breaking Change:** Renamed `Error` to `HTTPError`
--   **Breaking Change:** `__view_result__` is now given a `Context` parameter
--   **Breaking Change:** `to_response` is now asynchronous
--   **Breaking Change:** Renamed `Response._custom` to `Response.translate_body`
--   **Breaking Change:** Removed the `hijack` configuration setting
--   **Breaking Change:** Removed the `post_init` parameter from `new_app`, as well as renamed the `store_address` parameter to `store`
--   **Breaking Change:** `load()` now takes routes via variadic arguments, instead of a list of routes.
+-   Removed everything from prior releases!
 
 ## [1.0.0-alpha10] - 2024-5-26
 
