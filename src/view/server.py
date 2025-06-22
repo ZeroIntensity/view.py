@@ -1,0 +1,100 @@
+from typing import (Any, Awaitable, Callable, Iterable, Literal, NotRequired,
+                    TypeAlias, TypedDict)
+
+from multidict import CIMultiDict
+
+from view.app import BaseApp
+from view.request import Method, Request
+
+__all__ = ()
+
+
+class ASGIScopeData(TypedDict):
+    version: str
+    spec_version: NotRequired[str]
+
+
+ASGIHeaders = Iterable[tuple[bytes, bytes]]
+
+
+class ASGIHttpScope(TypedDict):
+    type: Literal["http"]
+    asgi: ASGIScopeData
+    http_version: str
+    method: str
+    scheme: str
+    path: str
+    raw_path: bytes
+    root_path: str
+    headers: ASGIHeaders
+    client: Iterable[tuple[str, int]] | None
+    server: Iterable[tuple[str, int | None]] | None
+    state: NotRequired[dict[str, Any] | None]
+
+
+class ASGIBodyMixin(TypedDict):
+    body: NotRequired[bytes]
+    more_body: NotRequired[bool]
+
+
+class ASGIHttpReceiveResult(ASGIBodyMixin, TypedDict):
+    type: Literal["http.request"]
+
+
+class ASGIHttpSendStart(TypedDict):
+    type: Literal["http.response.start"]
+    status: int
+    headers: ASGIHeaders
+    trailers: NotRequired[bool]
+
+
+class ASGIHttpSendBody(ASGIBodyMixin, TypedDict):
+    type: Literal["http.response.body"]
+
+
+ASGIHttpReceive: TypeAlias = Callable[[], Awaitable[ASGIHttpReceiveResult]]
+ASGIHttpSend: TypeAlias = Callable[
+    [ASGIHttpSendStart | ASGIHttpSendBody], Awaitable[None]
+]
+ASGIProtocol: TypeAlias = Callable[
+    [ASGIHttpScope, ASGIHttpReceive, ASGIHttpSend], Awaitable[None]
+]
+
+
+def headers_as_multidict(headers: ASGIHeaders, /) -> CIMultiDict:
+    multidict = CIMultiDict()
+
+    for key, value in headers:
+        multidict[key.decode("utf-8")] = value.decode("utf-8")
+
+    return multidict
+
+
+def multidict_as_headers(headers: CIMultiDict, /) -> ASGIHeaders:
+    asgi_headers: ASGIHeaders = []
+
+    for key, value in headers:
+        asgi_headers.append((key.encode("utf-8"), value.encode("utf-8")))
+
+    return asgi_headers
+
+
+async def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
+    async def asgi(
+        scope: ASGIHttpScope, receive: ASGIHttpReceive, send: ASGIHttpSend
+    ) -> None:
+        assert scope["type"] == "http"
+        method = Method(scope["method"])
+        headers = headers_as_multidict(scope["headers"])
+        request = Request(app, scope["path"], method, headers)
+
+        response = await app.process_request(request)
+        await send(
+            {
+                "type": "http.response.start",
+                "status": response.status_code,
+                "headers": multidict_as_headers(response.headers),
+            }
+        )
+
+    return asgi

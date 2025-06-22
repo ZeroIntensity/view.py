@@ -13,7 +13,7 @@ from view.response import Response, ResponseLike, wrap_response
 from view.router import Route, Router, RouteView
 from view.status_codes import HTTPError, InternalServerError, NotFound
 
-__all__ = "BaseApp", "as_app"
+__all__ = "BaseApp", "as_app", "App"
 
 RouteViewVar = TypeVar("RouteViewVar", bound=RouteView)
 RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
@@ -95,7 +95,7 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     return SingleViewApp(view)
 
 
-class RoutableApp(BaseApp):
+class App(BaseApp):
     """
     An application containing an automatic routing mechanism
     and error handling.
