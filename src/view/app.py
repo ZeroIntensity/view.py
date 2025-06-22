@@ -8,6 +8,7 @@ from typing import Callable, Iterator, Literal, TypeAlias, TypeVar, overload
 
 from loguru import logger
 
+from view.asgi import ASGIProtocol, asgi_for_app
 from view.request import Method, Request
 from view.response import Response, ResponseLike, wrap_response
 from view.router import Route, Router, RouteView
@@ -40,10 +41,14 @@ class BaseApp(ABC):
                 self._request.reset(token)
 
     @overload
-    def current_request(self, *, validate: Literal[False]) -> Request | None: ...
+    def current_request(
+        self, *, validate: Literal[False]
+    ) -> Request | None: ...
 
     @overload
-    def current_request(self, *, validate: Literal[True] = True) -> Request: ...
+    def current_request(
+        self, *, validate: Literal[True] = True
+    ) -> Request: ...
 
     def current_request(self, *, validate: bool = True) -> Request | None:
         """
@@ -65,7 +70,8 @@ class BaseApp(ABC):
 
     def wsgi(self): ...
 
-    def asgi(self): ...
+    def asgi(self) -> ASGIProtocol:
+        return asgi_for_app(self)
 
     def run(self): ...
 

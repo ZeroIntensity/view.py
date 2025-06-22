@@ -3,6 +3,7 @@ view.py - The Batteries-Detachable Web Framework.
 """
 
 from view import app as app
+from view import asgi as asgi
 from view import request as request
 from view import response as response
 from view import router as router

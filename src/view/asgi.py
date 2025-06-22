@@ -1,12 +1,12 @@
-from typing import (Any, Awaitable, Callable, Iterable, Literal, NotRequired,
-                    TypeAlias, TypedDict)
+from typing import (Any, AsyncIterator, Awaitable, Callable, Iterable, Literal,
+                    NotRequired, TypeAlias, TypedDict)
 
 from multidict import CIMultiDict
 
 from view.app import BaseApp
 from view.request import Method, Request
 
-__all__ = ()
+__all__ = ("asgi_for_app",)
 
 
 class ASGIScopeData(TypedDict):
@@ -79,14 +79,25 @@ def multidict_as_headers(headers: CIMultiDict, /) -> ASGIHeaders:
     return asgi_headers
 
 
-async def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
+def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
     async def asgi(
         scope: ASGIHttpScope, receive: ASGIHttpReceive, send: ASGIHttpSend
     ) -> None:
         assert scope["type"] == "http"
         method = Method(scope["method"])
         headers = headers_as_multidict(scope["headers"])
-        request = Request(app, scope["path"], method, headers)
+
+        async def receive_data() -> AsyncIterator[bytes]:
+            more_body = True
+            while more_body:
+                data = await receive()
+                assert data["type"] == "http.request"
+                yield data.get("body", b"")
+                more_body = data.get("more_body", False)
+
+        request = Request(
+            app, scope["path"], method, headers, receive_data=receive_data
+        )
 
         response = await app.process_request(request)
         await send(
