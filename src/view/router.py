@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Awaitable, Callable, TypeAlias
 
@@ -16,28 +15,34 @@ RouteView: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]
 
 @dataclass(slots=True, frozen=True)
 class Route:
+    """
+    Dataclass representing a route in a router.
+    """
+
     view: RouteView
     path: str
     method: Method
 
 
-class BaseRouter(ABC):
-    @abstractmethod
-    def lookup_route(self, path: str, /) -> Route | None: ...
+class Router:
+    """
+    Standard router that supports error and route lookups.
+    """
 
-    @abstractmethod
-    def lookup_error(self, error: type[HTTPError], /) -> RouteView: ...
-
-
-class Router(BaseRouter):
     def __init__(self) -> None:
         self.route_views: dict[str, Route] = {}
         self.error_views: dict[type[HTTPError], RouteView] = {}
 
     def push_route(self, view: RouteView, path: str, method: Method) -> None:
+        """
+        Register a view with the router.
+        """
         self.route_views[path] = Route(view=view, path=path, method=method)
 
     def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
+        """
+        Register an error view with the router.
+        """
         error_type: type[HTTPError]
         if isinstance(error, int):
             error_type = status_exception(error)
@@ -49,9 +54,17 @@ class Router(BaseRouter):
         self.error_views[error_type] = view
 
     def lookup_route(self, path: str, /) -> Route | None:
+        """
+        Look up the view for the route.
+        """
         return self.route_views.get(path)
 
     def lookup_error(self, error: type[HTTPError], /) -> RouteView:
+        """
+        Look up the error view for the given HTTP error.
+
+        If no custom handler is set, this returns a default error view.
+        """
         return self.error_views.get(error) or self.default_error(error)
 
     def default_error(self, error: type[HTTPError]) -> RouteView:

@@ -6,6 +6,13 @@ STATUS_EXCEPTIONS: dict[int, type[HTTPError]] = {}
 
 
 class HTTPError(Exception):
+    """
+    Base class for all HTTP errors.
+
+    Raising this type, or a subclass of this type, will be converted
+    to a status code at runtime.
+    """
+
     status_code: ClassVar[int] = 0
 
     def __init_subclass__(cls) -> None:
@@ -25,11 +32,15 @@ def status_exception(status: int) -> type[HTTPError]:
 
 
 class ClientSideError(HTTPError):
-    pass
+    """
+    Base class for all HTTP errors between 400 and 500.
+    """
 
 
 class ServerSideError(HTTPError):
-    pass
+    """
+    Base class for all HTTP errors between 500 and 600.
+    """
 
 
 class BadRequest(ClientSideError):

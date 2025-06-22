@@ -4,7 +4,8 @@ from view.app import BaseApp, Request
 from view.response import Response
 from view.router import Method
 
-__all__ = "AppTestClient",
+__all__ = ("AppTestClient",)
+
 
 class AppTestClient:
     """
