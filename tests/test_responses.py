@@ -1,8 +1,9 @@
 import pytest
+
+from view.app import Request, as_app
 from view.response import ResponseLike
 from view.router import Method
 from view.testing import AppTestClient
-from view.app import Request, as_app
 
 
 @pytest.mark.asyncio

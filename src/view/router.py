@@ -39,9 +39,7 @@ class Router:
         """
         self.route_views[path] = Route(view=view, path=path, method=method)
 
-    def push_error(
-        self, error: int | type[HTTPError], view: RouteView
-    ) -> None:
+    def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
         """
         Register an error view with the router.
         """
@@ -51,9 +49,7 @@ class Router:
         elif issubclass(error, HTTPError):
             error_type = error
         else:
-            raise TypeError(
-                f"expected a status code or type, but got {error!r}"
-            )
+            raise TypeError(f"expected a status code or type, but got {error!r}")
 
         self.error_views[error_type] = view
 

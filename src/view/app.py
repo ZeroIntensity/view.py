@@ -41,14 +41,10 @@ class BaseApp(ABC):
                 self._request.reset(token)
 
     @overload
-    def current_request(
-        self, *, validate: Literal[False]
-    ) -> Request | None: ...
+    def current_request(self, *, validate: Literal[False]) -> Request | None: ...
 
     @overload
-    def current_request(
-        self, *, validate: Literal[True] = True
-    ) -> Request: ...
+    def current_request(self, *, validate: Literal[True] = True) -> Request: ...
 
     def current_request(self, *, validate: bool = True) -> Request | None:
         """

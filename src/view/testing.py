@@ -58,16 +58,12 @@ class AppTestClient:
     async def connect(
         self, route: str, *, headers: dict[str, str] | None = None
     ) -> Response:
-        return await self.request(
-            route, method=Method.CONNECT, headers=headers
-        )
+        return await self.request(route, method=Method.CONNECT, headers=headers)
 
     async def options(
         self, route: str, *, headers: dict[str, str] | None = None
     ) -> Response:
-        return await self.request(
-            route, method=Method.OPTIONS, headers=headers
-        )
+        return await self.request(route, method=Method.OPTIONS, headers=headers)
 
     async def trace(
         self, route: str, *, headers: dict[str, str] | None = None
