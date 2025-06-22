@@ -1,3 +1,4 @@
+from __future__ import annotations
 import contextlib
 import contextvars
 from abc import ABC, abstractmethod
@@ -19,6 +20,7 @@ RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
 
 @dataclass(slots=True, frozen=True)
 class Request:
+    app: BaseApp
     path: str
     method: Method
     headers: CIMultiDict
@@ -65,7 +67,7 @@ class BaseApp(ABC):
     def current_request(self, *, validate: Literal[False]) -> Request | None: ...
 
     @overload
-    def current_request(self, *, validate: Literal[True]) -> Request: ...
+    def current_request(self, *, validate: Literal[True] = True) -> Request: ...
 
     def current_request(self, *, validate: bool = True) -> Request | None:
         """
@@ -107,7 +109,7 @@ class SingleViewApp(BaseApp):
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
-            return self.view(request)
+            return wrap_response(self.view(request))
 
 
 def as_app(view: SingleView, /) -> SingleViewApp:

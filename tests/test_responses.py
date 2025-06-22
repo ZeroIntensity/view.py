@@ -1,7 +1,24 @@
 import pytest
+from view.response import ResponseLike
+from view.router import Method
 from view.testing import AppTestClient
-from view.app import as_app
+from view.app import Request, as_app
+
 
 @pytest.mark.asyncio
-async def test_response():
-    assert 1
+async def test_str_or_bytes_response():
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        assert request.app == app
+        assert request.app.current_request() is request
+        assert isinstance(request.path, str)
+        assert request.method is Method.GET
+
+        if request.path == "/":
+            return "Hello"
+        else:
+            return b"World"
+
+    client = AppTestClient(app)
+    assert (await client.get("/")).as_tuple() == (b"Hello", 200, {})
+    assert (await client.get("/f")).as_tuple() == (b"World", 200, {})
