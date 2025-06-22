@@ -20,6 +20,9 @@ class Request:
 
 
 def wrap_response(response: ResponseLike) -> Response:
+    """
+    Wrap a response from a handler into a `Response` object.
+    """
     if isinstance(response, Response):
         return response
 
@@ -41,11 +44,16 @@ class App(Router):
         )
 
     async def execute_handler(self, handler: RouteHandler) -> ResponseLike:
-        result = handler()
-        if isinstance(result, Awaitable):
-            result = await result
+        try:
+            result = handler()
+            if isinstance(result, Awaitable):
+                result = await result
 
-        return result
+            return result
+        except HTTPError as error:
+            http_error = type(error)
+            handler = self.lookup_error(http_error) or self.default_error(http_error)
+            return await self.execute_handler(handler)
 
     def default_error(self, error: type[HTTPError]) -> RouteHandler:
         """
@@ -74,6 +82,9 @@ class App(Router):
     def current_request(self, *, validate: Literal[True]) -> Request: ...
 
     def current_request(self, *, validate: bool = True) -> Request | None:
+        """
+        Get the current request being handled.
+        """
         if validate:
             return self._request.get()
 
@@ -83,6 +94,9 @@ class App(Router):
             return None
 
     async def process_request(self, request: Request) -> Response:
+        """
+        Get the response from the server for a given request.
+        """
         route: Route | None = self.lookup_route(request.path)
         handler: RouteHandler
         if route is None:
@@ -94,3 +108,12 @@ class App(Router):
             response = await self.execute_handler(handler)
 
         return wrap_response(response)
+
+    def wsgi(self):
+        ...
+
+    def asgi(self):
+        ...
+
+    def run(self):
+        ...
