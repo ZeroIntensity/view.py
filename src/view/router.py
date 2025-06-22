@@ -24,12 +24,12 @@ class Method(Enum):
     HEAD = auto()
 
 
-RouteHandler: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]
+RouteView: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]
 
 
 @dataclass(slots=True, frozen=True)
 class Route:
-    handler: RouteHandler
+    view: RouteView
     path: str
     method: Method
 
@@ -39,18 +39,18 @@ class BaseRouter(ABC):
     def lookup_route(self, path: str, /) -> Route | None: ...
 
     @abstractmethod
-    def lookup_error(self, error: type[HTTPError], /) -> RouteHandler: ...
+    def lookup_error(self, error: type[HTTPError], /) -> RouteView: ...
 
 
 class Router(BaseRouter):
     def __init__(self) -> None:
-        self.route_handlers: dict[str, Route] = {}
-        self.error_handlers: dict[type[HTTPError], RouteHandler] = {}
+        self.route_views: dict[str, Route] = {}
+        self.error_views: dict[type[HTTPError], RouteView] = {}
 
-    def push_route(self, handler: RouteHandler, path: str, method: Method) -> None:
-        self.route_handlers[path] = Route(handler=handler, path=path, method=method)
+    def push_route(self, view: RouteView, path: str, method: Method) -> None:
+        self.route_views[path] = Route(view=view, path=path, method=method)
 
-    def push_error(self, error: int | type[HTTPError], handler: RouteHandler) -> None:
+    def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
         error_type: type[HTTPError]
         if isinstance(error, int):
             error_type = status_exception(error)
@@ -59,17 +59,17 @@ class Router(BaseRouter):
         else:
             raise TypeError(f"expected a status code or type, but got {error!r}")
 
-        self.error_handlers[error_type] = handler
+        self.error_views[error_type] = view
 
     def lookup_route(self, path: str, /) -> Route | None:
-        return self.route_handlers.get(path)
+        return self.route_views.get(path)
 
-    def lookup_error(self, error: type[HTTPError], /) -> RouteHandler:
-        return self.error_handlers.get(error) or self.default_error(error)
+    def lookup_error(self, error: type[HTTPError], /) -> RouteView:
+        return self.error_views.get(error) or self.default_error(error)
 
-    def default_error(self, error: type[HTTPError]) -> RouteHandler:
+    def default_error(self, error: type[HTTPError]) -> RouteView:
         """
-        Get the default error handler for a given HTTP error.
+        Get the default error view for a given HTTP error.
         """
 
         def inner():

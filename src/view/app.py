@@ -8,13 +8,13 @@ from typing import Callable, Iterator, Literal, TypeAlias, TypeVar, overload
 from multidict import CIMultiDict
 
 from view.response import Response, ResponseLike
-from view.router import Method, Route, RouteHandler, Router
+from view.router import Method, Route, RouteView, Router
 from view.status_codes import HTTPError, NotFound
 
 __all__ = "BaseApp", "Request"
 
-RouteHandlerVar = TypeVar("RouteHandlerVar", bound=RouteHandler)
-RouteDecorator: TypeAlias = Callable[[RouteHandlerVar], RouteHandlerVar]
+RouteViewVar = TypeVar("RouteViewVar", bound=RouteView)
+RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
 
 
 @dataclass(slots=True, frozen=True)
@@ -25,7 +25,7 @@ class Request:
 
 def wrap_response(response: ResponseLike) -> Response:
     """
-    Wrap a response from a handler into a `Response` object.
+    Wrap a response from a view into a `Response` object.
     """
     if isinstance(response, Response):
         return response
@@ -39,7 +39,6 @@ def wrap_response(response: ResponseLike) -> Response:
         raise TypeError(f"Invalid response: {response!r}")
 
     return Response(content, 200, CIMultiDict())
-
 
 class BaseApp(ABC):
     """Base view.py application."""
@@ -91,21 +90,28 @@ class BaseApp(ABC):
     def run(self): ...
 
 
-SingleHandler = Callable[[Request], ResponseLike]
+SingleView = Callable[[Request], ResponseLike]
 
 
-class SingleHandlerApp(BaseApp):
-    def __init__(self, handler: SingleHandler) -> None:
+class SingleViewApp(BaseApp):
+    """
+    Application with a single view function that
+    processes all requests.
+    """
+    def __init__(self, view: SingleView) -> None:
         super().__init__()
-        self.handler = handler
+        self.view = view
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
-            return self.handler(request)
+            return self.view(request)
 
 
-def as_app(handler: SingleHandler, /) -> SingleHandlerApp:
-    return SingleHandlerApp(handler)
+def as_app(view: SingleView, /) -> SingleViewApp:
+    """
+    Decorator for using a single function as an app.
+    """
+    return SingleViewApp(view)
 
 
 class RoutableApp(BaseApp):
@@ -113,28 +119,28 @@ class RoutableApp(BaseApp):
         super().__init__()
         self.router = router or Router()
 
-    async def _execute_handler(self, handler: RouteHandler) -> ResponseLike:
+    async def _execute_view(self, view: RouteView) -> ResponseLike:
         try:
-            result = handler()
+            result = view()
             if isinstance(result, Awaitable):
                 result = await result
 
             return result
         except HTTPError as error:
             http_error = type(error)
-            handler = self.router.lookup_error(http_error)
-            return await self._execute_handler(handler)
+            view = self.router.lookup_error(http_error)
+            return await self._execute_view(view)
 
     async def process_request(self, request: Request) -> Response:
         route: Route | None = self.router.lookup_route(request.path)
-        handler: RouteHandler
+        view: RouteView
         if route is None:
-            handler = self.router.lookup_error(NotFound)
+            view = self.router.lookup_error(NotFound)
         else:
-            handler = route.handler
+            view = route.view
 
         with self.request_context(request):
-            response = await self._execute_handler(handler)
+            response = await self._execute_view(view)
 
         return wrap_response(response)
 
@@ -143,9 +149,9 @@ class RoutableApp(BaseApp):
         Decorator interface for adding a route to the app.
         """
 
-        def decorator(handler: RouteHandlerVar, /) -> RouteHandlerVar:
-            self.router.push_route(handler, path, method)
-            return handler
+        def decorator(view: RouteViewVar, /) -> RouteViewVar:
+            self.router.push_route(view, path, method)
+            return view
 
         return decorator
 
@@ -177,8 +183,8 @@ class RoutableApp(BaseApp):
         return self.route(path, method=Method.HEAD)
 
     def error(self, status: int | type[HTTPError], /) -> RouteDecorator:
-        def decorator(handler: RouteHandlerVar, /) -> RouteHandlerVar:
-            self.router.push_error(status, handler)
-            return handler
+        def decorator(view: RouteViewVar, /) -> RouteViewVar:
+            self.router.push_error(status, view)
+            return view
 
         return decorator

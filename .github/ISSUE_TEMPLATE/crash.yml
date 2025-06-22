@@ -6,7 +6,7 @@ body:
       attributes:
           label: "Crash Information:"
           description: >
-              Give a clear description of what happened and how to reproduce it, if possible. If you aren't sure, attempt to run the program through a debugger, such as [Valgrind](https://valgrind.org/) or enabling [faulthandler](https://docs.python.org/3/library/faulthandler.html).
+              Give a clear description of what happened and how to reproduce it, if possible. If you aren't sure, attempt to run the program through a debugger, such as [Valgrind](https://valgrind.org/) or enabling [faultview](https://docs.python.org/3/library/faultview.html).
 
               This should only be for *crashes* not bugs. For that, use the bug template.
 
