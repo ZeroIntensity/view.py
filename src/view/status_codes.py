@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import ClassVar
 
 STATUS_EXCEPTIONS: dict[int, type[HTTPError]] = {}
@@ -33,7 +34,7 @@ class ServerSideError(HTTPError):
 
 class BadRequest(ClientSideError):
     """
-    The server cannot or will not process the request due to something 
+    The server cannot or will not process the request due to something
     that is perceived to be a client error (e.g., malformed request syntax,
     invalid request message framing, or deceptive request routing).
     """

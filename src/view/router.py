@@ -1,8 +1,11 @@
 from __future__ import annotations
+
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Awaitable, Callable, TypeAlias, TypeVar
-from dataclasses import dataclass
+
 from status_codes import HTTPError, status_exception
+
 from view.response import ResponseLike
 
 __all__ = "Method", "Route", "Router"
@@ -20,10 +23,10 @@ class Method(Enum):
     HEAD = auto()
 
 
-
 RouteHandler: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]
 RouteHandlerVar = TypeVar("RouteHandlerVar", bound=RouteHandler)
 RouteDecorator: TypeAlias = Callable[[RouteHandlerVar], RouteHandlerVar]
+
 
 @dataclass(slots=True, frozen=True)
 class Route:
@@ -31,16 +34,20 @@ class Route:
     path: str
     method: Method
 
+
 class Router:
     def __init__(self) -> None:
-        self.routes: dict[str, Route] = {}
+        self.route_handlers: dict[str, Route] = {}
         self.error_handlers: dict[type[HTTPError], RouteHandler] = {}
 
     def push_route(self, handler: RouteHandler, path: str, method: Method) -> None:
-        self.routes[path] = Route(handler=handler, path=path, method=method)
+        self.route_handlers[path] = Route(handler=handler, path=path, method=method)
 
-    def lookup_route(self, path: str) -> Route | None:
-        return self.routes.get(path)
+    def lookup_route(self, path: str, /) -> Route | None:
+        return self.route_handlers.get(path)
+
+    def lookup_error(self, error: type[HTTPError], /) -> RouteHandler | None:
+        return self.error_handlers.get(error)
 
     def route(self, path: str, /, *, method: Method) -> RouteDecorator:
         """
@@ -88,7 +95,7 @@ class Router:
             error_type = status
         else:
             raise TypeError(f"expected a status code or type, but got {status!r}")
-        
+
         def decorator(function: RouteHandlerVar) -> RouteHandlerVar:
             self.error_handlers[error_type] = function
             return function
