@@ -1,7 +1,6 @@
 from view.app import new_app
 from view.responses import HTML
 
-
 app = new_app()
 
 @app.get("/")

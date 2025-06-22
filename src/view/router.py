@@ -24,8 +24,6 @@ class Method(Enum):
 
 
 RouteHandler: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]
-RouteHandlerVar = TypeVar("RouteHandlerVar", bound=RouteHandler)
-RouteDecorator: TypeAlias = Callable[[RouteHandlerVar], RouteHandlerVar]
 
 
 @dataclass(slots=True, frozen=True)
@@ -43,61 +41,29 @@ class Router:
     def push_route(self, handler: RouteHandler, path: str, method: Method) -> None:
         self.route_handlers[path] = Route(handler=handler, path=path, method=method)
 
+    def push_error(self, error: int | type[HTTPError], handler: RouteHandler) -> None:
+        error_type: type[HTTPError]
+        if isinstance(error, int):
+            error_type = status_exception(error)
+        elif issubclass(error, HTTPError):
+            error_type = error
+        else:
+            raise TypeError(f"expected a status code or type, but got {error!r}")
+
+        self.error_handlers[error_type] = handler
+
     def lookup_route(self, path: str, /) -> Route | None:
         return self.route_handlers.get(path)
 
-    def lookup_error(self, error: type[HTTPError], /) -> RouteHandler | None:
-        return self.error_handlers.get(error)
+    def lookup_error(self, error: type[HTTPError], /) -> RouteHandler:
+        return self.error_handlers.get(error) or self.default_error(error)
 
-    def route(self, path: str, /, *, method: Method) -> RouteDecorator:
+    def default_error(self, error: type[HTTPError]) -> RouteHandler:
         """
-        Decorator interface for adding a route to the app.
+        Get the default error handler for a given HTTP error.
         """
 
-        def decorator(function: RouteHandlerVar, /) -> RouteHandlerVar:
-            self.push_route(function, path, method)
-            return function
+        def inner():
+            return f"Error {error.status_code}"
 
-        return decorator
-
-    def get(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.GET)
-
-    def post(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.POST)
-
-    def put(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.PUT)
-
-    def patch(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.PATCH)
-
-    def delete(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.DELETE)
-
-    def connect(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.CONNECT)
-
-    def options(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.OPTIONS)
-
-    def trace(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.TRACE)
-
-    def head(self, path: str, /) -> RouteDecorator:
-        return self.route(path, method=Method.HEAD)
-
-    def error(self, status: int | type[HTTPError]) -> RouteDecorator:
-        error_type: type[HTTPError]
-        if isinstance(status, int):
-            error_type = status_exception(status)
-        elif issubclass(status, HTTPError):
-            error_type = status
-        else:
-            raise TypeError(f"expected a status code or type, but got {status!r}")
-
-        def decorator(function: RouteHandlerVar) -> RouteHandlerVar:
-            self.error_handlers[error_type] = function
-            return function
-
-        return decorator
+        return inner

@@ -1,16 +1,20 @@
 import contextlib
 import contextvars
+from abc import ABC, abstractmethod
 from collections.abc import Awaitable
 from dataclasses import dataclass
-from typing import Literal, overload
+from typing import Callable, Iterator, Literal, TypeAlias, TypeVar, overload
 
 from multidict import CIMultiDict
 
 from view.response import Response, ResponseLike
-from view.router import Route, RouteHandler, Router
+from view.router import Method, Route, RouteHandler, Router
 from view.status_codes import HTTPError, NotFound
 
-__all__ = "App", "Request"
+__all__ = "BaseApp", "Request"
+
+RouteHandlerVar = TypeVar("RouteHandlerVar", bound=RouteHandler)
+RouteDecorator: TypeAlias = Callable[[RouteHandlerVar], RouteHandlerVar]
 
 
 @dataclass(slots=True, frozen=True)
@@ -32,43 +36,25 @@ def wrap_response(response: ResponseLike) -> Response:
     elif isinstance(response, bytes):
         content = response
     else:
-        raise TypeError(f"")
+        raise TypeError(f"Invalid response: {response!r}")
 
     return Response(content, 200, CIMultiDict())
 
 
-class App(Router):
-    def __init__(self):
+class BaseApp(ABC):
+    """Base view.py application."""
+
+    def __init__(self, *, router: Router):
         self._request = contextvars.ContextVar[Request](
             "The current request being handled."
         )
-
-    async def execute_handler(self, handler: RouteHandler) -> ResponseLike:
-        try:
-            result = handler()
-            if isinstance(result, Awaitable):
-                result = await result
-
-            return result
-        except HTTPError as error:
-            http_error = type(error)
-            handler = self.lookup_error(http_error) or self.default_error(http_error)
-            return await self.execute_handler(handler)
-
-    def default_error(self, error: type[HTTPError]) -> RouteHandler:
-        """
-        Get the default server error handler for a given HTTP error.
-        """
-
-        def inner():
-            return Response(
-                b"Error", status_code=error.status_code, headers=CIMultiDict()
-            )
-
-        return inner
+        self.router = router
 
     @contextlib.contextmanager
-    def _request_context(self, request: Request):
+    def request_context(self, request: Request) -> Iterator[None]:
+        """
+        Enter a context for the given request.
+        """
         token = self._request.set(request)
         try:
             yield
@@ -93,27 +79,92 @@ class App(Router):
         except LookupError:
             return None
 
+    @abstractmethod
     async def process_request(self, request: Request) -> Response:
         """
         Get the response from the server for a given request.
         """
-        route: Route | None = self.lookup_route(request.path)
+
+    def wsgi(self): ...
+
+    def asgi(self): ...
+
+    def run(self): ...
+
+
+class RoutableApp(BaseApp):
+    def __init__(self) -> None:
+        super().__init__(router=Router())
+
+    async def _execute_handler(self, handler: RouteHandler) -> ResponseLike:
+        try:
+            result = handler()
+            if isinstance(result, Awaitable):
+                result = await result
+
+            return result
+        except HTTPError as error:
+            http_error = type(error)
+            handler = self.router.lookup_error(http_error)
+            return await self._execute_handler(handler)
+
+    async def process_request(self, request: Request) -> Response:
+        """
+        Get the response from the server for a given request.
+        """
+        route: Route | None = self.router.lookup_route(request.path)
         handler: RouteHandler
         if route is None:
-            handler = self.lookup_error(NotFound) or self.default_error(NotFound)
+            handler = self.router.lookup_error(NotFound)
         else:
             handler = route.handler
 
-        with self._request_context(request):
-            response = await self.execute_handler(handler)
+        with self.request_context(request):
+            response = await self._execute_handler(handler)
 
         return wrap_response(response)
 
-    def wsgi(self):
-        ...
+    def route(self, path: str, /, *, method: Method) -> RouteDecorator:
+        """
+        Decorator interface for adding a route to the app.
+        """
 
-    def asgi(self):
-        ...
+        def decorator(handler: RouteHandlerVar, /) -> RouteHandlerVar:
+            self.router.push_route(handler, path, method)
+            return handler
 
-    def run(self):
-        ...
+        return decorator
+
+    def get(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.GET)
+
+    def post(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.POST)
+
+    def put(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.PUT)
+
+    def patch(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.PATCH)
+
+    def delete(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.DELETE)
+
+    def connect(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.CONNECT)
+
+    def options(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.OPTIONS)
+
+    def trace(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.TRACE)
+
+    def head(self, path: str, /) -> RouteDecorator:
+        return self.route(path, method=Method.HEAD)
+
+    def error(self, status: int | type[HTTPError], /) -> RouteDecorator:
+        def decorator(handler: RouteHandlerVar, /) -> RouteHandlerVar:
+            self.router.push_error(status, handler)
+            return handler
+
+        return decorator
