@@ -44,11 +44,10 @@ def wrap_response(response: ResponseLike) -> Response:
 class BaseApp(ABC):
     """Base view.py application."""
 
-    def __init__(self, *, router: Router):
+    def __init__(self):
         self._request = contextvars.ContextVar[Request](
             "The current request being handled."
         )
-        self.router = router
 
     @contextlib.contextmanager
     def request_context(self, request: Request) -> Iterator[None]:
@@ -92,9 +91,27 @@ class BaseApp(ABC):
     def run(self): ...
 
 
+SingleHandler = Callable[[Request], ResponseLike]
+
+
+class SingleHandlerApp(BaseApp):
+    def __init__(self, handler: SingleHandler) -> None:
+        super().__init__()
+        self.handler = handler
+
+    async def process_request(self, request: Request) -> Response:
+        with self.request_context(request):
+            return self.handler(request)
+
+
+def as_app(handler: SingleHandler, /) -> SingleHandlerApp:
+    return SingleHandlerApp(handler)
+
+
 class RoutableApp(BaseApp):
-    def __init__(self) -> None:
-        super().__init__(router=Router())
+    def __init__(self, *, router: Router | None = None) -> None:
+        super().__init__()
+        self.router = router or Router()
 
     async def _execute_handler(self, handler: RouteHandler) -> ResponseLike:
         try:
@@ -109,9 +126,6 @@ class RoutableApp(BaseApp):
             return await self._execute_handler(handler)
 
     async def process_request(self, request: Request) -> Response:
-        """
-        Get the response from the server for a given request.
-        """
         route: Route | None = self.router.lookup_route(request.path)
         handler: RouteHandler
         if route is None:

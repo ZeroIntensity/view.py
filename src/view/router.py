@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Awaitable, Callable, TypeAlias, TypeVar
@@ -33,7 +34,15 @@ class Route:
     method: Method
 
 
-class Router:
+class BaseRouter(ABC):
+    @abstractmethod
+    def lookup_route(self, path: str, /) -> Route | None: ...
+
+    @abstractmethod
+    def lookup_error(self, error: type[HTTPError], /) -> RouteHandler: ...
+
+
+class Router(BaseRouter):
     def __init__(self) -> None:
         self.route_handlers: dict[str, Route] = {}
         self.error_handlers: dict[type[HTTPError], RouteHandler] = {}
