@@ -11,7 +11,7 @@ class HTTPError(Exception):
         STATUS_EXCEPTIONS[cls.status_code] = cls
 
 
-def status_exception(status: int, *, message: str | None = None) -> HTTPError:
+def status_exception(status: int) -> type[HTTPError]:
     """
     Get an exception for the given status.
     """
@@ -20,10 +20,7 @@ def status_exception(status: int, *, message: str | None = None) -> HTTPError:
     except KeyError as error:
         raise ValueError(f"{status} is not a valid HTTP error status code") from error
 
-    if message is not None:
-        return status_type()
-
-    return status_type(message)
+    return status_type
 
 
 class ClientSideError(HTTPError):

@@ -1,4 +1,4 @@
-from view.router import Route, Router
+from view.router import Route, Router, Response
 from dataclasses import dataclass
 from multidict import CIMultiDict
 
@@ -10,17 +10,11 @@ class Request:
     path: str
     headers: CIMultiDict
 
-
-@dataclass(slots=True, frozen=True)
-class Response:
-    content: bytes
-    status_code: int
-    headers: CIMultiDict
-
-
 class App(Router):
     def process_request(self, request: Request) -> Response:
         route: Route | None = self.lookup_route(request.path)
+        if route is None:
+            ...
         return NotImplemented
 
 
