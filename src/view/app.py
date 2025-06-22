@@ -8,7 +8,7 @@ from typing import Callable, Iterator, Literal, TypeAlias, TypeVar, overload
 from multidict import CIMultiDict
 
 from view.response import Response, ResponseLike
-from view.router import Method, Route, RouteView, Router
+from view.router import Method, Route, Router, RouteView
 from view.status_codes import HTTPError, NotFound
 
 __all__ = "BaseApp", "Request"
@@ -20,6 +20,7 @@ RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
 @dataclass(slots=True, frozen=True)
 class Request:
     path: str
+    method: Method
     headers: CIMultiDict
 
 
@@ -39,6 +40,7 @@ def wrap_response(response: ResponseLike) -> Response:
         raise TypeError(f"Invalid response: {response!r}")
 
     return Response(content, 200, CIMultiDict())
+
 
 class BaseApp(ABC):
     """Base view.py application."""
@@ -98,6 +100,7 @@ class SingleViewApp(BaseApp):
     Application with a single view function that
     processes all requests.
     """
+
     def __init__(self, view: SingleView) -> None:
         super().__init__()
         self.view = view

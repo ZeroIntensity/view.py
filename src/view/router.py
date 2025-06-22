@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import StrEnum, auto
 from typing import Awaitable, Callable, TypeAlias, TypeVar
 
 from status_codes import HTTPError, status_exception
@@ -12,7 +12,7 @@ from view.response import ResponseLike
 __all__ = "Method", "Route", "Router"
 
 
-class Method(Enum):
+class Method(StrEnum):
     GET = auto()
     POST = auto()
     PUT = auto()
