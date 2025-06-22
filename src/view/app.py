@@ -1,17 +1,28 @@
-from view.router import Router
+from view.router import Route, Router
 from dataclasses import dataclass
 from multidict import CIMultiDict
 
 __all__ = "App", "new_app"
+
 
 @dataclass(slots=True, frozen=True)
 class Request:
     path: str
     headers: CIMultiDict
 
+
+@dataclass(slots=True, frozen=True)
+class Response:
+    content: bytes
+    status_code: int
+    headers: CIMultiDict
+
+
 class App(Router):
-    def process_request(self, request: Request):
-        pass
+    def process_request(self, request: Request) -> Response:
+        route: Route | None = self.lookup_route(request.path)
+        return NotImplemented
+
 
 def new_app() -> App:
     """

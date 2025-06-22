@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 __all__ = "Method", "Route", "Router"
 
+
 class Method(Enum):
     GET = auto()
     POST = auto()
@@ -15,6 +16,7 @@ class Method(Enum):
     OPTIONS = auto()
     TRACE = auto()
     HEAD = auto()
+
 
 RouteHandler: TypeAlias = Callable[[], None | Awaitable[None]]
 
@@ -33,38 +35,43 @@ class Router:
     def push_route(self, handler: RouteHandler, path: str, method: Method) -> None:
         self.routes[path] = Route(handler=handler, path=path, method=method)
 
+    def lookup_route(self, path: str) -> Route | None:
+        return self.routes.get(path)
+
     def route(self, path: str, /, *, method: Method):
         """
         Decorator interface for adding a route to the app.
         """
+
         def decorator(function: RouteHandler, /):
             self.push_route(function, path, method)
             return function
+
         return decorator
 
     def get(self, path: str, /):
         return self.route(path, method=Method.GET)
-    
+
     def post(self, path: str, /):
         return self.route(path, method=Method.POST)
-    
+
     def put(self, path: str, /):
         return self.route(path, method=Method.PUT)
-    
+
     def patch(self, path: str, /):
         return self.route(path, method=Method.PATCH)
-    
+
     def delete(self, path: str, /):
         return self.route(path, method=Method.DELETE)
-    
+
     def connect(self, path: str, /):
         return self.route(path, method=Method.CONNECT)
-    
+
     def options(self, path: str, /):
         return self.route(path, method=Method.OPTIONS)
-    
+
     def trace(self, path: str, /):
         return self.route(path, method=Method.TRACE)
-    
+
     def head(self, path: str, /):
         return self.route(path, method=Method.HEAD)
