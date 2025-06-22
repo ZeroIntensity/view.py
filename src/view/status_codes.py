@@ -6,7 +6,7 @@ STATUS_EXCEPTIONS: dict[int, type[HTTPError]] = {}
 
 
 class HTTPError(Exception):
-    status_code: ClassVar[int]
+    status_code: ClassVar[int] = 0
 
     def __init_subclass__(cls) -> None:
         STATUS_EXCEPTIONS[cls.status_code] = cls

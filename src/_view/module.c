@@ -3,7 +3,7 @@
 
 static int _view_exec(PyObject *mod)
 {
-    return PyAwaitable_Init(mod);
+    return PyAwaitable_Init();
 }
 
 static PyMethodDef _view_methods[] = {

@@ -5,7 +5,7 @@ from view.response import Response
 from view.router import Method
 
 
-class TestClient:
+class AppTestClient:
     """
     Client to test an app.
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum, auto
 from typing import Awaitable, Callable, TypeAlias, TypeVar
 
-from status_codes import HTTPError, status_exception
+from view.status_codes import HTTPError, status_exception
 
 from view.response import ResponseLike
 
