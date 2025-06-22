@@ -1,49 +1,22 @@
 from __future__ import annotations
+
 import contextlib
 import contextvars
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from dataclasses import dataclass
 from typing import Callable, Iterator, Literal, TypeAlias, TypeVar, overload
 
-from multidict import CIMultiDict
-
-from view.response import Response, ResponseLike
-from view.router import Method, Route, Router, RouteView
-from view.status_codes import HTTPError, InternalServerError, NotFound
 from loguru import logger
 
-__all__ = "BaseApp", "Request"
+from view.request import Method, Request
+from view.response import Response, ResponseLike, wrap_response
+from view.router import Route, Router, RouteView
+from view.status_codes import HTTPError, InternalServerError, NotFound
+
+__all__ = "BaseApp", "as_app"
 
 RouteViewVar = TypeVar("RouteViewVar", bound=RouteView)
 RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
-
-
-@dataclass(slots=True, frozen=True)
-class Request:
-    app: BaseApp
-    path: str
-    method: Method
-    headers: CIMultiDict
-
-
-def wrap_response(response: ResponseLike) -> Response:
-    """
-    Wrap a response from a view into a `Response` object.
-    """
-    logger.debug(f"Got response: {response}")
-    if isinstance(response, Response):
-        return response
-
-    content: bytes
-    if isinstance(response, str):
-        content = response.encode()
-    elif isinstance(response, bytes):
-        content = response
-    else:
-        raise TypeError(f"Invalid response: {response!r}")
-
-    return Response(content, 200, CIMultiDict())
 
 
 class BaseApp(ABC):
@@ -127,6 +100,7 @@ class RoutableApp(BaseApp):
     An application containing an automatic routing mechanism
     and error handling.
     """
+
     def __init__(self, *, router: Router | None = None) -> None:
         super().__init__()
         self.router = router or Router()
@@ -232,6 +206,7 @@ class RoutableApp(BaseApp):
         """
         Decorator interface for adding an error handler to the app.
         """
+
         def decorator(view: RouteViewVar, /) -> RouteViewVar:
             self.router.push_error(status, view)
             return view

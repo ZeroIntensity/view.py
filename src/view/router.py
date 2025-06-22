@@ -2,26 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import StrEnum, auto
-from typing import Awaitable, Callable, TypeAlias, TypeVar
+from typing import Awaitable, Callable, TypeAlias
 
+from view.request import Method
+from view.response import ResponseLike
 from view.status_codes import HTTPError, status_exception
 
-from view.response import ResponseLike
-
-__all__ = "Method", "Route", "Router"
-
-
-class Method(StrEnum):
-    GET = auto()
-    POST = auto()
-    PUT = auto()
-    PATCH = auto()
-    DELETE = auto()
-    CONNECT = auto()
-    OPTIONS = auto()
-    TRACE = auto()
-    HEAD = auto()
+__all__ = "Route", "Router"
 
 
 RouteView: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]

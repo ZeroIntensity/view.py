@@ -19,7 +19,9 @@ class AppTestClient:
     async def request(
         self, route: str, *, method: Method, headers: dict[str, str] | None = None
     ) -> Response:
-        request_data = Request(self.app, route, method, headers=CIMultiDict(headers or {}))
+        request_data = Request(
+            self.app, route, method, headers=CIMultiDict(headers or {})
+        )
         return await self.app.process_request(request_data)
 
     async def get(
