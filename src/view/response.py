@@ -128,4 +128,4 @@ def wrap_response(response: ResponseLike) -> Response:
     else:
         raise TypeError(f"Invalid response: {response!r}")
 
-    return BytesResponse.from_bytes(content, 200, CIMultiDict())
+    return BytesResponse.from_bytes(content)

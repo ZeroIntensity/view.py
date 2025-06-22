@@ -11,6 +11,7 @@ from typing import (
     TypeAlias,
     TypedDict,
 )
+from multidict import CIMultiDict
 
 from view.app import BaseApp
 from view.request import Method, Request
@@ -69,8 +70,35 @@ ASGIProtocol: TypeAlias = Callable[
     [ASGIHttpScope, ASGIHttpReceive, ASGIHttpSend], Awaitable[None]
 ]
 
+def headers_as_multidict(headers: ASGIHeaders, /) -> CIMultiDict:
+    """
+    Convert ASGI headers to a case-insensitive multidict.
+    """
+    multidict = CIMultiDict()
+
+    for key, value in headers:
+        multidict[key.decode("utf-8")] = value.decode("utf-8")
+
+    return multidict
+
+
+def multidict_as_headers(headers: CIMultiDict, /) -> ASGIHeaders:
+    """
+    Convert a case-insensitive multidict to an ASGI header iterable.
+    """
+    asgi_headers: ASGIHeaders = []
+
+    for key, value in headers:
+        asgi_headers.append((key.encode("utf-8"), value.encode("utf-8")))
+
+    return asgi_headers
+
 
 def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
+    """
+    Generate an ASGI-compliant callable for a given app, allowing
+    it to be executed in an ASGI server.
+    """
     async def asgi(
         scope: ASGIHttpScope, receive: ASGIHttpReceive, send: ASGIHttpSend
     ) -> None:
@@ -95,6 +123,14 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
                 "status": response.status_code,
                 "headers": multidict_as_headers(response.headers),
             }
+        )
+        async for data in response.stream_body():
+            await send(
+                {"type": "http.response.body", "body": data, "more_body": True}
+            )
+
+        await send(
+            {"type": "http.response.body", "body": b"", "more_body": False}
         )
 
     return asgi

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import AsyncGenerator
 
 from multidict import CIMultiDict
 
@@ -27,8 +28,11 @@ class AppTestClient:
         method: Method,
         headers: dict[str, str] | None = None,
     ) -> Response:
+        async def stream_none() -> AsyncGenerator[bytes]:
+            yield b""
+
         request_data = Request(
-            self.app, route, method, headers=CIMultiDict(headers or {})
+            receive_data=stream_none, app=self.app, path=route, method=method, headers=CIMultiDict(headers or {}),
         )
         return await self.app.process_request(request_data)
 
