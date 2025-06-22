@@ -10,7 +10,8 @@ from multidict import CIMultiDict
 
 from view.response import Response, ResponseLike
 from view.router import Method, Route, Router, RouteView
-from view.status_codes import HTTPError, NotFound
+from view.status_codes import HTTPError, InternalServerError, NotFound
+from loguru import logger
 
 __all__ = "BaseApp", "Request"
 
@@ -30,6 +31,7 @@ def wrap_response(response: ResponseLike) -> Response:
     """
     Wrap a response from a view into a `Response` object.
     """
+    logger.debug(f"Got response: {response}")
     if isinstance(response, Response):
         return response
 
@@ -57,11 +59,12 @@ class BaseApp(ABC):
         """
         Enter a context for the given request.
         """
-        token = self._request.set(request)
-        try:
-            yield
-        finally:
-            self._request.reset(token)
+        with logger.contextualize(request=request):
+            token = self._request.set(request)
+            try:
+                yield
+            finally:
+                self._request.reset(token)
 
     @overload
     def current_request(self, *, validate: Literal[False]) -> Request | None: ...
@@ -120,11 +123,16 @@ def as_app(view: SingleView, /) -> SingleViewApp:
 
 
 class RoutableApp(BaseApp):
+    """
+    An application containing an automatic routing mechanism
+    and error handling.
+    """
     def __init__(self, *, router: Router | None = None) -> None:
         super().__init__()
         self.router = router or Router()
 
     async def _execute_view(self, view: RouteView) -> ResponseLike:
+        logger.debug(f"Executing view: {view}")
         try:
             result = view()
             if isinstance(result, Awaitable):
@@ -132,11 +140,17 @@ class RoutableApp(BaseApp):
 
             return result
         except HTTPError as error:
+            logger.info(f"HTTP Error {error.status_code}")
             http_error = type(error)
             view = self.router.lookup_error(http_error)
             return await self._execute_view(view)
+        except BaseException as exception:
+            logger.exception(exception)
+            view = self.router.lookup_error(InternalServerError)
+            return await self._execute_view(view)
 
     async def process_request(self, request: Request) -> Response:
+        logger.info(f"{request.method} {request.path}")
         route: Route | None = self.router.lookup_route(request.path)
         view: RouteView
         if route is None:
@@ -161,33 +175,63 @@ class RoutableApp(BaseApp):
         return decorator
 
     def get(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a GET route.
+        """
         return self.route(path, method=Method.GET)
 
     def post(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a POST route.
+        """
         return self.route(path, method=Method.POST)
 
     def put(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a PUT route.
+        """
         return self.route(path, method=Method.PUT)
 
     def patch(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a PATCH route.
+        """
         return self.route(path, method=Method.PATCH)
 
     def delete(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a DELETE route.
+        """
         return self.route(path, method=Method.DELETE)
 
     def connect(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a CONNECT route.
+        """
         return self.route(path, method=Method.CONNECT)
 
     def options(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding an OPTIONS route.
+        """
         return self.route(path, method=Method.OPTIONS)
 
     def trace(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a TRACE route.
+        """
         return self.route(path, method=Method.TRACE)
 
     def head(self, path: str, /) -> RouteDecorator:
+        """
+        Decorator interface for adding a HEAD route.
+        """
         return self.route(path, method=Method.HEAD)
 
     def error(self, status: int | type[HTTPError], /) -> RouteDecorator:
+        """
+        Decorator interface for adding an error handler to the app.
+        """
         def decorator(view: RouteViewVar, /) -> RouteViewVar:
             self.router.push_error(status, view)
             return view
