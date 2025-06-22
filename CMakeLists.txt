@@ -20,7 +20,7 @@ python_add_library(_view MODULE ${_view_SRC} WITH_SOABI)
 
 # Add include directories
 target_include_directories(_view PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/)
-target_include_directories(_view PUBLIC $ENV{PYAWAITABLE_INCLUDE_DIR})
+target_include_directories(_view PUBLIC $ENV{PYAWAITABLE_INCLUDE})
 
 MESSAGE(STATUS "Everything looks good, let's install!")
 # Install extension module

@@ -19,7 +19,7 @@ class Method(Enum):
 RouteHandler: TypeAlias = Callable[[], None | Awaitable[None]]
 
 
-@dataclass
+@dataclass(slots=True, frozen=True)
 class Route:
     handler: RouteHandler
     path: str
