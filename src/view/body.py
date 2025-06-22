@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import AsyncGenerator, AsyncIterator, Callable, TypeAlias
+
+__all__ = ("BodyMixin",)
 
 BodyStream: TypeAlias = Callable[[], AsyncIterator[bytes]]
 

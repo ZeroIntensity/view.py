@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import (
     Any,
     AsyncIterator,
@@ -9,8 +11,6 @@ from typing import (
     TypeAlias,
     TypedDict,
 )
-
-from multidict import CIMultiDict
 
 from view.app import BaseApp
 from view.request import Method, Request

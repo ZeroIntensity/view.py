@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from multidict import CIMultiDict
 
 from view.app import BaseApp, Request
