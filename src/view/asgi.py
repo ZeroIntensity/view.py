@@ -1,5 +1,14 @@
-from typing import (Any, AsyncIterator, Awaitable, Callable, Iterable, Literal,
-                    NotRequired, TypeAlias, TypedDict)
+from typing import (
+    Any,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+    Literal,
+    NotRequired,
+    TypeAlias,
+    TypedDict,
+)
 
 from multidict import CIMultiDict
 
@@ -61,24 +70,6 @@ ASGIProtocol: TypeAlias = Callable[
 ]
 
 
-def headers_as_multidict(headers: ASGIHeaders, /) -> CIMultiDict:
-    multidict = CIMultiDict()
-
-    for key, value in headers:
-        multidict[key.decode("utf-8")] = value.decode("utf-8")
-
-    return multidict
-
-
-def multidict_as_headers(headers: CIMultiDict, /) -> ASGIHeaders:
-    asgi_headers: ASGIHeaders = []
-
-    for key, value in headers:
-        asgi_headers.append((key.encode("utf-8"), value.encode("utf-8")))
-
-    return asgi_headers
-
-
 def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
     async def asgi(
         scope: ASGIHttpScope, receive: ASGIHttpReceive, send: ASGIHttpSend
@@ -95,9 +86,7 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
                 yield data.get("body", b"")
                 more_body = data.get("more_body", False)
 
-        request = Request(
-            app, scope["path"], method, headers, receive_data=receive_data
-        )
+        request = Request(receive_data, app, scope["path"], method, headers)
 
         response = await app.process_request(request)
         await send(

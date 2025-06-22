@@ -20,7 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = ["multidict~=6.5", "loguru~=0.7"]
+dependencies = ["multidict~=6.5", "loguru~=0.7", "aiofiles~=24.1"]
 dynamic = ["version", "license"]
 
 [project.optional-dependencies]
