@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Awaitable, Callable, TypeAlias
+from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
 
-from view.request import Method
-from view.response import ResponseLike
 from view.status_codes import HTTPError, status_exception
+
+if TYPE_CHECKING:
+    from view.request import Method
+    from view.response import ResponseLike
 
 __all__ = "Route", "Router"
 
 
-RouteView: TypeAlias = Callable[[], ResponseLike | Awaitable[ResponseLike]]
+RouteView: TypeAlias = Callable[[], "ResponseLike" | Awaitable["ResponseLike"]]
 
 
 @dataclass(slots=True, frozen=True)

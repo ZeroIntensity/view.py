@@ -4,15 +4,18 @@ import contextlib
 import contextvars
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from typing import Callable, Iterator, Literal, TypeAlias, TypeVar, overload
+from typing import (TYPE_CHECKING, Callable, Iterator, Literal, TypeAlias,
+                    TypeVar, overload)
 
 from loguru import logger
 
-from view.asgi import ASGIProtocol, asgi_for_app
-from view.request import Method, Request
 from view.response import Response, ResponseLike, wrap_response
 from view.router import Route, Router, RouteView
 from view.status_codes import HTTPError, InternalServerError, NotFound
+
+if TYPE_CHECKING:
+    from view.asgi import ASGIProtocol
+    from view.request import Method, Request
 
 __all__ = "BaseApp", "as_app", "App"
 
@@ -24,7 +27,7 @@ class BaseApp(ABC):
     """Base view.py application."""
 
     def __init__(self):
-        self._request = contextvars.ContextVar[Request](
+        self._request = contextvars.ContextVar["Request"](
             "The current request being handled."
         )
 
@@ -67,12 +70,14 @@ class BaseApp(ABC):
     def wsgi(self): ...
 
     def asgi(self) -> ASGIProtocol:
+        from view.asgi import asgi_for_app
+
         return asgi_for_app(self)
 
     def run(self): ...
 
 
-SingleView = Callable[[Request], ResponseLike]
+SingleView = Callable[["Request"], "ResponseLike"]
 
 
 class SingleViewApp(BaseApp):

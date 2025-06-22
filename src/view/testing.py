@@ -1,11 +1,14 @@
 from __future__ import annotations
-from typing import AsyncGenerator
+
+from typing import TYPE_CHECKING, AsyncGenerator
 
 from multidict import CIMultiDict
 
-from view.app import BaseApp, Request
-from view.response import Response
-from view.router import Method
+from view.request import Method, Request
+
+if TYPE_CHECKING:
+    from view.app import BaseApp
+    from view.response import Response
 
 __all__ = ("AppTestClient",)
 
@@ -32,7 +35,11 @@ class AppTestClient:
             yield b""
 
         request_data = Request(
-            receive_data=stream_none, app=self.app, path=route, method=method, headers=CIMultiDict(headers or {}),
+            receive_data=stream_none,
+            app=self.app,
+            path=route,
+            method=method,
+            headers=CIMultiDict(headers or {}),
         )
         return await self.app.process_request(request_data)
 
