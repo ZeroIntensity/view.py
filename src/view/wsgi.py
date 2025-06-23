@@ -1,9 +1,12 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable, Iterable, TypeAlias, IO
-from multidict import CIMultiDict
-from view.request import Request, Method
-from view.status_codes import STATUS_STRINGS
+
 import asyncio
+from typing import IO, TYPE_CHECKING, Callable, Iterable, TypeAlias
+
+from multidict import CIMultiDict
+
+from view.request import Method, Request
+from view.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
     from view.app import BaseApp
@@ -11,12 +14,19 @@ if TYPE_CHECKING:
 WSGIHeaders: TypeAlias = list[tuple[str, str]]
 WSGIEnvironment: TypeAlias = dict[str, str | IO[bytes]]  # XXX: Use a TypedDict?
 WSGIStartResponse = Callable[[str, WSGIHeaders], Callable[[bytes], object]]
-WSGIProtocol: TypeAlias = Callable[[WSGIEnvironment, WSGIStartResponse], Iterable[bytes]]
+WSGIProtocol: TypeAlias = Callable[
+    [WSGIEnvironment, WSGIStartResponse], Iterable[bytes]
+]
 
-def wsgi_for_app(app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None) -> WSGIProtocol:
+
+def wsgi_for_app(
+    app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None
+) -> WSGIProtocol:
     loop = loop or asyncio.new_event_loop()
 
-    def wsgi(environ: WSGIEnvironment, start_response: WSGIStartResponse) -> Iterable[bytes]:
+    def wsgi(
+        environ: WSGIEnvironment, start_response: WSGIStartResponse
+    ) -> Iterable[bytes]:
         method = Method(environ["REQUEST_METHOD"])
         headers = CIMultiDict()
 
@@ -29,7 +39,7 @@ def wsgi_for_app(app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None)
             headers[key.replace("_", "-").lower()] = value
 
         async def stream():
-            request_body: str | IO[bytes] = environ['wsgi.input']
+            request_body: str | IO[bytes] = environ["wsgi.input"]
             assert isinstance(request_body, IO)
             length = 512
 
@@ -42,7 +52,7 @@ def wsgi_for_app(app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None)
         assert isinstance(path, str)
         request = Request(stream, app, path, method, headers)
         response = loop.run_until_complete(app.process_request(request))
-        
+
         wsgi_headers: WSGIHeaders = []
         for key, value in response.headers.items():
             wsgi_headers.append((key, value))
