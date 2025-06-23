@@ -12,7 +12,15 @@ if TYPE_CHECKING:
 __all__ = "Method", "Request"
 
 
-class Method(StrEnum):
+class _UpperStrEnum(StrEnum):
+    @staticmethod
+    def _generate_next_value_(
+        name: str, start: int, count: int, last_values: list[str]
+    ) -> str:
+        return name.upper()
+
+
+class Method(_UpperStrEnum):
     """
     The HTTP request method.
     """

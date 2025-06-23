@@ -4,8 +4,15 @@ import contextlib
 import contextvars
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from typing import (TYPE_CHECKING, Callable, Iterator, Literal, TypeAlias,
-                    TypeVar, overload)
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Iterator,
+    Literal,
+    TypeAlias,
+    TypeVar,
+    overload,
+)
 
 from loguru import logger
 
