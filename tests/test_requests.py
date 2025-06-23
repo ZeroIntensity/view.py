@@ -1,9 +1,9 @@
 import pytest
 
 from view.app import as_app
+from view.request import Method, Request
 from view.response import ResponseLike
 from view.status_codes import BadRequest
-from view.request import Request, Method
 from view.testing import AppTestClient, into_tuple
 
 
@@ -33,6 +33,7 @@ async def test_request_data():
         {},
     )
 
+
 @pytest.mark.asyncio
 async def test_request_body():
     @as_app
@@ -49,7 +50,11 @@ async def test_request_body():
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/", body=b"test"))) == (b"1", 200, {})
-    assert (await into_tuple(client.get("/large", body=b"A" * 10000))) == (b"2", 200, {})
+    assert (await into_tuple(client.get("/large", body=b"A" * 10000))) == (
+        b"2",
+        200,
+        {},
+    )
 
 
 @pytest.mark.asyncio
@@ -70,5 +75,8 @@ async def test_request_headers():
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/", headers={"foo": "42"}))) == (b"1", 200, {})
-    assert (await into_tuple(client.get("/many", headers={"Bar": "24", "bAr": "42", "test": "123"}))) == (b"2", 200, {})
-
+    assert (
+        await into_tuple(
+            client.get("/many", headers={"Bar": "24", "bAr": "42", "test": "123"})
+        )
+    ) == (b"2", 200, {})

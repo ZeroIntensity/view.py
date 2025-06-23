@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import contextvars
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
 from typing import (TYPE_CHECKING, Callable, Iterator, Literal, ParamSpec,
@@ -11,6 +12,7 @@ from loguru import logger
 
 from view.response import Response, ResponseLike, wrap_response
 from view.router import Route, Router, RouteView
+from view.run import ServerSettings
 from view.status_codes import HTTPError, InternalServerError, NotFound
 
 if TYPE_CHECKING:
@@ -31,6 +33,14 @@ class BaseApp(ABC):
         self._request = contextvars.ContextVar["Request"](
             "The current request being handled."
         )
+        self._production: bool | None = None
+
+    @property
+    def debug(self) -> bool:
+        if self._production is None:
+            return __debug__
+
+        return self._production
 
     @contextlib.contextmanager
     def request_context(self, request: Request) -> Iterator[None]:
@@ -69,16 +79,46 @@ class BaseApp(ABC):
         """
 
     def wsgi(self) -> WSGIProtocol:
+        """
+        Get the WSGI callable for the app.
+        """
         from view.wsgi import wsgi_for_app
 
         return wsgi_for_app(self)
 
     def asgi(self) -> ASGIProtocol:
+        """
+        Get the ASGI callable for the app.
+        """
         from view.asgi import asgi_for_app
 
         return asgi_for_app(self)
 
-    def run(self): ...
+    def run(
+        self,
+        *,
+        host: str = "localhost",
+        port: int = 5000,
+        production: bool = False,
+        server_hint: str | None = None,
+    ) -> None:
+        """
+        Run the app.
+
+        This is a sort of magic function that's supposed to "just work". If
+        finer control over the server settings is desired, explicitly use the
+        server's API with the app's `asgi` or `wsgi` method.
+        """
+
+        if production is __debug__:
+            warnings.warn(
+                f"The app was run with {production=}, but Python's {__debug__=}",
+                RuntimeWarning,
+            )
+
+        self._production = production
+        settings = ServerSettings(self, host=host, port=port, hint=server_hint)
+        settings.run_app_on_any_server()
 
 
 P = ParamSpec("P")

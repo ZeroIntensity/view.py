@@ -9,4 +9,4 @@ def index():
     return HTML.from_file("index/test.html")
 
 if __name__ == "__main__":
-    app.run()
+    app.run(production=True)
