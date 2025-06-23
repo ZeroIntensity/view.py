@@ -1,16 +1,7 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
-    Literal,
-    NotRequired,
-    TypeAlias,
-    TypedDict,
-)
+from typing import (Any, AsyncIterator, Awaitable, Callable, Iterable, Literal,
+                    NotRequired, TypeAlias, TypedDict)
 
 from multidict import CIMultiDict
 

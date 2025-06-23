@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
 
 from view.status_codes import HTTPError, status_exception
@@ -26,14 +26,14 @@ class Route:
     method: Method
 
 
+@dataclass(slots=True, frozen=True)
 class Router:
     """
     Standard router that supports error and route lookups.
     """
 
-    def __init__(self) -> None:
-        self.route_views: dict[str, Route] = {}
-        self.error_views: dict[type[HTTPError], RouteView] = {}
+    route_views: dict[str, Route] = field(default_factory=dict)
+    error_views: dict[type[HTTPError], RouteView] = field(default_factory=dict)
 
     def push_route(self, view: RouteView, path: str, method: Method) -> None:
         """
