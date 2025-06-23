@@ -93,7 +93,12 @@ class HTTPError(Exception):
     def as_response(cls) -> BytesResponse:
         if cls.status_code == 0:
             raise TypeError(f"{cls} is not a real response")
-        message = f"{cls.status_code} {cls.description}"
+
+        if cls.args == ():
+            message = f"{cls.status_code} {cls.description}"
+        else:
+            message = str(cls)
+
         return BytesResponse.from_bytes(
             message.encode("utf-8"), status_code=cls.status_code
         )
@@ -347,7 +352,7 @@ class FailedDependency(ClientSideError):
     status_code = 424
 
 
-class TooEarlyExperimental(ClientSideError):
+class TooEarly(ClientSideError):
     """
     Indicates that the server is unwilling to risk processing a request
     that might be replayed.
