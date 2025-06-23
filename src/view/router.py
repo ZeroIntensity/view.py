@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from functools import cache
 from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
 
 from view.status_codes import HTTPError, status_exception
@@ -82,7 +81,20 @@ class PathNode:
 
 
 def is_path_parameter(part: str) -> bool:
-    return "{" in part
+    """
+    Is this part a path parameter?
+    """
+    return part.startswith("{") and part.endswith("}")
+
+
+def extract_path_parameter(part: str) -> str:
+    return part[1 : len(part) - 1]
+
+
+@dataclass(slots=True, frozen=True)
+class FoundRoute:
+    route: Route
+    path_parameters: dict[str, str]
 
 
 @dataclass(slots=True, frozen=True)
@@ -105,8 +117,7 @@ class Router:
 
         for part in parts:
             if is_path_parameter(part):
-                # TODO: Extract path parameter name
-                parent_node = parent_node.parameter(part)
+                parent_node = parent_node.parameter(extract_path_parameter(part))
             else:
                 parent_node = parent_node.next(part)
 
@@ -129,7 +140,7 @@ class Router:
 
         self.error_views[error_type] = view
 
-    def lookup_route(self, path: str, /) -> Route | None:
+    def lookup_route(self, path: str, /) -> FoundRoute | None:
         """
         Look up the view for the route.
         """
@@ -151,7 +162,11 @@ class Router:
 
             parent_node = node
 
-        return parent_node.route
+        final_route: Route | None = parent_node.route
+        if final_route is None:
+            return None
+
+        return FoundRoute(final_route, path_parameters)
 
     def lookup_error(self, error: type[HTTPError], /) -> RouteView | None:
         """

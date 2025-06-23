@@ -5,14 +5,14 @@ import contextvars
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from typing import (TYPE_CHECKING, Callable, Iterator, Literal, ParamSpec,
-                    TypeAlias, TypeVar, Union, overload)
+from typing import (TYPE_CHECKING, Callable, Iterator, ParamSpec, TypeAlias,
+                    TypeVar, Union)
 
 from loguru import logger
 
 from view.request import Method, Request
 from view.response import Response, ResponseLike, wrap_response
-from view.router import Route, Router, RouteView
+from view.router import FoundRoute, Router, RouteView
 from view.run import ServerSettings
 from view.status_codes import HTTPError, InternalServerError, NotFound
 
@@ -54,23 +54,11 @@ class BaseApp(ABC):
             finally:
                 self._request.reset(token)
 
-    @overload
-    def current_request(self, *, validate: Literal[False]) -> Request | None: ...
-
-    @overload
-    def current_request(self, *, validate: Literal[True] = True) -> Request: ...
-
-    def current_request(self, *, validate: bool = True) -> Request | None:
+    def current_request(self) -> Request:
         """
         Get the current request being handled.
         """
-        if validate:
-            return self._request.get()
-
-        try:
-            return self._request.get()
-        except LookupError:
-            return None
+        return self._request.get()
 
     @abstractmethod
     async def process_request(self, request: Request) -> Response:
@@ -187,11 +175,13 @@ class App(BaseApp):
 
     async def _process_request_internal(self, request: Request) -> Response:
         logger.info(f"{request.method} {request.path}")
-        route: Route | None = self.router.lookup_route(request.path)
-        if route is None:
+        found_route: FoundRoute | None = self.router.lookup_route(request.path)
+        if found_route is None:
             raise NotFound()
 
-        response = await execute_view(route.view)
+        # Extend instead of replacing?
+        request.parameters = found_route.path_parameters
+        response = await execute_view(found_route.route.view)
         return wrap_response(response)
 
     async def process_request(self, request: Request) -> Response:
