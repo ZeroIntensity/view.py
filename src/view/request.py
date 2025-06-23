@@ -10,7 +10,6 @@ from view.router import normalize_route
 
 if TYPE_CHECKING:
     from view.app import BaseApp
-    from view.router import Route
 
 __all__ = "Method", "Request"
 

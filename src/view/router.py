@@ -68,8 +68,8 @@ class PathNode:
 
     def next(self, part: str) -> PathNode:
         """
-        Get the next node for the given path part, creating
-        it if it doesn't exist.
+        Get the next node for the given path part, creating it if it doesn't
+        exist.
         """
         node = self.children.get(part)
         if node is not None:
