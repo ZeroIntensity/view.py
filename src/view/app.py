@@ -110,6 +110,8 @@ class BaseApp(ABC):
         server's API with the app's `asgi` or `wsgi` method.
         """
 
+        # production=True, __debug__ should be False.
+        # production=False, __debug__ should be True.
         if production is __debug__:
             warnings.warn(
                 f"The app was run with {production=}, but Python's {__debug__=}",
@@ -199,7 +201,7 @@ class App(BaseApp):
             except HTTPError as error:
                 error_view = self.router.lookup_error(type(error))
                 if error_view is not None:
-                    return await execute_view(error_view)
+                    return wrap_response(await execute_view(error_view))
 
                 return error.as_response()
 

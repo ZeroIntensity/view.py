@@ -29,6 +29,8 @@ class BodyMixin:
 
         buffer = BytesIO()
         async for data in self.receive_data():
+            if __debug__ and not isinstance(data, bytes):
+                raise TypeError(f"expected bytes, got {data!r}")
             buffer.write(data)
 
         return buffer.getvalue()
@@ -44,4 +46,6 @@ class BodyMixin:
         self.consumed = True
 
         async for data in self.receive_data():
+            if __debug__ and not isinstance(data, bytes):
+                raise TypeError(f"expected bytes, got {data!r}")
             yield data
