@@ -1,8 +1,9 @@
 import pytest
 
-from view.app import Request, as_app
+from view.app import as_app
 from view.response import ResponseLike
 from view.testing import AppTestClient, into_tuple
+from view.request import Request
 
 
 @pytest.mark.asyncio

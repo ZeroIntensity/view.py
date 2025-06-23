@@ -10,7 +10,7 @@ from loguru import logger
 from multidict import CIMultiDict
 
 from view.body import BodyMixin
-from view.request import RequestHeaders
+from view.request import HeadersLike, RequestHeaders, as_multidict
 
 __all__ = "Response", "ResponseLike"
 
@@ -32,36 +32,7 @@ class Response(BodyMixin):
         return (await self.body(), self.status_code, self.headers)
 
 
-HeadersLike = RequestHeaders | dict[str, str] | dict[bytes, bytes]
 StrPath: TypeAlias = str | PathLike[str]
-
-
-def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
-    """
-    Convenience function for casting a "header-like object" (or `None`)
-    to a `CIMultiDict`.
-    """
-    if headers is None:
-        return CIMultiDict()
-
-    if isinstance(headers, CIMultiDict):
-        return headers
-
-    if not isinstance(headers, dict):
-        raise TypeError(f"Invalid headers: {headers}")
-
-    assert isinstance(headers, dict)
-    multidict = CIMultiDict()
-    for key, value in headers.items():
-        if isinstance(key, bytes):
-            key = key.decode("utf-8")
-
-        if isinstance(value, bytes):
-            value = value.decode("utf-8")
-
-        multidict[key] = value
-
-    return multidict
 
 
 @dataclass(slots=True)

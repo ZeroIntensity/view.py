@@ -12,6 +12,35 @@ if TYPE_CHECKING:
 __all__ = "Method", "Request"
 
 RequestHeaders: TypeAlias = CIMultiDict[str]
+HeadersLike = RequestHeaders | dict[str, str] | dict[bytes, bytes]
+
+
+def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
+    """
+    Convenience function for casting a "header-like object" (or `None`)
+    to a `CIMultiDict`.
+    """
+    if headers is None:
+        return CIMultiDict()
+
+    if isinstance(headers, CIMultiDict):
+        return headers
+
+    if not isinstance(headers, dict):
+        raise TypeError(f"Invalid headers: {headers}")
+
+    assert isinstance(headers, dict)
+    multidict = CIMultiDict()
+    for key, value in headers.items():
+        if isinstance(key, bytes):
+            key = key.decode("utf-8")
+
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+
+        multidict[key] = value
+
+    return multidict
 
 
 class _UpperStrEnum(StrEnum):

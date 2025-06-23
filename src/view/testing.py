@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 
 from multidict import CIMultiDict
 
-from view.request import Method, Request
+from view.request import HeadersLike, Method, Request, as_multidict
 
 if TYPE_CHECKING:
     from view.app import BaseApp
@@ -41,7 +41,7 @@ class AppTestClient:
         route: str,
         *,
         method: Method,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         async def stream() -> AsyncGenerator[bytes]:
@@ -52,7 +52,7 @@ class AppTestClient:
             app=self.app,
             path=route,
             method=method,
-            headers=CIMultiDict(headers or {}),
+            headers=as_multidict(headers),
         )
         return await self.app.process_request(request_data)
 
@@ -60,7 +60,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(route, method=Method.GET, headers=headers, body=body)
@@ -69,7 +69,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(route, method=Method.POST, headers=headers, body=body)
@@ -78,7 +78,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(route, method=Method.PUT, headers=headers, body=body)
@@ -87,7 +87,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(
@@ -98,7 +98,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(
@@ -109,7 +109,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(
@@ -120,7 +120,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(
@@ -131,7 +131,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(
@@ -142,7 +142,7 @@ class AppTestClient:
         self,
         route: str,
         *,
-        headers: dict[str, str] | None = None,
+        headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
         return await self.request(route, method=Method.HEAD, headers=headers, body=body)
