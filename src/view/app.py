@@ -15,6 +15,7 @@ from view.status_codes import HTTPError, InternalServerError, NotFound
 
 if TYPE_CHECKING:
     from view.asgi import ASGIProtocol
+    from view.wsgi import WSGIProtocol
     from view.request import Method, Request
 
 __all__ = "BaseApp", "as_app", "App"
@@ -67,7 +68,10 @@ class BaseApp(ABC):
         Get the response from the server for a given request.
         """
 
-    def wsgi(self): ...
+    def wsgi(self) -> WSGIProtocol:
+        from view.wsgi import wsgi_for_app
+
+        return wsgi_for_app(self)
 
     def asgi(self) -> ASGIProtocol:
         from view.asgi import asgi_for_app

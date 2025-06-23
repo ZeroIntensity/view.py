@@ -9,6 +9,7 @@ from view import response as response
 from view import router as router
 from view import status_codes as status_codes
 from view import testing as testing
+from view import wsgi as wsgi
 from view.__about__ import *
 from view.app import *
 from view.request import *
