@@ -61,20 +61,8 @@ class Router:
         """
         return self.route_views.get(path)
 
-    def lookup_error(self, error: type[HTTPError], /) -> RouteView:
+    def lookup_error(self, error: type[HTTPError], /) -> RouteView | None:
         """
         Look up the error view for the given HTTP error.
-
-        If no custom handler is set, this returns a default error view.
         """
-        return self.error_views.get(error) or self.default_error(error)
-
-    def default_error(self, error: type[HTTPError]) -> RouteView:
-        """
-        Get the default error view for a given HTTP error.
-        """
-
-        def inner():
-            return f"{error.status_code} {error.description}"
-
-        return inner
+        return self.error_views.get(error)

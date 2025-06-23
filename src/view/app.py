@@ -4,8 +4,8 @@ import contextlib
 import contextvars
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from typing import (TYPE_CHECKING, Callable, Iterator, Literal, TypeAlias,
-                    TypeVar, overload)
+from typing import (TYPE_CHECKING, Callable, Iterator, Literal, ParamSpec,
+                    TypeAlias, TypeVar, Union, overload)
 
 from loguru import logger
 
@@ -81,7 +81,30 @@ class BaseApp(ABC):
     def run(self): ...
 
 
-SingleView = Callable[["Request"], "ResponseLike"]
+P = ParamSpec("P")
+
+
+async def execute_view(
+    view: Callable[P, ResponseLike | Awaitable[ResponseLike]],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> ResponseLike:
+    logger.debug(f"Executing view: {view}")
+    try:
+        result = view(*args, **kwargs)
+        if isinstance(result, Awaitable):
+            result = await result
+
+        return result
+    except HTTPError as error:
+        logger.info(f"HTTP Error {error.status_code}")
+        raise
+    except BaseException as exception:
+        logger.exception(exception)
+        raise InternalServerError() from exception
+
+
+SingleView = Callable[["Request"], Union["ResponseLike", Awaitable["ResponseLike"]]]
 
 
 class SingleViewApp(BaseApp):
@@ -96,7 +119,11 @@ class SingleViewApp(BaseApp):
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
-            return wrap_response(self.view(request))
+            try:
+                response = await execute_view(self.view, request)
+                return wrap_response(response)
+            except HTTPError as error:
+                return error.as_response()
 
 
 def as_app(view: SingleView, /) -> SingleViewApp:
@@ -116,37 +143,25 @@ class App(BaseApp):
         super().__init__()
         self.router = router or Router()
 
-    async def _execute_view(self, view: RouteView) -> ResponseLike:
-        logger.debug(f"Executing view: {view}")
-        try:
-            result = view()
-            if isinstance(result, Awaitable):
-                result = await result
-
-            return result
-        except HTTPError as error:
-            logger.info(f"HTTP Error {error.status_code}")
-            http_error = type(error)
-            view = self.router.lookup_error(http_error)
-            return await self._execute_view(view)
-        except BaseException as exception:
-            logger.exception(exception)
-            view = self.router.lookup_error(InternalServerError)
-            return await self._execute_view(view)
-
-    async def process_request(self, request: Request) -> Response:
+    async def _process_request_internal(self, request: Request) -> Response:
         logger.info(f"{request.method} {request.path}")
         route: Route | None = self.router.lookup_route(request.path)
-        view: RouteView
         if route is None:
-            view = self.router.lookup_error(NotFound)
-        else:
-            view = route.view
+            raise NotFound()
 
-        with self.request_context(request):
-            response = await self._execute_view(view)
-
+        response = await execute_view(route.view)
         return wrap_response(response)
+
+    async def process_request(self, request: Request) -> Response:
+        with self.request_context(request):
+            try:
+                return await self._process_request_internal(request)
+            except HTTPError as error:
+                error_view = self.router.lookup_error(type(error))
+                if error_view is not None:
+                    return await execute_view(error_view)
+
+                return error.as_response()
 
     def route(self, path: str, /, *, method: Method) -> RouteDecorator:
         """

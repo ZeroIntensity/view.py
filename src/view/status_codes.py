@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from view.response import BytesResponse
+
 STATUS_EXCEPTIONS: dict[int, type[HTTPError]] = {}
 STATUS_STRINGS: dict[int, str] = {
     100: "Continue",
@@ -81,9 +83,20 @@ class HTTPError(Exception):
     status_code: ClassVar[int] = 0
     description: ClassVar[str] = ""
 
-    def __init_subclass__(cls) -> None:
-        STATUS_EXCEPTIONS[cls.status_code] = cls
-        cls.description = STATUS_STRINGS[cls.status_code]
+    def __init_subclass__(cls, ignore: bool = False) -> None:
+        if not ignore:
+            assert cls.status_code != 0, cls
+            STATUS_EXCEPTIONS[cls.status_code] = cls
+            cls.description = STATUS_STRINGS[cls.status_code]
+
+    @classmethod
+    def as_response(cls) -> BytesResponse:
+        if cls.status_code == 0:
+            raise TypeError(f"{cls} is not a real response")
+        message = f"{cls.status_code} {cls.description}"
+        return BytesResponse.from_bytes(
+            message.encode("utf-8"), status_code=cls.status_code
+        )
 
 
 def status_exception(status: int) -> type[HTTPError]:
@@ -98,13 +111,13 @@ def status_exception(status: int) -> type[HTTPError]:
     return status_type
 
 
-class ClientSideError(HTTPError):
+class ClientSideError(HTTPError, ignore=True):
     """
     Base class for all HTTP errors between 400 and 500.
     """
 
 
-class ServerSideError(HTTPError):
+class ServerSideError(HTTPError, ignore=True):
     """
     Base class for all HTTP errors between 500 and 600.
     """
