@@ -75,6 +75,6 @@ class Router:
         """
 
         def inner():
-            return f"Error {error.status_code}"
+            return f"{error.status_code} {error.description}"
 
         return inner

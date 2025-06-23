@@ -79,9 +79,11 @@ class HTTPError(Exception):
     """
 
     status_code: ClassVar[int] = 0
+    description: ClassVar[str] = ""
 
     def __init_subclass__(cls) -> None:
         STATUS_EXCEPTIONS[cls.status_code] = cls
+        cls.description = STATUS_STRINGS[cls.status_code]
 
 
 def status_exception(status: int) -> type[HTTPError]:
