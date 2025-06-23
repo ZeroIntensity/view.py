@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 
 from multidict import CIMultiDict
 
-from view.request import HeadersLike, Method, Request, as_multidict
+from view.headers import HeadersLike, as_multidict
+from view.request import Method, Request
 
 if TYPE_CHECKING:
     from view.app import BaseApp

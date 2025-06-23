@@ -10,7 +10,7 @@ from loguru import logger
 from multidict import CIMultiDict
 
 from view.body import BodyMixin
-from view.request import HeadersLike, RequestHeaders, as_multidict
+from view.headers import HeadersLike, RequestHeaders, as_multidict
 
 __all__ = "Response", "ResponseLike"
 

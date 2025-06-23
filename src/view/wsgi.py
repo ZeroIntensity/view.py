@@ -3,8 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import IO, TYPE_CHECKING, Callable, Iterable, TypeAlias
 
-from multidict import CIMultiDict
-
+from view.headers import wsgi_as_multidict
 from view.request import Method, Request
 from view.status_codes import STATUS_STRINGS
 
@@ -35,15 +34,6 @@ def wsgi_for_app(
         environ: WSGIEnvironment, start_response: WSGIStartResponse
     ) -> Iterable[bytes]:
         method = Method(environ["REQUEST_METHOD"])
-        headers = CIMultiDict()
-
-        for key, value in environ.items():
-            if not key.startswith("HTTP_"):
-                continue
-
-            assert isinstance(value, str)
-            key = key.lstrip("HTTP_")
-            headers[key.replace("_", "-").lower()] = value
 
         async def stream():
             request_body: str | IO[bytes] = environ["wsgi.input"]
@@ -57,6 +47,7 @@ def wsgi_for_app(
 
         path = environ["PATH_INFO"]
         assert isinstance(path, str)
+        headers = wsgi_as_multidict(environ)
         request = Request(stream, app, path, method, headers)
         response = loop.run_until_complete(app.process_request(request))
 
