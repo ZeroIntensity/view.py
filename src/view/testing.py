@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator
+from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 
 from multidict import CIMultiDict
 
@@ -11,6 +11,18 @@ if TYPE_CHECKING:
     from view.response import Response
 
 __all__ = ("AppTestClient",)
+
+
+async def into_tuple(
+    response_coro: Awaitable[Response], /
+) -> tuple[bytes, int, CIMultiDict]:
+    """
+    Convenience function for transferring a test client call into a tuple
+    through a single ``await``.
+    """
+    response = await response_coro
+    body = await response.body()
+    return (body, response.status_code, response.headers)
 
 
 class AppTestClient:
@@ -30,12 +42,13 @@ class AppTestClient:
         *,
         method: Method,
         headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        async def stream_none() -> AsyncGenerator[bytes]:
-            yield b""
+        async def stream() -> AsyncGenerator[bytes]:
+            yield body or b""
 
         request_data = Request(
-            receive_data=stream_none,
+            receive_data=stream,
             app=self.app,
             path=route,
             method=method,
@@ -44,46 +57,92 @@ class AppTestClient:
         return await self.app.process_request(request_data)
 
     async def get(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.GET, headers=headers)
+        return await self.request(route, method=Method.GET, headers=headers, body=body)
 
     async def post(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.POST, headers=headers)
+        return await self.request(route, method=Method.POST, headers=headers, body=body)
 
     async def put(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.PUT, headers=headers)
+        return await self.request(route, method=Method.PUT, headers=headers, body=body)
 
     async def patch(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.PATCH, headers=headers)
+        return await self.request(
+            route, method=Method.PATCH, headers=headers, body=body
+        )
 
     async def delete(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.DELETE, headers=headers)
+        return await self.request(
+            route, method=Method.DELETE, headers=headers, body=body
+        )
 
     async def connect(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.CONNECT, headers=headers)
+        return await self.request(
+            route, method=Method.CONNECT, headers=headers, body=body
+        )
 
     async def options(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.OPTIONS, headers=headers)
+        return await self.request(
+            route, method=Method.OPTIONS, headers=headers, body=body
+        )
 
     async def trace(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.TRACE, headers=headers)
+        return await self.request(
+            route, method=Method.TRACE, headers=headers, body=body
+        )
 
     async def head(
-        self, route: str, *, headers: dict[str, str] | None = None
+        self,
+        route: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.HEAD, headers=headers)
+        return await self.request(route, method=Method.HEAD, headers=headers, body=body)

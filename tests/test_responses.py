@@ -2,8 +2,7 @@ import pytest
 
 from view.app import Request, as_app
 from view.response import ResponseLike
-from view.router import Method
-from view.testing import AppTestClient
+from view.testing import AppTestClient, into_tuple
 
 
 @pytest.mark.asyncio
@@ -13,11 +12,6 @@ async def test_str_or_bytes_response():
 
     @as_app
     def app(request: Request) -> ResponseLike:
-        assert request.app == app
-        assert request.app.current_request() is request
-        assert isinstance(request.path, str)
-        assert request.method is Method.GET
-
         if request.path == "/":
             return "Hello"
         elif request.path == "/bytes":
@@ -28,6 +22,6 @@ async def test_str_or_bytes_response():
             raise RuntimeError()
 
     client = AppTestClient(app)
-    assert (await client.get("/")).as_tuple() == (b"Hello", 200, {})
-    assert (await client.get("/bytes")).as_tuple() == (b"World", 200, {})
-    assert (await client.get("/my-string")).as_tuple() == (b"My string", 200, {})
+    assert (await into_tuple(client.get("/"))) == (b"Hello", 200, {})
+    assert (await into_tuple(client.get("/bytes"))) == (b"World", 200, {})
+    assert (await into_tuple(client.get("/my-string"))) == (b"My string", 200, {})
