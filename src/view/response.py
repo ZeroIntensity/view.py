@@ -7,8 +7,9 @@ from typing import AnyStr, AsyncGenerator, TypeAlias
 import aiofiles
 from loguru import logger
 from multidict import CIMultiDict
-
+import mimetypes
 from view.body import BodyMixin
+from view.request import RequestHeaders
 
 __all__ = "Response", "ResponseLike"
 
@@ -20,9 +21,9 @@ class Response(BodyMixin):
     """
 
     status_code: int
-    headers: CIMultiDict
+    headers: CIMultiDict[str]
 
-    async def as_tuple(self) -> tuple[bytes, int, CIMultiDict]:
+    async def as_tuple(self) -> tuple[bytes, int, RequestHeaders]:
         """
         Process the response as a tuple. This is mainly useful
         for assertions in testing.
@@ -30,11 +31,15 @@ class Response(BodyMixin):
         return (await self.body(), self.status_code, self.headers)
 
 
-HeadersLike = CIMultiDict | dict[str, str] | dict[bytes, bytes]
-StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
+HeadersLike = RequestHeaders | dict[str, str] | dict[bytes, bytes]
+StrPath: TypeAlias = str | PathLike[str]
 
 
-def as_multidict(headers: HeadersLike | None, /) -> CIMultiDict:
+def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
+    """
+    Convenience function for casting a "header-like object" (or `None`)
+    to a `CIMultiDict`.
+    """
     if headers is None:
         return CIMultiDict()
 
@@ -60,27 +65,39 @@ def as_multidict(headers: HeadersLike | None, /) -> CIMultiDict:
 
 @dataclass(slots=True)
 class FileResponse(Response):
-    path: StrOrBytesPath
+    """
+    Response containing a file, streamed asynchronously.
+    """
+    path: StrPath
 
     @classmethod
     def from_file(
         cls,
-        path: StrOrBytesPath,
+        path: StrPath,
         /,
         *,
         status_code: int = 200,
         headers: HeadersLike | None = None,
-        increment: int = 512,
+        chunk_size: int = 512,
+        content_type: str | None = None,
     ) -> FileResponse:
+        """
+        Generate a `FileResponse` from a file path.
+        """
         async def stream():
             async with aiofiles.open(path, "rb") as file:
-                length = increment
-                while length == increment:
-                    data = await file.read(increment)
+                length = chunk_size
+                while length == chunk_size:
+                    data = await file.read(chunk_size)
                     length = len(data)
                     yield data
 
-        return cls(stream, status_code, as_multidict(headers), path)
+        multidict = as_multidict(headers)
+        if "content-type" not in multidict:
+            content_type = content_type or mimetypes.guess_file_type(path)[0] or "text/plain"
+            multidict["content-type"] = content_type
+
+        return cls(stream, status_code, multidict, path)
 
 
 @dataclass(slots=True)
@@ -91,7 +108,10 @@ class BytesResponse(Response):
 
     content: bytes
 
-    def as_tuple_sync(self) -> tuple[bytes, int, CIMultiDict]:
+    def as_tuple_sync(self) -> tuple[bytes, int, RequestHeaders]:
+        """
+        Synchronous variation of `as_tuple`, using the cached content.
+        """
         return (self.content, self.status_code, self.headers)
 
     @classmethod
@@ -103,6 +123,9 @@ class BytesResponse(Response):
         status_code: int = 200,
         headers: HeadersLike | None = None,
     ) -> BytesResponse:
+        """
+        Generate a `BytesResponse` from a `bytes` object.
+        """
         async def stream() -> AsyncGenerator[bytes]:
             yield content
 

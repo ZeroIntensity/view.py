@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import StrEnum, auto
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
 
 from multidict import CIMultiDict
 
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 __all__ = "Method", "Request"
 
+RequestHeaders: TypeAlias = CIMultiDict[str]
 
 class _UpperStrEnum(StrEnum):
     @staticmethod
@@ -45,4 +46,4 @@ class Request(BodyMixin):
     app: "BaseApp"
     path: str
     method: Method
-    headers: CIMultiDict
+    headers: RequestHeaders

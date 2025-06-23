@@ -6,7 +6,7 @@ from typing import (Any, AsyncIterator, Awaitable, Callable, Iterable, Literal,
 from multidict import CIMultiDict
 
 from view.app import BaseApp
-from view.request import Method, Request
+from view.request import Method, Request, RequestHeaders
 
 __all__ = ("asgi_for_app",)
 
@@ -63,7 +63,7 @@ ASGIProtocol: TypeAlias = Callable[
 ]
 
 
-def headers_as_multidict(headers: ASGIHeaders, /) -> CIMultiDict:
+def headers_as_multidict(headers: ASGIHeaders, /) -> RequestHeaders:
     """
     Convert ASGI headers to a case-insensitive multidict.
     """
@@ -75,7 +75,7 @@ def headers_as_multidict(headers: ASGIHeaders, /) -> CIMultiDict:
     return multidict
 
 
-def multidict_as_headers(headers: CIMultiDict, /) -> ASGIHeaders:
+def multidict_as_headers(headers: RequestHeaders, /) -> ASGIHeaders:
     """
     Convert a case-insensitive multidict to an ASGI header iterable.
     """

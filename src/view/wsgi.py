@@ -20,8 +20,12 @@ WSGIProtocol: TypeAlias = Callable[
 
 
 def wsgi_for_app(
-    app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None
+    app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None, chunk_size: int = 512
 ) -> WSGIProtocol:
+    """
+    Generate a WSGI-compliant callable for a given app, allowing
+    it to be executed in an ASGI server.
+    """
     loop = loop or asyncio.new_event_loop()
 
     def wsgi(
@@ -41,10 +45,10 @@ def wsgi_for_app(
         async def stream():
             request_body: str | IO[bytes] = environ["wsgi.input"]
             assert isinstance(request_body, IO)
-            length = 512
+            length = chunk_size
 
-            while length == 512:
-                data = await asyncio.to_thread(request_body.read, 512)
+            while length == chunk_size:
+                data = await asyncio.to_thread(request_body.read, chunk_size)
                 length = len(data)
                 yield data
 
