@@ -24,7 +24,6 @@ dependencies = ["multidict~=6.5", "loguru~=0.7", "aiofiles~=24.1"]
 dynamic = ["version", "license"]
 
 [project.optional-dependencies]
-full = []
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"

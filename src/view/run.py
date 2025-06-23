@@ -16,6 +16,10 @@ StartServer: TypeAlias = Callable[[], None]
 
 @dataclass(slots=True, frozen=True)
 class ServerSettings:
+    """
+    Dataclass representing server settings that can be used to start
+    serving an app.
+    """
     app: "BaseApp"
     port: int
     host: str
@@ -82,6 +86,12 @@ class ServerSettings:
             server.serve_forever()
 
     def run_app_on_any_server(self) -> None:
+        """
+        Run the app on the nearest available ASGI or WSGI server.
+
+        This will always succeed, as it will fall back to the standard
+        `wsgiref` module if no other server is installed.
+        """
         servers: dict[str, StartServer] = {
             "uvicorn": self.run_uvicorn,
             "hypercorn": self.run_hypercorn,
