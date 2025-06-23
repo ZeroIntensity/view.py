@@ -4,6 +4,7 @@ import mimetypes
 from dataclasses import dataclass
 from os import PathLike
 from typing import AnyStr, AsyncGenerator, TypeAlias
+from collections.abc import AsyncIterator
 
 import aiofiles
 from loguru import logger
@@ -32,6 +33,8 @@ class Response(BodyMixin):
         return (await self.body(), self.status_code, self.headers)
 
 
+
+ResponseLike: TypeAlias = Response | AnyStr | AsyncIterator[AnyStr]
 StrPath: TypeAlias = str | PathLike[str]
 
 
@@ -109,9 +112,6 @@ class BytesResponse(Response):
         return cls(stream, status_code, as_multidict(headers), content)
 
 
-ResponseLike: TypeAlias = Response | AnyStr
-
-
 def wrap_response(response: ResponseLike) -> Response:
     """
     Wrap a response from a view into a `Response` object.
@@ -125,6 +125,16 @@ def wrap_response(response: ResponseLike) -> Response:
         content = response.encode()
     elif isinstance(response, bytes):
         content = response
+    elif isinstance(response, AsyncIterator):
+        async def stream() -> AsyncIterator[bytes]:
+            async for data in response:
+                if isinstance(data, str):
+                    yield data.encode("utf-8")
+                else:
+                    assert isinstance(data, bytes)
+                    yield data
+
+        return Response(stream, status_code=200, headers=CIMultiDict())
     else:
         raise TypeError(f"Invalid response: {response!r}")
 
