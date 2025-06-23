@@ -1,47 +1,7 @@
 # Python
 __pycache__/
 .venv/
-38venv/
-39venv/
-311venv/
 
 # LSP
 .vscode/
 compile_flags.txt
-pyawaitable.h
-
-# View Configurations
-view.toml
-view.json
-view_config.py
-
-# Testing Files
-*.test
-test.py
-a.py
-.coverage
-.pytest-cache/
-.ruff-cache/
-.cache/
-
-# Logs
-*.log
-vgcore.*
-valgrind.txt*
-
-# JavaScript
-node_modules/
-*.lock
-benchmark.py
-package-lock.json
-client.js
-.next/
-
-# Builds
-site/
-dist/
-build/
-*.egg-info/
-html/dist.css
-*.so
-a.md
