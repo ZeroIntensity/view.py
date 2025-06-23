@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum, auto
 from typing import TYPE_CHECKING
 
 from view.body import BodyMixin
 from view.headers import RequestHeaders
+from view.router import normalize_route
 
 if TYPE_CHECKING:
     from view.app import BaseApp
@@ -45,3 +46,7 @@ class Request(BodyMixin):
     path: str
     method: Method
     headers: RequestHeaders
+    parameters: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.path = normalize_route(self.path)

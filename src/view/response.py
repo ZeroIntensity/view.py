@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import mimetypes
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from os import PathLike
 from typing import AnyStr, AsyncGenerator, TypeAlias
-from collections.abc import AsyncIterator
 
 import aiofiles
 from loguru import logger
@@ -31,7 +31,6 @@ class Response(BodyMixin):
         for assertions in testing.
         """
         return (await self.body(), self.status_code, self.headers)
-
 
 
 ResponseLike: TypeAlias = Response | AnyStr | AsyncIterator[AnyStr]
@@ -126,6 +125,7 @@ def wrap_response(response: ResponseLike) -> Response:
     elif isinstance(response, bytes):
         content = response
     elif isinstance(response, AsyncIterator):
+
         async def stream() -> AsyncIterator[bytes]:
             async for data in response:
                 if isinstance(data, str):

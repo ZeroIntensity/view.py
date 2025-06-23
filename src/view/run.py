@@ -20,6 +20,7 @@ class ServerSettings:
     Dataclass representing server settings that can be used to start
     serving an app.
     """
+
     app: "BaseApp"
     port: int
     host: str

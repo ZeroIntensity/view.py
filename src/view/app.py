@@ -10,6 +10,7 @@ from typing import (TYPE_CHECKING, Callable, Iterator, Literal, ParamSpec,
 
 from loguru import logger
 
+from view.request import Method, Request
 from view.response import Response, ResponseLike, wrap_response
 from view.router import Route, Router, RouteView
 from view.run import ServerSettings
@@ -17,7 +18,6 @@ from view.status_codes import HTTPError, InternalServerError, NotFound
 
 if TYPE_CHECKING:
     from view.asgi import ASGIProtocol
-    from view.request import Method, Request
     from view.wsgi import WSGIProtocol
 
 __all__ = "BaseApp", "as_app", "App"
@@ -30,7 +30,7 @@ class BaseApp(ABC):
     """Base view.py application."""
 
     def __init__(self):
-        self._request = contextvars.ContextVar["Request"](
+        self._request = contextvars.ContextVar[Request](
             "The current request being handled."
         )
         self._production: bool | None = None
