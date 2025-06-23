@@ -20,7 +20,10 @@ WSGIProtocol: TypeAlias = Callable[
 
 
 def wsgi_for_app(
-    app: BaseApp, /, loop: asyncio.AbstractEventLoop | None = None, chunk_size: int = 512
+    app: BaseApp,
+    /,
+    loop: asyncio.AbstractEventLoop | None = None,
+    chunk_size: int = 512,
 ) -> WSGIProtocol:
     """
     Generate a WSGI-compliant callable for a given app, allowing

@@ -14,6 +14,7 @@ class BodyMixin:
     """
     Mixin dataclass for common HTTP body operations.
     """
+
     receive_data: BodyStream
     consumed: bool = field(init=False, default=False)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import mimetypes
 from dataclasses import dataclass
 from os import PathLike
 from typing import AnyStr, AsyncGenerator, TypeAlias
@@ -7,7 +8,7 @@ from typing import AnyStr, AsyncGenerator, TypeAlias
 import aiofiles
 from loguru import logger
 from multidict import CIMultiDict
-import mimetypes
+
 from view.body import BodyMixin
 from view.request import RequestHeaders
 
@@ -68,6 +69,7 @@ class FileResponse(Response):
     """
     Response containing a file, streamed asynchronously.
     """
+
     path: StrPath
 
     @classmethod
@@ -84,6 +86,7 @@ class FileResponse(Response):
         """
         Generate a `FileResponse` from a file path.
         """
+
         async def stream():
             async with aiofiles.open(path, "rb") as file:
                 length = chunk_size
@@ -94,7 +97,9 @@ class FileResponse(Response):
 
         multidict = as_multidict(headers)
         if "content-type" not in multidict:
-            content_type = content_type or mimetypes.guess_file_type(path)[0] or "text/plain"
+            content_type = (
+                content_type or mimetypes.guess_file_type(path)[0] or "text/plain"
+            )
             multidict["content-type"] = content_type
 
         return cls(stream, status_code, multidict, path)
@@ -126,6 +131,7 @@ class BytesResponse(Response):
         """
         Generate a `BytesResponse` from a `bytes` object.
         """
+
         async def stream() -> AsyncGenerator[bytes]:
             yield content
 

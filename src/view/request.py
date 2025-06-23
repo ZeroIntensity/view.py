@@ -13,6 +13,7 @@ __all__ = "Method", "Request"
 
 RequestHeaders: TypeAlias = CIMultiDict[str]
 
+
 class _UpperStrEnum(StrEnum):
     @staticmethod
     def _generate_next_value_(
