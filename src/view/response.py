@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import mimetypes
 import warnings
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, Generator
 from dataclasses import dataclass
 from os import PathLike
-from typing import AnyStr, AsyncGenerator, Generic, TypeAlias
+from typing import AnyStr, Generic, TypeAlias
 
 import aiofiles
 from loguru import logger
@@ -48,7 +48,7 @@ class Response(BodyMixin):
 StrOrBytes: TypeAlias = str | bytes
 ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
 ResponseLike: TypeAlias = (
-    Response | StrOrBytes | AsyncIterator[StrOrBytes] | ResponseTuple
+    Response | StrOrBytes | AsyncGenerator[StrOrBytes] | Generator[StrOrBytes] | ResponseTuple
 )
 StrPath: TypeAlias = str | PathLike[str]
 
@@ -174,10 +174,16 @@ def wrap_response(response: ResponseLike, /) -> Response:
         return StrOrBytesResponse.from_content(response)
     elif isinstance(response, tuple):
         return _wrap_response_tuple(response)
-    elif isinstance(response, AsyncIterator):
+    elif isinstance(response, AsyncGenerator):
 
-        async def stream() -> AsyncIterator[bytes]:
+        async def stream() -> AsyncGenerator[bytes]:
             async for data in response:
+                yield as_bytes(data)
+
+        return Response(stream, status_code=200, headers=CIMultiDict())
+    elif isinstance(response, Generator):
+        async def stream() -> AsyncGenerator[bytes]:
+            for data in response:
                 yield as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())

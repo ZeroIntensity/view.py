@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 
 from view.app import as_app
@@ -75,3 +76,32 @@ async def test_tuple_response():
         200,
         {"1": "2"},
     )
+
+@pytest.mark.asyncio
+async def test_stream_response_async():
+    @as_app
+    async def app(request: Request) -> ResponseLike:
+        yield b"This "
+        await asyncio.sleep(0)
+        yield "Is "
+        await asyncio.sleep(0)
+        yield b"A "
+        await asyncio.sleep(0)
+        yield "Test"
+        await asyncio.sleep(0)
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"This Is A Test", 200, {})
+
+
+@pytest.mark.asyncio
+async def test_stream_response_sync():
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        yield b"This "
+        yield "Is "
+        yield b"A "
+        yield "Test"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"This Is A Test", 200, {})
