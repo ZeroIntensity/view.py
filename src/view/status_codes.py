@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from enum import Enum
+from enum import IntEnum
 from typing import ClassVar
 
 from view.response import StrOrBytesResponse
@@ -74,7 +74,7 @@ STATUS_STRINGS: dict[int, str] = {
 }
 
 
-class Success(Enum):
+class Success(IntEnum):
     OK = 200
     """
     The request succeeded. The result and meaning of "success" depends on

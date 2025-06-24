@@ -136,9 +136,6 @@ async def execute_view(
     except HTTPError as error:
         logger.info(f"HTTP Error {error.status_code}")
         raise
-    except BaseException as exception:
-        logger.exception(exception)
-        raise InternalServerError() from exception
 
 
 SingleView = Callable[["Request"], Union["ResponseLike", Awaitable["ResponseLike"]]]
@@ -188,10 +185,14 @@ class App(BaseApp):
         if found_route is None:
             raise NotFound()
 
-        # Extend instead of replacing?
-        request.parameters = found_route.path_parameters
-        response = await execute_view(found_route.route.view)
-        return wrap_response(response)
+        try:
+            # Extend instead of replacing?
+            request.parameters = found_route.path_parameters
+            response = await execute_view(found_route.route.view)
+            return wrap_response(response)
+        except BaseException as exception:
+            logger.exception(exception)
+            raise InternalServerError() from exception
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):

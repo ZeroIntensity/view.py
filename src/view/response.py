@@ -26,6 +26,16 @@ class Response(BodyMixin):
     status_code: int
     headers: CIMultiDict[str]
 
+    def __post_init__(self) -> None:
+        if __debug__:
+            # Avoid circular import issues
+            from view.status_codes import STATUS_STRINGS
+
+            if self.status_code not in STATUS_STRINGS:
+                raise ValueError(
+                    f"{self.status_code!r} is not a valid HTTP status code"
+                )
+
     async def as_tuple(self) -> tuple[bytes, int, RequestHeaders]:
         """
         Process the response as a tuple. This is mainly useful

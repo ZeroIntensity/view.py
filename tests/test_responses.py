@@ -2,9 +2,9 @@ import pytest
 
 from view.app import as_app
 from view.request import Request
-from view.response import ResponseLike
+from view.response import Response, ResponseLike
 from view.testing import AppTestClient, into_tuple
-
+from view.status_codes import Success
 
 @pytest.mark.asyncio
 async def test_str_or_bytes_response():
@@ -26,3 +26,12 @@ async def test_str_or_bytes_response():
     assert (await into_tuple(client.get("/"))) == (b"Hello", 200, {})
     assert (await into_tuple(client.get("/bytes"))) == (b"World", 200, {})
     assert (await into_tuple(client.get("/my-string"))) == (b"My string", 200, {})
+
+
+@pytest.mark.asyncio
+async def test_raw_response():
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        async def stream():
+            yield b"test"
+        return Response(receive_data=stream, status_code=Success.OK, headers={"hello": "world"})
