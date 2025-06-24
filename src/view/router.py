@@ -62,7 +62,8 @@ class PathNode:
             return next_node
         if __debug__ and name != self.path_parameter.name:
             raise ValueError(
-                f"path parameter {name} in the same place as {self.path_parameter.name} but with a different name",
+                f"Path parameter {name} in the same place as"
+                f" {self.path_parameter.name}, but with a different name",
             )
         return self.path_parameter
 
@@ -131,7 +132,7 @@ class Router:
                 parent_node = parent_node.next(part)
 
         if parent_node.routes.get(method) is not None:
-            raise RuntimeError(f"the route {path!r} was already used")
+            raise RuntimeError(f"The route {path!r} was already used")
 
         parent_node.routes[method] = route
 
@@ -145,7 +146,7 @@ class Router:
         elif issubclass(error, HTTPError):
             error_type = error
         else:
-            raise TypeError(f"expected a status code or type, but got {error!r}")
+            raise TypeError(f"Expected a status code or type, but got {error!r}")
 
         self.error_views[error_type] = view
 

@@ -23,14 +23,14 @@ class BodyMixin:
         Read the full body from the stream.
         """
         if self.consumed:
-            raise RuntimeError("body has already been consumed")
+            raise RuntimeError("Body has already been consumed")
 
         self.consumed = True
 
         buffer = BytesIO()
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise TypeError(f"expected bytes, got {data!r}")
+                raise TypeError(f"Expected bytes, got {data!r}")
             buffer.write(data)
 
         return buffer.getvalue()
@@ -41,11 +41,11 @@ class BodyMixin:
         in-memory at a given time.
         """
         if self.consumed:
-            raise RuntimeError("body has already been consumed")
+            raise RuntimeError("Body has already been consumed")
 
         self.consumed = True
 
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise TypeError(f"expected bytes, got {data!r}")
+                raise TypeError(f"Expected bytes, got {data!r}")
             yield data
