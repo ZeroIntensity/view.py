@@ -13,7 +13,7 @@ from view.testing import AppTestClient, into_tuple
 def ok(body: str | bytes) -> tuple[bytes, int, dict[str, str]]:
     if isinstance(body, str):
         body = body.encode("utf-8")
-    return (body, 200,{})
+    return (body, 200, {})
 
 
 @pytest.mark.asyncio
@@ -36,7 +36,10 @@ async def test_request_data():
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == ok("Hello")
-    assert (await into_tuple(client.get("/1", headers={"test-something": "42"}))) == ok("World")
+    assert (await into_tuple(client.get("/1", headers={"test-something": "42"}))) == ok(
+        "World"
+    )
+
 
 @pytest.mark.asyncio
 async def test_manual_request():

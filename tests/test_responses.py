@@ -1,10 +1,12 @@
 import pytest
 
 from view.app import as_app
+from view.headers import as_multidict
 from view.request import Request
 from view.response import Response, ResponseLike
+from view.status_codes import BadRequest, Success
 from view.testing import AppTestClient, into_tuple
-from view.status_codes import Success
+
 
 @pytest.mark.asyncio
 async def test_str_or_bytes_response():
@@ -20,7 +22,7 @@ async def test_str_or_bytes_response():
         elif request.path == "/my-string":
             return MyString("My string")
         else:
-            raise RuntimeError()
+            raise BadRequest()
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == (b"Hello", 200, {})
@@ -33,5 +35,43 @@ async def test_raw_response():
     @as_app
     def app(request: Request) -> ResponseLike:
         async def stream():
-            yield b"test"
-        return Response(receive_data=stream, status_code=Success.OK, headers={"hello": "world"})
+            yield b"Test"
+
+        return Response(
+            receive_data=stream,
+            status_code=Success.CREATED,
+            headers=as_multidict({"hello": "world"}),
+        )
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"Test", 201, {"hello": "world"})
+
+
+@pytest.mark.asyncio
+async def test_tuple_response():
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        if request.path == "/status":
+            return "Test", Success.CREATED
+        elif request.path == "/status-bytes":
+            return b"Bytes", Success.CREATED
+        elif request.path == "/headers":
+            return "Headers", Success.CREATED, {"hello": "world"}
+        elif request.path == "/headers-bytes":
+            return b"HBytes", Success.OK, {b"1": b"2"}
+        else:
+            raise BadRequest()
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/status"))) == (b"Test", 201, {})
+    assert (await into_tuple(client.get("/status-bytes"))) == (b"Bytes", 201, {})
+    assert (await into_tuple(client.get("/headers"))) == (
+        b"Headers",
+        201,
+        {"hello": "world"},
+    )
+    assert (await into_tuple(client.get("/headers-bytes"))) == (
+        b"HBytes",
+        200,
+        {"1": "2"},
+    )
