@@ -1,10 +1,12 @@
 import asyncio
+
+import aiofiles
 import pytest
 
 from view.app import as_app
 from view.headers import as_multidict
 from view.request import Request
-from view.response import Response, ResponseLike
+from view.response import FileResponse, Response, ResponseLike
 from view.status_codes import BadRequest, Success
 from view.testing import AppTestClient, into_tuple
 
@@ -77,6 +79,7 @@ async def test_tuple_response():
         {"1": "2"},
     )
 
+
 @pytest.mark.asyncio
 async def test_stream_response_async():
     @as_app
@@ -105,3 +108,22 @@ async def test_stream_response_sync():
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == (b"This Is A Test", 200, {})
+
+
+@pytest.mark.asyncio
+async def test_file_response():
+    async with aiofiles.tempfile.NamedTemporaryFile("w") as file:
+        await file.write("A" * 10000)
+
+        @as_app
+        def app(request: Request) -> ResponseLike:
+            return FileResponse.from_file(
+                str(file.name), status_code=Success.CREATED, headers={"hello": "world"}
+            )
+
+        client = AppTestClient(app)
+        assert (await into_tuple(client.get("/"))) == (
+            b"A" * 10000,
+            201,
+            {"hello": "world", "content-type": "text/plain"},
+        )
