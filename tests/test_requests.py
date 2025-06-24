@@ -234,3 +234,30 @@ async def test_request_method():
     assert (await into_tuple(client.options("/"))) == (b"options", 200, {})
     assert (await into_tuple(client.trace("/"))) == (b"trace", 200, {})
     assert (await into_tuple(client.head("/"))) == (b"head", 200, {})
+
+
+@pytest.mark.asyncio
+async def test_normalized_routes():
+    app = App()
+
+    @app.get("")
+    async def index():
+        return "1"
+
+    @app.get("hello/")
+    async def hello():
+        return "2"
+
+    @app.get("/test/")
+    async def test():
+        return "3"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"1", 200, {})
+    assert (await into_tuple(client.get(""))) == (b"1", 200, {})
+    assert (await into_tuple(client.get("/hello"))) == (b"2", 200, {})
+    assert (await into_tuple(client.get("/hello/"))) == (b"2", 200, {})
+    assert (await into_tuple(client.get("hello/"))) == (b"2", 200, {})
+    assert (await into_tuple(client.get("/test"))) == (b"3", 200, {})
+    assert (await into_tuple(client.get("/test/"))) == (b"3", 200, {})
+    assert (await into_tuple(client.get("test/"))) == (b"3", 200, {})
