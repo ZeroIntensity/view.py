@@ -48,7 +48,11 @@ class Response(BodyMixin):
 StrOrBytes: TypeAlias = str | bytes
 ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
 ResponseLike: TypeAlias = (
-    Response | StrOrBytes | AsyncGenerator[StrOrBytes] | Generator[StrOrBytes] | ResponseTuple
+    Response
+    | StrOrBytes
+    | AsyncGenerator[StrOrBytes]
+    | Generator[StrOrBytes]
+    | ResponseTuple
 )
 StrPath: TypeAlias = str | PathLike[str]
 
@@ -152,8 +156,10 @@ def _wrap_response_tuple(response: ResponseTuple) -> Response:
 
     content = response[0]
     if __debug__ and isinstance(content, Response):
-        raise ValueError(f"Response() objects cannot be used with response"
-                           " tuples. Instead, use the status_code parameter.")
+        raise ValueError(
+            f"Response() objects cannot be used with response"
+            " tuples. Instead, use the status_code parameter."
+        )
 
     status = response[1]
     headers: HeadersLike | None = None
@@ -186,6 +192,7 @@ def wrap_response(response: ResponseLike, /) -> Response:
 
         return Response(stream, status_code=200, headers=CIMultiDict())
     elif isinstance(response, Generator):
+
         async def stream() -> AsyncGenerator[bytes]:
             for data in response:
                 yield as_bytes(data)

@@ -134,7 +134,7 @@ async def execute_view(
 
         return result
     except HTTPError as error:
-        logger.info(f"HTTP Error {error.status_code}")
+        logger.opt(colors=True).info(f"<red>HTTP Error {error.status_code}</red>")
         raise
 
 
@@ -164,6 +164,9 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     """
     Decorator for using a single function as an app.
     """
+    if not callable(view):
+        raise TypeError(f"Expected a callable, got {view!r}")
+
     return SingleViewApp(view)
 
 
@@ -178,7 +181,9 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        logger.info(f"{request.method} {request.path}")
+        logger.opt(colors=True).info(
+            f"<yellow>{request.method}</yellow> <green>{request.path}</green>"
+        )
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )
@@ -191,6 +196,9 @@ class App(BaseApp):
             response = await execute_view(found_route.route.view)
             return wrap_response(response)
         except BaseException as exception:
+            # Let HTTP errors pass through, so the caller can deal with it
+            if isinstance(exception, HTTPError):
+                raise
             logger.exception(exception)
             raise InternalServerError() from exception
 
