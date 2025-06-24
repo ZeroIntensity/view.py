@@ -10,6 +10,12 @@ from view.status_codes import BadRequest
 from view.testing import AppTestClient, into_tuple
 
 
+def ok(body: str | bytes) -> tuple[bytes, int, dict[str, str]]:
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    return (body, 200,{})
+
+
 @pytest.mark.asyncio
 async def test_request_data():
     @as_app
@@ -29,13 +35,8 @@ async def test_request_data():
             raise BadRequest()
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"Hello", 200, {})
-    assert (await into_tuple(client.get("/1", headers={"test-something": "42"}))) == (
-        b"World",
-        200,
-        {},
-    )
-
+    assert (await into_tuple(client.get("/"))) == ok("Hello")
+    assert (await into_tuple(client.get("/1", headers={"test-something": "42"}))) == ok("World")
 
 @pytest.mark.asyncio
 async def test_manual_request():
@@ -81,12 +82,8 @@ async def test_request_body():
             raise BadRequest()
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/", body=b"test"))) == (b"1", 200, {})
-    assert (await into_tuple(client.get("/large", body=b"A" * 10000))) == (
-        b"2",
-        200,
-        {},
-    )
+    assert (await into_tuple(client.get("/", body=b"test"))) == ok("1")
+    assert (await into_tuple(client.get("/large", body=b"A" * 10000))) == ok("2")
 
 
 @pytest.mark.asyncio
@@ -106,12 +103,12 @@ async def test_request_headers():
             raise BadRequest()
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/", headers={"foo": "42"}))) == (b"1", 200, {})
+    assert (await into_tuple(client.get("/", headers={"foo": "42"}))) == ok("1")
     assert (
         await into_tuple(
             client.get("/many", headers={"Bar": "24", "bAr": "42", "test": "123"})
         )
-    ) == (b"2", 200, {})
+    ) == ok("2")
 
 
 @pytest.mark.asyncio
@@ -135,11 +132,11 @@ async def test_request_router():
         return "Goodbye"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"Index", 200, {})
-    assert (await into_tuple(client.get("/hello"))) == (b"Hello", 200, {})
-    assert (await into_tuple(client.get("/hello/world"))) == (b"World", 200, {})
-    assert (await into_tuple(client.get("/"))) == (b"Index", 200, {})
-    assert (await into_tuple(client.get("/goodbye/world"))) == (b"Goodbye", 200, {})
+    assert (await into_tuple(client.get("/"))) == ok("Index")
+    assert (await into_tuple(client.get("/hello"))) == ok("Hello")
+    assert (await into_tuple(client.get("/hello/world"))) == ok("World")
+    assert (await into_tuple(client.get("/"))) == ok("Index")
+    assert (await into_tuple(client.get("/goodbye/world"))) == ok("Goodbye")
 
 
 @pytest.mark.asyncio
@@ -174,14 +171,10 @@ async def test_request_path_parameters():
         return "3"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/spanish/42"))) == (b"0", 200, {})
-    assert (await into_tuple(client.get("/spanish/inquisition"))) == (b"1", 200, {})
-    assert (await into_tuple(client.get("/spanish/inquisition/gotcha"))) == (
-        b"2",
-        200,
-        {},
-    )
-    assert (await into_tuple(client.get("/spanish/1/2"))) == (b"3", 200, {})
+    assert (await into_tuple(client.get("/spanish/42"))) == ok("0")
+    assert (await into_tuple(client.get("/spanish/inquisition"))) == ok("1")
+    assert (await into_tuple(client.get("/spanish/inquisition/gotcha"))) == ok("2")
+    assert (await into_tuple(client.get("/spanish/1/2"))) == ok("3")
 
 
 @pytest.mark.asyncio
@@ -225,15 +218,15 @@ async def test_request_method():
         return "head"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"get", 200, {})
-    assert (await into_tuple(client.post("/"))) == (b"post", 200, {})
-    assert (await into_tuple(client.patch("/"))) == (b"patch", 200, {})
-    assert (await into_tuple(client.put("/"))) == (b"put", 200, {})
-    assert (await into_tuple(client.delete("/"))) == (b"delete", 200, {})
-    assert (await into_tuple(client.connect("/"))) == (b"connect", 200, {})
-    assert (await into_tuple(client.options("/"))) == (b"options", 200, {})
-    assert (await into_tuple(client.trace("/"))) == (b"trace", 200, {})
-    assert (await into_tuple(client.head("/"))) == (b"head", 200, {})
+    assert (await into_tuple(client.get("/"))) == ok("get")
+    assert (await into_tuple(client.post("/"))) == ok("post")
+    assert (await into_tuple(client.patch("/"))) == ok("patch")
+    assert (await into_tuple(client.put("/"))) == ok("put")
+    assert (await into_tuple(client.delete("/"))) == ok("delete")
+    assert (await into_tuple(client.connect("/"))) == ok("connect")
+    assert (await into_tuple(client.options("/"))) == ok("options")
+    assert (await into_tuple(client.trace("/"))) == ok("trace")
+    assert (await into_tuple(client.head("/"))) == ok("head")
 
 
 @pytest.mark.asyncio
@@ -253,11 +246,11 @@ async def test_normalized_routes():
         return "3"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"1", 200, {})
-    assert (await into_tuple(client.get(""))) == (b"1", 200, {})
-    assert (await into_tuple(client.get("/hello"))) == (b"2", 200, {})
-    assert (await into_tuple(client.get("/hello/"))) == (b"2", 200, {})
-    assert (await into_tuple(client.get("hello/"))) == (b"2", 200, {})
-    assert (await into_tuple(client.get("/test"))) == (b"3", 200, {})
-    assert (await into_tuple(client.get("/test/"))) == (b"3", 200, {})
-    assert (await into_tuple(client.get("test/"))) == (b"3", 200, {})
+    assert (await into_tuple(client.get("/"))) == ok("1")
+    assert (await into_tuple(client.get(""))) == ok("1")
+    assert (await into_tuple(client.get("/hello"))) == ok("2")
+    assert (await into_tuple(client.get("/hello/"))) == ok("2")
+    assert (await into_tuple(client.get("hello/"))) == ok("2")
+    assert (await into_tuple(client.get("/test"))) == ok("3")
+    assert (await into_tuple(client.get("/test/"))) == ok("3")
+    assert (await into_tuple(client.get("test/"))) == ok("3")
