@@ -22,7 +22,7 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
     if isinstance(headers, CIMultiDict):
         return headers
 
-    if not isinstance(headers, dict):
+    if __debug__ and not isinstance(headers, dict):
         raise TypeError(f"Invalid headers: {headers}")
 
     assert isinstance(headers, dict)
