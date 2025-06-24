@@ -3,7 +3,6 @@ from __future__ import annotations
 import mimetypes
 import warnings
 from collections.abc import AsyncIterator
-from contextlib import suppress
 from dataclasses import dataclass
 from os import PathLike
 from typing import AnyStr, AsyncGenerator, Generic, TypeAlias
