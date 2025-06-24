@@ -130,7 +130,7 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
         headers: HeadersLike | None = None,
     ) -> StrOrBytesResponse[AnyStr]:
         """
-        Generate a `StringResponse` from a `string` object.
+        Generate a `StrOrBytesResponse` from either a `str` or `bytes` object.
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
