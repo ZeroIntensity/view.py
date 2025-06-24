@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import ClassVar
+import traceback
 
 from view.response import BytesResponse
 
@@ -89,15 +90,15 @@ class HTTPError(Exception):
             STATUS_EXCEPTIONS[cls.status_code] = cls
             cls.description = STATUS_STRINGS[cls.status_code]
 
-    @classmethod
-    def as_response(cls) -> BytesResponse:
+    def as_response(self) -> BytesResponse:
+        cls = type(self)
         if cls.status_code == 0:
             raise TypeError(f"{cls} is not a real response")
 
-        if cls.args == ():
+        if self.args == ():
             message = f"{cls.status_code} {cls.description}"
         else:
-            message = str(cls)
+            message = str(self)
 
         return BytesResponse.from_bytes(
             message.encode("utf-8"), status_code=cls.status_code
@@ -420,6 +421,14 @@ class InternalServerError(ServerSideError):
     """
 
     status_code = 500
+
+    def as_response(self) -> BytesResponse:
+        if not __debug__:
+            return super().as_response()
+
+        cls = type(self)
+        message = traceback.format_exc()
+        return BytesResponse.from_bytes(message.encode("utf-8"), status_code=cls.status_code)
 
 
 class NotImplemented(ServerSideError):
