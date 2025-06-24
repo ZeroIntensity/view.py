@@ -27,11 +27,17 @@ class ServerSettings:
     hint: str | None = None
 
     def run_uvicorn(self) -> None:
+        """
+        Run the app using the `uvicorn` library.
+        """
         import uvicorn
 
         uvicorn.run(self.app.asgi(), host=self.host, port=self.port)
 
     def run_hypercorn(self) -> None:
+        """
+        Run the app using the `hypercorn` library.
+        """
         import asyncio
 
         import hypercorn
@@ -42,6 +48,9 @@ class ServerSettings:
         asyncio.run(serve(self.app.asgi(), config))  # type: ignore
 
     def run_daphne(self) -> None:
+        """
+        Run the app using the `daphne` library.
+        """
         from daphne.endpoints import build_endpoint_description_strings
         from daphne.server import Server
 
@@ -53,6 +62,9 @@ class ServerSettings:
         server.run()
 
     def run_gunicorn(self) -> None:
+        """
+        Run the app using the `gunicorn` library.
+        """
         from gunicorn.app.base import BaseApplication
 
         class GunicornRunner(BaseApplication):
@@ -76,11 +88,17 @@ class ServerSettings:
         runner.run()
 
     def run_werkzeug(self) -> None:
+        """
+        Run the app using the `werkzeug` library.
+        """
         from werkzeug.serving import run_simple
 
         run_simple(self.host, self.port, self.app.wsgi())
 
     def run_wsgiref(self) -> None:
+        """
+        Run the app using the built-in `wsgiref` module.
+        """
         from wsgiref.simple_server import make_server
 
         with make_server(self.host, self.port, self.app.wsgi()) as server:

@@ -37,6 +37,13 @@ class BaseApp(ABC):
 
     @property
     def debug(self) -> bool:
+        """
+        Is the app in debug mode?
+
+        If debug mode is enabled, some extra checks and settings are enabled
+        to improve the development experience, at the cost of being slower and
+        less secure.
+        """
         if self._production is None:
             return __debug__
 

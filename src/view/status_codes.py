@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import ClassVar
 import traceback
+from typing import ClassVar
 
 from view.response import BytesResponse
 
@@ -428,7 +428,9 @@ class InternalServerError(ServerSideError):
 
         cls = type(self)
         message = traceback.format_exc()
-        return BytesResponse.from_bytes(message.encode("utf-8"), status_code=cls.status_code)
+        return BytesResponse.from_bytes(
+            message.encode("utf-8"), status_code=cls.status_code
+        )
 
 
 class NotImplemented(ServerSideError):

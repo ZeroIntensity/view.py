@@ -88,11 +88,20 @@ def is_path_parameter(part: str) -> bool:
 
 
 def extract_path_parameter(part: str) -> str:
+    """
+    Extract the name of a path parameter from a string given by the user
+    in a route string.
+    """
     return part[1 : len(part) - 1]
 
 
 @dataclass(slots=True, frozen=True)
 class FoundRoute:
+    """
+    Dataclass representing a route that was looked up by the router
+    for a given path.
+    """
+
     route: Route
     path_parameters: dict[str, str]
 
