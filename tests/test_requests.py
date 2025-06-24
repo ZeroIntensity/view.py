@@ -1,6 +1,6 @@
 import pytest
 
-from view.app import as_app
+from view.app import as_app, App
 from view.request import Method, Request
 from view.response import ResponseLike
 from view.status_codes import BadRequest
@@ -80,3 +80,70 @@ async def test_request_headers():
             client.get("/many", headers={"Bar": "24", "bAr": "42", "test": "123"})
         )
     ) == (b"2", 200, {})
+
+
+@pytest.mark.asyncio
+async def test_request_router():
+    app = App()
+
+    @app.get("/")
+    def index():
+        return "Index"
+
+    @app.get("/hello")
+    def hello():
+        return "Hello"
+
+    @app.get("/hello/world")
+    def world():
+        return "World"
+
+    @app.get("/goodbye/world")
+    def goodbye():
+        return "Goodbye"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"Index", 200, {})
+    assert (await into_tuple(client.get("/hello"))) == (b"Hello", 200, {})
+    assert (await into_tuple(client.get("/hello/world"))) == (b"World", 200, {})
+    assert (await into_tuple(client.get("/"))) == (b"Index", 200, {})
+    assert (await into_tuple(client.get("/goodbye/world"))) == (b"Goodbye", 200, {})
+
+
+@pytest.mark.asyncio
+async def test_request_path_parameters():
+    app = App()
+
+    @app.get("/")
+    def index():
+        return "Index"
+
+    @app.get("/spanish/{inquisition}")
+    async def path_param():
+        request = app.current_request()
+        assert request.parameters['inquisition'] == '42'
+        return "0"
+
+    @app.get("/spanish/inquisition")
+    def overwrite_path_param():
+        return "1"
+    
+    @app.get("/spanish/inquisition/{nobody}")
+    def sub_path_param():
+        request = app.current_request()
+        assert request.parameters["nobody"] == 'gotcha'
+        return "2"
+
+    @app.get("/spanish/{inquisition}/{nobody}")
+    def double_path_param():
+        request = app.current_request()
+        assert request.parameters["inquisition"] == '1'
+        assert request.parameters["nobody"] == '2'
+        return "3"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/spanish/42"))) == (b"0", 200, {})
+    assert (await into_tuple(client.get("/spanish/inquisition"))) == (b"1", 200, {})
+    assert (await into_tuple(client.get("/spanish/inquisition/gotcha"))) == (b"2", 200, {})
+    assert (await into_tuple(client.get("/spanish/1/2"))) == (b"3", 200, {})
+
