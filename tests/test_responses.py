@@ -127,3 +127,18 @@ async def test_file_response():
             201,
             {"hello": "world", "content-type": "text/plain"},
         )
+
+@pytest.mark.asyncio
+async def test_status_codes():
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        if request.path == "/":
+            raise BadRequest()
+        elif request.path == "/message":
+            raise BadRequest("Test")
+        else:
+            raise RuntimeError()
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"400 Bad Request", 400, {})
+    assert (await into_tuple(client.get("/message"))) == (b"Test", 400, {})
