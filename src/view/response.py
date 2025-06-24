@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from contextlib import suppress
 import mimetypes
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from os import PathLike
-from typing import AnyStr, AsyncGenerator, TypeAlias
+from typing import AnyStr, AsyncGenerator, Generic, TypeAlias
+import warnings
 
 import aiofiles
 from loguru import logger
@@ -19,7 +21,7 @@ __all__ = "Response", "ResponseLike"
 @dataclass(slots=True)
 class Response(BodyMixin):
     """
-    High-level dataclass representing a response from a view.
+    Low-level dataclass representing a response from a view.
     """
 
     status_code: int
@@ -79,63 +81,66 @@ class FileResponse(Response):
 
 
 @dataclass(slots=True)
-class BytesResponse(Response):
+class StringOrBytesResponse(Response, Generic[AnyStr]):
     """
-    Simple in-memory response for a byte string.
+    Simple in-memory response for a UTF-8 encoded string, or a raw ASCII byte string.
     """
-
-    content: bytes
-
-    def as_tuple_sync(self) -> tuple[bytes, int, RequestHeaders]:
-        """
-        Synchronous variation of `as_tuple`, using the cached content.
-        """
-        return (self.content, self.status_code, self.headers)
+    content: AnyStr
 
     @classmethod
-    def from_bytes(
-        cls,
-        content: bytes,
-        /,
-        *,
-        status_code: int = 200,
-        headers: HeadersLike | None = None,
-    ) -> BytesResponse:
+    def from_content(cls, content: AnyStr, /, *, status_code: int = 200, headers: HeadersLike | None = None) -> StringOrBytesResponse:
         """
-        Generate a `BytesResponse` from a `bytes` object.
+        Generate a `StringResponse` from a `string` object.
         """
+        
+        if __debug__ and not isinstance(content, (str, bytes)):
+            raise TypeError(f"expected a string or bytes object, got {content!r}")
 
         async def stream() -> AsyncGenerator[bytes]:
-            yield content
+            if isinstance(content, str):
+                yield content.encode("utf-8")
+            else:
+                yield content
 
         return cls(stream, status_code, as_multidict(headers), content)
 
 
-def wrap_response(response: ResponseLike) -> Response:
+def _wrap_response_tuple(response: tuple[str | bytes, int, HeadersLike]) -> Response:
+    if response == ():
+        raise ValueError("Response cannot be an empty tuple")
+
+    if __debug__ and len(response) == 1:
+        warnings.warn(f"Returned tuple {response!r} with a single item,"
+                      " which is useless. Return the item directly.",
+                      RuntimeWarning)
+
+    content = response[0]
+    status = response[1]
+    headers: HeadersLike | None = None
+
+    with suppress(KeyError):
+        headers = response[2]
+
+    return StringOrBytesResponse.from_content(content, status_code=status, headers=headers)
+
+
+def wrap_response(response: ResponseLike, /) -> Response:
     """
     Wrap a response from a view into a `Response` object.
     """
-    logger.debug(f"Got response: {response}")
+    logger.debug(f"Got response: {response!r}")
     if isinstance(response, Response):
         return response
-
-    content: bytes
-    if isinstance(response, str):
-        content = response.encode()
-    elif isinstance(response, bytes):
-        content = response
+    elif isinstance(response, (str, bytes)):
+        return StringOrBytesResponse.from_content(response)
+    elif isinstance(response, tuple):
+        return _wrap_response_tuple(response)
     elif isinstance(response, AsyncIterator):
 
         async def stream() -> AsyncIterator[bytes]:
             async for data in response:
-                if isinstance(data, str):
-                    yield data.encode("utf-8")
-                else:
-                    assert isinstance(data, bytes)
-                    yield data
+                yield data
 
         return Response(stream, status_code=200, headers=CIMultiDict())
     else:
         raise TypeError(f"Invalid response: {response!r}")
-
-    return BytesResponse.from_bytes(content)
