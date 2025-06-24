@@ -5,15 +5,8 @@ import contextvars
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterator,
-    ParamSpec,
-    TypeAlias,
-    TypeVar,
-    Union,
-)
+from typing import (TYPE_CHECKING, Callable, Iterator, ParamSpec, TypeAlias,
+                    TypeVar, Union)
 
 from loguru import logger
 

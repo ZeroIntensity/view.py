@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from contextlib import suppress
 import mimetypes
+import warnings
 from collections.abc import AsyncIterator
+from contextlib import suppress
 from dataclasses import dataclass
 from os import PathLike
 from typing import AnyStr, AsyncGenerator, Generic, TypeAlias
-import warnings
 
 import aiofiles
 from loguru import logger
@@ -35,7 +35,12 @@ class Response(BodyMixin):
         return (await self.body(), self.status_code, self.headers)
 
 
-ResponseLike: TypeAlias = Response | AnyStr | AsyncIterator[AnyStr]
+# AnyStr isn't working with the type checker, probably because it's a TypeVar
+StrOrBytes: TypeAlias = str | bytes
+ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
+ResponseLike: TypeAlias = (
+    Response | StrOrBytes | AsyncIterator[StrOrBytes] | ResponseTuple
+)
 StrPath: TypeAlias = str | PathLike[str]
 
 
@@ -61,6 +66,10 @@ class FileResponse(Response):
         """
         Generate a `FileResponse` from a file path.
         """
+        if __debug__ and not isinstance(chunk_size, int):
+            raise TypeError(
+                f"expected an integer for chunk_size, but got {chunk_size!r}"
+            )
 
         async def stream():
             async with aiofiles.open(path, "rb") as file:
@@ -80,48 +89,69 @@ class FileResponse(Response):
         return cls(stream, status_code, multidict, path)
 
 
+def as_bytes(data: str | bytes) -> bytes:
+    """
+    Utility to convert a string to a byte string, or let a byte string pass.
+    """
+    if isinstance(data, str):
+        return data.encode("utf-8")
+    else:
+        return data
+
+
 @dataclass(slots=True)
-class StringOrBytesResponse(Response, Generic[AnyStr]):
+class StrOrBytesResponse(Response, Generic[AnyStr]):
     """
     Simple in-memory response for a UTF-8 encoded string, or a raw ASCII byte string.
     """
+
     content: AnyStr
 
     @classmethod
-    def from_content(cls, content: AnyStr, /, *, status_code: int = 200, headers: HeadersLike | None = None) -> StringOrBytesResponse:
+    def from_content(
+        cls,
+        content: AnyStr,
+        /,
+        *,
+        status_code: int = 200,
+        headers: HeadersLike | None = None,
+    ) -> StrOrBytesResponse[AnyStr]:
         """
         Generate a `StringResponse` from a `string` object.
         """
-        
+
         if __debug__ and not isinstance(content, (str, bytes)):
-            raise TypeError(f"expected a string or bytes object, got {content!r}")
+            raise TypeError(f"Expected a string or bytes object, got {content!r}")
 
         async def stream() -> AsyncGenerator[bytes]:
-            if isinstance(content, str):
-                yield content.encode("utf-8")
-            else:
-                yield content
+            yield as_bytes(content)
 
         return cls(stream, status_code, as_multidict(headers), content)
 
 
-def _wrap_response_tuple(response: tuple[str | bytes, int, HeadersLike]) -> Response:
+def _wrap_response_tuple(response: ResponseTuple) -> Response:
     if response == ():
         raise ValueError("Response cannot be an empty tuple")
 
     if __debug__ and len(response) == 1:
-        warnings.warn(f"Returned tuple {response!r} with a single item,"
-                      " which is useless. Return the item directly.",
-                      RuntimeWarning)
+        warnings.warn(
+            f"Returned tuple {response!r} with a single item,"
+            " which is useless. Return the item directly.",
+            RuntimeWarning,
+        )
+        return StrOrBytesResponse.from_content(response[0])
 
     content = response[0]
     status = response[1]
     headers: HeadersLike | None = None
 
-    with suppress(KeyError):
+    if len(response) > 2:
         headers = response[2]
 
-    return StringOrBytesResponse.from_content(content, status_code=status, headers=headers)
+    if __debug__ and len(response) > 3:
+        raise ValueError(f"Got excess data in response tuple {response[3:]!r}")
+
+    return StrOrBytesResponse.from_content(content, status_code=status, headers=headers)
 
 
 def wrap_response(response: ResponseLike, /) -> Response:
@@ -132,14 +162,14 @@ def wrap_response(response: ResponseLike, /) -> Response:
     if isinstance(response, Response):
         return response
     elif isinstance(response, (str, bytes)):
-        return StringOrBytesResponse.from_content(response)
+        return StrOrBytesResponse.from_content(response)
     elif isinstance(response, tuple):
         return _wrap_response_tuple(response)
     elif isinstance(response, AsyncIterator):
 
         async def stream() -> AsyncIterator[bytes]:
             async for data in response:
-                yield data
+                yield as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
     else:
