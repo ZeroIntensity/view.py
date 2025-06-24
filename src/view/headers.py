@@ -17,7 +17,7 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
     to a `CIMultiDict`.
     """
     if headers is None:
-        return CIMultiDict()
+        return CIMultiDict[str]()
 
     if isinstance(headers, CIMultiDict):
         return headers
@@ -26,7 +26,7 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
         raise TypeError(f"Invalid headers: {headers}")
 
     assert isinstance(headers, dict)
-    multidict = CIMultiDict()
+    multidict = CIMultiDict[str]()
     for key, value in headers.items():
         if isinstance(key, bytes):
             key = key.decode("utf-8")
@@ -43,7 +43,7 @@ def wsgi_as_multidict(environ: dict[str, Any]) -> RequestHeaders:
     """
     Convert WSGI headers (from the `environ`) to a case-insensitive multidict.
     """
-    headers = CIMultiDict()
+    headers = CIMultiDict[str]()
 
     for key, value in environ.items():
         if not key.startswith("HTTP_"):
@@ -60,7 +60,7 @@ def asgi_as_multidict(headers: ASGIHeaders, /) -> RequestHeaders:
     """
     Convert ASGI headers to a case-insensitive multidict.
     """
-    multidict = CIMultiDict()
+    multidict = CIMultiDict[str]()
 
     for key, value in headers:
         multidict[key.decode("utf-8")] = value.decode("utf-8")
