@@ -151,6 +151,10 @@ def _wrap_response_tuple(response: ResponseTuple) -> Response:
         return StrOrBytesResponse.from_content(response[0])
 
     content = response[0]
+    if __debug__ and isinstance(content, Response):
+        raise ValueError(f"Response() objects cannot be used with response"
+                           " tuples. Instead, use the status_code parameter.")
+
     status = response[1]
     headers: HeadersLike | None = None
 
