@@ -1,6 +1,9 @@
+from typing import AsyncIterator
+
 import pytest
 
-from view.app import as_app, App
+from view.app import App, as_app
+from view.headers import as_multidict
 from view.request import Method, Request
 from view.response import ResponseLike
 from view.status_codes import BadRequest
@@ -32,6 +35,35 @@ async def test_request_data():
         200,
         {},
     )
+
+
+@pytest.mark.asyncio
+async def test_manual_request():
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        assert request.app == app
+        assert request.app.current_request() is request
+        assert isinstance(request.path, str)
+        assert request.method is Method.POST
+        assert request.headers["test"] == "42"
+
+        return "1"
+
+    async def stream_none() -> AsyncIterator[bytes]:
+        yield b""
+
+    with pytest.raises(LookupError):
+        app.current_request()
+
+    manual_request = Request(
+        receive_data=stream_none,
+        app=app,
+        path="/",
+        method=Method.POST,
+        headers=as_multidict({"test": "42"}),
+    )
+    response = await app.process_request(manual_request)
+    assert (await response.body()) == b"1"
 
 
 @pytest.mark.asyncio
@@ -121,29 +153,84 @@ async def test_request_path_parameters():
     @app.get("/spanish/{inquisition}")
     async def path_param():
         request = app.current_request()
-        assert request.parameters['inquisition'] == '42'
+        assert request.parameters["inquisition"] == "42"
         return "0"
 
     @app.get("/spanish/inquisition")
     def overwrite_path_param():
         return "1"
-    
+
     @app.get("/spanish/inquisition/{nobody}")
     def sub_path_param():
         request = app.current_request()
-        assert request.parameters["nobody"] == 'gotcha'
+        assert request.parameters["nobody"] == "gotcha"
         return "2"
 
     @app.get("/spanish/{inquisition}/{nobody}")
     def double_path_param():
         request = app.current_request()
-        assert request.parameters["inquisition"] == '1'
-        assert request.parameters["nobody"] == '2'
+        assert request.parameters["inquisition"] == "1"
+        assert request.parameters["nobody"] == "2"
         return "3"
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/spanish/42"))) == (b"0", 200, {})
     assert (await into_tuple(client.get("/spanish/inquisition"))) == (b"1", 200, {})
-    assert (await into_tuple(client.get("/spanish/inquisition/gotcha"))) == (b"2", 200, {})
+    assert (await into_tuple(client.get("/spanish/inquisition/gotcha"))) == (
+        b"2",
+        200,
+        {},
+    )
     assert (await into_tuple(client.get("/spanish/1/2"))) == (b"3", 200, {})
 
+
+@pytest.mark.asyncio
+async def test_request_method():
+    app = App()
+
+    @app.get("/")
+    async def index_get():
+        return "get"
+
+    @app.post("/")
+    async def index_post():
+        return "post"
+
+    @app.patch("/")
+    async def index_patch():
+        return "patch"
+
+    @app.put("/")
+    async def index_put():
+        return "put"
+
+    @app.delete("/")
+    async def index_delete():
+        return "delete"
+
+    @app.connect("/")
+    async def index_connect():
+        return "connect"
+
+    @app.options("/")
+    async def index_options():
+        return "options"
+
+    @app.trace("/")
+    async def index_trace():
+        return "trace"
+
+    @app.head("/")
+    async def index_head():
+        return "head"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"get", 200, {})
+    assert (await into_tuple(client.post("/"))) == (b"post", 200, {})
+    assert (await into_tuple(client.patch("/"))) == (b"patch", 200, {})
+    assert (await into_tuple(client.put("/"))) == (b"put", 200, {})
+    assert (await into_tuple(client.delete("/"))) == (b"delete", 200, {})
+    assert (await into_tuple(client.connect("/"))) == (b"connect", 200, {})
+    assert (await into_tuple(client.options("/"))) == (b"options", 200, {})
+    assert (await into_tuple(client.trace("/"))) == (b"trace", 200, {})
+    assert (await into_tuple(client.head("/"))) == (b"head", 200, {})
