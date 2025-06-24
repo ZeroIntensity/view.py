@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import IO, TYPE_CHECKING, Callable, Iterable, TypeAlias
+from typing import IO, TYPE_CHECKING, Any, Callable, Iterable, TypeAlias
 
 from view.headers import wsgi_as_multidict
 from view.request import Method, Request
@@ -11,7 +11,9 @@ if TYPE_CHECKING:
     from view.app import BaseApp
 
 WSGIHeaders: TypeAlias = list[tuple[str, str]]
-WSGIEnvironment: TypeAlias = dict[str, str | IO[bytes]]  # XXX: Use a TypedDict?
+# We can't use a TypedDict for the environment because it has arbitrary keys
+# for the headers.
+WSGIEnvironment: TypeAlias = dict[str, Any]
 WSGIStartResponse = Callable[[str, WSGIHeaders], Callable[[bytes], object]]
 WSGIProtocol: TypeAlias = Callable[
     [WSGIEnvironment, WSGIStartResponse], Iterable[bytes]
