@@ -47,7 +47,7 @@ class PathNode:
     """
 
     name: str
-    route: Route | None = field(default=None)
+    routes: dict[Method, Route] = field(default_factory=dict)
     children: dict[str, PathNode] = field(default_factory=dict)
     path_parameter: PathNode | None = field(default=None)
 
@@ -121,10 +121,10 @@ class Router:
             else:
                 parent_node = parent_node.next(part)
 
-        if parent_node.route is not None:
+        if parent_node.routes.get(method) is not None:
             raise RuntimeError(f"the route {path!r} was already used")
 
-        parent_node.route = route
+        parent_node.routes[method] = route
 
     def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
         """
@@ -140,7 +140,7 @@ class Router:
 
         self.error_views[error_type] = view
 
-    def lookup_route(self, path: str, /) -> FoundRoute | None:
+    def lookup_route(self, path: str, method: Method, /) -> FoundRoute | None:
         """
         Look up the view for the route.
         """
@@ -162,7 +162,7 @@ class Router:
 
             parent_node = node
 
-        final_route: Route | None = parent_node.route
+        final_route: Route | None = parent_node.routes.get(method)
         if final_route is None:
             return None
 

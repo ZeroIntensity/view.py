@@ -175,7 +175,9 @@ class App(BaseApp):
 
     async def _process_request_internal(self, request: Request) -> Response:
         logger.info(f"{request.method} {request.path}")
-        found_route: FoundRoute | None = self.router.lookup_route(request.path)
+        found_route: FoundRoute | None = self.router.lookup_route(
+            request.path, request.method
+        )
         if found_route is None:
             raise NotFound()
 
