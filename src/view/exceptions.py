@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+import sys
+from typing import Any, ClassVar
+
+__all__ = "ViewError", "explain"
+
+
+def _base_help(code: int) -> str:
+    return f"Unsure what to do? Run `view explain {code}`"
+
+
+CODES: dict[int, type[ViewError]] = {}
+_NEXT_GLOBAL_CODE: int = 1000
+
+
+class ViewError(Exception):
+    """
+    Base class for all exceptions in view.py
+    """
+
+    code: ClassVar[int] = -1
+
+    def __init_subclass__(cls) -> None:
+        global _NEXT_GLOBAL_CODE, __all__
+        cls.code = _NEXT_GLOBAL_CODE
+        _NEXT_GLOBAL_CODE += 1
+
+        __all__ += (cls.__name__,)
+
+    def __init__(self, *msg: str) -> None:
+        self.message = " ".join(msg)
+        super().__init__(
+            f"[Error code {self.code}]: {self.message}" f"{_base_help(self.code)}"
+        )
+
+
+class InvalidType(ViewError, TypeError):
+    """
+    Something got a type that it didn't expect.
+
+    For example, passing a `str` object in a place where a `bytes` object
+    was expected would raise this error.
+    """
+
+    def __init__(self, *, expected: type, got: Any) -> None:
+        super().__init__(f"Expected {expected.__name__}, got {got!r}")
+
+
+class UnknownErrorCode(ViewError, ValueError):
+    """
+    `explain()` got an error code that wasn't found.
+
+    This is likely caused by a misinput.
+    """
+
+    def __init__(self, code: int) -> None:
+        super().__init__(f"Got unknown error code: {code}")
+
+
+class DebugOnly(ViewError, RuntimeError):
+    """
+    An operation is only supported under debug mode, likely because some
+    information (such as a docstring) has been stripped out.
+
+    To fix this, run Python without `-O` or `-OO`.
+    """
+
+
+def explain(code: int) -> str:
+    """
+    Get the explanation for a given error code.
+    """
+    error_cls = CODES.get(code)
+    if error_cls is None:
+        raise UnknownErrorCode(code)
+
+    if sys.flags.optimize >= 2:
+        raise DebugOnly("Cannot explain errors when -OO is passed to Python")
+
+    assert error_cls.__doc__ is not None, "Error class should have a docstring"
+    return error_cls.__doc__
