@@ -113,9 +113,17 @@ class BaseApp(ABC):
                 RuntimeWarning,
             )
 
+        logger.info(f"Serving app on port {port}")
         self._production = production
         settings = ServerSettings(self, host=host, port=port, hint=server_hint)
-        settings.run_app_on_any_server()
+        try:
+            settings.run_app_on_any_server()
+        except KeyboardInterrupt:
+            logger.info("CTRL^C received, shutting down")
+        except Exception:
+            logger.exception("Error in server lifecycle")
+        finally:
+            logger.info("Server finished")
 
 
 P = ParamSpec("P")
