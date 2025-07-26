@@ -80,9 +80,7 @@ class FileResponse(Response):
         Generate a `FileResponse` from a file path.
         """
         if __debug__ and not isinstance(chunk_size, int):
-            raise TypeError(
-                f"expected an integer for chunk_size, but got {chunk_size!r}"
-            )
+            raise InvalidType(int, chunk_size)
 
         async def stream():
             async with aiofiles.open(path, "rb") as file:
@@ -134,7 +132,7 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
-            raise TypeError(f"Expected a string or bytes object, got {content!r}")
+            raise InvalidType((str, bytes), content)
 
         async def stream() -> AsyncGenerator[bytes]:
             yield as_bytes(content)

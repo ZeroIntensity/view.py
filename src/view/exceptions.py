@@ -43,8 +43,12 @@ class InvalidType(ViewError, TypeError):
     was expected would raise this error.
     """
 
-    def __init__(self, *, expected: type, got: Any) -> None:
-        super().__init__(f"Expected {expected.__name__}, got {got!r}")
+    def __init__(self, expected: type | tuple[type, ...], got: Any) -> None:
+        if isinstance(expected, type):
+            super().__init__(f"Expected {expected.__name__}, got {got!r}")
+        else:
+            expected_string = ", ".join([exception.__name__ for exception in expected])
+            super().__init__(f"Expected {expected_string}, got {got!r}")
 
 
 class UnknownErrorCode(ViewError, ValueError):
