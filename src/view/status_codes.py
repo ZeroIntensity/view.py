@@ -6,6 +6,8 @@ from typing import ClassVar
 
 from view.response import StrOrBytesResponse
 
+__all__ = "HTTPError", "Success", "status_exception"
+
 STATUS_EXCEPTIONS: dict[int, type[HTTPError]] = {}
 STATUS_STRINGS: dict[int, str] = {
     100: "Continue",
@@ -166,6 +168,9 @@ class HTTPError(Exception):
             assert cls.status_code != 0, cls
             STATUS_EXCEPTIONS[cls.status_code] = cls
             cls.description = STATUS_STRINGS[cls.status_code]
+        
+        global __all__
+        __all__ += (cls.__name__,)
 
     def as_response(self) -> StrOrBytesResponse[str]:
         cls = type(self)
