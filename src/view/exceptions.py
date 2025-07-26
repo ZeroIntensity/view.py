@@ -37,10 +37,14 @@ class ViewError(Exception):
 
 class InvalidType(ViewError, TypeError):
     """
-    Something got a type that it didn't expect.
+    Something got a type that it didn't expect. For example, passing a
+    `str` object in a place where a `bytes` object was expected would raise
+    this error.
 
-    For example, passing a `str` object in a place where a `bytes` object
-    was expected would raise this error.
+    In order to fix this, please review the documentation of the function
+    you're attempting to call and ensure that you are passing it the correct
+    types. view.py is completely type-safe, so if your editor/IDE is
+    complaining about something, it is very likely the culprit.
     """
 
     def __init__(self, expected: type | tuple[type, ...], got: Any) -> None:
