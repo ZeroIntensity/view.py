@@ -10,7 +10,6 @@ from typing import (TYPE_CHECKING, Callable, Iterator, ParamSpec, TypeAlias,
 
 from loguru import logger
 
-from view.exceptions import InvalidType
 from view.request import Method, Request
 from view.response import Response, ResponseLike, wrap_response
 from view.router import FoundRoute, Router, RouteView
