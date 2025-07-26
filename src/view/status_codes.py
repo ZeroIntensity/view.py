@@ -168,7 +168,7 @@ class HTTPError(Exception):
             assert cls.status_code != 0, cls
             STATUS_EXCEPTIONS[cls.status_code] = cls
             cls.description = STATUS_STRINGS[cls.status_code]
-        
+
         global __all__
         __all__ += (cls.__name__,)
 
