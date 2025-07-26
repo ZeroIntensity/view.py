@@ -5,5 +5,5 @@
 3. But resist the temptation to sprinkle in magic.
 4. Remember the Zen of Python (PEP 20).
 5. Swiss-army knives don't make good APIs.
-6. An independent system is a better one. Global state is evil.
+6. An independent system is a better one; global state is evil.
 7. A solution should solve a problem that's practical, not just theoretical.
