@@ -89,10 +89,31 @@ class Request(BodyMixin):
     """
 
     app: "BaseApp"
+    """
+    The app associated with the HTTP request.
+    """
+
     path: str
+    """
+    The path of the request, with the leading '/' and without a trailing '/'
+    or query string.
+    """
+
     method: Method
+    """
+    The HTTP method of the request. See `Method`.
+    """
+
     headers: RequestHeaders
+    """
+    A "multi-dictionary" containing the request headers. This is `dict`-like,
+    but if a header has multiple values, it is represented by a list.
+    """
+
     parameters: dict[str, str] = field(init=False, default_factory=dict)
+    """
+    The query string parameters of the HTTP request.
+    """
 
     def __post_init__(self) -> None:
         self.path = normalize_route(self.path)
