@@ -99,7 +99,9 @@ def html(text: str = "", **attributes: str) -> HTMLNode:
 
 P = ParamSpec("P")
 HTMLViewResponseItem: TypeAlias = HTMLNode | int
-HTMLView: TypeAlias = Callable[P, AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]]
+HTMLView: TypeAlias = Callable[
+    P, AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
+]
 
 
 def html_response(
@@ -119,7 +121,7 @@ def html_response(
 
         iterator = function(*args, **kwargs)
         status_code: int | None = None
-        
+
         def try_item(item: HTMLViewResponseItem) -> None:
             nonlocal status_code
 
@@ -143,6 +145,8 @@ def html_response(
             for line in special.as_html():
                 yield line.encode("utf-8") + b"\n"
 
-        return Response(stream, status_code or 200, as_multidict({"content-type": "text/html"}))
+        return Response(
+            stream, status_code or 200, as_multidict({"content-type": "text/html"})
+        )
 
     return wrapper
