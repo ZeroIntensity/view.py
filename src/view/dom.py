@@ -4,7 +4,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from queue import LifoQueue
 from typing import (AsyncIterator, Callable, ClassVar, Iterator, ParamSpec,
-                    Protocol, Self)
+                    Protocol, Self, TypeAlias)
 
 from view.exceptions import InvalidType
 from view.headers import as_multidict
@@ -98,10 +98,12 @@ def html(text: str = "", **attributes: str) -> HTMLNode:
 
 
 P = ParamSpec("P")
+HTMLViewResponseItem: TypeAlias = HTMLNode | int
+HTMLView: TypeAlias = Callable[P, AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]]
 
 
 def html_response(
-    function: Callable[P, Iterator[HTMLNode] | AsyncIterator[HTMLNode]],
+    function: HTMLView,
 ) -> RouteView:
     """
     Return a `Response` object from a function returning HTML.
@@ -116,23 +118,31 @@ def html_response(
         stack.put_nowait(special)
 
         iterator = function(*args, **kwargs)
+        status_code: int | None = None
+        
+        def try_item(item: HTMLViewResponseItem) -> None:
+            nonlocal status_code
+
+            if isinstance(item, int):
+                if __debug__ and status_code is not None:
+                    raise RuntimeError("Status code was already set")
+                status_code = item
 
         if isinstance(iterator, AsyncIterator):
-            # Drain the iterator; we don't care about its contents
-            async for _ in iterator:
-                pass
+            async for item in iterator:
+                try_item(item)
         else:
             if __debug__ and not isinstance(iterator, Iterator):
                 raise InvalidType((AsyncIterator, Iterator), iterator)
 
-            for _ in iterator:
-                pass
+            for item in iterator:
+                try_item(item)
 
         async def stream() -> AsyncIterator[bytes]:
             yield b"<!DOCTYPE html>\n"
             for line in special.as_html():
                 yield line.encode("utf-8") + b"\n"
 
-        return Response(stream, 200, as_multidict({"content-type": "text/html"}))
+        return Response(stream, status_code or 200, as_multidict({"content-type": "text/html"}))
 
     return wrapper
