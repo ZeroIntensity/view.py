@@ -128,6 +128,7 @@ async def test_file_response():
             {"hello": "world", "content-type": "text/plain"},
         )
 
+
 @pytest.mark.asyncio
 async def test_status_codes():
     @as_app
