@@ -1,13 +1,20 @@
 from view.app import new_app
-from view.responses import HTML
+from view.status_codes import Success
+from view.dom import html_response, h1, html, head, body, title
 
 app = new_app()
 
-
 @app.get("/")
+@html_response
 def index():
-    request = app.current_request()
-    return HTML.from_file("index/test.html")
+    yield Success.OK
+
+    with html():
+        with head():
+            yield title("Hello, view.py!")
+
+        with body():
+            yield h1("My first page")
 
 
 if __name__ == "__main__":
