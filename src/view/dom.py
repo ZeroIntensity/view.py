@@ -3,8 +3,16 @@ from __future__ import annotations
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from queue import LifoQueue
-from typing import (AsyncIterator, Callable, ClassVar, Iterator, ParamSpec,
-                    Protocol, Self, TypeAlias)
+from typing import (
+    AsyncIterator,
+    Callable,
+    ClassVar,
+    Iterator,
+    ParamSpec,
+    Protocol,
+    Self,
+    TypeAlias,
+)
 
 from view.exceptions import InvalidType
 from view.headers import as_multidict
