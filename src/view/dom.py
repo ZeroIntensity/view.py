@@ -16,6 +16,7 @@ from typing import (
     TypedDict,
     Unpack,
     Literal,
+    NotRequired,
 )
 
 from view.exceptions import InvalidType
@@ -172,229 +173,229 @@ def html_response(
 
 
 class GlobalAttributes(TypedDict):
-    accesskey: str
+    accesskey: NotRequired[str]
     """Specifies a keyboard shortcut to activate or focus the element"""
 
-    cls: str
+    cls: NotRequired[str]
     """Specifies one or more class names for an element (refers to a class in a style sheet)"""
 
-    contenteditable: Literal["true", "false", "plaintext-only"]
+    contenteditable: NotRequired[Literal["true", "false", "plaintext-only"]]
     """Specifies whether the content of an element is editable or not"""
 
-    dir: Literal["ltr", "rtl", "auto"]
+    dir: NotRequired[Literal["ltr", "rtl", "auto"]]
     """Specifies the text direction for the content in an element"""
 
-    draggable: Literal["true", "false", "auto"]
+    draggable: NotRequired[Literal["true", "false", "auto"]]
     """Specifies whether an element is draggable or not"""
 
-    hidden: bool
+    hidden: NotRequired[bool]
     """Specifies that an element is not yet, or is no longer, relevant"""
 
-    id: str
+    id: NotRequired[str]
     """Specifies a unique id for an element"""
 
-    lang: str
+    lang: NotRequired[str]
     """Specifies the language of the element's content"""
 
-    spellcheck: Literal["true", "false"]
+    spellcheck: NotRequired[Literal["true", "false"]]
     """Specifies whether the element is to have its spelling and grammar checked or not"""
 
-    style: str
+    style: NotRequired[str]
     """Specifies an inline CSS style for an element"""
 
-    tabindex: int
+    tabindex: NotRequired[int]
     """Specifies the tabbing order of an element"""
 
-    title: str
+    title: NotRequired[str]
     """Specifies extra information about an element (displayed as a tooltip)"""
 
-    translate: Literal["yes", "no"]
+    translate: NotRequired[Literal["yes", "no"]]
     """Specifies whether the content of an element should be translated or not"""
 
-    onabort: str
+    onabort: NotRequired[str]
     """Script to be run on abort"""
 
-    onblur: str
+    onblur: NotRequired[str]
     """Script to be run when an element loses focus"""
 
-    oncancel: str
+    oncancel: NotRequired[str]
     """Script to be run when a dialog is canceled"""
 
-    oncanplay: str
+    oncanplay: NotRequired[str]
     """Script to be run when a file is ready to start playing"""
 
-    oncanplaythrough: str
+    oncanplaythrough: NotRequired[str]
     """Script to be run when a file can be played all the way through without pausing"""
 
-    onchange: str
+    onchange: NotRequired[str]
     """Script to be run when the value of an element is changed"""
 
-    onclick: str
+    onclick: NotRequired[str]
     """Script to be run on a mouse click"""
 
-    onclose: str
+    onclose: NotRequired[str]
     """Script to be run when a dialog is closed"""
 
-    oncontextmenu: str
+    oncontextmenu: NotRequired[str]
     """Script to be run when a context menu is triggered"""
 
-    oncopy: str
+    oncopy: NotRequired[str]
     """Script to be run when the content of an element is copied"""
 
-    oncuechange: str
+    oncuechange: NotRequired[str]
     """Script to be run when the cue changes in a track element"""
 
-    oncut: str
+    oncut: NotRequired[str]
     """Script to be run when the content of an element is cut"""
 
-    ondblclick: str
+    ondblclick: NotRequired[str]
     """Script to be run on a mouse double-click"""
 
-    ondrag: str
+    ondrag: NotRequired[str]
     """Script to be run when an element is dragged"""
 
-    ondragend: str
+    ondragend: NotRequired[str]
     """Script to be run at the end of a drag operation"""
 
-    ondragenter: str
+    ondragenter: NotRequired[str]
     """Script to be run when an element has been dragged to a valid drop target"""
 
-    ondragleave: str
+    ondragleave: NotRequired[str]
     """Script to be run when an element leaves a valid drop target"""
 
-    ondragover: str
+    ondragover: NotRequired[str]
     """Script to be run when an element is being dragged over a valid drop target"""
 
-    ondragstart: str
+    ondragstart: NotRequired[str]
     """Script to be run at the start of a drag operation"""
 
-    ondrop: str
+    ondrop: NotRequired[str]
     """Script to be run when dragged element is being dropped"""
 
-    ondurationchange: str
+    ondurationchange: NotRequired[str]
     """Script to be run when the length of the media changes"""
 
-    onemptied: str
+    onemptied: NotRequired[str]
     """Script to be run when media resource is suddenly unavailable"""
 
-    onended: str
+    onended: NotRequired[str]
     """Script to be run when the media has reach the end"""
 
-    onerror: str
+    onerror: NotRequired[str]
     """Script to be run when an error occurs"""
 
-    onfocus: str
+    onfocus: NotRequired[str]
     """Script to be run when an element gets focus"""
 
-    oninput: str
+    oninput: NotRequired[str]
     """Script to be run when an element gets user input"""
 
-    oninvalid: str
+    oninvalid: NotRequired[str]
     """Script to be run when an element is invalid"""
 
-    onkeydown: str
+    onkeydown: NotRequired[str]
     """Script to be run when a user is pressing a key"""
 
-    onkeypress: str
+    onkeypress: NotRequired[str]
     """Script to be run when a user presses a key"""
 
-    onkeyup: str
+    onkeyup: NotRequired[str]
     """Script to be run when a user releases a key"""
 
-    onload: str
+    onload: NotRequired[str]
     """Script to be run when the element has finished loading"""
 
-    onloadeddata: str
+    onloadeddata: NotRequired[str]
     """Script to be run when media data is loaded"""
 
-    onloadedmetadata: str
+    onloadedmetadata: NotRequired[str]
     """Script to be run when meta data is loaded"""
 
-    onloadstart: str
+    onloadstart: NotRequired[str]
     """Script to be run just as the file begins to load"""
 
-    onmousedown: str
+    onmousedown: NotRequired[str]
     """Script to be run when a mouse button is pressed down on an element"""
 
-    onmouseenter: str
+    onmouseenter: NotRequired[str]
     """Script to be run when the mouse pointer enters an element"""
 
-    onmouseleave: str
+    onmouseleave: NotRequired[str]
     """Script to be run when the mouse pointer leaves an element"""
 
-    onmousemove: str
+    onmousemove: NotRequired[str]
     """Script to be run when the mouse pointer is moving over an element"""
 
-    onmouseout: str
+    onmouseout: NotRequired[str]
     """Script to be run when the mouse pointer moves out of an element"""
 
-    onmouseover: str
+    onmouseover: NotRequired[str]
     """Script to be run when the mouse pointer moves over an element"""
 
-    onmouseup: str
+    onmouseup: NotRequired[str]
     """Script to be run when a mouse button is released over an element"""
 
-    onpaste: str
+    onpaste: NotRequired[str]
     """Script to be run when content is pasted into an element"""
 
-    onpause: str
+    onpause: NotRequired[str]
     """Script to be run when the media is paused"""
 
-    onplay: str
+    onplay: NotRequired[str]
     """Script to be run when the media starts playing"""
 
-    onplaying: str
+    onplaying: NotRequired[str]
     """Script to be run when the media actually has started playing"""
 
-    onprogress: str
+    onprogress: NotRequired[str]
     """Script to be run when the browser is in the process of getting the media data"""
 
-    onratechange: str
+    onratechange: NotRequired[str]
     """Script to be run each time the playback rate changes"""
 
-    onreset: str
+    onreset: NotRequired[str]
     """Script to be run when a form is reset"""
 
-    onresize: str
+    onresize: NotRequired[str]
     """Script to be run when the browser window is being resized"""
 
-    onscroll: str
+    onscroll: NotRequired[str]
     """Script to be run when an element's scrollbar is being scrolled"""
 
-    onseeked: str
+    onseeked: NotRequired[str]
     """Script to be run when seeking has ended"""
 
-    onseeking: str
+    onseeking: NotRequired[str]
     """Script to be run when seeking begins"""
 
-    onselect: str
+    onselect: NotRequired[str]
     """Script to be run when the element gets selected"""
 
-    onshow: str
+    onshow: NotRequired[str]
     """Script to be run when a context menu is shown"""
 
-    onstalled: str
+    onstalled: NotRequired[str]
     """Script to be run when the browser is unable to fetch the media data"""
 
-    onsubmit: str
+    onsubmit: NotRequired[str]
     """Script to be run when a form is submitted"""
 
-    onsuspend: str
+    onsuspend: NotRequired[str]
     """Script to be run when fetching the media data is stopped"""
 
-    ontimeupdate: str
+    ontimeupdate: NotRequired[str]
     """Script to be run when the playing position has changed"""
 
-    ontoggle: str
+    ontoggle: NotRequired[str]
     """Script to be run when the user opens or closes a details element"""
 
-    onvolumechange: str
+    onvolumechange: NotRequired[str]
     """Script to be run each time the volume is changed"""
 
-    onwaiting: str
+    onwaiting: NotRequired[str]
     """Script to be run when the media has paused but is expected to resume"""
 
-    onwheel: str
+    onwheel: NotRequired[str]
     """Script to be run when the mouse wheel rolls up or down over an element"""
 
 
