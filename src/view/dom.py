@@ -95,7 +95,7 @@ def _construct_node(
     global_attributes: GlobalAttributes,
     data: dict[str, str],
 ) -> HTMLNode:
-    if __debug__ and not isinstance(child_text, str):
+    if __debug__ and ((child_text is not None) and not isinstance(child_text, str)):
         raise InvalidType(str, child_text)
 
     attributes = {**attributes, **global_attributes}
@@ -2431,7 +2431,7 @@ def object(
     /,
     *,
     data: dict[str, str] | None = None,
-    data: str | None = None,
+    data_: str | None = None,
     type: str | None = None,
     name: str | None = None,
     usemap: str | None = None,
@@ -2445,7 +2445,7 @@ def object(
         "object",
         child_text=child_text,
         attributes={
-            "data": data,
+            "data": data_,
             "type": type,
             "name": name,
             "usemap": usemap,
