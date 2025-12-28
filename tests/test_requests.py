@@ -257,3 +257,16 @@ async def test_normalized_routes():
     assert (await into_tuple(client.get("/test"))) == ok("3")
     assert (await into_tuple(client.get("/test/"))) == ok("3")
     assert (await into_tuple(client.get("test/"))) == ok("3")
+
+
+@pytest.mark.asyncio
+async def test_current_app():
+    app = App()
+
+    @app.get("/")
+    async def index():
+        assert App.current_app() is app
+        return "1"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == ok("1")

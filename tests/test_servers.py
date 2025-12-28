@@ -12,6 +12,7 @@ def test_server(server_name: str):
     @as_app
     def app(request: Request) -> ResponseLike:
         header = request.headers["test"]
+        assert request.headers["user-agent"].startswith("python-requests")
         return "test", Success.CREATED, {"foo": "bar", "baz": header}
 
     try:

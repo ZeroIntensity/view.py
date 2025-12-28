@@ -40,6 +40,8 @@ P = ParamSpec("P")
 class BaseApp(ABC):
     """Base view.py application."""
 
+    _CURRENT_APP = contextvars.ContextVar["BaseApp"]("Current app being used.")
+
     def __init__(self):
         self._request = contextvars.ContextVar[Request](
             "The current request being handled."
@@ -66,11 +68,17 @@ class BaseApp(ABC):
         Enter a context for the given request.
         """
         with logger.contextualize(request=request):
-            token = self._request.set(request)
+            app_token = self._CURRENT_APP.set(self)
+            request_token = self._request.set(request)
             try:
                 yield
             finally:
-                self._request.reset(token)
+                self._request.reset(request_token)
+                self._CURRENT_APP.reset(app_token)
+
+    @classmethod
+    def current_app(cls) -> BaseApp:
+        return cls._CURRENT_APP.get()
 
     def current_request(self) -> Request:
         """
