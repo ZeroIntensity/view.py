@@ -7,7 +7,8 @@ from view.status_codes import Success
 import requests
 import time
 
-@pytest.mark.parametrize('server_name', ServerSettings.AVAILABLE_SERVERS)
+
+@pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
 def test_server(server_name: str):
     @as_app
     def app(request: Request) -> ResponseLike:
