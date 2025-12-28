@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from queue import LifoQueue
@@ -22,6 +23,7 @@ from view.exceptions import InvalidType
 from view.headers import as_multidict
 from view.response import Response
 from view.router import RouteView
+from io import StringIO
 
 
 def _indent_iterator(iterator: Iterator[str]) -> Iterator[str]:
@@ -60,11 +62,11 @@ class HTMLNode:
             yield self.text
 
         for child in self.children:
-            yield from child.as_html()
+            yield from child.as_html_stream()
 
-    def as_html(self) -> Iterator[str]:
+    def as_html_stream(self) -> Iterator[str]:
         """
-        Convert this node to actual HTML code.
+        Convert this node to actual HTML code, streaming each line individually.
         """
 
         if self.node_name != "":
@@ -80,6 +82,17 @@ class HTMLNode:
         else:
             assert self.attributes == {}
             yield from self._html_body()
+
+    def as_html(self) -> str:
+        """
+        Convert this node to HTML code.
+        """
+
+        buffer = StringIO()
+        for line in self.as_html_stream():
+            buffer.write(line + "\n")
+
+        return buffer.getvalue()
 
 
 class ImplicitDefault(str):
@@ -142,6 +155,25 @@ HTMLView: TypeAlias = Callable[
 ]
 
 
+@contextmanager
+def html_context() -> Iterator[HTMLNode]:
+    """
+    Enter a context in which HTML nodes can be created under a fresh tree.
+    """
+    stack = LifoQueue()
+    token = HTMLNode.node_stack.set(stack)
+
+    # Special top-level node that won't be included in the output
+    # TODO: Is this too hacky?
+    special = HTMLNode("")
+    stack.put_nowait(special)
+
+    try:
+        yield special
+    finally:
+        HTMLNode.node_stack.reset(token)
+
+
 def html_response(
     function: HTMLView,
 ) -> RouteView:
@@ -150,38 +182,32 @@ def html_response(
     """
 
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Response:
-        stack = LifoQueue()
-        HTMLNode.node_stack.set(stack)
+        with html_context() as parent:
+            iterator = function(*args, **kwargs)
+            status_code: int | None = None
 
-        # Special top-level node that won't be included in the output
-        special = HTMLNode("")
-        stack.put_nowait(special)
+            def try_item(item: HTMLViewResponseItem) -> None:
+                nonlocal status_code
 
-        iterator = function(*args, **kwargs)
-        status_code: int | None = None
+                if isinstance(item, int):
+                    if __debug__ and status_code is not None:
+                        raise RuntimeError("Status code was already set")
+                    status_code = item
 
-        def try_item(item: HTMLViewResponseItem) -> None:
-            nonlocal status_code
+            if isinstance(iterator, AsyncIterator):
+                async for item in iterator:
+                    try_item(item)
+            else:
+                if __debug__ and not isinstance(iterator, Iterator):
+                    raise InvalidType((AsyncIterator, Iterator), iterator)
 
-            if isinstance(item, int):
-                if __debug__ and status_code is not None:
-                    raise RuntimeError("Status code was already set")
-                status_code = item
+                for item in iterator:
+                    try_item(item)
 
-        if isinstance(iterator, AsyncIterator):
-            async for item in iterator:
-                try_item(item)
-        else:
-            if __debug__ and not isinstance(iterator, Iterator):
-                raise InvalidType((AsyncIterator, Iterator), iterator)
-
-            for item in iterator:
-                try_item(item)
-
-        async def stream() -> AsyncIterator[bytes]:
-            yield b"<!DOCTYPE html>\n"
-            for line in special.as_html():
-                yield line.encode("utf-8") + b"\n"
+            async def stream() -> AsyncIterator[bytes]:
+                yield b"<!DOCTYPE html>\n"
+                for line in parent.as_html_stream():
+                    yield line.encode("utf-8") + b"\n"
 
         return Response(
             stream, status_code or 200, as_multidict({"content-type": "text/html"})
@@ -642,8 +668,8 @@ def td(
     /,
     *,
     data: dict[str, str] | None = None,
-    colspan: int = 1,
-    rowspan: int = 1,
+    colspan: int | ImplicitDefault = ImplicitDefault(1),
+    rowspan: int | ImplicitDefault = ImplicitDefault(1),
     headers: str | None = None,
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
