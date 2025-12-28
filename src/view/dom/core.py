@@ -1,10 +1,10 @@
 from __future__ import annotations
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from functools import wraps
 from typing import (
     Iterator,
     ClassVar,
-    Self,
     AsyncIterator,
     ParamSpec,
     Callable,
@@ -43,15 +43,14 @@ class HTMLNode:
     attributes: dict[str, str] = field(default_factory=dict)
     children: list[HTMLNode] = field(default_factory=list)
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> None:
         stack = self.node_stack.get()
         stack.put_nowait(self)
-        return self
 
     def __exit__(self, *_) -> None:
         stack = self.node_stack.get()
         popped = stack.get_nowait()
-        assert popped is self
+        assert popped is self, popped
 
     def _html_body(self) -> Iterator[str]:
         if self.text != "":
@@ -89,6 +88,53 @@ class HTMLNode:
             buffer.write(line + "\n")
 
         return buffer.getvalue()
+
+
+class Children(HTMLNode):
+    def __init__(self) -> None:
+        super().__init__("_children_node")
+
+    def __enter__(self):
+        raise RuntimeError("Children() cannot be used in a 'with' block")
+
+
+@dataclass(frozen=True)
+class Component:
+    """
+    A node with an "injectable" body.
+    """
+
+    generator: Iterator[HTMLNode]
+
+    def __enter__(self) -> None:
+        stack = HTMLNode.node_stack.get()
+        for node in self.generator:
+            if isinstance(node, Children):
+                capture_node = HTMLNode("_node_capture")
+                stack.put_nowait(capture_node)
+                return
+
+    def __exit__(self, *_) -> None:
+        stack = HTMLNode.node_stack.get()
+        capture_node = stack.get_nowait()
+        assert capture_node.node_name == "_node_capture"
+
+        parent_node = stack.queue[-1]
+        parent_node.children.extend(capture_node.children)
+
+        for node in self.generator:
+            if __debug__ and isinstance(node, Children):
+                raise RuntimeError(
+                    "Cannot use Children() multiple times for the same component"
+                )
+
+
+def component(function: Callable[[], Iterator[HTMLNode]]) -> Callable[[], Component]:
+    @wraps(function)
+    def inner() -> Component:
+        return Component(function())
+
+    return inner
 
 
 @contextmanager
