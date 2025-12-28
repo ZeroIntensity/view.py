@@ -324,7 +324,7 @@ class App(BaseApp):
         Decorator interface for adding an error handler to the app.
         """
 
-        def decorator(view: RouteViewVar, /) -> RouteViewVar:
+        def decorator(view: RouteView, /) -> RouteView:
             self.router.push_error(status, view)
             return view
 

@@ -1,6 +1,7 @@
 from typing import AsyncIterator, Callable, Iterator
 import pytest
-from view.dom import ALL_PRIMITIVES, HTMLNode, html, div, html_context, html_response, p
+from view.dom.primitives import ALL_PRIMITIVES, html, div, p
+from view.dom.core import HTMLNode, html_response, html_context
 import inspect
 
 from view.app import App
