@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 keywords = []
 authors = [
-  { name = "Peter Bierma", email = "zintensitydev@gmail.com" },
+  { name = "Peter Bierma", email = "peter@python.org" },
 ]
 classifiers = [
   "Programming Language :: Python",
