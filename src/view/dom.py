@@ -98,6 +98,12 @@ def _construct_node(
     if __debug__ and ((child_text is not None) and not isinstance(child_text, str)):
         raise InvalidType(str, child_text)
 
+    for attribute_name, value in attributes.copy().items():
+        if value in {None, False}:
+            attributes.pop(attribute_name)
+        elif value is True:
+            attributes[attribute_name] = ""
+
     attributes = {**attributes, **global_attributes}
     for name, value in data.items():
         attributes[f"data-{name}"] = value
