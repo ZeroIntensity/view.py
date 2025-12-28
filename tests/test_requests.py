@@ -270,3 +270,19 @@ async def test_current_app():
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == ok("1")
+
+
+@pytest.mark.asyncio
+async def test_route_division():
+    app = App()
+
+    @app.get("/test/main")
+    async def main():
+        return "1"
+
+    @app.get(main / "foo")
+    async def foo():
+        return "2"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == ok("2")
