@@ -26,6 +26,13 @@ class Route:
     path: str
     method: Method
 
+    def __truediv__(self, other: object) -> str:
+        if not isinstance(other, str):
+            return NotImplemented
+
+        path = self.path + other
+        return normalize_route(path)
+
 
 def normalize_route(route: str, /) -> str:
     """
@@ -127,7 +134,7 @@ class Router:
     error_views: dict[type[HTTPError], RouteView] = field(default_factory=dict)
     parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
 
-    def push_route(self, view: RouteView, path: str, method: Method) -> None:
+    def push_route(self, view: RouteView, path: str, method: Method) -> Route:
         """
         Register a view with the router.
         """
@@ -146,6 +153,7 @@ class Router:
             raise DuplicateRoute(f"The route {path!r} was already used")
 
         parent_node.routes[method] = route
+        return route
 
     def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
         """

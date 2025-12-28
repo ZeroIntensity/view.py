@@ -17,7 +17,7 @@ from loguru import logger
 
 from view.request import Method, Request
 from view.response import Response, wrap_view_result, ViewResult
-from view.router import FoundRoute, Router, RouteView
+from view.router import FoundRoute, Router, RouteView, Route
 from view.run import ServerSettings
 from view.status_codes import HTTPError, InternalServerError, NotFound
 from multiprocessing import Process
@@ -28,8 +28,7 @@ if TYPE_CHECKING:
 
 __all__ = "BaseApp", "as_app", "App"
 
-RouteViewVar = TypeVar("RouteViewVar", bound=RouteView)
-RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
+RouteDecorator: TypeAlias = Callable[[RouteView], Route]
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -260,9 +259,9 @@ class App(BaseApp):
         Decorator interface for adding a route to the app.
         """
 
-        def decorator(view: RouteViewVar, /) -> RouteViewVar:
-            self.router.push_route(view, path, method)
-            return view
+        def decorator(view: RouteView, /) -> Route:
+            route = self.router.push_route(view, path, method)
+            return route
 
         return decorator
 
