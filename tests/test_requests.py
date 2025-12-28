@@ -285,4 +285,5 @@ async def test_route_division():
         return "2"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == ok("2")
+    assert (await into_tuple(client.get("/test/main/"))) == ok("1")
+    assert (await into_tuple(client.get("/test/main/foo"))) == ok("2")

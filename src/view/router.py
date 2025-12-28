@@ -30,7 +30,7 @@ class Route:
         if not isinstance(other, str):
             return NotImplemented
 
-        path = self.path + other
+        path = f"{self.path}/{other}"
         return normalize_route(path)
 
 
