@@ -1,12 +1,10 @@
 from __future__ import annotations
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from functools import wraps
 from typing import (
     Iterator,
     ClassVar,
     AsyncIterator,
-    NoReturn,
     ParamSpec,
     Callable,
     TypeAlias,
@@ -140,53 +138,6 @@ class HTMLNode:
             buffer.write(line + "\n")
 
         return buffer.getvalue()
-
-
-class Children(HTMLNode):
-    def __init__(self) -> None:
-        super().__init__("_children_node")
-
-    def __enter__(self) -> NoReturn:
-        raise RuntimeError("Children() cannot be used in a 'with' block")
-
-
-@dataclass(frozen=True)
-class Component:
-    """
-    A node with an "injectable" body.
-    """
-
-    generator: Iterator[HTMLNode]
-
-    def __enter__(self) -> None:
-        stack = HTMLNode.node_stack.get()
-        for node in self.generator:
-            if isinstance(node, Children):
-                capture_node = HTMLNode.virtual("capture")
-                stack.put_nowait(capture_node)
-                return
-
-    def __exit__(self, *_) -> None:
-        stack = HTMLNode.node_stack.get()
-        capture_node = stack.get_nowait()
-        assert not capture_node.is_real
-
-        parent_node = stack.queue[-1]
-        parent_node.children.extend(capture_node.children)
-
-        for node in self.generator:
-            if __debug__ and isinstance(node, Children):
-                raise RuntimeError(
-                    "Cannot use Children() multiple times for the same component"
-                )
-
-
-def component(function: Callable[[], Iterator[HTMLNode]]) -> Callable[[], Component]:
-    @wraps(function)
-    def inner() -> Component:
-        return Component(function())
-
-    return inner
 
 
 @contextmanager
