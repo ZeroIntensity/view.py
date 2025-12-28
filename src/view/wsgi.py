@@ -55,7 +55,8 @@ def wsgi_for_app(
 
         wsgi_headers: WSGIHeaders = []
         for key, value in response.headers.items():
-            wsgi_headers.append((key, value))
+            # Multidict has a weird string subclass as the key for some reason
+            wsgi_headers.append((str(key), value))
 
         # WSGI is such a weird spec
         status_str = f"{response.status_code} {STATUS_STRINGS[response.status_code]}"

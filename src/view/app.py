@@ -22,6 +22,7 @@ from view.response import Response, ResponseLike, wrap_response
 from view.router import FoundRoute, Router, RouteView
 from view.run import ServerSettings
 from view.status_codes import HTTPError, InternalServerError, NotFound
+from multiprocessing import Process
 
 if TYPE_CHECKING:
     from view.asgi import ASGIProtocol
@@ -31,6 +32,9 @@ __all__ = "BaseApp", "as_app", "App"
 
 RouteViewVar = TypeVar("RouteViewVar", bound=RouteView)
 RouteDecorator: TypeAlias = Callable[[RouteViewVar], RouteViewVar]
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class BaseApp(ABC):
@@ -132,8 +136,30 @@ class BaseApp(ABC):
         finally:
             logger.info("Server finished")
 
+    def run_detached(
+        self,
+        *,
+        host: str = "localhost",
+        port: int = 5000,
+        production: bool = False,
+        server_hint: str | None = None,
+    ) -> Process:
+        """
+        Run the app in a separate process. This means that the server is
+        killable.
+        """
 
-P = ParamSpec("P")
+        process = Process(
+            target=self.run,
+            kwargs={
+                "host": host,
+                "port": port,
+                "production": production,
+                "server_hint": server_hint,
+            },
+        )
+        process.start()
+        return process
 
 
 async def execute_view(

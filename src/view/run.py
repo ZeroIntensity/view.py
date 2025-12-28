@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import warnings
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, TypeAlias
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Sequence, TypeAlias
 
 if TYPE_CHECKING:
     from view.app import BaseApp
@@ -20,6 +19,15 @@ class ServerSettings:
     Dataclass representing server settings that can be used to start
     serving an app.
     """
+
+    AVAILABLE_SERVERS: ClassVar[Sequence[str]] = [
+        "uvicorn",
+        "hypercorn",
+        "daphne",
+        "gunicorn",
+        "werkzeug",
+        "wsgiref",
+    ]
 
     app: "BaseApp"
     port: int
@@ -127,8 +135,8 @@ class ServerSettings:
 
             try:
                 return start_server()
-            except ImportError:
-                warnings.warn(f"{self.hint} is not installed")
+            except ImportError as error:
+                raise RuntimeError(f"{self.hint} is not installed") from error
 
         for start_server in servers.values():
             with suppress(ImportError):

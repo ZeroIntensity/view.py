@@ -61,8 +61,8 @@ def wsgi_as_multidict(environ: dict[str, Any]) -> RequestHeaders:
             continue
 
         assert isinstance(value, str)
-        key = key.lstrip("HTTP_")
-        headers[key.replace("_", "-").lower()] = value
+        key = key.removeprefix("HTTP_").replace("_", "-").lower()
+        headers[key] = value
 
     return headers
 
