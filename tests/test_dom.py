@@ -105,3 +105,19 @@ def test_components():
 
     formatted = data.replace(" ", "").replace("\n", "")
     assert formatted == "<html><p>1</p><p>2</p><div><p>2.5</p></div><p>3</p></html>"
+
+
+def test_component_multiple_children():
+    @component
+    def my_component():
+        yield Children()
+        yield Children()
+
+    def use_component():
+        with my_component():
+            yield p()
+
+    with html_context():
+        with pytest.raises(RuntimeError):
+            for _ in use_component():
+                pass
