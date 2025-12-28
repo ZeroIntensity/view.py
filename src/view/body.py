@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from io import BytesIO
 from typing import AsyncGenerator, AsyncIterator, Callable, TypeAlias
 
+from view.exceptions import InvalidType
+
 __all__ = ("BodyMixin",)
 
 BodyStream: TypeAlias = Callable[[], AsyncIterator[bytes]]
@@ -30,7 +32,7 @@ class BodyMixin:
         buffer = BytesIO()
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise TypeError(f"Expected bytes, got {data!r}")
+                raise InvalidType(bytes, data)
             buffer.write(data)
 
         return buffer.getvalue()
@@ -47,5 +49,5 @@ class BodyMixin:
 
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise TypeError(f"Expected bytes, got {data!r}")
+                raise InvalidType(bytes, data)
             yield data

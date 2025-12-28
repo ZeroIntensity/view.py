@@ -55,36 +55,16 @@ class InvalidType(ViewError, TypeError):
             super().__init__(f"Expected {expected_string}, got {got!r}")
 
 
-class UnknownErrorCode(ViewError, ValueError):
-    """
-    `explain()` got an error code that wasn't found.
-
-    This is likely caused by a misinput.
-    """
-
-    def __init__(self, code: int) -> None:
-        super().__init__(f"Got unknown error code: {code}")
-
-
-class DebugOnly(ViewError, RuntimeError):
-    """
-    An operation is only supported under debug mode, likely because some
-    information (such as a docstring) has been stripped out.
-
-    To fix this, run Python without `-O` or `-OO`.
-    """
-
-
 def explain(code: int) -> str:
     """
     Get the explanation for a given error code.
     """
     error_cls = CODES.get(code)
     if error_cls is None:
-        raise UnknownErrorCode(code)
+        raise RuntimeError(f"Unknown error code: {code}")
 
     if sys.flags.optimize >= 2:
-        raise DebugOnly("Cannot explain errors when -OO is passed to Python")
+        raise RuntimeError("Cannot explain errors when -OO is passed to Python")
 
     assert error_cls.__doc__ is not None, "Error class should have a docstring"
     return error_cls.__doc__
