@@ -11,8 +11,5 @@ from view import status_codes as status_codes
 from view import testing as testing
 from view import wsgi as wsgi
 from view import cache as cache
+from view import dom as dom
 from view.__about__ import *
-from view.app import *
-from view.request import *
-from view.response import *
-from view.router import *

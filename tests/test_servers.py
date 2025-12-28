@@ -2,7 +2,7 @@ import pytest
 from view.request import Request
 from view.response import ResponseLike
 from view.run import ServerSettings
-from view import as_app
+from view.app import as_app
 from view.status_codes import Success
 import requests
 import time
