@@ -10,7 +10,6 @@ from typing import (
     ClassVar,
     Iterator,
     ParamSpec,
-    Protocol,
     Self,
     TypeAlias,
     TypedDict,
@@ -83,8 +82,11 @@ class HTMLNode:
             yield from self._html_body()
 
 
-class HTMLNodeConstructor(Protocol):
-    def __call__(self, text: str = "", /, **attributes: str) -> HTMLNode: ...
+class ImplicitDefault(str):
+    """
+    Sentinel class to mark a default value in an HTML node as "implicit", and
+    thus does not need to be included in the rendered output.
+    """
 
 
 def _construct_node(
@@ -105,8 +107,12 @@ def _construct_node(
             attributes[attribute_name] = ""
 
     attributes = {**attributes, **global_attributes}
-    for name, value in data.items():
-        attributes[f"data-{name}"] = value
+    for data_name, value in data.items():
+        if __debug__ and not isinstance(value, str):
+            raise InvalidType(str, value)
+
+        attributes[f"data-{data_name}"] = value
+
     stack = HTMLNode.node_stack.get()
     top = stack.queue[-1]
 
@@ -114,9 +120,15 @@ def _construct_node(
     if "cls" in attributes:
         attributes["class"] = attributes.pop("cls")
 
-    for attribute in list(attributes.keys()):
-        if "_" in attribute:
-            attributes[attribute.replace("_", "-")] = str(attributes.pop(attribute))
+    for attribute_name, value in attributes.copy().items():
+        if isinstance(value, ImplicitDefault):
+            attributes.pop(attribute_name)
+            continue
+
+        if "_" in attribute_name:
+            attributes[attribute_name.replace("_", "-")] = str(
+                attributes.pop(attribute_name)
+            )
 
     new_node = HTMLNode(name, child_text or "", attributes, [])
     top.children.append(new_node)
@@ -411,7 +423,9 @@ def a(
     *,
     data: dict[str, str] | None = None,
     href: str | None = None,
-    target: Literal["_blank", "_self", "_parent", "_top"] = "_self",
+    target: (
+        Literal["_blank", "_self", "_parent", "_top"] | ImplicitDefault
+    ) = ImplicitDefault("_self"),
     download: str | None = None,
     rel: str | None = None,
     hreflang: str | None = None,
@@ -525,17 +539,14 @@ def style(
     *,
     data: dict[str, str] | None = None,
     media: str | None = None,
-    type: str = "text/css",
+    type: str = ImplicitDefault("text/css"),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Contains style information (CSS) for a document"""
     return _construct_node(
         "style",
         child_text=child_text,
-        attributes={
-            "media": media,
-            "type": type,
-        },
+        attributes={"media": media, "type": type},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -640,11 +651,7 @@ def td(
     return _construct_node(
         "td",
         child_text=child_text,
-        attributes={
-            "colspan": colspan,
-            "rowspan": rowspan,
-            "headers": headers,
-        },
+        attributes={"colspan": colspan, "rowspan": rowspan, "headers": headers},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -681,7 +688,7 @@ def textarea(
     disabled: bool = False,
     maxlength: int | None = None,
     minlength: int | None = None,
-    wrap: Literal["hard", "soft"] = "soft",
+    wrap: Literal["hard", "soft"] | ImplicitDefault = ImplicitDefault("soft"),
     autocomplete: Literal["on", "off"] | None = None,
     autofocus: bool = False,
     form: str | None = None,
@@ -787,9 +794,7 @@ def time(
     return _construct_node(
         "time",
         child_text=child_text,
-        attributes={
-            "datetime": datetime,
-        },
+        attributes={"datetime": datetime},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -832,9 +837,10 @@ def tr(
 def track(
     *,
     data: dict[str, str] | None = None,
-    kind: Literal[
-        "subtitles", "captions", "descriptions", "chapters", "metadata"
-    ] = "subtitles",
+    kind: (
+        Literal["subtitles", "captions", "descriptions", "chapters", "metadata"]
+        | ImplicitDefault
+    ) = ImplicitDefault("subtitles"),
     src: str | None,
     srclang: str | None = None,
     label: str | None = None,
@@ -919,7 +925,9 @@ def video(
     autoplay: bool = False,
     loop: bool = False,
     muted: bool = False,
-    preload: Literal["auto", "metadata", "none"] = "auto",
+    preload: Literal["auto", "metadata", "none"] | ImplicitDefault = ImplicitDefault(
+        "auto"
+    ),
     poster: str | None = None,
     playsinline: bool = False,
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
@@ -948,16 +956,11 @@ def video(
 
 
 def wbr(
-    *,
-    data: dict[str, str] | None = None,
-    **global_attributes: Unpack[GlobalAttributes],
+    *, data: dict[str, str] | None = None, **global_attributes: Unpack[GlobalAttributes]
 ) -> HTMLNode:
     """Defines a possible line-break opportunity in text"""
     return _construct_node(
-        "wbr",
-        attributes={},
-        global_attributes=global_attributes,
-        data=data or {},
+        "wbr", attributes={}, global_attributes=global_attributes, data=data or {}
     )
 
 
@@ -968,7 +971,9 @@ def area(
     data: dict[str, str] | None = None,
     alt: str | None,
     coords: str | None = None,
-    shape: Literal["default", "rect", "circle", "poly"] = "rect",
+    shape: (
+        Literal["default", "rect", "circle", "poly"] | ImplicitDefault
+    ) = ImplicitDefault("rect"),
     href: str | None = None,
     target: Literal["_blank", "_self", "_parent", "_top"] | None = None,
     download: str | None = None,
@@ -1053,7 +1058,9 @@ def audio(
     autoplay: bool = False,
     loop: bool = False,
     muted: bool = False,
-    preload: Literal["auto", "metadata", "none"] = "auto",
+    preload: Literal["auto", "metadata", "none"] | ImplicitDefault = ImplicitDefault(
+        "auto"
+    ),
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
@@ -1102,10 +1109,7 @@ def base(
     """Specifies the base URL and/or target for all relative URLs in a document"""
     return _construct_node(
         "base",
-        attributes={
-            "href": href,
-            "target": target,
-        },
+        attributes={"href": href, "target": target},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1133,16 +1137,13 @@ def bdo(
     /,
     *,
     data: dict[str, str] | None = None,
-    dir: Literal["ltr", "rtl"] | None,
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Overrides the current text direction"""
     return _construct_node(
         "bdo",
         child_text=child_text,
-        attributes={
-            "dir": dir,
-        },
+        attributes={},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1160,9 +1161,7 @@ def blockquote(
     return _construct_node(
         "blockquote",
         child_text=child_text,
-        attributes={
-            "cite": cite,
-        },
+        attributes={"cite": cite},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1186,16 +1185,11 @@ def body(
 
 
 def br(
-    *,
-    data: dict[str, str] | None = None,
-    **global_attributes: Unpack[GlobalAttributes],
+    *, data: dict[str, str] | None = None, **global_attributes: Unpack[GlobalAttributes]
 ) -> HTMLNode:
     """Inserts a single line break"""
     return _construct_node(
-        "br",
-        attributes={},
-        global_attributes=global_attributes,
-        data=data or {},
+        "br", attributes={}, global_attributes=global_attributes, data=data or {}
     )
 
 
@@ -1204,7 +1198,9 @@ def button(
     /,
     *,
     data: dict[str, str] | None = None,
-    type: Literal["button", "submit", "reset"] = "submit",
+    type: Literal["button", "submit", "reset"] | ImplicitDefault = ImplicitDefault(
+        "submit"
+    ),
     name: str | None = None,
     value: str | None = None,
     disabled: bool = False,
@@ -1257,10 +1253,7 @@ def canvas(
     return _construct_node(
         "canvas",
         child_text=child_text,
-        attributes={
-            "width": width,
-            "height": height,
-        },
+        attributes={"width": width, "height": height},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1326,9 +1319,7 @@ def col(
     """Specifies column properties for each column within a <colgroup> element"""
     return _construct_node(
         "col",
-        attributes={
-            "span": span,
-        },
+        attributes={"span": span},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1346,9 +1337,7 @@ def colgroup(
     return _construct_node(
         "colgroup",
         child_text=child_text,
-        attributes={
-            "span": span,
-        },
+        attributes={"span": span},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1366,9 +1355,7 @@ def data(
     return _construct_node(
         "data",
         child_text=child_text,
-        attributes={
-            "value": value,
-        },
+        attributes={"value": value},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1421,10 +1408,7 @@ def del_(
     return _construct_node(
         "del",
         child_text=child_text,
-        attributes={
-            "cite": cite,
-            "datetime": datetime,
-        },
+        attributes={"cite": cite, "datetime": datetime},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1442,9 +1426,7 @@ def details(
     return _construct_node(
         "details",
         child_text=child_text,
-        attributes={
-            "open": open,
-        },
+        attributes={"open": open},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1479,9 +1461,7 @@ def dialog(
     return _construct_node(
         "dialog",
         child_text=child_text,
-        attributes={
-            "open": open,
-        },
+        attributes={"open": open},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1567,12 +1547,7 @@ def embed(
     """Embeds external content at the specified point in the document"""
     return _construct_node(
         "embed",
-        attributes={
-            "src": src,
-            "type": type,
-            "width": width,
-            "height": height,
-        },
+        attributes={"src": src, "type": type, "width": width, "height": height},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1592,11 +1567,7 @@ def fieldset(
     return _construct_node(
         "fieldset",
         child_text=child_text,
-        attributes={
-            "disabled": disabled,
-            "form": form,
-            "name": name,
-        },
+        attributes={"disabled": disabled, "form": form, "name": name},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1659,13 +1630,16 @@ def form(
     *,
     data: dict[str, str] | None = None,
     action: str | None = None,
-    method: Literal["get", "post", "dialog"] = "get",
-    enctype: Literal[
-        "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"
-    ] = "application/x-www-form-urlencoded",
+    method: Literal["get", "post", "dialog"] | ImplicitDefault = ImplicitDefault("get"),
+    enctype: (
+        Literal[
+            "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"
+        ]
+        | ImplicitDefault
+    ) = ImplicitDefault("application/x-www-form-urlencoded"),
     name: str | None = None,
     target: Literal["_blank", "_self", "_parent", "_top"] | None = None,
-    autocomplete: Literal["on", "off"] = "on",
+    autocomplete: Literal["on", "off"] | ImplicitDefault = ImplicitDefault("on"),
     novalidate: bool = False,
     accept_charset: str | None = None,
     rel: str | None = None,
@@ -1845,16 +1819,11 @@ def hgroup(
 
 
 def hr(
-    *,
-    data: dict[str, str] | None = None,
-    **global_attributes: Unpack[GlobalAttributes],
+    *, data: dict[str, str] | None = None, **global_attributes: Unpack[GlobalAttributes]
 ) -> HTMLNode:
     """Defines a thematic break or horizontal rule in content"""
     return _construct_node(
-        "hr",
-        attributes={},
-        global_attributes=global_attributes,
-        data=data or {},
+        "hr", attributes={}, global_attributes=global_attributes, data=data or {}
     )
 
 
@@ -1863,18 +1832,14 @@ def html(
     /,
     *,
     data: dict[str, str] | None = None,
-    xmlns: str = "http://www.w3.org/1999/xhtml",
-    lang: str | None = None,
+    xmlns: str = ImplicitDefault("http://www.w3.org/1999/xhtml"),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Represents the root element of an HTML document"""
     return _construct_node(
         "html",
         child_text=child_text,
-        attributes={
-            "xmlns": xmlns,
-            "lang": lang,
-        },
+        attributes={"xmlns": xmlns},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1923,7 +1888,7 @@ def iframe(
         ]
         | None
     ) = None,
-    loading: Literal["eager", "lazy"] = "eager",
+    loading: Literal["eager", "lazy"] | ImplicitDefault = ImplicitDefault("eager"),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Embeds another HTML page within the current page"""
@@ -1959,8 +1924,10 @@ def img(
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
     usemap: str | None = None,
     ismap: bool = False,
-    loading: Literal["eager", "lazy"] = "eager",
-    decoding: Literal["sync", "async", "auto"] = "auto",
+    loading: Literal["eager", "lazy"] | ImplicitDefault = ImplicitDefault("eager"),
+    decoding: Literal["sync", "async", "auto"] | ImplicitDefault = ImplicitDefault(
+        "auto"
+    ),
     referrerpolicy: (
         Literal[
             "no-referrer",
@@ -2001,30 +1968,33 @@ def img(
 def input(
     *,
     data: dict[str, str] | None = None,
-    type: Literal[
-        "button",
-        "checkbox",
-        "color",
-        "date",
-        "datetime-local",
-        "email",
-        "file",
-        "hidden",
-        "image",
-        "month",
-        "number",
-        "password",
-        "radio",
-        "range",
-        "reset",
-        "search",
-        "submit",
-        "tel",
-        "text",
-        "time",
-        "url",
-        "week",
-    ] = "text",
+    type: (
+        Literal[
+            "button",
+            "checkbox",
+            "color",
+            "date",
+            "datetime-local",
+            "email",
+            "file",
+            "hidden",
+            "image",
+            "month",
+            "number",
+            "password",
+            "radio",
+            "range",
+            "reset",
+            "search",
+            "submit",
+            "tel",
+            "text",
+            "time",
+            "url",
+            "week",
+        ]
+        | ImplicitDefault
+    ) = ImplicitDefault("text"),
     name: str | None = None,
     value: str | None = None,
     placeholder: str | None = None,
@@ -2134,10 +2104,7 @@ def ins(
     return _construct_node(
         "ins",
         child_text=child_text,
-        attributes={
-            "cite": cite,
-            "datetime": datetime,
-        },
+        attributes={"cite": cite, "datetime": datetime},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2173,10 +2140,7 @@ def label(
     return _construct_node(
         "label",
         child_text=child_text,
-        attributes={
-            "for": for_,
-            "form": form,
-        },
+        attributes={"for": for_, "form": form},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2211,9 +2175,7 @@ def li(
     return _construct_node(
         "li",
         child_text=child_text,
-        attributes={
-            "value": value,
-        },
+        attributes={"value": value},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2313,9 +2275,7 @@ def map(
     return _construct_node(
         "map",
         child_text=child_text,
-        attributes={
-            "name": name,
-        },
+        attributes={"name": name},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2478,11 +2438,7 @@ def ol(
     return _construct_node(
         "ol",
         child_text=child_text,
-        attributes={
-            "reversed": reversed,
-            "start": start,
-            "type": type,
-        },
+        attributes={"reversed": reversed, "start": start, "type": type},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2501,10 +2457,7 @@ def optgroup(
     return _construct_node(
         "optgroup",
         child_text=child_text,
-        attributes={
-            "label": label,
-            "disabled": disabled,
-        },
+        attributes={"label": label, "disabled": disabled},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2550,11 +2503,7 @@ def output(
     return _construct_node(
         "output",
         child_text=child_text,
-        attributes={
-            "for": for_,
-            "form": form,
-            "name": name,
-        },
+        attributes={"for": for_, "form": form, "name": name},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2587,10 +2536,7 @@ def param(
     """Defines parameters for an object element"""
     return _construct_node(
         "param",
-        attributes={
-            "name": name,
-            "value": value,
-        },
+        attributes={"name": name, "value": value},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2643,10 +2589,7 @@ def progress(
     return _construct_node(
         "progress",
         child_text=child_text,
-        attributes={
-            "value": value,
-            "max": max,
-        },
+        attributes={"value": value, "max": max},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2664,9 +2607,7 @@ def q(
     return _construct_node(
         "q",
         child_text=child_text,
-        attributes={
-            "cite": cite,
-        },
+        attributes={"cite": cite},
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -2763,7 +2704,7 @@ def script(
     *,
     data: dict[str, str] | None = None,
     src: str | None = None,
-    type: str = "text/javascript",
+    type: str = ImplicitDefault("text/javascript"),
     async_: bool = False,
     defer: bool = False,
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
@@ -2864,9 +2805,7 @@ def slot(
     return _construct_node(
         "slot",
         child_text=child_text,
-        attributes={
-            "name": name,
-        },
+        attributes={"name": name},
         global_attributes=global_attributes,
         data=data or {},
     )
