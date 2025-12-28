@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 import time
 import math
 
-from view.response import Response, ViewResult, wrap_view_result
+from multidict import CIMultiDict
+
+from view.response import Response, StrOrBytesResponse, ViewResult, wrap_view_result
 
 __all__ = ("in_memory_cache",)
 
@@ -31,6 +33,24 @@ class BaseCache(ABC, Generic[P, T]):
     async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response: ...
 
 
+@dataclass(slots=True, frozen=True)
+class CachedResponse:
+    body: bytes
+    headers: CIMultiDict[str]
+    status: int
+    last_reset: float
+
+    @classmethod
+    async def from_response(cls, response: Response) -> CachedResponse:
+        body = await response.body()
+        return cls(body, response.headers, response.status_code, time.time())
+
+    def as_response(self) -> Response:
+        return StrOrBytesResponse.from_content(
+            self.body, status_code=self.status, headers=self.headers
+        )
+
+
 @dataclass(slots=True)
 class InMemoryCache(BaseCache[P, T]):
     """
@@ -39,26 +59,23 @@ class InMemoryCache(BaseCache[P, T]):
 
     callable: Callable[P, T]
     reset_frequency: float
-    last_reset: float | None = None
-    last_result: Response | None = field(repr=False, default=None)
+    cached_response: CachedResponse | None = field(repr=False, default=None)
 
     def invalidate(self) -> None:
-        self.last_result = None
-        self.last_reset = None
+        self.cached_response = None
 
     async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response:
-        if self.last_result is None:
-            new_result = await wrap_view_result(self.callable(*args, **kwargs))
-            self.last_result = new_result
-            self.last_reset = time.time()
-            return new_result
+        if self.cached_response is None:
+            result = await wrap_view_result(self.callable(*args, **kwargs))
+            cached = await CachedResponse.from_response(result)
+            self.cached_response = cached
+            return cached.as_response()
 
-        assert self.last_reset is not None
-        if (time.time() - self.last_reset) > self.reset_frequency:
+        if (time.time() - self.cached_response.last_reset) > self.reset_frequency:
             self.invalidate()
             return await self(*args, **kwargs)
 
-        return self.last_result
+        return self.cached_response.as_response()
 
 
 def minutes(number: int, /) -> int:
