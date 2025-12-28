@@ -2,6 +2,7 @@ from typing import AsyncIterator, Callable, Iterator
 import pytest
 from view.dom.primitives import ALL_PRIMITIVES, html, div, p
 from view.dom.core import HTMLNode, html_response, html_context
+from view.dom.components import component, Children
 import inspect
 
 from view.app import App
@@ -80,3 +81,27 @@ async def test_html_response():
     body = (await response.body()).decode("utf-8")
     formatted = body.replace(" ", "").replace("\n", "")
     assert formatted == "<!DOCTYPEhtml><html><div><p>test</p></div></html>"
+
+
+def test_components():
+    @component
+    def my_component():
+        with html():
+            yield p("1")
+            yield Children()
+            yield p("3")
+
+    def use_component():
+        with my_component():
+            yield p("2")
+            with div():
+                yield p("2.5")
+
+    with html_context() as top:
+        for _ in use_component():
+            pass
+
+        data = top.as_html()
+
+    formatted = data.replace(" ", "").replace("\n", "")
+    assert formatted == "<html><p>1</p><p>2</p><div><p>2.5</p></div><p>3</p></html>"
