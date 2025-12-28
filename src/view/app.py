@@ -4,7 +4,6 @@ import contextlib
 import contextvars
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -12,13 +11,12 @@ from typing import (
     ParamSpec,
     TypeAlias,
     TypeVar,
-    Union,
 )
 
 from loguru import logger
 
 from view.request import Method, Request
-from view.response import Response, ResponseLike, wrap_response
+from view.response import Response, wrap_view_result, ViewResult
 from view.router import FoundRoute, Router, RouteView
 from view.run import ServerSettings
 from view.status_codes import HTTPError, InternalServerError, NotFound
@@ -171,23 +169,20 @@ class BaseApp(ABC):
 
 
 async def execute_view(
-    view: Callable[P, ResponseLike | Awaitable[ResponseLike]],
+    view: Callable[P, ViewResult],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> ResponseLike:
+) -> Response:
     logger.debug(f"Executing view: {view}")
     try:
         result = view(*args, **kwargs)
-        if isinstance(result, Awaitable):
-            result = await result
-
-        return result
+        return await wrap_view_result(result)
     except HTTPError as error:
         logger.opt(colors=True).info(f"<red>HTTP Error {error.status_code}</red>")
         raise
 
 
-SingleView = Callable[["Request"], Union["ResponseLike", Awaitable["ResponseLike"]]]
+SingleView = Callable[["Request"], ViewResult]
 
 
 class SingleViewApp(BaseApp):
@@ -203,8 +198,7 @@ class SingleViewApp(BaseApp):
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
             try:
-                response = await execute_view(self.view, request)
-                return wrap_response(response)
+                return await execute_view(self.view, request)
             except HTTPError as error:
                 return error.as_response()
 
@@ -242,8 +236,7 @@ class App(BaseApp):
         try:
             # Extend instead of replacing?
             request.parameters = found_route.path_parameters
-            response = await execute_view(found_route.route.view)
-            return wrap_response(response)
+            return await execute_view(found_route.route.view)
         except BaseException as exception:
             # Let HTTP errors pass through, so the caller can deal with it
             if isinstance(exception, HTTPError):
@@ -258,7 +251,7 @@ class App(BaseApp):
             except HTTPError as error:
                 error_view = self.router.lookup_error(type(error))
                 if error_view is not None:
-                    return wrap_response(await execute_view(error_view))
+                    return await execute_view(error_view)
 
                 return error.as_response()
 

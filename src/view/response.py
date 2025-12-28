@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import mimetypes
 import warnings
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator, Awaitable
 from dataclasses import dataclass
 from os import PathLike
 from typing import AnyStr, Generic, TypeAlias
@@ -15,7 +15,7 @@ from view.body import BodyMixin
 from view.exceptions import InvalidType
 from view.headers import HeadersLike, RequestHeaders, as_multidict
 
-__all__ = "Response", "ResponseLike"
+__all__ = "Response", "ViewResult", "ResponseLike"
 
 
 @dataclass(slots=True)
@@ -47,14 +47,15 @@ class Response(BodyMixin):
 
 # AnyStr isn't working with the type checker, probably because it's a TypeVar
 StrOrBytes: TypeAlias = str | bytes
-ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
+_ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
 ResponseLike: TypeAlias = (
     Response
     | StrOrBytes
     | AsyncGenerator[StrOrBytes]
     | Generator[StrOrBytes]
-    | ResponseTuple
+    | _ResponseTuple
 )
+ViewResult = ResponseLike | Awaitable[ResponseLike]
 StrPath: TypeAlias = str | PathLike[str]
 
 
@@ -141,7 +142,7 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
         return cls(stream, status_code, as_multidict(headers), content)
 
 
-def _wrap_response_tuple(response: ResponseTuple) -> Response:
+def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     if response == ():
         raise ValueError("Response cannot be an empty tuple")
 
@@ -172,7 +173,7 @@ def _wrap_response_tuple(response: ResponseTuple) -> Response:
     return StrOrBytesResponse.from_content(content, status_code=status, headers=headers)
 
 
-def wrap_response(response: ResponseLike, /) -> Response:
+def _wrap_response(response: ResponseLike, /) -> Response:
     """
     Wrap a response from a view into a `Response` object.
     """
@@ -199,3 +200,14 @@ def wrap_response(response: ResponseLike, /) -> Response:
         return Response(stream, status_code=200, headers=CIMultiDict())
     else:
         raise TypeError(f"Invalid response: {response!r}")
+
+
+async def wrap_view_result(result: ViewResult, /) -> Response:
+    """
+    Turn the raw result of a view, which might be a coroutine, into a usable
+    `Response` object.
+    """
+    if isinstance(result, Awaitable):
+        result = await result
+
+    return _wrap_response(result)
