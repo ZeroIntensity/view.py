@@ -6,6 +6,7 @@ from typing import (
     Iterator,
     ClassVar,
     AsyncIterator,
+    NoReturn,
     ParamSpec,
     Callable,
     TypeAlias,
@@ -39,9 +40,60 @@ class HTMLNode:
     node_stack: ClassVar[ContextVar[LifoQueue[HTMLNode]]] = ContextVar("node_stack")
 
     node_name: str
+    """
+    Name of the node as it will appear in the HTML. For example, in an <html>
+    node, this will be the string 'html'.
+    """
+
+    is_real: bool = True
+    """
+    Whether this node will actually be included in the output. Generally, most
+    nodes will be rendered, but there are a few special types of nodes that
+    are only used during the rendering process.
+    """
+
     text: str = ""
+    """
+    The direct text of this node, not including any other children.
+    """
+
     attributes: dict[str, str] = field(default_factory=dict)
+    """
+    Dictionary containing attribute names and values as they will be rendered
+    in the final output.
+    """
+
     children: list[HTMLNode] = field(default_factory=list)
+    """
+    All nodes that are a direct descendant of this node.
+    """
+
+    @classmethod
+    def virtual(cls, name: str) -> HTMLNode:
+        """
+        Create a new "fake" node.
+        """
+
+        return cls(f"__view_internal_{name}_node", is_real=False)
+
+    @classmethod
+    def new(
+        cls,
+        name: str,
+        *,
+        child_text: str | None = None,
+        attributes: dict[str, str] | None = None,
+    ) -> HTMLNode:
+        """
+        Create a new node that will be included in the final HTML.
+        """
+        return cls(
+            name,
+            is_real=True,
+            text=child_text or "",
+            attributes=attributes or {},
+            children=[],
+        )
 
     def __enter__(self) -> None:
         stack = self.node_stack.get()
@@ -64,7 +116,7 @@ class HTMLNode:
         Convert this node to actual HTML code, streaming each line individually.
         """
 
-        if self.node_name != "":
+        if self.is_real:
             if self.attributes == {}:
                 yield f"<{self.node_name}>"
             else:
@@ -75,7 +127,7 @@ class HTMLNode:
             yield from _indent_iterator(self._html_body())
             yield f"</{self.node_name}>"
         else:
-            assert self.attributes == {}
+            assert self.attributes == {}, self.attributes
             yield from self._html_body()
 
     def as_html(self) -> str:
@@ -94,7 +146,7 @@ class Children(HTMLNode):
     def __init__(self) -> None:
         super().__init__("_children_node")
 
-    def __enter__(self):
+    def __enter__(self) -> NoReturn:
         raise RuntimeError("Children() cannot be used in a 'with' block")
 
 
@@ -110,14 +162,14 @@ class Component:
         stack = HTMLNode.node_stack.get()
         for node in self.generator:
             if isinstance(node, Children):
-                capture_node = HTMLNode("_node_capture")
+                capture_node = HTMLNode.virtual("capture")
                 stack.put_nowait(capture_node)
                 return
 
     def __exit__(self, *_) -> None:
         stack = HTMLNode.node_stack.get()
         capture_node = stack.get_nowait()
-        assert capture_node.node_name == "_node_capture"
+        assert not capture_node.is_real
 
         parent_node = stack.queue[-1]
         parent_node.children.extend(capture_node.children)
@@ -145,13 +197,11 @@ def html_context() -> Iterator[HTMLNode]:
     stack = LifoQueue()
     token = HTMLNode.node_stack.set(stack)
 
-    # Special top-level node that won't be included in the output
-    # TODO: Is this too hacky?
-    special = HTMLNode("")
-    stack.put_nowait(special)
+    tree = HTMLNode.virtual("tree_top")
+    stack.put_nowait(tree)
 
     try:
-        yield special
+        yield tree
     finally:
         HTMLNode.node_stack.reset(token)
 

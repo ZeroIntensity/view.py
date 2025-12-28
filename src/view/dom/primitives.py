@@ -61,7 +61,7 @@ def _construct_node(
                 attributes.pop(attribute_name)
             )
 
-    new_node = HTMLNode(name, child_text or "", attributes, [])
+    new_node = HTMLNode.new(name, child_text=child_text, attributes=attributes)
     top.children.append(new_node)
     return new_node
 
