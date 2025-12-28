@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
 
+from view.exceptions import InvalidType, ViewError
 from view.status_codes import HTTPError, status_exception
 
 if TYPE_CHECKING:
@@ -39,6 +40,15 @@ def normalize_route(route: str, /) -> str:
 
     return route
 
+class DuplicateRoute(ViewError):
+    """
+    The router found multiple views for the same route.
+
+    Generally, this means that a typo is present, or perhaps the user
+    misunderstood something about route normalization. For example, "/" and ""
+    are equivalent to the router.
+    """
+
 
 @dataclass(slots=True)
 class PathNode:
@@ -61,8 +71,8 @@ class PathNode:
             self.path_parameter = next_node
             return next_node
         if __debug__ and name != self.path_parameter.name:
-            raise ValueError(
-                f"Path parameter {name} in the same place as"
+            raise DuplicateRoute(
+                f"Path parameter {name} is in the same place as"
                 f" {self.path_parameter.name}, but with a different name",
             )
         return self.path_parameter
@@ -132,7 +142,7 @@ class Router:
                 parent_node = parent_node.next(part)
 
         if parent_node.routes.get(method) is not None:
-            raise RuntimeError(f"The route {path!r} was already used")
+            raise DuplicateRoute(f"The route {path!r} was already used")
 
         parent_node.routes[method] = route
 
@@ -146,7 +156,7 @@ class Router:
         elif issubclass(error, HTTPError):
             error_type = error
         else:
-            raise TypeError(f"Expected a status code or type, but got {error!r}")
+            raise InvalidType((int, type), error)
 
         self.error_views[error_type] = view
 

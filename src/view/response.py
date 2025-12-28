@@ -12,7 +12,7 @@ from loguru import logger
 from multidict import CIMultiDict
 
 from view.body import BodyMixin
-from view.exceptions import InvalidType
+from view.exceptions import InvalidType, ViewError
 from view.headers import HeadersLike, RequestHeaders, as_multidict
 
 __all__ = "Response", "ViewResult", "ResponseLike"
@@ -141,10 +141,15 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
 
         return cls(stream, status_code, as_multidict(headers), content)
 
+class InvalidResponse(ViewError):
+    """
+    A view returned an object that view.py doesn't know how to convert into a
+    response object.
+    """
 
 def _wrap_response_tuple(response: _ResponseTuple) -> Response:
-    if response == ():
-        raise ValueError("Response cannot be an empty tuple")
+    if __debug__ and response == ():
+        raise InvalidResponse("Response cannot be an empty tuple")
 
     if __debug__ and len(response) == 1:
         warnings.warn(
@@ -156,9 +161,9 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
 
     content = response[0]
     if __debug__ and isinstance(content, Response):
-        raise ValueError(
+        raise InvalidResponse(
             f"Response() objects cannot be used with response"
-            " tuples. Instead, use the status_code parameter."
+            " tuples. Instead, use the status_code and/or headers parameter(s)."
         )
 
     status = response[1]
@@ -168,7 +173,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
         headers = response[2]
 
     if __debug__ and len(response) > 3:
-        raise ValueError(f"Got excess data in response tuple {response[3:]!r}")
+        raise InvalidResponse(f"Got excess data in response tuple {response[3:]!r}")
 
     return StrOrBytesResponse.from_content(content, status_code=status, headers=headers)
 

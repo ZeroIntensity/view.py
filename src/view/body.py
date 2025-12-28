@@ -4,11 +4,20 @@ from dataclasses import dataclass, field
 from io import BytesIO
 from typing import AsyncGenerator, AsyncIterator, Callable, TypeAlias
 
-from view.exceptions import InvalidType
+from view.exceptions import InvalidType, ViewError
 
 __all__ = ("BodyMixin",)
 
 BodyStream: TypeAlias = Callable[[], AsyncIterator[bytes]]
+
+
+class BodyAlreadyUsed(ViewError):
+    """
+    The body was already used on this response.
+
+    Generally, this means that the same response object was executed multiple
+    times.
+    """
 
 
 @dataclass(slots=True)
@@ -25,7 +34,7 @@ class BodyMixin:
         Read the full body from the stream.
         """
         if self.consumed:
-            raise RuntimeError("Body has already been consumed")
+            raise BodyAlreadyUsed("Body has already been consumed")
 
         self.consumed = True
 
@@ -43,7 +52,7 @@ class BodyMixin:
         in-memory at a given time.
         """
         if self.consumed:
-            raise RuntimeError("Body has already been consumed")
+            raise BodyAlreadyUsed("Body has already been consumed")
 
         self.consumed = True
 

@@ -31,7 +31,7 @@ class ViewError(Exception):
     def __init__(self, *msg: str) -> None:
         self.message = " ".join(msg)
         super().__init__(
-            f"[Error code {self.code}]: {self.message}" f"{_base_help(self.code)}"
+            f"[Error code {self.code}]: {self.message}" f"\n{_base_help(self.code)}"
         )
 
 
