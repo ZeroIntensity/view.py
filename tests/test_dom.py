@@ -1,7 +1,10 @@
-from typing import Callable, Iterator
+from typing import AsyncIterator, Callable, Iterator
 import pytest
-from view.dom import ALL_PRIMITIVES, HTMLNode, html, div, html_context
+from view.dom import ALL_PRIMITIVES, HTMLNode, html, div, html_context, html_response, p
 import inspect
+
+from view.app import App
+from view.testing import AppTestClient
 
 
 def html_function(
@@ -56,3 +59,23 @@ def test_dom_primitives(dom_node: Callable[..., HTMLNode]):
         assert f"</html>" == next(iterator)
         with pytest.raises(StopIteration):
             next(iterator)
+
+
+@pytest.mark.asyncio
+async def test_html_response():
+    app = App()
+
+    @app.get("/")
+    @html_response
+    async def index() -> AsyncIterator[HTMLNode | int]:
+        yield 201
+        with html():
+            with div():
+                yield p("test")
+
+    client = AppTestClient(app)
+    response = await client.get("/")
+    assert response.status_code == 201
+    body = (await response.body()).decode("utf-8")
+    formatted = body.replace(" ", "").replace("\n", "")
+    assert formatted == "<!DOCTYPEhtml><html><div><p>test</p></div></html>"
