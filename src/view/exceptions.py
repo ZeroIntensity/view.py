@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-import sys
-from typing import Any, ClassVar
+from typing import Any
 
-__all__ = "ViewError", "explain"
-
-
-def _base_help(code: int) -> str:
-    return f"Unsure what to do? Run `view explain {code}`"
-
-
-CODES: dict[int, type[ViewError]] = {}
-_NEXT_GLOBAL_CODE: int = 1000
+__all__ = ("ViewError",)
 
 
 class ViewError(Exception):
@@ -19,20 +10,8 @@ class ViewError(Exception):
     Base class for all exceptions in view.py
     """
 
-    code: ClassVar[int] = -1
-
-    def __init_subclass__(cls) -> None:
-        global _NEXT_GLOBAL_CODE, __all__
-        cls.code = _NEXT_GLOBAL_CODE
-        _NEXT_GLOBAL_CODE += 1
-
-        __all__ += (cls.__name__,)
-
     def __init__(self, *msg: str) -> None:
-        self.message = " ".join(msg)
-        super().__init__(
-            f"[Error code {self.code}]: {self.message}" f"\n{_base_help(self.code)}"
-        )
+        super().__init__(*msg)
 
 
 class InvalidType(ViewError, TypeError):
@@ -53,18 +32,3 @@ class InvalidType(ViewError, TypeError):
         else:
             expected_string = ", ".join([exception.__name__ for exception in expected])
             super().__init__(f"Expected {expected_string}, got {got!r}")
-
-
-def explain(code: int) -> str:
-    """
-    Get the explanation for a given error code.
-    """
-    error_cls = CODES.get(code)
-    if error_cls is None:
-        raise RuntimeError(f"Unknown error code: {code}")
-
-    if sys.flags.optimize >= 2:
-        raise RuntimeError("Cannot explain errors when -OO is passed to Python")
-
-    assert error_cls.__doc__ is not None, "Error class should have a docstring"
-    return error_cls.__doc__
