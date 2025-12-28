@@ -141,11 +141,13 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
 
         return cls(stream, status_code, as_multidict(headers), content)
 
+
 class InvalidResponse(ViewError):
     """
     A view returned an object that view.py doesn't know how to convert into a
     response object.
     """
+
 
 def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     if __debug__ and response == ():

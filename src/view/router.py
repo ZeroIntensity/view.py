@@ -40,6 +40,7 @@ def normalize_route(route: str, /) -> str:
 
     return route
 
+
 class DuplicateRoute(ViewError):
     """
     The router found multiple views for the same route.

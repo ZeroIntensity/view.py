@@ -7,16 +7,18 @@ import math
 
 from view.response import Response, ViewResult, wrap_view_result
 
-__all__ = "in_memory_cache",
+__all__ = ("in_memory_cache",)
 
 T = TypeVar("T", bound=ViewResult)
 P = ParamSpec("P")
+
 
 @dataclass(slots=True)
 class BaseCache(ABC, Generic[P, T]):
     """
     Base class for caches.
     """
+
     callable: Callable[P, T]
 
     @abstractmethod
@@ -26,8 +28,7 @@ class BaseCache(ABC, Generic[P, T]):
         """
 
     @abstractmethod
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response:
-        ...
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response: ...
 
 
 @dataclass(slots=True)
@@ -35,6 +36,7 @@ class InMemoryCache(BaseCache[P, T]):
     """
     Wrapper class for a cache stored in memory.
     """
+
     callable: Callable[P, T]
     reset_frequency: float
     last_reset: float | None = None
