@@ -36,6 +36,8 @@ def test_dom_primitives(dom_node: Callable[..., HTMLNode]):
                 for _ in html_function(dom_node, has_body=has_body):
                     pass
 
+            return
+
         iterator = parent.as_html_stream()
         assert "<html" == next(iterator)
         assert 'lang="en"' in next(iterator)

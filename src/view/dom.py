@@ -768,8 +768,8 @@ def th(
     /,
     *,
     data: dict[str, str] | None = None,
-    colspan: int = 1,
-    rowspan: int = 1,
+    colspan: int | ImplicitDefault = ImplicitDefault(1),
+    rowspan: int | ImplicitDefault = ImplicitDefault(1),
     headers: str | None = None,
     scope: Literal["col", "row", "colgroup", "rowgroup"] | None = None,
     abbr: str | None = None,
@@ -1271,8 +1271,8 @@ def canvas(
     /,
     *,
     data: dict[str, str] | None = None,
-    width: int = 300,
-    height: int = 150,
+    width: int | ImplicitDefault = ImplicitDefault(300),
+    height: int | ImplicitDefault = ImplicitDefault(150),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Provides a container for graphics that can be drawn using JavaScript"""
@@ -1339,7 +1339,7 @@ def code(
 def col(
     *,
     data: dict[str, str] | None = None,
-    span: int = 1,
+    span: int | ImplicitDefault = ImplicitDefault(1),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Specifies column properties for each column within a <colgroup> element"""
@@ -1356,7 +1356,7 @@ def colgroup(
     /,
     *,
     data: dict[str, str] | None = None,
-    span: int = 1,
+    span: int | ImplicitDefault = ImplicitDefault(1),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Specifies a group of one or more columns in a table for formatting"""
@@ -2608,7 +2608,7 @@ def progress(
     *,
     data: dict[str, str] | None = None,
     value: int | None = None,
-    max: int = 1,
+    max: int | ImplicitDefault = ImplicitDefault(1),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Represents the progress of a task"""
