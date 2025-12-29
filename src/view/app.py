@@ -241,7 +241,7 @@ class App(BaseApp):
             if isinstance(exception, HTTPError):
                 raise
             logger.exception(exception)
-            raise InternalServerError() from exception
+            raise InternalServerError.from_current_exception()
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):

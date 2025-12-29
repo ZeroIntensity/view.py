@@ -504,13 +504,10 @@ class InternalServerError(ServerSideError):
 
     status_code = 500
 
-    def as_response(self) -> StrOrBytesResponse[str]:
-        if not __debug__:
-            return super().as_response()
-
-        cls = type(self)
+    @classmethod
+    def from_current_exception(cls) -> InternalServerError:
         message = traceback.format_exc()
-        return StrOrBytesResponse.from_content(message, status_code=cls.status_code)
+        return cls(message)
 
 
 class NotImplemented(ServerSideError):

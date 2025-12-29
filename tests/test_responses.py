@@ -7,7 +7,13 @@ from view.app import as_app
 from view.headers import as_multidict
 from view.request import Request
 from view.response import FileResponse, Response, ResponseLike
-from view.status_codes import BadRequest, Success
+from view.status_codes import (
+    BadRequest,
+    HTTPError,
+    Success,
+    STATUS_STRINGS,
+    STATUS_EXCEPTIONS,
+)
 from view.testing import AppTestClient, into_tuple
 
 
@@ -143,3 +149,17 @@ async def test_status_codes():
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == (b"400 Bad Request", 400, {})
     assert (await into_tuple(client.get("/message"))) == (b"Test", 400, {})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status_exception", list(STATUS_EXCEPTIONS.values()))
+async def test_status_code_strings(status_exception: type[HTTPError]):
+    @as_app
+    async def app(_: Request) -> ResponseLike:
+        raise status_exception()
+
+    client = AppTestClient(app)
+    response = await client.get("/")
+    assert status_exception.status_code == response.status_code
+    message = f"{status_exception.status_code} {STATUS_STRINGS[response.status_code]}"
+    assert (await response.body()) == message.encode("utf-8")
