@@ -74,7 +74,7 @@ def test_reraises_unexpected():
         runtime_from_type_but_value()
 
 
-def test_reraise_all_exceptions():
+def test_reraises_all_exceptions():
 
     @reraises(RuntimeError)
     def runtime_from_all() -> None:
