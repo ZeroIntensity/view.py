@@ -5,9 +5,10 @@ import warnings
 from collections.abc import AsyncGenerator, Generator, Awaitable
 from dataclasses import dataclass
 from os import PathLike
-from typing import AnyStr, Generic, TypeAlias
+from typing import AnyStr, Generic, TypeAlias, Any, Callable
 
 import aiofiles
+import json
 from loguru import logger
 from multidict import CIMultiDict
 
@@ -140,6 +141,34 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
             yield _as_bytes(content)
 
         return cls(stream, status_code, as_multidict(headers), content)
+
+
+@dataclass(slots=True)
+class JSONResponse(Response):
+    content: dict[str, Any]
+    parsed_data: str
+
+    @classmethod
+    def from_content(
+        cls,
+        content: dict[str, Any],
+        *,
+        parse_function: Callable[[dict[str, Any]], str] = json.dumps,
+        status_code: int = 200,
+        headers: HeadersLike | None = None,
+    ) -> JSONResponse:
+        data = parse_function(content)
+
+        async def stream() -> AsyncGenerator[bytes]:
+            yield data.encode("utf-8")
+
+        return cls(
+            content=content,
+            parsed_data=data,
+            headers=as_multidict(headers),
+            status_code=status_code,
+            receive_data=stream,
+        )
 
 
 class InvalidResponse(ViewError):
