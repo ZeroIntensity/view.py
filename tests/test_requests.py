@@ -1,6 +1,7 @@
 import json
 from typing import AsyncIterator
 
+from multidict import MultiDict
 import pytest
 
 from view.app import App, as_app
@@ -67,6 +68,7 @@ async def test_manual_request():
         path="/",
         method=Method.POST,
         headers=as_multidict({"test": "42"}),
+        query_parameters=MultiDict(),
     )
     response = await app.process_request(manual_request)
     assert (await response.body()) == b"1"
@@ -155,7 +157,7 @@ async def test_request_path_parameters():
     @app.get("/spanish/{inquisition}")
     async def path_param():
         request = app.current_request()
-        assert request.parameters["inquisition"] == "42"
+        assert request.path_parameters["inquisition"] == "42"
         return "0"
 
     @app.get("/spanish/inquisition")
@@ -165,14 +167,14 @@ async def test_request_path_parameters():
     @app.get("/spanish/inquisition/{nobody}")
     def sub_path_param():
         request = app.current_request()
-        assert request.parameters["nobody"] == "gotcha"
+        assert request.path_parameters["nobody"] == "gotcha"
         return "2"
 
     @app.get("/spanish/{inquisition}/{nobody}")
     def double_path_param():
         request = app.current_request()
-        assert request.parameters["inquisition"] == "1"
-        assert request.parameters["nobody"] == "2"
+        assert request.path_parameters["inquisition"] == "1"
+        assert request.path_parameters["nobody"] == "2"
         return "3"
 
     client = AppTestClient(app)
@@ -312,3 +314,20 @@ async def test_request_json():
         400,
         {},
     )
+
+
+@pytest.mark.asyncio
+async def test_request_query_parameters():
+    app = App()
+
+    @app.get("/")
+    async def main():
+        request = app.current_request()
+        assert request.query_parameters["foo"] == "bar"
+        assert request.query_parameters["test"] == ["1", "2", "3"]
+        assert "noexist" not in request.query_parameters
+
+        return "ok"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/?foo=bar&test=1&test=2&test=3"))) == ok("ok")

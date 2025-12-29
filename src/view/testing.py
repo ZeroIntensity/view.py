@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 from multidict import CIMultiDict
 
 from view.headers import HeadersLike, as_multidict
-from view.request import Method, Request
+from view.request import Method, Request, extract_query_parameters
 
 if TYPE_CHECKING:
     from view.app import BaseApp
@@ -48,12 +48,15 @@ class AppTestClient:
         async def stream() -> AsyncGenerator[bytes]:
             yield body or b""
 
+        path, _, query_string = route.partition("?")
+
         request_data = Request(
             receive_data=stream,
             app=self.app,
-            path=route,
+            path=path,
             method=method,
             headers=as_multidict(headers),
+            query_parameters=extract_query_parameters(query_string),
         )
         return await self.app.process_request(request_data)
 
