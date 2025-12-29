@@ -14,7 +14,7 @@ from typing import (
 
 from view.app import BaseApp
 from view.headers import asgi_as_multidict, multidict_as_asgi
-from view.request import Method, Request
+from view.request import Method, Request, extract_query_parameters
 
 __all__ = ("asgi_for_app",)
 
@@ -35,6 +35,7 @@ class ASGIHttpScope(TypedDict):
     scheme: str
     path: str
     raw_path: bytes
+    query_string: bytes
     root_path: str
     headers: ASGIHeaders
     client: Iterable[tuple[str, int]] | None
@@ -92,7 +93,8 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
                 yield data.get("body", b"")
                 more_body = data.get("more_body", False)
 
-        request = Request(receive_data, app, scope["path"], method, headers)
+        parameters = extract_query_parameters(scope["query_string"])
+        request = Request(receive_data, app, scope["path"], method, headers, parameters)
 
         response = await app.process_request(request)
         await send(

@@ -249,7 +249,7 @@ class App(BaseApp):
             raise NotFound()
 
         # Extend instead of replacing?
-        request.parameters = found_route.path_parameters
+        request.path_parameters = found_route.path_parameters
         return await execute_view(found_route.route.view)
 
     async def process_request(self, request: Request) -> Response:

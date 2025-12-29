@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import urllib.parse
+
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 from typing import TYPE_CHECKING
+from multidict import MultiDict
 
 from view.body import BodyMixin
 from view.headers import RequestHeaders
@@ -110,10 +113,32 @@ class Request(BodyMixin):
     but if a header has multiple values, it is represented by a list.
     """
 
-    parameters: dict[str, str] = field(init=False, default_factory=dict)
+    query_parameters: MultiDict[str]
     """
     The query string parameters of the HTTP request.
     """
 
+    path_parameters: dict[str, str] = field(default_factory=dict, init=False)
+    """
+    The path parameters of this request.
+    """
+
     def __post_init__(self) -> None:
         self.path = normalize_route(self.path)
+
+
+def extract_query_parameters(query_string: str | bytes) -> MultiDict[str]:
+    """
+    Extract a query string from a URL and return it as a multidict.
+    """
+    if isinstance(query_string, bytes):
+        query_string = query_string.decode("utf-8")
+
+    assert isinstance(query_string, str), query_string
+    parsed = urllib.parse.parse_qsl(query_string)
+    result = MultiDict()
+
+    for key, value in parsed:
+        result[key] = value
+
+    return result

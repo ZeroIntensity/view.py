@@ -4,7 +4,7 @@ import asyncio
 from typing import IO, TYPE_CHECKING, Any, Callable, Iterable, TypeAlias
 
 from view.headers import wsgi_as_multidict
-from view.request import Method, Request
+from view.request import Method, Request, extract_query_parameters
 from view.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
@@ -50,7 +50,8 @@ def wsgi_for_app(
         path = environ["PATH_INFO"]
         assert isinstance(path, str)
         headers = wsgi_as_multidict(environ)
-        request = Request(stream, app, path, method, headers)
+        parameters = extract_query_parameters(environ["QUERY_STRING"])
+        request = Request(stream, app, path, method, headers, parameters)
         response = loop.run_until_complete(app.process_request(request))
 
         wsgi_headers: WSGIHeaders = []
