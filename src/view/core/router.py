@@ -215,7 +215,7 @@ class Router:
                         return parent_node.subrouter(remaining)
 
                     # This route doesn't exist
-                    return
+                    return None
 
                 path_parameters[node.name] = part
 
