@@ -1,6 +1,7 @@
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Callable, Iterator, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
 __all__ = "reraise", "reraises"
 

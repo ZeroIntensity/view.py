@@ -1,6 +1,7 @@
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Callable, Iterable, NoReturn, ParamSpec
+from typing import NoReturn, ParamSpec
 
 from view.dom.core import HTMLNode, HTMLTree
 from view.dom.primitives import base, body, html, link, meta, script

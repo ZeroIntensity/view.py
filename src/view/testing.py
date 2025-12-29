@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
+from collections.abc import AsyncGenerator, Awaitable
+from typing import TYPE_CHECKING
 
 from multidict import CIMultiDict
 

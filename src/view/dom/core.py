@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from io import StringIO
 from queue import LifoQueue
-from typing import AsyncIterator, Callable, ClassVar, Iterator, ParamSpec, TypeAlias
+from typing import ClassVar, ParamSpec, TypeAlias
 
 from view.core.headers import as_multidict
 from view.core.response import Response

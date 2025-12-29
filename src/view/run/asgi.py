@@ -1,16 +1,7 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
-    Literal,
-    NotRequired,
-    TypeAlias,
-    TypedDict,
-)
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
+from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 from view.core.app import BaseApp
 from view.core.headers import asgi_as_multidict, multidict_as_asgi
@@ -24,7 +15,7 @@ class ASGIScopeData(TypedDict):
     spec_version: NotRequired[str]
 
 
-ASGIHeaders = Iterable[tuple[bytes, bytes]]
+ASGIHeaders: TypeAlias = Iterable[tuple[bytes, bytes]]
 
 
 class ASGIHttpScope(TypedDict):

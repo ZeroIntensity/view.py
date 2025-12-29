@@ -1,5 +1,5 @@
 import inspect
-from typing import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 
 import pytest
 

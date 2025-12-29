@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Literal, NotRequired, TypedDict, Unpack
+from collections.abc import Callable
+from typing import Any, Literal, NotRequired, TypedDict, Unpack
 
 from view.dom.core import HTMLNode
 from view.exceptions import InvalidType

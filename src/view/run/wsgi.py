@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import IO, TYPE_CHECKING, Any, Callable, Iterable, TypeAlias
+from collections.abc import Callable, Iterable
+from typing import IO, TYPE_CHECKING, Any, TypeAlias
 
 from view.core.headers import wsgi_as_multidict
 from view.core.request import Method, Request, extract_query_parameters

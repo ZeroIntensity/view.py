@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterator
 from io import StringIO
-from typing import Callable, Iterator, ParamSpec, Protocol, runtime_checkable
+from typing import ParamSpec, Protocol, runtime_checkable
 
 from view.exceptions import InvalidType
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 from view.exceptions import InvalidType, ViewError
 from view.status_codes import HTTPError, status_exception

@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 import mimetypes
 import warnings
-from collections.abc import AsyncGenerator, Awaitable, Generator
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from dataclasses import dataclass
 from os import PathLike
-from typing import Any, AnyStr, Callable, Generic, TypeAlias
+from typing import Any, AnyStr, Generic, TypeAlias
 
 import aiofiles
 from loguru import logger
