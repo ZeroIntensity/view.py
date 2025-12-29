@@ -8,9 +8,20 @@ if TYPE_CHECKING:
     from view.app import BaseApp
     from view.wsgi import WSGIProtocol
 
+from view.exceptions import ViewError
+
 __all__ = ("ServerSettings",)
 
 StartServer: TypeAlias = Callable[[], None]
+
+
+class BadServer(ViewError):
+    """
+    Something is wrong with the selected server.
+
+    This generally means that the target server isn't installed or doesn't
+    exist (either not supported by view.py or there's a typo present).
+    """
 
 
 @dataclass(slots=True, frozen=True)
@@ -131,12 +142,12 @@ class ServerSettings:
             try:
                 start_server = servers[self.hint]
             except KeyError as key_error:
-                raise ValueError(f"{self.hint!r} is not a known server") from key_error
+                raise BadServer(f"{self.hint!r} is not a known server") from key_error
 
             try:
                 return start_server()
             except ImportError as error:
-                raise RuntimeError(f"{self.hint} is not installed") from error
+                raise BadServer(f"{self.hint} is not installed") from error
 
         for start_server in servers.values():
             with suppress(ImportError):
