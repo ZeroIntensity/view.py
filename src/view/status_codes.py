@@ -4,7 +4,7 @@ import traceback
 from enum import IntEnum
 from typing import ClassVar
 
-from view.response import StrOrBytesResponse
+from view.response import TextResponse
 
 __all__ = "HTTPError", "Success", "status_exception"
 
@@ -172,7 +172,7 @@ class HTTPError(Exception):
         global __all__
         __all__ += (cls.__name__,)
 
-    def as_response(self) -> StrOrBytesResponse[str]:
+    def as_response(self) -> TextResponse[str]:
         cls = type(self)
         if cls.status_code == 0:
             raise TypeError(f"{cls} is not a real response")
@@ -182,7 +182,7 @@ class HTTPError(Exception):
         else:
             message = str(self)
 
-        return StrOrBytesResponse.from_content(
+        return TextResponse.from_content(
             message.encode("utf-8"), status_code=cls.status_code
         )
 

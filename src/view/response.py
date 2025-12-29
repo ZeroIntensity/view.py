@@ -114,7 +114,7 @@ def _as_bytes(data: str | bytes) -> bytes:
 
 
 @dataclass(slots=True)
-class StrOrBytesResponse(Response, Generic[AnyStr]):
+class TextResponse(Response, Generic[AnyStr]):
     """
     Simple in-memory response for a UTF-8 encoded string, or a raw ASCII byte string.
     """
@@ -129,9 +129,9 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
         *,
         status_code: int = 200,
         headers: HeadersLike | None = None,
-    ) -> StrOrBytesResponse[AnyStr]:
+    ) -> TextResponse[AnyStr]:
         """
-        Generate a `StrOrBytesResponse` from either a `str` or `bytes` object.
+        Generate a `TextResponse` from either a `str` or `bytes` object.
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
@@ -188,7 +188,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
             " which is useless. Return the item directly.",
             RuntimeWarning,
         )
-        return StrOrBytesResponse.from_content(response[0])
+        return TextResponse.from_content(response[0])
 
     content = response[0]
     if __debug__ and isinstance(content, Response):
@@ -206,7 +206,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     if __debug__ and len(response) > 3:
         raise InvalidResponse(f"Got excess data in response tuple {response[3:]!r}")
 
-    return StrOrBytesResponse.from_content(content, status_code=status, headers=headers)
+    return TextResponse.from_content(content, status_code=status, headers=headers)
 
 
 def _wrap_response(response: ResponseLike, /) -> Response:
@@ -217,7 +217,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
     if isinstance(response, Response):
         return response
     elif isinstance(response, (str, bytes)):
-        return StrOrBytesResponse.from_content(response)
+        return TextResponse.from_content(response)
     elif isinstance(response, tuple):
         return _wrap_response_tuple(response)
     elif isinstance(response, AsyncGenerator):

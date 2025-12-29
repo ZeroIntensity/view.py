@@ -7,7 +7,7 @@ import math
 
 from multidict import CIMultiDict
 
-from view.response import Response, StrOrBytesResponse, ViewResult, wrap_view_result
+from view.response import Response, TextResponse, ViewResult, wrap_view_result
 
 __all__ = ("in_memory_cache",)
 
@@ -46,7 +46,7 @@ class _CachedResponse:
         return cls(body, response.headers, response.status_code, time.time())
 
     def as_response(self) -> Response:
-        return StrOrBytesResponse.from_content(
+        return TextResponse.from_content(
             self.body, status_code=self.status, headers=self.headers
         )
 
