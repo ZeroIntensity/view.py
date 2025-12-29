@@ -6,7 +6,7 @@ import pytest
 from view.app import as_app
 from view.headers import as_multidict
 from view.request import Request
-from view.response import FileResponse, Response, ResponseLike
+from view.response import FileResponse, Response, ResponseLike, JSONResponse
 from view.status_codes import (
     BadRequest,
     HTTPError,
@@ -177,3 +177,16 @@ async def test_internal_server_error():
     output = (await response.body()).decode("utf-8")
     assert "Traceback (most recent call last)" in output
     assert "Exception: silly" in output
+
+
+@pytest.mark.asyncio
+async def test_json_response():
+    @as_app
+    async def app(_: Request):
+        return JSONResponse.from_content({"foo": "bar"})
+
+    client = AppTestClient(app)
+    response = await client.get("/")
+    assert response.status_code == 200
+    assert response.headers == {}
+    assert (await response.json()) == {"foo": "bar"}
