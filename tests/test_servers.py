@@ -11,7 +11,7 @@ from view.status_codes import Success
 
 
 @pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
-def test_server(server_name: str):
+def test_run_server_detached(server_name: str):
     @as_app
     def app(request: Request) -> ResponseLike:
         header = request.headers["test"]
