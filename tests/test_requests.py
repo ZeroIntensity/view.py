@@ -1,8 +1,10 @@
 from typing import AsyncIterator
 
 import pytest
+import json
 
 from view.app import App, as_app
+from view.body import InvalidJSON
 from view.headers import as_multidict
 from view.request import Method, Request
 from view.response import ResponseLike
@@ -287,3 +289,26 @@ async def test_route_division():
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/test/main/"))) == ok("1")
     assert (await into_tuple(client.get("/test/main/foo"))) == ok("2")
+
+
+@pytest.mark.asyncio
+async def test_request_json():
+    app = App()
+
+    @app.get("/")
+    async def main():
+        request = app.current_request()
+        try:
+            data = await request.json()
+        except InvalidJSON as error:
+            raise BadRequest() from error
+        return data["test"]
+
+    json_body = json.dumps({"test": "123"}).encode("utf-8")
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/", body=json_body))) == ok("123")
+    assert (await into_tuple(client.get("/", body=b"..."))) == (
+        b"400 Bad Request",
+        400,
+        {},
+    )
