@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import ParamSpec, TypeVar, Callable, Generic
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
-import time
+
 import math
+import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Callable, Generic, ParamSpec, TypeVar
 
 from multidict import CIMultiDict
 

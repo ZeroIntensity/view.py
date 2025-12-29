@@ -1,5 +1,6 @@
-from view.utils import reraise, reraises
 import pytest
+
+from view.utils import reraise, reraises
 
 
 def test_simple_reraise():

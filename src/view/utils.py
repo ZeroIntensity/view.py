@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from typing import Iterator, Callable, TypeVar, ParamSpec
 from functools import wraps
+from typing import Callable, Iterator, ParamSpec, TypeVar
 
 __all__ = "reraise", "reraises"
 

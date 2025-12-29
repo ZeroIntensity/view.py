@@ -1,8 +1,7 @@
-from typing import ParamSpec, Callable, Iterator, Protocol, runtime_checkable
 from io import StringIO
+from typing import Callable, Iterator, ParamSpec, Protocol, runtime_checkable
 
 from view.exceptions import InvalidType
-
 
 __all__ = "SupportsJavaScript", "as_javascript_expression", "javascript_compiler"
 

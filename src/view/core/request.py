@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import urllib.parse
-
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 from typing import TYPE_CHECKING
+
 from multidict import MultiDict
 
 from view.core.body import BodyMixin

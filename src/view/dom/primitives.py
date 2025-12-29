@@ -1,16 +1,9 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    TypedDict,
-    Unpack,
-    Literal,
-    NotRequired,
-)
+from typing import Any, Callable, Literal, NotRequired, TypedDict, Unpack
 
-from view.exceptions import InvalidType
 from view.dom.core import HTMLNode
+from view.exceptions import InvalidType
 
 
 class ImplicitDefault(str):

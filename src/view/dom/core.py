@@ -1,21 +1,15 @@
 from __future__ import annotations
+
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from typing import (
-    Iterator,
-    ClassVar,
-    AsyncIterator,
-    ParamSpec,
-    Callable,
-    TypeAlias,
-)
-from queue import LifoQueue
 from io import StringIO
-from contextlib import contextmanager
+from queue import LifoQueue
+from typing import AsyncIterator, Callable, ClassVar, Iterator, ParamSpec, TypeAlias
 
 from view.core.headers import as_multidict
-from view.core.router import RouteView
 from view.core.response import Response
+from view.core.router import RouteView
 from view.exceptions import InvalidType
 
 __all__ = ("HTMLNode",)

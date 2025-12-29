@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any, AsyncGenerator, AsyncIterator, Callable, TypeAlias
-import json
 
 from view.exceptions import InvalidType, ViewError
 

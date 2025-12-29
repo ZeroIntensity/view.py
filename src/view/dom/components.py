@@ -1,17 +1,10 @@
-from view.dom.core import HTMLNode, HTMLTree
-from view.dom.primitives import (
-    base,
-    html,
-    meta,
-    title as title_node,
-    body,
-    script,
-    link,
-)
-
-from typing import NoReturn, Callable, ParamSpec, Iterable
 from dataclasses import dataclass
 from functools import wraps
+from typing import Callable, Iterable, NoReturn, ParamSpec
+
+from view.dom.core import HTMLNode, HTMLTree
+from view.dom.primitives import base, body, html, link, meta, script
+from view.dom.primitives import title as title_node
 
 __all__ = "Children", "Component", "component"
 
