@@ -6,7 +6,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator
 from multiprocessing import Process
-from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeAlias, TypeVar
 
 from loguru import logger
 

@@ -59,6 +59,9 @@ class DuplicateRoute(ViewError):
     """
 
 
+SubRouter: TypeAlias = Callable[[str, MutableMapping[str, str]], "FoundRoute"]
+
+
 @dataclass(slots=True)
 class PathNode:
     """
@@ -68,7 +71,8 @@ class PathNode:
     name: str
     routes: MutableMapping[Method, Route] = field(default_factory=dict)
     children: MutableMapping[str, PathNode] = field(default_factory=dict)
-    path_parameter: PathNode | None = field(default=None)
+    path_parameter: PathNode | None = None
+    subrouter: SubRouter | None = None
 
     def parameter(self, name: str) -> PathNode:
         """
@@ -137,14 +141,10 @@ class Router:
     )
     parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
 
-    def push_route(self, view: RouteView, path: str, method: Method) -> Route:
-        """
-        Register a view with the router.
-        """
+    def _get_node_for_path(self, path: str) -> PathNode:
         path = normalize_route(path)
         parent_node = self.parent_node
         parts = path.split("/")
-        route = Route(view=view, path=path, method=method)
 
         for part in parts:
             if is_path_parameter(part):
@@ -152,11 +152,34 @@ class Router:
             else:
                 parent_node = parent_node.next(part)
 
-        if parent_node.routes.get(method) is not None:
-            raise DuplicateRoute(f"The route {path!r} was already used")
+        return parent_node
 
-        parent_node.routes[method] = route
+    def push_route(self, view: RouteView, path: str, method: Method) -> Route:
+        """
+        Register a view with the router.
+        """
+
+        node = self._get_node_for_path(path)
+        if node.routes.get(method) is not None:
+            raise DuplicateRoute(
+                f"The route {path!r} was already used for method {method.value}"
+            )
+
+        route = Route(view=view, path=path, method=method)
+        node.routes[method] = route
         return route
+
+    def push_subrouter(self, subrouter: SubRouter, path: str) -> None:
+        """
+        Register a subrouter that will be used to delegate parsing when nothing
+        else is found.
+        """
+
+        node = self._get_node_for_path(path)
+        if node.subrouter is not None:
+            raise DuplicateRoute(f"The route {path!r} already has a subrouter")
+
+        node.subrouter = subrouter
 
     def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
         """
@@ -182,13 +205,17 @@ class Router:
         parent_node = self.parent_node
         parts = path.split("/")
 
-        for part in parts:
+        for index, part in enumerate(parts):
             node = parent_node.children.get(part)
             if node is None:
                 node = parent_node.path_parameter
                 if node is None:
+                    if parent_node.subrouter is not None:
+                        remaining = "/".join(parts[index:])
+                        return parent_node.subrouter(remaining, path_parameters)
+
                     # This route doesn't exist
-                    return None
+                    return
 
                 path_parameters[node.name] = part
 
@@ -196,6 +223,8 @@ class Router:
 
         final_route: Route | None = parent_node.routes.get(method)
         if final_route is None:
+            if parent_node.subrouter is not None:
+                return parent_node.subrouter("/", path_parameters)
             return None
 
         return FoundRoute(final_route, path_parameters)
