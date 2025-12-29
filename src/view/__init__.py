@@ -11,4 +11,5 @@ from view import testing as testing
 from view import cache as cache
 from view import dom as dom
 from view import run as run
+from view import utils as utils
 from view.__about__ import *
