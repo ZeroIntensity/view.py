@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 __all__ = "Route", "Router"
 
 
-RouteView: TypeAlias = Callable[[], "ResponseLike" | Awaitable["ResponseLike"]]
+RouteView: TypeAlias = Callable[[], "ResponseLike | Awaitable[ResponseLike]"]
 
 
 @dataclass(slots=True, frozen=True)
