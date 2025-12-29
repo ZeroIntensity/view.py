@@ -34,14 +34,14 @@ class BaseCache(ABC, Generic[P, T]):
 
 
 @dataclass(slots=True, frozen=True)
-class CachedResponse:
+class _CachedResponse:
     body: bytes
     headers: CIMultiDict[str]
     status: int
     last_reset: float
 
     @classmethod
-    async def from_response(cls, response: Response) -> CachedResponse:
+    async def from_response(cls, response: Response) -> _CachedResponse:
         body = await response.body()
         return cls(body, response.headers, response.status_code, time.time())
 
@@ -59,23 +59,23 @@ class InMemoryCache(BaseCache[P, T]):
 
     callable: Callable[P, T]
     reset_frequency: float
-    cached_response: CachedResponse | None = field(repr=False, default=None)
+    _cached_response: _CachedResponse | None = field(repr=False, default=None)
 
     def invalidate(self) -> None:
-        self.cached_response = None
+        self._cached_response = None
 
     async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response:
-        if self.cached_response is None:
+        if self._cached_response is None:
             result = await wrap_view_result(self.callable(*args, **kwargs))
-            cached = await CachedResponse.from_response(result)
-            self.cached_response = cached
+            cached = await _CachedResponse.from_response(result)
+            self._cached_response = cached
             return cached.as_response()
 
-        if (time.time() - self.cached_response.last_reset) > self.reset_frequency:
+        if (time.time() - self._cached_response.last_reset) > self.reset_frequency:
             self.invalidate()
             return await self(*args, **kwargs)
 
-        return self.cached_response.as_response()
+        return self._cached_response.as_response()
 
 
 def minutes(number: int, /) -> int:
