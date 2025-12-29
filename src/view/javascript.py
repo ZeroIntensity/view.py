@@ -1,6 +1,5 @@
 from typing import ParamSpec, Callable, Iterator, Protocol, runtime_checkable
 from io import StringIO
-import json
 
 from view.exceptions import InvalidType
 
@@ -57,6 +56,11 @@ def as_javascript_expression(data: object) -> str:
 
 
 def javascript_compiler(function: Callable[P, Iterator[str]]) -> Callable[P, str]:
+    """
+    Decorator that converts a function yielding lines of JavaScript code into
+    a function that returns the entire source code.
+    """
+
     def decorator(*args: P.args, **kwargs: P.kwargs) -> str:
         buffer = StringIO()
 
