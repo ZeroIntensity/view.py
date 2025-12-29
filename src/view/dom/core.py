@@ -13,11 +13,13 @@ from dataclasses import dataclass, field
 from io import StringIO
 from queue import LifoQueue
 from typing import ClassVar, ParamSpec, TypeAlias
+import uuid
 
 from view.core.headers import as_multidict
 from view.core.response import Response
 from view.core.router import RouteView
 from view.exceptions import InvalidType
+from view.javascript import SupportsJavaScript
 
 __all__ = ("HTMLNode",)
 
@@ -33,7 +35,7 @@ def _indent_iterator(iterator: Iterator[str]) -> Iterator[str]:
 
 
 @dataclass(slots=True)
-class HTMLNode:
+class HTMLNode(SupportsJavaScript):
     """
     Data class representing an HTML node in the tree.
     """
@@ -141,6 +143,10 @@ class HTMLNode:
             buffer.write(line + "\n")
 
         return buffer.getvalue()
+
+    def as_javascript(self) -> str:
+        element_id = self.attributes.setdefault("id", uuid.uuid4().hex)
+        return f"document.getElementById({element_id!r})"
 
 
 @contextmanager
