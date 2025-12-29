@@ -3,6 +3,9 @@ from io import StringIO
 
 from view.exceptions import InvalidType
 
+
+__all__ = "SupportsJavaScript", "as_javascript_expression", "javascript_compiler"
+
 P = ParamSpec("P")
 
 
