@@ -1,11 +1,12 @@
-from typing import AsyncIterator, Callable, Iterator
-import pytest
-from view.dom.primitives import ALL_PRIMITIVES, html, div, p
-from view.dom.core import HTMLNode, html_response, html_context
-from view.dom.components import component, Children
 import inspect
+from typing import AsyncIterator, Callable, Iterator
+
+import pytest
 
 from view.app import App
+from view.dom.components import Children, component
+from view.dom.core import HTMLNode, html_context, html_response
+from view.dom.primitives import ALL_PRIMITIVES, div, html, p
 from view.testing import AppTestClient
 
 

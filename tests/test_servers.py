@@ -1,11 +1,13 @@
+import time
+
 import pytest
+import requests
+
+from view.app import as_app
 from view.request import Request
 from view.response import ResponseLike
 from view.run import ServerSettings
-from view.app import as_app
 from view.status_codes import Success
-import requests
-import time
 
 
 @pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
