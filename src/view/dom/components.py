@@ -1,7 +1,15 @@
 from view.dom.core import HTMLNode, HTMLTree
-from view.dom.primitives import html, meta, title as title_node, body, script
+from view.dom.primitives import (
+    base,
+    html,
+    meta,
+    title as title_node,
+    body,
+    script,
+    link,
+)
 
-from typing import NoReturn, Callable, ParamSpec
+from typing import NoReturn, Callable, ParamSpec, Iterable
 from dataclasses import dataclass
 from functools import wraps
 
@@ -73,15 +81,41 @@ def component(function: Callable[P, HTMLTree]) -> Callable[P, Component]:
 
 @component
 def page(
-    title: str, *, language: str = "en", scripts: list[str] | None = []
+    title: str,
+    *,
+    language: str = "en",
+    stylesheets: Iterable[str] | None = None,
+    scripts: Iterable[str] | None = [],
+    description: str | None = None,
+    keywords: Iterable[str] | None = None,
+    author: str | None = None,
+    page_url: str | None = None,
 ) -> HTMLTree:
     """
     Common layout for an HTML page.
     """
     with html(lang=language):
         yield meta(charset="utf-8")
+        yield meta(name="viewport", content="width=device-width, initial-scale=1.0")
+
+        if description is not None:
+            yield meta(name="description", content=description)
+
+        if keywords is not None:
+            yield meta(name="keywords", content=",".join(keywords))
+
+        if author is not None:
+            yield meta(name="author", content=author)
+
+        if page_url is not None:
+            yield link(rel="canonical", href=page_url)
+            yield base(href=page_url)
+
+        for stylesheet in stylesheets or []:
+            yield link(rel="stylesheet", href=stylesheet)
+
         yield title_node(title)
         for script_url in scripts or []:
-            yield script(src=script_url)
+            yield script(src=script_url, defer=True)
     with body():
         yield Children()
