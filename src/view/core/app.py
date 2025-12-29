@@ -6,12 +6,13 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator
 from multiprocessing import Process
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
+from pathlib import Path
 
 from loguru import logger
 
 from view.core.request import Method, Request
-from view.core.response import Response, ViewResult, wrap_view_result
+from view.core.response import FileResponse, Response, ViewResult, wrap_view_result
 from view.core.router import FoundRoute, Route, Router, RouteView
 from view.status_codes import HTTPError, InternalServerError, NotFound
 
@@ -334,3 +335,16 @@ class App(BaseApp):
             return view
 
         return decorator
+
+    def static_files(self, path: str, directory: Path) -> None:
+        def static_router(path_from_url: str) -> FoundRoute:
+            def route():
+                file = directory / path_from_url
+                if not file.is_file():
+                    raise NotFound()
+
+                return FileResponse.from_file(file)
+
+            return FoundRoute(Route(route, path_from_url, Method.GET), {})
+
+        self.router.push_subrouter(static_router, path)

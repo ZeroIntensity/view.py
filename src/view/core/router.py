@@ -59,7 +59,7 @@ class DuplicateRoute(ViewError):
     """
 
 
-SubRouter: TypeAlias = Callable[[str, MutableMapping[str, str]], "FoundRoute"]
+SubRouter: TypeAlias = Callable[[str], "FoundRoute"]
 
 
 @dataclass(slots=True)
@@ -212,7 +212,7 @@ class Router:
                 if node is None:
                     if parent_node.subrouter is not None:
                         remaining = "/".join(parts[index:])
-                        return parent_node.subrouter(remaining, path_parameters)
+                        return parent_node.subrouter(remaining)
 
                     # This route doesn't exist
                     return
@@ -224,7 +224,7 @@ class Router:
         final_route: Route | None = parent_node.routes.get(method)
         if final_route is None:
             if parent_node.subrouter is not None:
-                return parent_node.subrouter("/", path_parameters)
+                return parent_node.subrouter("/")
             return None
 
         return FoundRoute(final_route, path_parameters)
