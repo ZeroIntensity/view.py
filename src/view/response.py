@@ -102,7 +102,7 @@ class FileResponse(Response):
         return cls(stream, status_code, multidict, path)
 
 
-def as_bytes(data: str | bytes) -> bytes:
+def _as_bytes(data: str | bytes) -> bytes:
     """
     Utility to convert a string to a byte string, or let a byte string pass.
     """
@@ -137,7 +137,7 @@ class StrOrBytesResponse(Response, Generic[AnyStr]):
             raise InvalidType((str, bytes), content)
 
         async def stream() -> AsyncGenerator[bytes]:
-            yield as_bytes(content)
+            yield _as_bytes(content)
 
         return cls(stream, status_code, as_multidict(headers), content)
 
@@ -195,14 +195,14 @@ def _wrap_response(response: ResponseLike, /) -> Response:
 
         async def stream() -> AsyncGenerator[bytes]:
             async for data in response:
-                yield as_bytes(data)
+                yield _as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
     elif isinstance(response, Generator):
 
         async def stream() -> AsyncGenerator[bytes]:
             for data in response:
-                yield as_bytes(data)
+                yield _as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
     else:
