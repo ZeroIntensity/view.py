@@ -99,6 +99,10 @@ def days(number: int, /) -> int:
 def in_memory_cache(
     reset_frequency: int | None = None,
 ) -> Callable[[Callable[P, T]], InMemoryCache[P, T]]:
+    """
+    Decorator to cache the result from a given view in-memory.
+    """
+
     def decorator_factory(function: Callable[P, T], /) -> InMemoryCache[P, T]:
         return InMemoryCache(function, reset_frequency=reset_frequency or math.inf)
 
