@@ -163,3 +163,17 @@ async def test_status_code_strings(status_exception: type[HTTPError]):
     assert status_exception.status_code == response.status_code
     message = f"{status_exception.status_code} {STATUS_STRINGS[response.status_code]}"
     assert (await response.body()) == message.encode("utf-8")
+
+
+@pytest.mark.asyncio
+async def test_internal_server_error():
+    @as_app
+    async def app(_: Request):
+        raise Exception("silly")
+
+    client = AppTestClient(app)
+    response = await client.get("/")
+    assert response.status_code == 500
+    output = (await response.body()).decode("utf-8")
+    assert "Traceback (most recent call last)" in output
+    assert "Exception: silly" in output

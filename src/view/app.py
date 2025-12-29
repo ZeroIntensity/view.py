@@ -167,7 +167,7 @@ class BaseApp(ABC):
         return process
 
 
-async def execute_view(
+async def _execute_view_internal(
     view: Callable[P, ViewResult],
     *args: P.args,
     **kwargs: P.kwargs,
@@ -179,6 +179,19 @@ async def execute_view(
     except HTTPError as error:
         logger.opt(colors=True).info(f"<red>HTTP Error {error.status_code}</red>")
         raise
+
+
+async def execute_view(
+    view: Callable[P, ViewResult], *args: P.args, **kwargs: P.kwargs
+) -> Response:
+    try:
+        return await _execute_view_internal(view, *args, **kwargs)
+    except BaseException as exception:
+        # Let HTTP errors pass through, so the caller can deal with it
+        if isinstance(exception, HTTPError):
+            raise
+        logger.exception(exception)
+        raise InternalServerError.from_current_exception()
 
 
 SingleView = Callable[["Request"], ViewResult]
@@ -232,16 +245,9 @@ class App(BaseApp):
         if found_route is None:
             raise NotFound()
 
-        try:
-            # Extend instead of replacing?
-            request.parameters = found_route.path_parameters
-            return await execute_view(found_route.route.view)
-        except BaseException as exception:
-            # Let HTTP errors pass through, so the caller can deal with it
-            if isinstance(exception, HTTPError):
-                raise
-            logger.exception(exception)
-            raise InternalServerError.from_current_exception()
+        # Extend instead of replacing?
+        request.parameters = found_route.path_parameters
+        return await execute_view(found_route.route.view)
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
