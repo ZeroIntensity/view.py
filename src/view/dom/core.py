@@ -20,6 +20,8 @@ from view.exceptions import InvalidType
 
 __all__ = ("HTMLNode",)
 
+HTMLTree: TypeAlias = Iterator["HTMLNode"]
+
 
 def _indent_iterator(iterator: Iterator[str]) -> Iterator[str]:
     for line in iterator:
@@ -141,7 +143,7 @@ class HTMLNode:
 
 
 @contextmanager
-def html_context() -> Iterator[HTMLNode]:
+def html_context() -> HTMLTree:
     """
     Enter a context in which HTML nodes can be created under a fresh tree.
     """

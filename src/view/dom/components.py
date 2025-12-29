@@ -1,5 +1,7 @@
-from view.dom.core import HTMLNode
-from typing import NoReturn, Iterator, Callable
+from view.dom.core import HTMLNode, HTMLTree
+from view.dom.primitives import html, meta, title as title_node, body, script
+
+from typing import NoReturn, Callable, ParamSpec
 from dataclasses import dataclass
 from functools import wraps
 
@@ -29,7 +31,7 @@ class Component:
     A node with an "injectable" body.
     """
 
-    generator: Iterator[HTMLNode]
+    generator: HTMLTree
 
     def __enter__(self) -> None:
         stack = HTMLNode.node_stack.get()
@@ -54,9 +56,32 @@ class Component:
                 )
 
 
-def component(function: Callable[[], Iterator[HTMLNode]]) -> Callable[[], Component]:
+P = ParamSpec("P")
+
+
+def component(function: Callable[P, HTMLTree]) -> Callable[P, Component]:
+    """
+    Make a function usable as an HTML node.
+    """
+
     @wraps(function)
-    def inner() -> Component:
-        return Component(function())
+    def inner(*args: P.args, **kwargs: P.kwargs) -> Component:
+        return Component(function(*args, **kwargs))
 
     return inner
+
+
+@component
+def page(
+    title: str, *, language: str = "en", scripts: list[str] | None = []
+) -> HTMLTree:
+    """
+    Common layout for an HTML page.
+    """
+    with html(lang=language):
+        yield meta(charset="utf-8")
+        yield title_node(title)
+        for script_url in scripts or []:
+            yield script(src=script_url)
+    with body():
+        yield Children()
