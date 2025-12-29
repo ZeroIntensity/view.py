@@ -161,9 +161,8 @@ def html_context() -> HTMLTree:
 
 P = ParamSpec("P")
 HTMLViewResponseItem: TypeAlias = HTMLNode | int
-HTMLView: TypeAlias = Callable[
-    P, AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
-]
+HTMLViewResult = AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
+HTMLView: TypeAlias = Callable[P, HTMLViewResult]
 
 
 def html_response(

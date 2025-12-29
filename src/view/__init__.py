@@ -12,4 +12,5 @@ from view import cache as cache
 from view import dom as dom
 from view import run as run
 from view import utils as utils
+from view import javascript as javascript
 from view.__about__ import *
