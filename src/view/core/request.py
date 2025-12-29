@@ -7,12 +7,12 @@ from enum import StrEnum, auto
 from typing import TYPE_CHECKING
 from multidict import MultiDict
 
-from view.body import BodyMixin
-from view.headers import RequestHeaders
-from view.router import normalize_route
+from view.core.body import BodyMixin
+from view.core.headers import RequestHeaders
+from view.core.router import normalize_route
 
 if TYPE_CHECKING:
-    from view.app import BaseApp
+    from view.core.app import BaseApp
 
 __all__ = "Method", "Request"
 

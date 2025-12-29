@@ -15,9 +15,9 @@ from typing import (
 
 from loguru import logger
 
-from view.request import Method, Request
-from view.response import Response, wrap_view_result, ViewResult
-from view.router import FoundRoute, Router, RouteView, Route
+from view.core.request import Method, Request
+from view.core.response import Response, wrap_view_result, ViewResult
+from view.core.router import FoundRoute, Router, RouteView, Route
 from view.status_codes import HTTPError, InternalServerError, NotFound
 from multiprocessing import Process
 

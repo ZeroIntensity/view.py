@@ -4,7 +4,7 @@ import traceback
 from enum import IntEnum
 from typing import ClassVar
 
-from view.response import TextResponse
+from view.core.response import TextResponse
 
 __all__ = "HTTPError", "Success", "status_exception"
 

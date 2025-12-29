@@ -3,10 +3,10 @@ import asyncio
 import aiofiles
 import pytest
 
-from view.app import as_app
-from view.headers import as_multidict
-from view.request import Request
-from view.response import FileResponse, JSONResponse, Response, ResponseLike
+from view.core.app import as_app
+from view.core.headers import as_multidict
+from view.core.request import Request
+from view.core.response import FileResponse, JSONResponse, Response, ResponseLike
 from view.status_codes import (
     STATUS_EXCEPTIONS,
     STATUS_STRINGS,

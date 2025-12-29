@@ -12,9 +12,9 @@ from typing import (
     TypedDict,
 )
 
-from view.app import BaseApp
-from view.headers import asgi_as_multidict, multidict_as_asgi
-from view.request import Method, Request, extract_query_parameters
+from view.core.app import BaseApp
+from view.core.headers import asgi_as_multidict, multidict_as_asgi
+from view.core.request import Method, Request, extract_query_parameters
 
 __all__ = ("asgi_for_app",)
 

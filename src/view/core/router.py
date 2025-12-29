@@ -7,8 +7,8 @@ from view.exceptions import InvalidType, ViewError
 from view.status_codes import HTTPError, status_exception
 
 if TYPE_CHECKING:
-    from view.request import Method
-    from view.response import ResponseLike
+    from view.core.request import Method
+    from view.core.response import ResponseLike
 
 __all__ = "Route", "Router"
 

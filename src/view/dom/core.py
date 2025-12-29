@@ -13,9 +13,9 @@ from queue import LifoQueue
 from io import StringIO
 from contextlib import contextmanager
 
-from view.headers import as_multidict
-from view.router import RouteView
-from view.response import Response
+from view.core.headers import as_multidict
+from view.core.router import RouteView
+from view.core.response import Response
 from view.exceptions import InvalidType
 
 __all__ = ("HTMLNode",)

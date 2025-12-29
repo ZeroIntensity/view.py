@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 
 from multidict import CIMultiDict
 
-from view.headers import HeadersLike, as_multidict
-from view.request import Method, Request, extract_query_parameters
+from view.core.headers import HeadersLike, as_multidict
+from view.core.request import Method, Request, extract_query_parameters
 
 if TYPE_CHECKING:
-    from view.app import BaseApp
-    from view.response import Response
+    from view.core.app import BaseApp
+    from view.core.response import Response
 
 __all__ = ("AppTestClient",)
 

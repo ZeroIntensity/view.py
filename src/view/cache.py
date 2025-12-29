@@ -7,7 +7,7 @@ import math
 
 from multidict import CIMultiDict
 
-from view.response import Response, TextResponse, ViewResult, wrap_view_result
+from view.core.response import Response, TextResponse, ViewResult, wrap_view_result
 
 __all__ = ("in_memory_cache",)
 

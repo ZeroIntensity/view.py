@@ -4,11 +4,11 @@ from typing import AsyncIterator
 from multidict import MultiDict
 import pytest
 
-from view.app import App, as_app
-from view.body import InvalidJSON
-from view.headers import as_multidict
-from view.request import Method, Request
-from view.response import ResponseLike
+from view.core.app import App, as_app
+from view.core.body import InvalidJSON
+from view.core.headers import as_multidict
+from view.core.request import Method, Request
+from view.core.response import ResponseLike
 from view.status_codes import BadRequest
 from view.testing import AppTestClient, into_tuple
 

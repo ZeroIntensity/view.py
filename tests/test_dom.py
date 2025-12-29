@@ -3,7 +3,7 @@ from typing import AsyncIterator, Callable, Iterator
 
 import pytest
 
-from view.app import App
+from view.core.app import App
 from view.dom.components import Children, component
 from view.dom.core import HTMLNode, html_context, html_response
 from view.dom.primitives import ALL_PRIMITIVES, div, html, p
