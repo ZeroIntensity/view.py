@@ -6,17 +6,3 @@ only-include = ["src/"]
 
 [build.targets.wheel]
 packages = ["src/view"]
-
-#[build.targets.wheel.force-include]
-#"_view.pyi" = "_view.pyi"
-
-#[build.targets.wheel.hooks.scikit-build]
-#experimental = true
-
-#[build.targets.wheel.hooks.scikit-build.cmake]
-#source-dir = "."
-#build-type = "Debug"
-#verbose = true
-
-#[build.targets.wheel.hooks.scikit-build.install]
-#strip = false
