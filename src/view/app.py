@@ -191,7 +191,10 @@ async def execute_view(
         if isinstance(exception, HTTPError):
             raise
         logger.exception(exception)
-        raise InternalServerError.from_current_exception()
+        if __debug__:
+            raise InternalServerError.from_current_exception()
+        else:
+            raise InternalServerError()
 
 
 SingleView = Callable[["Request"], ViewResult]
