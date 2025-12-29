@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 import urllib.parse
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
@@ -118,7 +119,7 @@ class Request(BodyMixin):
     The query string parameters of the HTTP request.
     """
 
-    path_parameters: dict[str, str] = field(default_factory=dict, init=False)
+    path_parameters: Mapping[str, str] = field(default_factory=dict, init=False)
     """
     The path parameters of this request.
     """

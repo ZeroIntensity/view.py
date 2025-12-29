@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeAlias
-
+from collections.abc import Mapping
 from multidict import CIMultiDict
 
 from view.exceptions import InvalidType
@@ -19,7 +19,7 @@ __all__ = (
 )
 
 RequestHeaders: TypeAlias = CIMultiDict[str]
-HeadersLike: TypeAlias = RequestHeaders | dict[str, str] | dict[bytes, bytes]
+HeadersLike: TypeAlias = RequestHeaders | Mapping[str, str] | Mapping[bytes, bytes]
 
 
 def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
@@ -33,8 +33,8 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
     if isinstance(headers, CIMultiDict):
         return headers
 
-    if __debug__ and not isinstance(headers, dict):
-        raise InvalidType(dict, headers)
+    if __debug__ and not isinstance(headers, Mapping):
+        raise InvalidType(Mapping, headers)
 
     assert isinstance(headers, dict)
     multidict = CIMultiDict[str]()
@@ -50,7 +50,7 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
     return multidict
 
 
-def wsgi_as_multidict(environ: dict[str, Any]) -> RequestHeaders:
+def wsgi_as_multidict(environ: Mapping[str, Any]) -> RequestHeaders:
     """
     Convert WSGI headers (from the `environ`) to a case-insensitive multidict.
     """

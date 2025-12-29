@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import (
+    AsyncIterator,
+    Callable,
+    Iterator,
+    MutableMapping,
+    MutableSequence,
+)
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -52,13 +58,13 @@ class HTMLNode:
     The direct text of this node, not including any other children.
     """
 
-    attributes: dict[str, str] = field(default_factory=dict)
+    attributes: MutableMapping[str, str] = field(default_factory=dict)
     """
     Dictionary containing attribute names and values as they will be rendered
     in the final output.
     """
 
-    children: list[HTMLNode] = field(default_factory=list)
+    children: MutableSequence[HTMLNode] = field(default_factory=list)
     """
     All nodes that are a direct descendant of this node.
     """
@@ -77,7 +83,7 @@ class HTMLNode:
         name: str,
         *,
         child_text: str | None = None,
-        attributes: dict[str, str] | None = None,
+        attributes: MutableMapping[str, str] | None = None,
     ) -> HTMLNode:
         """
         Create a new node that will be included in the final HTML.

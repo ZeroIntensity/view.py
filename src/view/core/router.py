@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, MutableMapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, TypeAlias
 
@@ -66,8 +66,8 @@ class PathNode:
     """
 
     name: str
-    routes: dict[Method, Route] = field(default_factory=dict)
-    children: dict[str, PathNode] = field(default_factory=dict)
+    routes: MutableMapping[Method, Route] = field(default_factory=dict)
+    children: MutableMapping[str, PathNode] = field(default_factory=dict)
     path_parameter: PathNode | None = field(default=None)
 
     def parameter(self, name: str) -> PathNode:
@@ -123,7 +123,7 @@ class FoundRoute:
     """
 
     route: Route
-    path_parameters: dict[str, str]
+    path_parameters: MutableMapping[str, str]
 
 
 @dataclass(slots=True, frozen=True)
@@ -132,7 +132,9 @@ class Router:
     Standard router that supports error and route lookups.
     """
 
-    error_views: dict[type[HTTPError], RouteView] = field(default_factory=dict)
+    error_views: MutableMapping[type[HTTPError], RouteView] = field(
+        default_factory=dict
+    )
     parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
 
     def push_route(self, view: RouteView, path: str, method: Method) -> Route:

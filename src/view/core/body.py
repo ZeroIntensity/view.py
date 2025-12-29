@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator, AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any, TypeAlias
@@ -75,7 +75,7 @@ class BodyMixin:
         except Exception as error:
             raise InvalidJSON("Failed to parse JSON") from error
 
-    async def stream_body(self) -> AsyncGenerator[bytes]:
+    async def stream_body(self) -> AsyncIterator[bytes]:
         """
         Incrementally stream the body, not keeping the whole thing
         in-memory at a given time.
