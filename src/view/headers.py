@@ -7,7 +7,7 @@ from multidict import CIMultiDict
 from view.exceptions import InvalidType
 
 if TYPE_CHECKING:
-    from view.asgi import ASGIHeaders
+    from view.run.asgi import ASGIHeaders
 
 __all__ = (
     "RequestHeaders",

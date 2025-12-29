@@ -1,7 +1,7 @@
+import json
 from typing import AsyncIterator
 
 import pytest
-import json
 
 from view.app import App, as_app
 from view.body import InvalidJSON

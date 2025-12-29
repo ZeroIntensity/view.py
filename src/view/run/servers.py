@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar, Sequence, TypeAlias
 
 if TYPE_CHECKING:
     from view.app import BaseApp
-    from view.wsgi import WSGIProtocol
+    from view.run.wsgi import WSGIProtocol
 
 from view.exceptions import ViewError
 
