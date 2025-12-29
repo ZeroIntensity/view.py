@@ -319,7 +319,9 @@ class App(BaseApp):
         """
         return self.route(path, method=Method.HEAD)
 
-    def error(self, status: int | type[HTTPError], /) -> RouteDecorator:
+    def error(
+        self, status: int | type[HTTPError], /
+    ) -> Callable[[RouteView], RouteView]:
         """
         Decorator interface for adding an error handler to the app.
         """
