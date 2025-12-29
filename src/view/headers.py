@@ -19,7 +19,7 @@ __all__ = (
 )
 
 RequestHeaders: TypeAlias = CIMultiDict[str]
-HeadersLike = RequestHeaders | dict[str, str] | dict[bytes, bytes]
+HeadersLike: TypeAlias = RequestHeaders | dict[str, str] | dict[bytes, bytes]
 
 
 def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
