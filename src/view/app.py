@@ -222,7 +222,7 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     """
     Decorator for using a single function as an app.
     """
-    if not callable(view):
+    if __debug__ and not callable(view):
         raise TypeError(f"Expected a callable, got {view!r}")
 
     return SingleViewApp(view)
