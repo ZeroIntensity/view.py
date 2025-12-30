@@ -124,7 +124,7 @@ class BaseApp(ABC):
                 RuntimeWarning,
             )
 
-        logger.info(f"Serving app on port {port}")
+        logger.info(f"Serving app on http://localhost:{port}")
         self._production = production
         settings = ServerSettings(self, host=host, port=port, hint=server_hint)
         try:
