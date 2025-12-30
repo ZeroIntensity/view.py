@@ -7,7 +7,7 @@ body:
           value: |
               # Feature Proposal
 
-              This is where you should propose a *new* feature to view.py. New features should not make breaking changes. This should be for something totally new, such as adding a new function. For general improvements to existing features, make an improvement request.
+              This is where you should propose a new feature to view.py.
     - type: textarea
       attributes:
           label: "Proposal:"
