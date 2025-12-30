@@ -202,7 +202,7 @@ class Router:
         elif issubclass(error, HTTPError):
             error_type = error
         else:
-            raise InvalidType(error, (int, type))
+            raise InvalidType(error, int, type)
 
         self.error_views[error_type] = view
 

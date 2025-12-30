@@ -135,7 +135,7 @@ class TextResponse(Response, Generic[AnyStr]):
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
-            raise InvalidType(content, (str, bytes))
+            raise InvalidType(content, str, bytes)
 
         async def stream() -> AsyncGenerator[bytes]:
             yield _as_bytes(content)

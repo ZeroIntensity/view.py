@@ -373,7 +373,7 @@ class App(BaseApp):
 
     def static_files(self, path: str, directory: str | Path) -> None:
         if __debug__ and not isinstance(directory, (str, Path)):
-            raise InvalidType(directory, (str, Path))
+            raise InvalidType(directory, str, Path)
 
         directory = Path(directory)
 
