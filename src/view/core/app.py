@@ -6,8 +6,8 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterator
 from multiprocessing import Process
-from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 from pathlib import Path
+from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
 from loguru import logger
 
@@ -20,7 +20,7 @@ from view.core.response import (
     wrap_view_result,
 )
 from view.core.router import FoundRoute, Route, Router, RouteView
-from view.status_codes import Forbidden, HTTPError, InternalServerError, NotFound
+from view.core.status_codes import Forbidden, HTTPError, InternalServerError, NotFound
 from view.utils import reraise
 
 if TYPE_CHECKING:

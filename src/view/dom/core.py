@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import (
     AsyncIterator,
     Callable,
@@ -13,7 +14,6 @@ from dataclasses import dataclass, field
 from io import StringIO
 from queue import LifoQueue
 from typing import ClassVar, ParamSpec, TypeAlias
-import uuid
 
 from view.core.headers import as_multidict
 from view.core.response import Response

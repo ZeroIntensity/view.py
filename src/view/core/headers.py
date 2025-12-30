@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeAlias
 from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, TypeAlias
+
 from multidict import CIMultiDict
 
 from view.exceptions import InvalidType

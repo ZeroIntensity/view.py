@@ -31,7 +31,7 @@ class Response(BodyMixin):
     def __post_init__(self) -> None:
         if __debug__:
             # Avoid circular import issues
-            from view.status_codes import STATUS_STRINGS
+            from view.core.status_codes import STATUS_STRINGS
 
             if self.status_code not in STATUS_STRINGS:
                 raise ValueError(

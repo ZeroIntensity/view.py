@@ -6,7 +6,7 @@ from typing import IO, TYPE_CHECKING, Any, TypeAlias
 
 from view.core.headers import wsgi_as_multidict
 from view.core.request import Method, Request, extract_query_parameters
-from view.status_codes import STATUS_STRINGS
+from view.core.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp

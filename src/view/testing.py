@@ -7,7 +7,7 @@ from multidict import CIMultiDict
 
 from view.core.headers import HeadersLike, as_multidict
 from view.core.request import Method, Request, extract_query_parameters
-from view.status_codes import STATUS_STRINGS
+from view.core.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp

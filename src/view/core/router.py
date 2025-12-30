@@ -4,8 +4,8 @@ from collections.abc import Awaitable, Callable, MutableMapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, TypeAlias
 
+from view.core.status_codes import HTTPError, status_exception
 from view.exceptions import InvalidType, ViewError
-from view.status_codes import HTTPError, status_exception
 
 if TYPE_CHECKING:
     from view.core.request import Method
