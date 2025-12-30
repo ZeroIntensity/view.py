@@ -20,7 +20,8 @@ from view.core.response import (
     wrap_view_result,
 )
 from view.core.router import FoundRoute, Route, Router, RouteView
-from view.status_codes import HTTPError, InternalServerError, NotFound
+from view.status_codes import Forbidden, HTTPError, InternalServerError, NotFound
+from view.utils import reraise
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
@@ -374,10 +375,16 @@ class App(BaseApp):
         if __debug__ and not isinstance(directory, (str, Path)):
             raise InvalidType((str, Path), directory)
 
+        directory = Path(directory)
+
         @self.subrouter(path)
         def serve_static_file(path_from_url: str) -> ResponseLike:
-            file = Path(directory) / path_from_url
+            file = directory / path_from_url
             if not file.is_file():
                 raise NotFound()
 
-            return FileResponse.from_file(file)
+            if not file.is_relative_to(directory):
+                raise Forbidden()
+
+            with reraise(Forbidden, OSError):
+                return FileResponse.from_file(file)

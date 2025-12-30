@@ -1,7 +1,8 @@
 import asyncio
 
-import aiofiles
+import tempfile
 import pytest
+from pathlib import Path
 
 from view.core.app import App, as_app
 from view.core.headers import as_multidict
@@ -118,8 +119,8 @@ async def test_stream_response_sync():
 
 @pytest.mark.asyncio
 async def test_file_response():
-    async with aiofiles.tempfile.NamedTemporaryFile("w") as file:
-        await file.write("A" * 10000)
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write("A" * 10000)
 
         @as_app
         def app(request: Request) -> ResponseLike:
@@ -196,6 +197,58 @@ async def test_json_response():
 async def test_static_files():
     app = App()
 
-    async with aiofiles.tempfile.TemporaryDirectory() as temporary_directory:
-        Path(temporary_directory)
-        app.subrouter("/files")
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        file = Path(temporary_directory) / "a.txt"
+        file.touch(exist_ok=False)
+        file.write_text("hello")
+
+        directory = Path(temporary_directory) / "foo"
+        directory.mkdir(exist_ok=False)
+        other_file = directory / "b.txt"
+        other_file.write_text("goodbye")
+
+        app.static_files("/files", temporary_directory)
+
+        client = AppTestClient(app)
+        assert (await into_tuple(client.get("/files/a.txt"))) == (
+            b"hello",
+            200,
+            {"content-type": "text/plain"},
+        )
+        assert (await into_tuple(client.get("/files/"))) == (b"404 Not Found", 404, {})
+        assert (await into_tuple(client.get("/files"))) == (b"404 Not Found", 404, {})
+        assert (await into_tuple(client.get("/files/foo/bar"))) == (
+            b"404 Not Found",
+            404,
+            {},
+        )
+        assert (await into_tuple(client.get("/files/foo/../bar"))) == (
+            b"404 Not Found",
+            404,
+            {},
+        )
+        assert (await into_tuple(client.get("/files/../"))) == (
+            b"404 Not Found",
+            404,
+            {},
+        )
+        assert (await into_tuple(client.get("/files//etc/shadow"))) == (
+            b"403 Forbidden",
+            403,
+            {},
+        )
+        assert (await into_tuple(client.get("/files/~/"))) == (
+            b"404 Not Found",
+            404,
+            {},
+        )
+        assert (await into_tuple(client.get("/files/foo/"))) == (
+            b"404 Not Found",
+            404,
+            {},
+        )
+        assert (await into_tuple(client.get("/files/foo/b.txt"))) == (
+            b"goodbye",
+            200,
+            {"content-type": "text/plain"},
+        )
