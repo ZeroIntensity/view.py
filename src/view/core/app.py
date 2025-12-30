@@ -222,7 +222,7 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     Decorator for using a single function as an app.
     """
     if __debug__ and not callable(view):
-        raise TypeError(f"Expected a callable, got {view!r}")
+        raise InvalidType(Callable, view)
 
     return SingleViewApp(view)
 
@@ -271,6 +271,12 @@ class App(BaseApp):
         """
         Decorator interface for adding a route to the app.
         """
+
+        if __debug__ and not isinstance(path, str):
+            raise InvalidType(str, path)
+
+        if __debug__ and not isinstance(method, Method):
+            raise InvalidType(Method, method)
 
         def decorator(view: RouteView, /) -> Route:
             route = self.router.push_route(view, path, method)
@@ -346,7 +352,13 @@ class App(BaseApp):
         return decorator
 
     def subrouter(self, path: str) -> Callable[[SubRouterViewT], SubRouterViewT]:
+        if __debug__ and not isinstance(path, str):
+            raise InvalidType(str, path)
+
         def decorator(function: SubRouterViewT, /) -> SubRouterViewT:
+            if __debug__ and not callable(function):
+                raise InvalidType(Callable, function)
+
             def router_function(path_from_url: str) -> Route:
                 def route() -> ResponseLike:
                     return function(path_from_url)
@@ -358,10 +370,13 @@ class App(BaseApp):
 
         return decorator
 
-    def static_files(self, path: str, directory: Path) -> None:
+    def static_files(self, path: str, directory: str | Path) -> None:
+        if __debug__ and not isinstance(directory, (str, Path)):
+            raise InvalidType((str, Path), directory)
+
         @self.subrouter(path)
         def serve_static_file(path_from_url: str) -> ResponseLike:
-            file = directory / path_from_url
+            file = Path(directory) / path_from_url
             if not file.is_file():
                 raise NotFound()
 

@@ -3,7 +3,7 @@ import asyncio
 import aiofiles
 import pytest
 
-from view.core.app import as_app
+from view.core.app import App, as_app
 from view.core.headers import as_multidict
 from view.core.request import Request
 from view.core.response import FileResponse, JSONResponse, Response, ResponseLike
@@ -190,3 +190,12 @@ async def test_json_response():
     assert response.status_code == 200
     assert response.headers == {}
     assert (await response.json()) == {"foo": "bar"}
+
+
+@pytest.mark.asyncio
+async def test_static_files():
+    app = App()
+
+    async with aiofiles.tempfile.TemporaryDirectory() as temporary_directory:
+        Path(temporary_directory)
+        app.subrouter("/files")

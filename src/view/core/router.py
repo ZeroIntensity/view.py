@@ -142,6 +142,9 @@ class Router:
     parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
 
     def _get_node_for_path(self, path: str, *, allow_path_parameters: bool) -> PathNode:
+        if __debug__ and not isinstance(path, str):
+            raise InvalidType(str, path)
+
         path = normalize_route(path)
         parent_node = self.parent_node
         parts = path.split("/")
@@ -161,6 +164,9 @@ class Router:
         Register a view with the router.
         """
 
+        if __debug__ and not callable(view):
+            raise InvalidType(Callable, view)
+
         node = self._get_node_for_path(path, allow_path_parameters=True)
         if node.routes.get(method) is not None:
             raise DuplicateRoute(
@@ -176,6 +182,9 @@ class Router:
         Register a subrouter that will be used to delegate parsing when nothing
         else is found.
         """
+
+        if __debug__ and not callable(subrouter):
+            raise InvalidType(Callable, subrouter)
 
         node = self._get_node_for_path(path, allow_path_parameters=False)
         if node.subrouter is not None:
