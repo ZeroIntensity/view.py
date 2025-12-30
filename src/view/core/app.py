@@ -121,8 +121,8 @@ class BaseApp(ABC):
         """
         from view.run.servers import ServerSettings
 
-        # If production is True, __debug__ should be False.
-        # If production is False, __debug__ should be True.
+        # If production is True, then __debug__ should be False.
+        # If production is False, then __debug__ should be True.
         if production is __debug__:
             warnings.warn(
                 f"The app was run with {production=}, but Python's {__debug__=}",
