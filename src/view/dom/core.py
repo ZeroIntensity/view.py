@@ -197,7 +197,7 @@ def html_response(
                     try_item(item)
             else:
                 if __debug__ and not isinstance(iterator, Iterator):
-                    raise InvalidType((AsyncIterator, Iterator), iterator)
+                    raise InvalidType(iterator, (AsyncIterator, Iterator))
 
                 for item in iterator:
                     try_item(item)

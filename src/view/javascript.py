@@ -53,7 +53,7 @@ def as_javascript_expression(data: object) -> str:
     if isinstance(data, SupportsJavaScript):
         result = data.as_javascript()
         if __debug__ and not isinstance(result, str):
-            raise InvalidType(str, result)
+            raise InvalidType(result, str)
 
     raise TypeError(f"Don't know how to convert {data!r} to a JavaScript expression")
 
@@ -69,7 +69,7 @@ def javascript_compiler(function: Callable[P, Iterator[str]]) -> Callable[P, str
 
         for line in function(*args, **kwargs):
             if __debug__ and not isinstance(line, str):
-                raise InvalidType(str, line)
+                raise InvalidType(line, str)
             buffer.write(f"{line};\n")
 
         return buffer.getvalue()

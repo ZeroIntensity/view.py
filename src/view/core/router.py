@@ -143,7 +143,7 @@ class Router:
 
     def _get_node_for_path(self, path: str, *, allow_path_parameters: bool) -> PathNode:
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(str, path)
+            raise InvalidType(path, str)
 
         path = normalize_route(path)
         parent_node = self.parent_node
@@ -165,7 +165,7 @@ class Router:
         """
 
         if __debug__ and not callable(view):
-            raise InvalidType(Callable, view)
+            raise InvalidType(view, Callable)
 
         node = self._get_node_for_path(path, allow_path_parameters=True)
         if node.routes.get(method) is not None:
@@ -184,7 +184,7 @@ class Router:
         """
 
         if __debug__ and not callable(subrouter):
-            raise InvalidType(Callable, subrouter)
+            raise InvalidType(subrouter, Callable)
 
         node = self._get_node_for_path(path, allow_path_parameters=False)
         if node.subrouter is not None:
@@ -202,7 +202,7 @@ class Router:
         elif issubclass(error, HTTPError):
             error_type = error
         else:
-            raise InvalidType((int, type), error)
+            raise InvalidType(error, (int, type))
 
         self.error_views[error_type] = view
 

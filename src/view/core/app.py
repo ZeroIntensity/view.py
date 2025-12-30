@@ -223,7 +223,7 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     Decorator for using a single function as an app.
     """
     if __debug__ and not callable(view):
-        raise InvalidType(Callable, view)
+        raise InvalidType(view, Callable)
 
     return SingleViewApp(view)
 
@@ -274,10 +274,10 @@ class App(BaseApp):
         """
 
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(str, path)
+            raise InvalidType(path, str)
 
         if __debug__ and not isinstance(method, Method):
-            raise InvalidType(Method, method)
+            raise InvalidType(method, Method)
 
         def decorator(view: RouteView, /) -> Route:
             route = self.router.push_route(view, path, method)
@@ -354,7 +354,7 @@ class App(BaseApp):
 
     def subrouter(self, path: str) -> Callable[[SubRouterViewT], SubRouterViewT]:
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(str, path)
+            raise InvalidType(path, str)
 
         def decorator(function: SubRouterViewT, /) -> SubRouterViewT:
             if __debug__ and not callable(function):
@@ -373,7 +373,7 @@ class App(BaseApp):
 
     def static_files(self, path: str, directory: str | Path) -> None:
         if __debug__ and not isinstance(directory, (str, Path)):
-            raise InvalidType((str, Path), directory)
+            raise InvalidType(directory, (str, Path))
 
         directory = Path(directory)
 

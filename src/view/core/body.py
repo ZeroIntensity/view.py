@@ -52,7 +52,7 @@ class BodyMixin:
         buffer = BytesIO()
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise InvalidType(bytes, data)
+                raise InvalidType(data, bytes)
             buffer.write(data)
 
         return buffer.getvalue()
@@ -87,5 +87,5 @@ class BodyMixin:
 
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise InvalidType(bytes, data)
+                raise InvalidType(data, bytes)
             yield data

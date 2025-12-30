@@ -23,7 +23,7 @@ def _construct_node(
     data: dict[str, str],
 ) -> HTMLNode:
     if __debug__ and ((child_text is not None) and not isinstance(child_text, str)):
-        raise InvalidType(str, child_text)
+        raise InvalidType(child_text, str)
 
     for attribute_name, value in attributes.copy().items():
         if value in {None, False}:
@@ -34,7 +34,7 @@ def _construct_node(
     attributes = {**attributes, **global_attributes}
     for data_name, value in data.items():
         if __debug__ and not isinstance(value, str):
-            raise InvalidType(str, value)
+            raise InvalidType(value, str)
 
         attributes[f"data-{data_name}"] = value
 

@@ -26,7 +26,7 @@ class InvalidType(ViewError, TypeError):
     complaining about something, it is very likely the culprit.
     """
 
-    def __init__(self, expected: type | tuple[type, ...], got: Any) -> None:
+    def __init__(self, got: Any, expected: type | tuple[type, ...]) -> None:
         if isinstance(expected, type):
             super().__init__(f"Expected {expected.__name__}, got {got!r}")
         else:
