@@ -12,7 +12,13 @@ from pathlib import Path
 from loguru import logger
 
 from view.core.request import Method, Request
-from view.core.response import FileResponse, Response, ViewResult, wrap_view_result
+from view.core.response import (
+    FileResponse,
+    Response,
+    ResponseLike,
+    ViewResult,
+    wrap_view_result,
+)
 from view.core.router import FoundRoute, Route, Router, RouteView
 from view.status_codes import HTTPError, InternalServerError, NotFound
 
@@ -21,8 +27,6 @@ if TYPE_CHECKING:
     from view.run.wsgi import WSGIProtocol
 
 __all__ = "BaseApp", "as_app", "App"
-
-RouteDecorator: TypeAlias = Callable[[RouteView], Route]
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -223,6 +227,11 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     return SingleViewApp(view)
 
 
+RouteDecorator: TypeAlias = Callable[[RouteView], Route]
+SubRouterView: TypeAlias = Callable[[str], ResponseLike]
+SubRouterViewT = TypeVar("SubRouterViewT", bound=SubRouterView)
+
+
 class App(BaseApp):
     """
     An application containing an automatic routing mechanism
@@ -336,15 +345,24 @@ class App(BaseApp):
 
         return decorator
 
+    def subrouter(self, path: str) -> Callable[[SubRouterViewT], SubRouterViewT]:
+        def decorator(function: SubRouterViewT, /) -> SubRouterViewT:
+            def router_function(path_from_url: str) -> Route:
+                def route() -> ResponseLike:
+                    return function(path_from_url)
+
+                return Route(route, path_from_url, Method.GET)
+
+            self.router.push_subrouter(router_function, path)
+            return function
+
+        return decorator
+
     def static_files(self, path: str, directory: Path) -> None:
-        def static_router(path_from_url: str) -> Route:
-            def route():
-                file = directory / path_from_url
-                if not file.is_file():
-                    raise NotFound()
+        @self.subrouter(path)
+        def serve_static_file(path_from_url: str) -> ResponseLike:
+            file = directory / path_from_url
+            if not file.is_file():
+                raise NotFound()
 
-                return FileResponse.from_file(file)
-
-            return Route(route, path_from_url, Method.GET)
-
-        self.router.push_subrouter(static_router, path)
+            return FileResponse.from_file(file)
