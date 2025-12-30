@@ -9,6 +9,7 @@ from view.core.body import InvalidJSON
 from view.core.headers import as_multidict
 from view.core.request import Method, Request
 from view.core.response import ResponseLike
+from view.core.router import DuplicateRoute
 from view.status_codes import BadRequest
 from view.testing import AppTestClient, into_tuple
 
@@ -332,3 +333,32 @@ async def test_request_query_parameters():
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/?foo=bar&test=1&test=2&test=3"))) == ok("ok")
+
+
+@pytest.mark.asyncio
+async def test_subrouters():
+    app = App()
+
+    @app.subrouter("/foo/bar")
+    async def main(path: str) -> ResponseLike:
+        return path
+
+    @app.get("/foo/bar")
+    async def conflict() -> ResponseLike:
+        return "test"
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/foo/bar"))) == ok("test")
+    assert (await into_tuple(client.get("/foo/bar/baz"))) == ok("baz")
+    assert (await into_tuple(client.get("/foo/bar//baz"))) == ok("/baz")
+    assert (await into_tuple(client.get("/foo/bar/"))) == ok("test")
+    assert (await into_tuple(client.get("/foo/"))) == (b"404 Not Found", 404, {})
+
+    with pytest.raises(DuplicateRoute):
+        app.subrouter("/foo/bar")(main)
+
+    with pytest.raises(DuplicateRoute):
+        app.get("/foo/bar")(conflict.view)
+
+    with pytest.raises(RuntimeError):
+        app.subrouter("/{test}/x")(main)

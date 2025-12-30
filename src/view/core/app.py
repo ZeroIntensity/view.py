@@ -4,7 +4,7 @@ import contextlib
 import contextvars
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from multiprocessing import Process
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 from pathlib import Path
@@ -229,7 +229,7 @@ def as_app(view: SingleView, /) -> SingleViewApp:
 
 
 RouteDecorator: TypeAlias = Callable[[RouteView], Route]
-SubRouterView: TypeAlias = Callable[[str], ResponseLike]
+SubRouterView: TypeAlias = Callable[[str], ResponseLike | Awaitable[ResponseLike]]
 SubRouterViewT = TypeVar("SubRouterViewT", bound=SubRouterView)
 
 
@@ -361,7 +361,7 @@ class App(BaseApp):
                 raise InvalidType(Callable, function)
 
             def router_function(path_from_url: str) -> Route:
-                def route() -> ResponseLike:
+                def route() -> ResponseLike | Awaitable[ResponseLike]:
                     return function(path_from_url)
 
                 return Route(route, path_from_url, Method.GET)
