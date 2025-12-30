@@ -21,7 +21,7 @@ from view.core.router import RouteView
 from view.exceptions import InvalidType
 from view.javascript import SupportsJavaScript
 
-__all__ = ("HTMLNode",)
+__all__ = ("HTMLNode", "html_response")
 
 HTMLTree: TypeAlias = Iterator["HTMLNode"]
 

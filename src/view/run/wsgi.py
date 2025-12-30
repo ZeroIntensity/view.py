@@ -11,6 +11,8 @@ from view.status_codes import STATUS_STRINGS
 if TYPE_CHECKING:
     from view.core.app import BaseApp
 
+__all__ = ("wsgi_for_app",)
+
 WSGIHeaders: TypeAlias = list[tuple[str, str]]
 # We can't use a TypedDict for the environment because it has arbitrary keys
 # for the headers.
