@@ -163,6 +163,16 @@ class HTTPError(Exception):
     status_code: ClassVar[int] = 0
     description: ClassVar[str] = ""
 
+    def __init__(self, *msg: str) -> None:
+        if msg:
+            message = " ".join(msg)
+            self.message: str | None = message
+        else:
+            self.message = None
+        super().__init__(
+            "If you're seeing this message, then something has gone horribly wrong. HTTP errors should never be in a real traceback, and instead only be used for indicating something to a caller. If you meant to access the message included with this HTTP error, use the .message attribute."
+        )
+
     def __init_subclass__(cls, ignore: bool = False) -> None:
         if not ignore:
             assert cls.status_code != 0, cls
@@ -177,14 +187,12 @@ class HTTPError(Exception):
         if cls.status_code == 0:
             raise TypeError(f"{cls} is not a real response")
 
-        if self.args == ():
+        if self.message is None:
             message = f"{cls.status_code} {cls.description}"
         else:
-            message = str(self)
+            message = self.message
 
-        return TextResponse.from_content(
-            message.encode("utf-8"), status_code=cls.status_code
-        )
+        return TextResponse.from_content(message, status_code=cls.status_code)
 
 
 def status_exception(status: int) -> type[HTTPError]:
