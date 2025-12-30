@@ -3,6 +3,7 @@ from __future__ import annotations
 import traceback
 from enum import IntEnum
 from typing import ClassVar
+import sys
 
 from view.core.response import TextResponse
 
@@ -152,6 +153,19 @@ class Success(IntEnum):
     """
 
 
+HTTP_ERROR_TRACEBACK_NOTE = """
+-----
+
+If you're seeing this message, then something has gone horribly wrong.
+HTTP errors should never be in a real traceback, and instead only
+be used for indicating something to a caller. If you meant to
+access the message included with this HTTP error, use the
+.message attribute.
+
+-----
+"""
+
+
 class HTTPError(Exception):
     """
     Base class for all HTTP errors.
@@ -163,15 +177,17 @@ class HTTPError(Exception):
     status_code: ClassVar[int] = 0
     description: ClassVar[str] = ""
 
-    def __init__(self, *msg: str) -> None:
+    def __init__(self, *msg: object) -> None:
         if msg:
-            message = " ".join(msg)
-            self.message: str | None = message
+            self.message: str | None = " ".join([str(item) for item in msg])
         else:
             self.message = None
-        super().__init__(
-            "If you're seeing this message, then something has gone horribly wrong. HTTP errors should never be in a real traceback, and instead only be used for indicating something to a caller. If you meant to access the message included with this HTTP error, use the .message attribute."
-        )
+
+        if sys.version_info < (3, 11):
+            super().__init__(*msg, HTTP_ERROR_TRACEBACK_NOTE)
+        else:
+            super().__init__(*msg)
+            super().add_note(HTTP_ERROR_TRACEBACK_NOTE)
 
     def __init_subclass__(cls, ignore: bool = False) -> None:
         if not ignore:
