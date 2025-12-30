@@ -59,7 +59,7 @@ class DuplicateRoute(ViewError):
     """
 
 
-SubRouter: TypeAlias = Callable[[str], "FoundRoute"]
+SubRouter: TypeAlias = Callable[[str], "Route"]
 
 
 @dataclass(slots=True)
@@ -127,7 +127,7 @@ class FoundRoute:
     """
 
     route: Route
-    path_parameters: MutableMapping[str, str]
+    path_parameters: MutableMapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True, frozen=True)
@@ -141,13 +141,15 @@ class Router:
     )
     parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
 
-    def _get_node_for_path(self, path: str) -> PathNode:
+    def _get_node_for_path(self, path: str, *, allow_path_parameters: bool) -> PathNode:
         path = normalize_route(path)
         parent_node = self.parent_node
         parts = path.split("/")
 
         for part in parts:
             if is_path_parameter(part):
+                if not allow_path_parameters:
+                    raise RuntimeError("Path parameters are not allowed here")
                 parent_node = parent_node.parameter(extract_path_parameter(part))
             else:
                 parent_node = parent_node.next(part)
@@ -159,7 +161,7 @@ class Router:
         Register a view with the router.
         """
 
-        node = self._get_node_for_path(path)
+        node = self._get_node_for_path(path, allow_path_parameters=True)
         if node.routes.get(method) is not None:
             raise DuplicateRoute(
                 f"The route {path!r} was already used for method {method.value}"
@@ -175,7 +177,7 @@ class Router:
         else is found.
         """
 
-        node = self._get_node_for_path(path)
+        node = self._get_node_for_path(path, allow_path_parameters=False)
         if node.subrouter is not None:
             raise DuplicateRoute(f"The route {path!r} already has a subrouter")
 
@@ -212,7 +214,7 @@ class Router:
                 if node is None:
                     if parent_node.subrouter is not None:
                         remaining = "/".join(parts[index:])
-                        return parent_node.subrouter(remaining)
+                        return FoundRoute(parent_node.subrouter(remaining))
 
                     # This route doesn't exist
                     return None
@@ -224,7 +226,7 @@ class Router:
         final_route: Route | None = parent_node.routes.get(method)
         if final_route is None:
             if parent_node.subrouter is not None:
-                return parent_node.subrouter("/")
+                return FoundRoute(parent_node.subrouter("/"))
             return None
 
         return FoundRoute(final_route, path_parameters)

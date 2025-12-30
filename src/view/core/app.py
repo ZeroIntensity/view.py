@@ -337,7 +337,7 @@ class App(BaseApp):
         return decorator
 
     def static_files(self, path: str, directory: Path) -> None:
-        def static_router(path_from_url: str) -> FoundRoute:
+        def static_router(path_from_url: str) -> Route:
             def route():
                 file = directory / path_from_url
                 if not file.is_file():
@@ -345,6 +345,6 @@ class App(BaseApp):
 
                 return FileResponse.from_file(file)
 
-            return FoundRoute(Route(route, path_from_url, Method.GET), {})
+            return Route(route, path_from_url, Method.GET)
 
         self.router.push_subrouter(static_router, path)
