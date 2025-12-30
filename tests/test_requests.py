@@ -11,13 +11,7 @@ from view.core.request import Method, Request
 from view.core.response import ResponseLike
 from view.core.router import DuplicateRoute
 from view.status_codes import BadRequest
-from view.testing import AppTestClient, into_tuple
-
-
-def ok(body: str | bytes) -> tuple[bytes, int, dict[str, str]]:
-    if isinstance(body, str):
-        body = body.encode("utf-8")
-    return (body, 200, {})
+from view.testing import AppTestClient, into_tuple, ok, bad
 
 
 @pytest.mark.asyncio
@@ -352,7 +346,7 @@ async def test_subrouters():
     assert (await into_tuple(client.get("/foo/bar/baz"))) == ok("baz")
     assert (await into_tuple(client.get("/foo/bar//baz"))) == ok("/baz")
     assert (await into_tuple(client.get("/foo/bar/"))) == ok("test")
-    assert (await into_tuple(client.get("/foo/"))) == (b"404 Not Found", 404, {})
+    assert (await into_tuple(client.get("/foo/"))) == bad(404)
 
     with pytest.raises(DuplicateRoute):
         app.subrouter("/foo/bar")(main)

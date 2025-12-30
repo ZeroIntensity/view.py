@@ -15,7 +15,7 @@ from view.status_codes import (
     HTTPError,
     Success,
 )
-from view.testing import AppTestClient, into_tuple
+from view.testing import AppTestClient, into_tuple, ok, bad
 
 
 @pytest.mark.asyncio
@@ -35,9 +35,9 @@ async def test_str_or_bytes_response():
             raise BadRequest()
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"Hello", 200, {})
-    assert (await into_tuple(client.get("/bytes"))) == (b"World", 200, {})
-    assert (await into_tuple(client.get("/my-string"))) == (b"My string", 200, {})
+    assert (await into_tuple(client.get("/"))) == ok("Hello")
+    assert (await into_tuple(client.get("/bytes"))) == ok("World")
+    assert (await into_tuple(client.get("/my-string"))) == ok("My string")
 
 
 @pytest.mark.asyncio
@@ -101,7 +101,7 @@ async def test_stream_response_async():
         await asyncio.sleep(0)
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"This Is A Test", 200, {})
+    assert (await into_tuple(client.get("/"))) == ok("This Is A Test")
 
 
 @pytest.mark.asyncio
@@ -114,7 +114,7 @@ async def test_stream_response_sync():
         yield "Test"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"This Is A Test", 200, {})
+    assert (await into_tuple(client.get("/"))) == ok("This Is A Test")
 
 
 @pytest.mark.asyncio
@@ -148,7 +148,7 @@ async def test_status_codes():
             raise RuntimeError()
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/"))) == (b"400 Bad Request", 400, {})
+    assert (await into_tuple(client.get("/"))) == bad(400)
     assert (await into_tuple(client.get("/message"))) == (b"Test", 400, {})
 
 
@@ -215,38 +215,14 @@ async def test_static_files():
             200,
             {"content-type": "text/plain"},
         )
-        assert (await into_tuple(client.get("/files/"))) == (b"404 Not Found", 404, {})
-        assert (await into_tuple(client.get("/files"))) == (b"404 Not Found", 404, {})
-        assert (await into_tuple(client.get("/files/foo/bar"))) == (
-            b"404 Not Found",
-            404,
-            {},
-        )
-        assert (await into_tuple(client.get("/files/foo/../bar"))) == (
-            b"404 Not Found",
-            404,
-            {},
-        )
-        assert (await into_tuple(client.get("/files/../"))) == (
-            b"404 Not Found",
-            404,
-            {},
-        )
-        assert (await into_tuple(client.get("/files//etc/shadow"))) == (
-            b"403 Forbidden",
-            403,
-            {},
-        )
-        assert (await into_tuple(client.get("/files/~/"))) == (
-            b"404 Not Found",
-            404,
-            {},
-        )
-        assert (await into_tuple(client.get("/files/foo/"))) == (
-            b"404 Not Found",
-            404,
-            {},
-        )
+        assert (await into_tuple(client.get("/files/"))) == bad(404)
+        assert (await into_tuple(client.get("/files"))) == bad(404)
+        assert (await into_tuple(client.get("/files/foo/bar"))) == bad(404)
+        assert (await into_tuple(client.get("/files/foo/../bar"))) == bad(404)
+        assert (await into_tuple(client.get("/files/../"))) == bad(404)
+        assert (await into_tuple(client.get("/files//etc/shadow"))) == bad(403)
+        assert (await into_tuple(client.get("/files/~/"))) == bad(404)
+        assert (await into_tuple(client.get("/files/foo/"))) == bad(404)
         assert (await into_tuple(client.get("/files/foo/b.txt"))) == (
             b"goodbye",
             200,

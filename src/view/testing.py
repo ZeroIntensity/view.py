@@ -7,6 +7,7 @@ from multidict import CIMultiDict
 
 from view.core.headers import HeadersLike, as_multidict
 from view.core.request import Method, Request, extract_query_parameters
+from view.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
@@ -25,6 +26,24 @@ async def into_tuple(
     response = await response_coro
     body = await response.body()
     return (body, response.status_code, response.headers)
+
+
+def ok(body: str | bytes) -> tuple[bytes, int, dict[str, str]]:
+    """
+    Utility function for an OK response from `into_tuple()`.
+    """
+
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    return (body, 200, {})
+
+
+def bad(status_code: int) -> tuple[bytes, int, dict[str, str]]:
+    """
+    Utility function for an error response from `into_tuple()`.
+    """
+    body = STATUS_STRINGS[status_code].encode("utf-8")
+    return (body, status_code, {})
 
 
 class AppTestClient:
