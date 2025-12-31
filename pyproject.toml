@@ -34,3 +34,16 @@ Funding = "https://github.com/sponsors/ZeroIntensity"
 [project.scripts]
 view = "view.__main__:main"
 view-py = "view.__main__:main"
+
+[tool.ruff]
+exclude = ["tests/"]
+line-length = 79
+indent-width = 4
+
+[tool.ruff.lint]
+ignore = ["S101"]  # We intentionally want assertions to be debug-only
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["PLC0414"]
+"status_codes.py" = ["N818"]
+"primitives.py" = ["A001", "A002", "B008"]

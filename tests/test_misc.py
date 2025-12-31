@@ -1,7 +1,6 @@
 import pytest
-
+from view.core.app import App, as_app
 from view.exceptions import InvalidType
-from view.core.app import as_app, App
 
 
 def test_as_app_invalid():
