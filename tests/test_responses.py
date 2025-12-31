@@ -119,21 +119,22 @@ async def test_stream_response_sync():
 
 @pytest.mark.asyncio
 async def test_file_response():
-    with tempfile.NamedTemporaryFile("w") as file:
+    with tempfile.NamedTemporaryFile("w", delete=False) as file:
         file.write("A" * 10000)
 
-        @as_app
-        def app(request: Request) -> ResponseLike:
-            return FileResponse.from_file(
-                str(file.name), status_code=Success.CREATED, headers={"hello": "world"}
-            )
-
-        client = AppTestClient(app)
-        assert (await into_tuple(client.get("/"))) == (
-            b"A" * 10000,
-            201,
-            {"hello": "world", "content-type": "text/plain"},
+    @as_app
+    def app(request: Request) -> ResponseLike:
+        return FileResponse.from_file(
+            str(file.name), status_code=Success.CREATED, headers={"hello": "world"}
         )
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (
+        b"A" * 10000,
+        201,
+        {"hello": "world", "content-type": "text/plain"},
+    )
+    file.close()
 
 
 @pytest.mark.asyncio
