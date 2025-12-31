@@ -1,3 +1,0 @@
-[app]
-loader = "simple"
-loader_path = "tests/simple_routes"

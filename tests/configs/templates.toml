@@ -1,3 +1,0 @@
-[templates]
-directory = "tests/other_templates/"
-engine = "mako"

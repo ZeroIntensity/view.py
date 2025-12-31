@@ -27,7 +27,7 @@ jobs:
             fail-fast: false
             matrix:
                 os: [ubuntu-latest, windows-latest, macos-latest]
-                python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+                python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
         steps:
             - uses: actions/checkout@v2
@@ -37,11 +37,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
 
-            - name: Install Pytest
-              run: pip install pytest pytest-asyncio
-
-            - name: Build view.py
-              run: pip install .[full]
+            - name: Install Hatch
+              run: pip install hatch
 
             - name: Run tests
-              run: pytest -x
+              run: hatch test

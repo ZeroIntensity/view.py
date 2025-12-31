@@ -1,3 +1,0 @@
-[app]
-loader = "filesystem"
-loader_path = "tests/fs_routing"

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.9.0", "hatchling>=1", "pyawaitable>=1.3.0"]
+requires = ["hatchling>=1"]
 build-backend = "hatchling.build"
 
 [project]
@@ -9,60 +9,21 @@ readme = "README.md"
 requires-python = ">=3.9"
 keywords = []
 authors = [
-  { name = "ZeroIntensity", email = "zintensitydev@gmail.com" },
+  { name = "Peter Bierma", email = "peter@python.org" },
 ]
 classifiers = [
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = [
-    "rich>=13",
-    "click>=8",
-    "typing_extensions",
-    "ujson>=5",
-    "pydantic_settings>=2",
-    "toml~=0.10",
-    "aiofiles>=24",
-    "prompts.py~=0.1",
-    "pyawaitable>=1.3.0"
-]
+dependencies = ["multidict~=6.5", "loguru~=0.7", "aiofiles~=24.1", "typing_extensions>=4"]
 dynamic = ["version", "license"]
 
 [project.optional-dependencies]
-databases = [
-    "psycopg2-binary",
-    "mysql-connector-python",
-    "pymongo",
-    "aiosqlite"
-]
-templates = ["beautifulsoup4", "jinja2", "mako", "django", "chameleon", "markdown"]
-fancy = ["psutil", "plotext"]
-servers = ["uvicorn[websockets]", "hypercorn", "daphne", "watchfiles"]
-full = [
-    "psutil",
-    "plotext",
-    "beautifulsoup4",
-    "jinja2",
-    "mako",
-    "django",
-    "chameleon",
-    "attrs",
-    "psycopg2-binary",
-    "mysql-connector-python",
-    "pymongo",
-    "aiosqlite",
-    "markdown",
-    "uvicorn",
-    "hypercorn",
-    "daphne",
-    "reactpy",
-    "watchfiles"
-]
 
 [project.urls]
 Documentation = "https://view.zintensity.dev"

@@ -1,3 +1,0 @@
-# Exceptions Reference
-
-::: view.exceptions

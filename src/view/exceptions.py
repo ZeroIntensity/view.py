@@ -1,165 +1,31 @@
-"""
-All view.py exceptions
-
-Everything in this module inherits from `ViewError` or `ViewWarning`.
-"""
-
 from __future__ import annotations
 
-from rich.console import RenderableType
+from typing import Any
 
-__all__ = (
-    "ViewWarning",
-    "NotLoadedWarning",
-    "ViewError",
-    "BadEnvironmentError",
-    "InvalidBodyError",
-    "MistakeError",
-    "LoaderWarning",
-    "AppNotFoundError",
-    "DatabaseError",
-    "InvalidDatabaseSchemaError",
-    "DuplicateRouteError",
-    "InvalidRouteError",
-    "ViewInternalError",
-    "ConfigurationError",
-    "NeedsDependencyError",
-    "InvalidTemplateError",
-    "TypeValidationError",
-    "BuildWarning",
-    "BuildError",
-    "MissingRequirementError",
-    "InvalidResultError",
-    "UnknownBuildStepError",
-    "PlatformNotSupportedError",
-    "WebSocketError",
-    "WebSocketExpectError",
-    "WebSocketHandshakeError",
-    "InvalidCustomLoaderError",
-    "WebSocketDisconnectError",
-    "MissingAppError",
-)
-
-
-class ViewWarning(UserWarning):
-    """Base class for all warnings in view.py"""
-
-
-class NotLoadedWarning(ViewWarning):
-    """load() was never called"""
-
-
-class LoaderWarning(ViewWarning):
-    """A warning from the loader."""
+__all__ = ("ViewError",)
 
 
 class ViewError(Exception):
-    """Base class for exceptions in view.py"""
+    """
+    Base class for all exceptions in view.py
+    """
 
-    def __init__(
-        self,
-        *args: object,
-        hint: RenderableType | None = None,
-    ) -> None:
-        self.hint = hint
-        super().__init__(*args)
+    def __init__(self, *msg: str) -> None:
+        super().__init__(*msg)
 
 
-class BadEnvironmentError(ViewError):
-    """An environment variable is missing."""
+class InvalidType(ViewError, TypeError):
+    """
+    Something got a type that it didn't expect. For example, passing a
+    `str` object in a place where a `bytes` object was expected would raise
+    this error.
 
+    In order to fix this, please review the documentation of the function
+    you're attempting to call and ensure that you are passing it the correct
+    types. view.py is completely type-safe, so if your editor/IDE is
+    complaining about something, it is very likely the culprit.
+    """
 
-class InvalidBodyError(ViewError):
-    """The specified type cannot be used as a view body."""
-
-
-class MistakeError(ViewError):
-    """The user made a mistake."""
-
-
-class AppNotFoundError(ViewError, FileNotFoundError):
-    """Couldn't find the app from the given path."""
-
-
-class DatabaseError(ViewError):
-    """Database error."""
-
-
-class InvalidDatabaseSchemaError(DatabaseError):
-    """Database schema is invalid."""
-
-
-class DuplicateRouteError(ViewError):
-    """Duplicate routes in loader."""
-
-
-class InvalidRouteError(ViewError):
-    """Something is wrong with a route."""
-
-
-class ViewInternalError(ViewError):
-    """Something was wrong internally."""
-
-
-class ConfigurationError(ViewError):
-    """Something is wrong with the configuration."""
-
-
-class NeedsDependencyError(ViewError):
-    """View needs a dependency that wasn't installed."""
-
-
-class InvalidTemplateError(ViewError):
-    """Something is wrong with a template."""
-
-
-class TypeValidationError(TypeError, ViewError):
-    """Could not assign the object to the target type."""
-
-
-class BuildWarning(ViewWarning):
-    """Warning issued during building."""
-
-
-class BuildError(ViewError):
-    """Build failed."""
-
-
-class MissingRequirementError(BuildError):
-    """Build requirement is missing."""
-
-
-class InvalidResultError(ViewError, TypeError):
-    """Invalid route result."""
-
-
-class UnknownBuildStepError(BuildError):
-    """Undefined build step was used."""
-
-
-class PlatformNotSupportedError(BuildError):
-    """Build step does not support the platform."""
-
-
-class WebSocketError(ViewError):
-    """Something related to a WebSocket failed."""
-
-
-class WebSocketHandshakeError(WebSocketError):
-    """WebSocket handshake went wrong somehow."""
-
-
-class WebSocketDisconnectError(WebSocketHandshakeError):
-    """WebSocket client disconnected unexpectedly."""
-
-
-class WebSocketExpectError(WebSocketError, AssertionError, TypeError):
-    """WebSocket received unexpected message."""
-
-
-class InvalidCustomLoaderError(ViewError):
-    """Custom loader is invalid."""
-
-
-class MissingAppError(ViewError):
-    """No view.py app was found."""
+    def __init__(self, got: Any, *expected: type) -> None:
+        expected_string = ", ".join([exception.__name__ for exception in expected])
+        super().__init__(f"Expected {expected_string}, but got {got!r}")
