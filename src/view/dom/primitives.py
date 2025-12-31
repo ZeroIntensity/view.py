@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, TYPE_CHECKING
 
 from typing_extensions import NotRequired, Unpack
 
 from view.dom.core import HTMLNode
 from view.exceptions import InvalidTypeError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class ImplicitDefault(str):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 import urllib.parse
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import auto
 from typing import TYPE_CHECKING
@@ -15,6 +14,7 @@ from view.core.router import normalize_route
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
+    from collections.abc import Mapping
 
 __all__ = "Method", "Request"
 

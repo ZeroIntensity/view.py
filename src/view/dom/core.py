@@ -13,13 +13,15 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from io import StringIO
 from queue import LifoQueue
-from typing import ClassVar, ParamSpec, TypeAlias
+from typing import TYPE_CHECKING, ClassVar, ParamSpec, TypeAlias
 
 from view.core.headers import as_multidict
 from view.core.response import Response
-from view.core.router import RouteView
 from view.exceptions import InvalidTypeError
 from view.javascript import SupportsJavaScript
+
+if TYPE_CHECKING:
+    from view.core.router import RouteView
 
 __all__ = ("HTMLNode", "html_response")
 
