@@ -8,9 +8,6 @@ on:
             - main
         paths:
             - "src/**"
-    pull_request:
-        branches:
-            - main
 
 concurrency:
     group: build-${{ github.head_ref }}
