@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import warnings
+import sys
 from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from dataclasses import dataclass
 from os import PathLike
@@ -60,6 +61,13 @@ ViewResult = ResponseLike | Awaitable[ResponseLike]
 StrPath: TypeAlias = str | PathLike[str]
 
 
+def _guess_file_type(path: Path, /) -> list[str]:
+    if sys.version_info >= (3, 13):
+        return mimetypes.guess_file_type(path)[0] or "text/plain"
+    else:
+        return mimetypes.guess_type(path)[0] or "text/plain"
+
+
 @dataclass(slots=True)
 class FileResponse(Response):
     """
@@ -95,9 +103,7 @@ class FileResponse(Response):
 
         multidict = as_multidict(headers)
         if "content-type" not in multidict:
-            content_type = (
-                content_type or mimetypes.guess_file_type(path)[0] or "text/plain"
-            )
+            content_type = content_type or _guess_file_type(path)
             multidict["content-type"] = content_type
 
         return cls(stream, status_code, multidict, path)
