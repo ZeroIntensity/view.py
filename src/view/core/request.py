@@ -13,8 +13,9 @@ from view.core.headers import RequestHeaders
 from view.core.router import normalize_route
 
 if TYPE_CHECKING:
-    from view.core.app import BaseApp
     from collections.abc import Mapping
+
+    from view.core.app import BaseApp
 
 __all__ = "Method", "Request"
 

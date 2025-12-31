@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from typing_extensions import NotRequired, Unpack
 

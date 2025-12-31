@@ -1,11 +1,15 @@
-from collections.abc import Callable, Iterable
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import wraps
-from typing import NoReturn, ParamSpec
+from typing import TYPE_CHECKING, NoReturn, ParamSpec
 
 from view.dom.core import HTMLNode, HTMLTree
 from view.dom.primitives import base, body, html, link, meta, script
 from view.dom.primitives import title as title_node
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 __all__ = "Children", "Component", "component"
 
