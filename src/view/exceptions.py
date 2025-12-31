@@ -27,5 +27,7 @@ class InvalidTypeError(ViewError, TypeError):
     """
 
     def __init__(self, got: Any, *expected: type) -> None:
-        expected_string = ", ".join([exception.__name__ for exception in expected])
+        expected_string = ", ".join(
+            [exception.__name__ for exception in expected]
+        )
         super().__init__(f"Expected {expected_string}, but got {got!r}")

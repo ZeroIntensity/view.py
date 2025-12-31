@@ -71,7 +71,9 @@ class BodyMixin:
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError as error:
-            raise InvalidJSONError("Body does not contain valid UTF-8 data") from error
+            raise InvalidJSONError(
+                "Body does not contain valid UTF-8 data"
+            ) from error
 
         try:
             return parse_function(text)

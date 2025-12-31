@@ -219,7 +219,9 @@ def status_exception(status: int) -> type[HTTPError]:
     try:
         status_type: type[HTTPError] = STATUS_EXCEPTIONS[status]
     except KeyError as error:
-        raise ValueError(f"{status} is not a valid HTTP error status code") from error
+        raise ValueError(
+            f"{status} is not a valid HTTP error status code"
+        ) from error
 
     return status_type
 

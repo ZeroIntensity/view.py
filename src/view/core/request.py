@@ -4,7 +4,7 @@ import sys
 import urllib.parse
 from dataclasses import dataclass, field
 from enum import auto
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from multidict import MultiDict
 
@@ -31,7 +31,8 @@ else:
 class _UpperStrEnum(StrEnum):
     @staticmethod
     def _generate_next_value_(
-        name: str, start: int, count: int, last_values: list[str]  # noqa
+        name: str,
+        *_: Any,
     ) -> str:
         return name.upper()
 
@@ -129,7 +130,9 @@ class Request(BodyMixin):
     The query string parameters of the HTTP request.
     """
 
-    path_parameters: Mapping[str, str] = field(default_factory=dict, init=False)
+    path_parameters: Mapping[str, str] = field(
+        default_factory=dict, init=False
+    )
     """
     The path parameters of this request.
     """

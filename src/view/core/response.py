@@ -49,7 +49,9 @@ class Response(BodyMixin):
 
 # AnyStr isn't working with the type checker, probably because it's a TypeVar
 StrOrBytes: TypeAlias = str | bytes
-_ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
+_ResponseTuple: TypeAlias = (
+    tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
+)
 ResponseLike: TypeAlias = (
     Response
     | StrOrBytes
@@ -217,7 +219,9 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
             f"Got excess data in response tuple {response[3:]!r}"
         )
 
-    return TextResponse.from_content(content, status_code=status, headers=headers)
+    return TextResponse.from_content(
+        content, status_code=status, headers=headers
+    )
 
 
 def _wrap_response(response: ResponseLike, /) -> Response:

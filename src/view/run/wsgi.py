@@ -63,7 +63,9 @@ def wsgi_for_app(
             wsgi_headers.append((str(key), value))
 
         # WSGI is such a weird spec
-        status_str = f"{response.status_code} {STATUS_STRINGS[response.status_code]}"
+        status_str = (
+            f"{response.status_code} {STATUS_STRINGS[response.status_code]}"
+        )
         start_response(status_str, wsgi_headers)
         return [loop.run_until_complete(response.body())]
 

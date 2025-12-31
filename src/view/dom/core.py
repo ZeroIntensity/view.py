@@ -42,7 +42,9 @@ class HTMLNode(SupportsJavaScript):
     Data class representing an HTML node in the tree.
     """
 
-    node_stack: ClassVar[ContextVar[LifoQueue[HTMLNode]]] = ContextVar("node_stack")
+    node_stack: ClassVar[ContextVar[LifoQueue[HTMLNode]]] = ContextVar(
+        "node_stack"
+    )
 
     node_name: str
     """
@@ -170,7 +172,9 @@ def html_context() -> HTMLTree:
 
 P = ParamSpec("P")
 HTMLViewResponseItem: TypeAlias = HTMLNode | int
-HTMLViewResult = AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
+HTMLViewResult = (
+    AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
+)
 HTMLView: TypeAlias = Callable[P, HTMLViewResult]
 
 
@@ -210,7 +214,9 @@ def html_response(
                     yield line.encode("utf-8") + b"\n"
 
         return Response(
-            stream, status_code or 200, as_multidict({"content-type": "text/html"})
+            stream,
+            status_code or 200,
+            as_multidict({"content-type": "text/html"}),
         )
 
     return wrapper

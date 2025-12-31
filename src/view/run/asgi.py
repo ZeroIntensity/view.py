@@ -89,7 +89,9 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
                 more_body = data.get("more_body", False)
 
         parameters = extract_query_parameters(scope["query_string"])
-        request = Request(receive_data, app, scope["path"], method, headers, parameters)
+        request = Request(
+            receive_data, app, scope["path"], method, headers, parameters
+        )
 
         response = await app.process_request(request)
         await send(
@@ -100,8 +102,12 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
             }
         )
         async for data in response.stream_body():
-            await send({"type": "http.response.body", "body": data, "more_body": True})
+            await send(
+                {"type": "http.response.body", "body": data, "more_body": True}
+            )
 
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        await send(
+            {"type": "http.response.body", "body": b"", "more_body": False}
+        )
 
     return asgi

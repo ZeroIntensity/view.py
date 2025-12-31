@@ -141,7 +141,9 @@ class Router:
     )
     parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
 
-    def _get_node_for_path(self, path: str, *, allow_path_parameters: bool) -> PathNode:
+    def _get_node_for_path(
+        self, path: str, *, allow_path_parameters: bool
+    ) -> PathNode:
         if __debug__ and not isinstance(path, str):
             raise InvalidTypeError(path, str)
 
@@ -153,7 +155,9 @@ class Router:
             if is_path_parameter(part):
                 if not allow_path_parameters:
                     raise RuntimeError("Path parameters are not allowed here")
-                parent_node = parent_node.parameter(extract_path_parameter(part))
+                parent_node = parent_node.parameter(
+                    extract_path_parameter(part)
+                )
             else:
                 parent_node = parent_node.next(part)
 
@@ -188,11 +192,15 @@ class Router:
 
         node = self._get_node_for_path(path, allow_path_parameters=False)
         if node.subrouter is not None:
-            raise DuplicateRouteError(f"The route {path!r} already has a subrouter")
+            raise DuplicateRouteError(
+                f"The route {path!r} already has a subrouter"
+            )
 
         node.subrouter = subrouter
 
-    def push_error(self, error: int | type[HTTPError], view: RouteView) -> None:
+    def push_error(
+        self, error: int | type[HTTPError], view: RouteView
+    ) -> None:
         """
         Register an error view with the router.
         """
@@ -211,7 +219,9 @@ class Router:
         Look up the view for the route.
         """
         path_parameters: dict[str, str] = {}
-        assert normalize_route(path) == path, "Request() should've normalized the route"
+        assert normalize_route(path) == path, (
+            "Request() should've normalized the route"
+        )
 
         parent_node = self.parent_node
         parts = path.split("/")

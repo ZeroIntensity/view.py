@@ -88,7 +88,9 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.GET, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.GET, headers=headers, body=body
+        )
 
     async def post(
         self,
@@ -97,7 +99,9 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.POST, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.POST, headers=headers, body=body
+        )
 
     async def put(
         self,
@@ -106,7 +110,9 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.PUT, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.PUT, headers=headers, body=body
+        )
 
     async def patch(
         self,
@@ -170,4 +176,6 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.HEAD, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.HEAD, headers=headers, body=body
+        )

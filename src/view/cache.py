@@ -39,7 +39,9 @@ class BaseCache(ABC, Generic[P, T]):
         """
 
     @abstractmethod
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response: ...
+    async def __call__(
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> Response: ...
 
 
 @dataclass(slots=True, frozen=True)
@@ -80,7 +82,9 @@ class InMemoryCache(BaseCache[P, T]):
             self._cached_response = cached
             return cached.as_response()
 
-        if (time.time() - self._cached_response.last_reset) > self.reset_frequency:
+        if (
+            time.time() - self._cached_response.last_reset
+        ) > self.reset_frequency:
             self.invalidate()
             return await self(*args, **kwargs)
 
@@ -111,6 +115,8 @@ def in_memory_cache(
     """
 
     def decorator_factory(function: Callable[P, T], /) -> InMemoryCache[P, T]:
-        return InMemoryCache(function, reset_frequency=reset_frequency or math.inf)
+        return InMemoryCache(
+            function, reset_frequency=reset_frequency or math.inf
+        )
 
     return decorator_factory

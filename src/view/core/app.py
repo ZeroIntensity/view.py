@@ -184,7 +184,9 @@ async def _execute_view_internal(
         result = view(*args, **kwargs)
         return await wrap_view_result(result)
     except HTTPError as error:
-        logger.opt(colors=True).info(f"<red>HTTP Error {error.status_code}</red>")
+        logger.opt(colors=True).info(
+            f"<red>HTTP Error {error.status_code}</red>"
+        )
         raise
 
 
@@ -237,7 +239,9 @@ def as_app(view: SingleView, /) -> SingleViewApp:
 
 
 RouteDecorator: TypeAlias = Callable[[RouteView], Route]
-SubRouterView: TypeAlias = Callable[[str], ResponseLike | Awaitable[ResponseLike]]
+SubRouterView: TypeAlias = Callable[
+    [str], ResponseLike | Awaitable[ResponseLike]
+]
 SubRouterViewT = TypeVar("SubRouterViewT", bound=SubRouterView)
 
 
@@ -359,7 +363,9 @@ class App(BaseApp):
 
         return decorator
 
-    def subrouter(self, path: str) -> Callable[[SubRouterViewT], SubRouterViewT]:
+    def subrouter(
+        self, path: str
+    ) -> Callable[[SubRouterViewT], SubRouterViewT]:
         if __debug__ and not isinstance(path, str):
             raise InvalidTypeError(path, str)
 

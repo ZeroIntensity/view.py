@@ -12,7 +12,8 @@ __all__ = "reraise", "reraises"
 
 @contextmanager
 def reraise(
-    new_exception: type[BaseException] | BaseException, *exceptions: type[BaseException]
+    new_exception: type[BaseException] | BaseException,
+    *exceptions: type[BaseException],
 ) -> Iterator[None]:
     """
     Context manager to reraise one or many exceptions as a single exception.
@@ -33,7 +34,8 @@ P = ParamSpec("P")
 
 
 def reraises(
-    new_exception: type[BaseException] | BaseException, *exceptions: type[BaseException]
+    new_exception: type[BaseException] | BaseException,
+    *exceptions: type[BaseException],
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to reraise one or many exceptions as a single exception for an

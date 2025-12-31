@@ -104,7 +104,9 @@ class ServerSettings:
             def load(self):
                 return self.application
 
-        runner = GunicornRunner(self.app.wsgi(), {"bind": f"{self.host}:{self.port}"})
+        runner = GunicornRunner(
+            self.app.wsgi(), {"bind": f"{self.host}:{self.port}"}
+        )
         runner.run()
 
     def run_werkzeug(self) -> None:
@@ -150,7 +152,9 @@ class ServerSettings:
             try:
                 return start_server()
             except ImportError as error:
-                raise BadServerError(f"{self.hint} is not installed") from error
+                raise BadServerError(
+                    f"{self.hint} is not installed"
+                ) from error
 
         # I'm not sure what Ruff is complaining about here
         for start_server in servers.values():  # noqa: RET503

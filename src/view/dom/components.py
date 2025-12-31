@@ -94,7 +94,9 @@ def page(
     """
     with html(lang=language):
         yield meta(charset="utf-8")
-        yield meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        yield meta(
+            name="viewport", content="width=device-width, initial-scale=1.0"
+        )
 
         if description is not None:
             yield meta(name="description", content=description)
