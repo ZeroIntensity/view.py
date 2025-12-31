@@ -11,8 +11,16 @@ packages = ["src/view"]
 extra-args = ["-vv"]
 extra-dependencies = [
     "pytest-asyncio",
-    "requests"
+    "requests",
+    "uvicorn",
+    "hypercorn",
+    "daphne",
+    "gunicorn",
+    "werkzeug",
 ]
+randomize = true
+retries = 3
+retries-delay = 1
 
 [[envs.hatch-test.matrix]]
 python = ["3.14", "3.13", "3.12", "3.11", "3.10"]
