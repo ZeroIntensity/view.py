@@ -13,7 +13,7 @@ from view.run.servers import ServerSettings
 
 
 @pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
-@pytest.mark.skipif(os.name != "posix", "this has issues on non-Linux")
+@pytest.mark.skipif(os.name != "posix", reason="this has issues on non-Linux")
 def test_run_server(server_name: str):
     try:
         __import__(server_name)
