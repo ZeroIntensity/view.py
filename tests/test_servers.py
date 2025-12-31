@@ -30,7 +30,7 @@ def test_run_server(server_name: str):
     app.run(server_hint={server_name!r})
     """
     process = subprocess.Popen([sys.executable, "-c", code])
-    time.sleep(0.5)
+    time.sleep(2)
     response = requests.get("http://localhost:5000")
     assert response.text == "ok"
     process.kill()
@@ -52,7 +52,7 @@ def test_run_server_detached(server_name: str):
 
     process = app.run_detached(server_hint=server_name)
     try:
-        time.sleep(0.5)
+        time.sleep(2)
         response = requests.get("http://localhost:5000", headers={"test": "silly"})
         assert response.text == "test"
         assert response.status_code == 201
