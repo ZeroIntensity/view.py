@@ -52,3 +52,4 @@ ignore = [
 "__init__.py" = ["PLC0414"]
 "status_codes.py" = ["N818"]
 "primitives.py" = ["A001", "A002", "B008"]
+"servers.py" = ["PLC0415"]
