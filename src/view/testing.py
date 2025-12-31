@@ -43,7 +43,7 @@ def bad(status_code: int) -> tuple[bytes, int, dict[str, str]]:
     Utility function for an error response from `into_tuple()`.
     """
     body = STATUS_STRINGS[status_code]
-    return (f"{status_code} {body}".encode("utf-8"), status_code, {})
+    return (f"{status_code} {body}".encode(), status_code, {})
 
 
 class AppTestClient:

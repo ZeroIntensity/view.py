@@ -4,7 +4,6 @@ import time
 
 import pytest
 import requests
-
 from view.core.app import as_app
 from view.core.request import Request
 from view.core.response import ResponseLike

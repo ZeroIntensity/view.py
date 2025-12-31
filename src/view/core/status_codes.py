@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import sys
 import traceback
 from enum import IntEnum
 from typing import ClassVar
-import sys
 
 from view.core.response import TextResponse
 

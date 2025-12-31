@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import sys
 import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import auto
 from typing import TYPE_CHECKING
-import sys
+
 from multidict import MultiDict
 
 from view.core.body import BodyMixin
@@ -100,7 +101,7 @@ class Request(BodyMixin):
     Dataclass representing an HTTP request.
     """
 
-    app: "BaseApp"
+    app: BaseApp
     """
     The app associated with the HTTP request.
     """

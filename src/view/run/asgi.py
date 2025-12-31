@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from typing import Any, Literal, TypeAlias, TypedDict
+
 from typing_extensions import NotRequired
 
 from view.core.app import BaseApp

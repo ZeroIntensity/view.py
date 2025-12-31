@@ -41,7 +41,7 @@ class ServerSettings:
         "wsgiref",
     ]
 
-    app: "BaseApp"
+    app: BaseApp
     port: int
     host: str
     hint: str | None = None

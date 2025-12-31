@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 
 import pytest
 from multidict import MultiDict
-
 from view.core.app import App, as_app
 from view.core.body import InvalidJSON
 from view.core.headers import as_multidict

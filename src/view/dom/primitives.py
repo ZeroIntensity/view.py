@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any, Literal, TypedDict
+
 from typing_extensions import NotRequired, Unpack
 
 from view.dom.core import HTMLNode

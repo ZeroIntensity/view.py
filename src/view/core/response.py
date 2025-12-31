@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import mimetypes
-import warnings
 import sys
+import warnings
 from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from dataclasses import dataclass
 from os import PathLike
@@ -199,7 +199,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     content = response[0]
     if __debug__ and isinstance(content, Response):
         raise InvalidResponse(
-            f"Response() objects cannot be used with response"
+            "Response() objects cannot be used with response"
             " tuples. Instead, use the status_code and/or headers parameter(s)."
         )
 
