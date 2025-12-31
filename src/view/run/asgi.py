@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
-from typing import Any, Literal, TypeAlias, TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypedDict
 
 from typing_extensions import NotRequired
 

@@ -41,10 +41,10 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
     multidict = CIMultiDict[str]()
     for key, value in headers.items():
         if isinstance(key, bytes):
-            key = key.decode("utf-8")
+            key = key.decode("utf-8")  # noqa
 
         if isinstance(value, bytes):
-            value = value.decode("utf-8")
+            value = value.decode("utf-8")  # noqa
 
         multidict[key] = value
 
@@ -62,7 +62,7 @@ def wsgi_as_multidict(environ: Mapping[str, Any]) -> RequestHeaders:
             continue
 
         assert isinstance(value, str)
-        key = key.removeprefix("HTTP_").replace("_", "-").lower()
+        key = key.removeprefix("HTTP_").replace("_", "-").lower()  # noqa
         headers[key] = value
 
     return headers
