@@ -5,3 +5,6 @@ __pycache__/
 # LSP
 .vscode/
 compile_flags.txt
+
+# Sphinx
+docs/_build/
