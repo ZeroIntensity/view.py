@@ -1,6 +1,10 @@
-from collections.abc import Callable, Iterator
+from __future__ import annotations
+
 from io import StringIO
-from typing import ParamSpec, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, ParamSpec, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 from view.exceptions import InvalidType
 

@@ -3,11 +3,13 @@ from __future__ import annotations
 import math
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
-from multidict import CIMultiDict
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from multidict import CIMultiDict
 
 from view.core.response import (
     Response,

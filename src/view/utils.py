@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeVar
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 __all__ = "reraise", "reraises"
 

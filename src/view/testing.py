@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Awaitable
 from typing import TYPE_CHECKING
 
 from multidict import CIMultiDict
@@ -10,6 +9,8 @@ from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Awaitable
+
     from view.core.app import BaseApp
     from view.core.response import Response
 
