@@ -142,7 +142,7 @@ class BaseApp(ABC):
             settings.run_app_on_any_server()
         except KeyboardInterrupt:
             logger.info("CTRL^C received, shutting down")
-        except Exception:
+        except Exception:  # noqa
             logger.exception("Error in server lifecycle")
         finally:
             logger.info("Server finished")
@@ -200,7 +200,7 @@ async def execute_view(
         if __debug__:
             raise InternalServerError.from_current_exception()
         else:
-            raise InternalServerError()
+            raise InternalServerError
 
 
 SingleView = Callable[["Request"], ViewResult]
@@ -257,7 +257,7 @@ class App(BaseApp):
             request.path, request.method
         )
         if found_route is None:
-            raise NotFound()
+            raise NotFound
 
         # Extend instead of replacing?
         request.path_parameters = found_route.path_parameters
@@ -387,10 +387,10 @@ class App(BaseApp):
         def serve_static_file(path_from_url: str) -> ResponseLike:
             file = directory / path_from_url
             if not file.is_file():
-                raise NotFound()
+                raise NotFound
 
             if not file.is_relative_to(directory):
-                raise Forbidden()
+                raise Forbidden
 
             with reraise(Forbidden, OSError):
                 return FileResponse.from_file(file)
