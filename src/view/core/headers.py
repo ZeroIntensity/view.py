@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 from multidict import CIMultiDict
 
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIHeaders
@@ -35,7 +35,7 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
         return headers
 
     if __debug__ and not isinstance(headers, Mapping):
-        raise InvalidType(Mapping, headers)
+        raise InvalidTypeError(Mapping, headers)
 
     assert isinstance(headers, dict)
     multidict = CIMultiDict[str]()

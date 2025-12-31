@@ -18,7 +18,7 @@ from typing import ClassVar, ParamSpec, TypeAlias
 from view.core.headers import as_multidict
 from view.core.response import Response
 from view.core.router import RouteView
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
 from view.javascript import SupportsJavaScript
 
 __all__ = ("HTMLNode", "html_response")
@@ -197,7 +197,7 @@ def html_response(
                     try_item(item)
             else:
                 if __debug__ and not isinstance(iterator, Iterator):
-                    raise InvalidType(iterator, AsyncIterator, Iterator)
+                    raise InvalidTypeError(iterator, AsyncIterator, Iterator)
 
                 for item in iterator:
                     try_item(item)

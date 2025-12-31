@@ -26,7 +26,7 @@ from view.core.status_codes import (
     InternalServerError,
     NotFound,
 )
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
 from view.utils import reraise
 
 if TYPE_CHECKING:
@@ -229,7 +229,7 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     Decorator for using a single function as an app.
     """
     if __debug__ and not callable(view):
-        raise InvalidType(view, Callable)
+        raise InvalidTypeError(view, Callable)
 
     return SingleViewApp(view)
 
@@ -280,10 +280,10 @@ class App(BaseApp):
         """
 
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(path, str)
+            raise InvalidTypeError(path, str)
 
         if __debug__ and not isinstance(method, Method):
-            raise InvalidType(method, Method)
+            raise InvalidTypeError(method, Method)
 
         def decorator(view: RouteView, /) -> Route:
             route = self.router.push_route(view, path, method)
@@ -360,11 +360,11 @@ class App(BaseApp):
 
     def subrouter(self, path: str) -> Callable[[SubRouterViewT], SubRouterViewT]:
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(path, str)
+            raise InvalidTypeError(path, str)
 
         def decorator(function: SubRouterViewT, /) -> SubRouterViewT:
             if __debug__ and not callable(function):
-                raise InvalidType(Callable, function)
+                raise InvalidTypeError(Callable, function)
 
             def router_function(path_from_url: str) -> Route:
                 def route() -> ResponseLike | Awaitable[ResponseLike]:
@@ -379,7 +379,7 @@ class App(BaseApp):
 
     def static_files(self, path: str, directory: str | Path) -> None:
         if __debug__ and not isinstance(directory, (str, Path)):
-            raise InvalidType(directory, str, Path)
+            raise InvalidTypeError(directory, str, Path)
 
         directory = Path(directory)
 

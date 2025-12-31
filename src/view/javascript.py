@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ParamSpec, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
 
 __all__ = "SupportsJavaScript", "as_javascript_expression", "javascript_compiler"
 
@@ -57,7 +57,7 @@ def as_javascript_expression(data: object) -> str:
     if isinstance(data, SupportsJavaScript):
         result = data.as_javascript()
         if __debug__ and not isinstance(result, str):
-            raise InvalidType(result, str)
+            raise InvalidTypeError(result, str)
 
     raise TypeError(f"Don't know how to convert {data!r} to a JavaScript expression")
 
@@ -73,7 +73,7 @@ def javascript_compiler(function: Callable[P, Iterator[str]]) -> Callable[P, str
 
         for line in function(*args, **kwargs):
             if __debug__ and not isinstance(line, str):
-                raise InvalidType(line, str)
+                raise InvalidTypeError(line, str)
             buffer.write(f"{line};\n")
 
         return buffer.getvalue()

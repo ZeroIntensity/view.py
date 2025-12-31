@@ -16,7 +16,7 @@ __all__ = ("ServerSettings",)
 StartServer: TypeAlias = Callable[[], None]
 
 
-class BadServer(ViewError):
+class BadServerError(ViewError):
     """
     Something is wrong with the selected server.
 
@@ -143,12 +143,14 @@ class ServerSettings:
             try:
                 start_server = servers[self.hint]
             except KeyError as key_error:
-                raise BadServer(f"{self.hint!r} is not a known server") from key_error
+                raise BadServerError(
+                    f"{self.hint!r} is not a known server"
+                ) from key_error
 
             try:
                 return start_server()
             except ImportError as error:
-                raise BadServer(f"{self.hint} is not installed") from error
+                raise BadServerError(f"{self.hint} is not installed") from error
 
         for start_server in servers.values():
             with suppress(ImportError):

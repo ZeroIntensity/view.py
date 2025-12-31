@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, TypeAlias
 
 from view.core.status_codes import HTTPError, status_exception
-from view.exceptions import InvalidType, ViewError
+from view.exceptions import InvalidTypeError, ViewError
 
 if TYPE_CHECKING:
     from view.core.request import Method
@@ -49,7 +49,7 @@ def normalize_route(route: str, /) -> str:
     return route
 
 
-class DuplicateRoute(ViewError):
+class DuplicateRouteError(ViewError):
     """
     The router found multiple views for the same route.
 
@@ -84,7 +84,7 @@ class PathNode:
             self.path_parameter = next_node
             return next_node
         if __debug__ and name != self.path_parameter.name:
-            raise DuplicateRoute(
+            raise DuplicateRouteError(
                 f"Path parameter {name} is in the same place as"
                 f" {self.path_parameter.name}, but with a different name",
             )
@@ -143,7 +143,7 @@ class Router:
 
     def _get_node_for_path(self, path: str, *, allow_path_parameters: bool) -> PathNode:
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(path, str)
+            raise InvalidTypeError(path, str)
 
         path = normalize_route(path)
         parent_node = self.parent_node
@@ -165,11 +165,11 @@ class Router:
         """
 
         if __debug__ and not callable(view):
-            raise InvalidType(view, Callable)
+            raise InvalidTypeError(view, Callable)
 
         node = self._get_node_for_path(path, allow_path_parameters=True)
         if node.routes.get(method) is not None:
-            raise DuplicateRoute(
+            raise DuplicateRouteError(
                 f"The route {path!r} was already used for method {method.value}"
             )
 
@@ -184,11 +184,11 @@ class Router:
         """
 
         if __debug__ and not callable(subrouter):
-            raise InvalidType(subrouter, Callable)
+            raise InvalidTypeError(subrouter, Callable)
 
         node = self._get_node_for_path(path, allow_path_parameters=False)
         if node.subrouter is not None:
-            raise DuplicateRoute(f"The route {path!r} already has a subrouter")
+            raise DuplicateRouteError(f"The route {path!r} already has a subrouter")
 
         node.subrouter = subrouter
 
@@ -202,7 +202,7 @@ class Router:
         elif issubclass(error, HTTPError):
             error_type = error
         else:
-            raise InvalidType(error, int, type)
+            raise InvalidTypeError(error, int, type)
 
         self.error_views[error_type] = view
 

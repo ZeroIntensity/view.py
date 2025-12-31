@@ -4,11 +4,11 @@ from collections.abc import AsyncIterator
 import pytest
 from multidict import MultiDict
 from view.core.app import App, as_app
-from view.core.body import InvalidJSON
+from view.core.body import InvalidJSONError
 from view.core.headers import as_multidict
 from view.core.request import Method, Request
 from view.core.response import ResponseLike
-from view.core.router import DuplicateRoute
+from view.core.router import DuplicateRouteError
 from view.core.status_codes import BadRequest
 from view.testing import AppTestClient, bad, into_tuple, ok
 
@@ -296,7 +296,7 @@ async def test_request_json():
         request = app.current_request()
         try:
             data = await request.json()
-        except InvalidJSON as error:
+        except InvalidJSONError as error:
             raise BadRequest() from error
         return data["test"]
 
@@ -347,10 +347,10 @@ async def test_subrouters():
     assert (await into_tuple(client.get("/foo/bar/"))) == ok("test")
     assert (await into_tuple(client.get("/foo/"))) == bad(404)
 
-    with pytest.raises(DuplicateRoute):
+    with pytest.raises(DuplicateRouteError):
         app.subrouter("/foo/bar")(main)
 
-    with pytest.raises(DuplicateRoute):
+    with pytest.raises(DuplicateRouteError):
         app.get("/foo/bar")(conflict.view)
 
     with pytest.raises(RuntimeError):

@@ -15,7 +15,7 @@ from multidict import CIMultiDict
 
 from view.core.body import BodyMixin
 from view.core.headers import HeadersLike, RequestHeaders, as_multidict
-from view.exceptions import InvalidType, ViewError
+from view.exceptions import InvalidTypeError, ViewError
 
 __all__ = "Response", "ViewResult", "ResponseLike"
 
@@ -91,7 +91,7 @@ class FileResponse(Response):
         Generate a `FileResponse` from a file path.
         """
         if __debug__ and not isinstance(chunk_size, int):
-            raise InvalidType(chunk_size, int)
+            raise InvalidTypeError(chunk_size, int)
 
         async def stream():
             async with aiofiles.open(path, "rb") as file:
@@ -141,7 +141,7 @@ class TextResponse(Response, Generic[AnyStr]):
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
-            raise InvalidType(content, str, bytes)
+            raise InvalidTypeError(content, str, bytes)
 
         async def stream() -> AsyncGenerator[bytes]:
             yield _as_bytes(content)
@@ -177,7 +177,7 @@ class JSONResponse(Response):
         )
 
 
-class InvalidResponse(ViewError):
+class InvalidResponseError(ViewError):
     """
     A view returned an object that view.py doesn't know how to convert into a
     response object.
@@ -186,7 +186,7 @@ class InvalidResponse(ViewError):
 
 def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     if __debug__ and response == ():
-        raise InvalidResponse("Response cannot be an empty tuple")
+        raise InvalidResponseError("Response cannot be an empty tuple")
 
     if __debug__ and len(response) == 1:
         warnings.warn(
@@ -198,7 +198,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
 
     content = response[0]
     if __debug__ and isinstance(content, Response):
-        raise InvalidResponse(
+        raise InvalidResponseError(
             "Response() objects cannot be used with response"
             " tuples. Instead, use the status_code and/or headers parameter(s)."
         )
@@ -210,7 +210,9 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
         headers = response[2]
 
     if __debug__ and len(response) > 3:
-        raise InvalidResponse(f"Got excess data in response tuple {response[3:]!r}")
+        raise InvalidResponseError(
+            f"Got excess data in response tuple {response[3:]!r}"
+        )
 
     return TextResponse.from_content(content, status_code=status, headers=headers)
 

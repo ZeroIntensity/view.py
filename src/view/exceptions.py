@@ -14,7 +14,7 @@ class ViewError(Exception):
         super().__init__(*msg)
 
 
-class InvalidType(ViewError, TypeError):
+class InvalidTypeError(ViewError, TypeError):
     """
     Something got a type that it didn't expect. For example, passing a
     `str` object in a place where a `bytes` object was expected would raise
