@@ -36,7 +36,7 @@ view = "view.__main__:main"
 view-py = "view.__main__:main"
 
 [tool.ruff]
-exclude = ["tests/"]
+exclude = ["tests/", "docs/"]
 line-length = 79
 indent-width = 4
 
