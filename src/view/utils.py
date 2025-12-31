@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from functools import wraps
@@ -17,9 +18,11 @@ def reraise(
     This is primarily useful for reraising exceptions into HTTP errors, such
     as an error 400 (Bad Request).
     """
+    target = exceptions or Exception
+
     try:
         yield
-    except exceptions or Exception as error:
+    except target as error:
         raise new_exception from error
 
 
@@ -37,13 +40,14 @@ def reraises(
     This is primarily useful for reraising exceptions into HTTP errors, such
     as an error 400 (Bad Request).
     """
+    target = exceptions or Exception
 
     def factory(function: Callable[P, T], /) -> Callable[P, T]:
         @wraps(function)
         def decorator(*args: P.args, **kwargs: P.kwargs) -> T:
             try:
                 return function(*args, **kwargs)
-            except exceptions or Exception as error:
+            except target as error:
                 raise new_exception from error
 
         return decorator
