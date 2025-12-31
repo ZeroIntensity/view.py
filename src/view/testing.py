@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from multidict import CIMultiDict
-
 from view.core.headers import HeadersLike, as_multidict
 from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable
+
+    from multidict import CIMultiDict
 
     from view.core.app import BaseApp
     from view.core.response import Response

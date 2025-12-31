@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
-from typing import Any, Literal, TypeAlias, TypedDict
+from typing import Any, Literal, TypeAlias, TypedDict, TYPE_CHECKING
 
 from typing_extensions import NotRequired
 
-from view.core.app import BaseApp
 from view.core.headers import asgi_as_multidict, multidict_as_asgi
 from view.core.request import Method, Request, extract_query_parameters
+
+if TYPE_CHECKING:
+    from view.core.app import BaseApp
 
 __all__ = ("asgi_for_app",)
 
