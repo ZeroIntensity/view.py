@@ -133,6 +133,7 @@ class BaseApp(ABC):
             warnings.warn(
                 f"The app was run with {production=}, but Python's {__debug__=}",
                 RuntimeWarning,
+                stacklevel=2,
             )
 
         logger.info(f"Serving app on http://localhost:{port}")

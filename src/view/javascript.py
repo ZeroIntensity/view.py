@@ -40,9 +40,9 @@ def as_javascript_expression(data: object) -> str:
     if isinstance(data, bool):
         if data is True:
             return "true"
-        else:
-            assert data is False
-            return "false"
+
+        assert data is False
+        return "false"
 
     if isinstance(data, dict):
         result = StringIO()

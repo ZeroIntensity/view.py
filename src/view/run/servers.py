@@ -152,6 +152,7 @@ class ServerSettings:
             except ImportError as error:
                 raise BadServerError(f"{self.hint} is not installed") from error
 
-        for start_server in servers.values():
+        # I'm not sure what Ruff is complaining about here
+        for start_server in servers.values():  # noqa: RET503
             with suppress(ImportError):
                 return start_server()

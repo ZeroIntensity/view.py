@@ -189,13 +189,14 @@ class HTTPError(Exception):
             super().__init__(*msg)
             super().add_note(HTTP_ERROR_TRACEBACK_NOTE)
 
-    def __init_subclass__(cls, ignore: bool = False) -> None:
+    def __init_subclass__(cls, *, ignore: bool = False) -> None:
         if not ignore:
             assert cls.status_code != 0, cls
             STATUS_EXCEPTIONS[cls.status_code] = cls
             cls.description = STATUS_STRINGS[cls.status_code]
 
-        global __all__
+        # It's too much of a hassle to add an explicit __all__ with every status code.
+        global __all__  # noqa: PLW0603
         __all__ += (cls.__name__,)
 
     def as_response(self) -> TextResponse[str]:
@@ -534,7 +535,7 @@ class InternalServerError(ServerSideError):
         return cls(message)
 
 
-class NotImplemented(ServerSideError):
+class NotImplemented(ServerSideError):  # noqa: A001
     """
     The request method is not supported by the server and cannot be handled.
     The only methods that servers are required to support (and therefore that

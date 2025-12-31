@@ -9,13 +9,13 @@ from typing import TYPE_CHECKING
 from multidict import MultiDict
 
 from view.core.body import BodyMixin
-from view.core.headers import RequestHeaders
 from view.core.router import normalize_route
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from view.core.app import BaseApp
+    from view.core.headers import RequestHeaders
 
 __all__ = "Method", "Request"
 

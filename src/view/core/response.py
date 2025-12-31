@@ -193,6 +193,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
             f"Returned tuple {response!r} with a single item,"
             " which is useless. Return the item directly.",
             RuntimeWarning,
+            stacklevel=2,
         )
         return TextResponse.from_content(response[0])
 
@@ -226,26 +227,30 @@ def _wrap_response(response: ResponseLike, /) -> Response:
     logger.debug(f"Got response: {response!r}")
     if isinstance(response, Response):
         return response
-    elif isinstance(response, (str, bytes)):
+
+    if isinstance(response, (str, bytes)):
         return TextResponse.from_content(response)
-    elif isinstance(response, tuple):
+
+    if isinstance(response, tuple):
         return _wrap_response_tuple(response)
-    elif isinstance(response, AsyncGenerator):
+
+    if isinstance(response, AsyncGenerator):
 
         async def stream() -> AsyncGenerator[bytes]:
             async for data in response:
                 yield _as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
-    elif isinstance(response, Generator):
+
+    if isinstance(response, Generator):
 
         async def stream() -> AsyncGenerator[bytes]:
             for data in response:
                 yield _as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
-    else:
-        raise TypeError(f"Invalid response: {response!r}")
+
+    raise TypeError(f"Invalid response: {response!r}")
 
 
 async def wrap_view_result(result: ViewResult, /) -> Response:
