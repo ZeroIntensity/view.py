@@ -21,6 +21,9 @@ class BodyAlreadyUsedError(ViewError):
     times.
     """
 
+    def __init__(self) -> None:
+        super().__init__("Body has already been consumed")
+
 
 class InvalidJSONError(ViewError):
     """
@@ -45,7 +48,7 @@ class BodyMixin:
         Read the full body from the stream.
         """
         if self.consumed:
-            raise BodyAlreadyUsedError("Body has already been consumed")
+            raise BodyAlreadyUsedError
 
         self.consumed = True
 
@@ -81,7 +84,7 @@ class BodyMixin:
         in-memory at a given time.
         """
         if self.consumed:
-            raise BodyAlreadyUsedError("Body has already been consumed")
+            raise BodyAlreadyUsedError
 
         self.consumed = True
 
