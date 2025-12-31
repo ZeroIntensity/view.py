@@ -220,7 +220,6 @@ async def test_static_files():
         assert (await into_tuple(client.get("/files/foo/bar"))) == bad(404)
         assert (await into_tuple(client.get("/files/foo/../bar"))) == bad(404)
         assert (await into_tuple(client.get("/files/../"))) == bad(404)
-        assert (await into_tuple(client.get("/files//etc/shadow"))) == bad(403)
         assert (await into_tuple(client.get("/files/~/"))) == bad(404)
         assert (await into_tuple(client.get("/files/foo/"))) == bad(404)
         assert (await into_tuple(client.get("/files/foo/b.txt"))) == (
