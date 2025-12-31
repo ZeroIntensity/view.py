@@ -3,9 +3,9 @@ from __future__ import annotations
 import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from enum import StrEnum, auto
+from enum import auto
 from typing import TYPE_CHECKING
-
+import sys
 from multidict import MultiDict
 
 from view.core.body import BodyMixin
@@ -16,6 +16,14 @@ if TYPE_CHECKING:
     from view.core.app import BaseApp
 
 __all__ = "Method", "Request"
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from enum import Enum
+
+    class StrEnum(str, Enum):
+        pass
 
 
 class _UpperStrEnum(StrEnum):

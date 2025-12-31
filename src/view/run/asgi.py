@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
-from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
+from typing import Any, Literal, TypeAlias, TypedDict
+from typing_extensions import NotRequired
 
 from view.core.app import BaseApp
 from view.core.headers import asgi_as_multidict, multidict_as_asgi
