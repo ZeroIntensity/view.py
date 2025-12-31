@@ -27,7 +27,7 @@ class Children(HTMLNode):
         )
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class Component:
     """
     A node with an "injectable" body.
