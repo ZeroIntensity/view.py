@@ -61,7 +61,7 @@ ViewResult = ResponseLike | Awaitable[ResponseLike]
 StrPath: TypeAlias = str | PathLike[str]
 
 
-def _guess_file_type(path: Path, /) -> list[str]:
+def _guess_file_type(path: StrPath, /) -> str:
     if sys.version_info >= (3, 13):
         return mimetypes.guess_file_type(path)[0] or "text/plain"
     else:
