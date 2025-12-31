@@ -17,6 +17,8 @@ class ImplicitDefault(str):
     thus does not need to be included in the rendered output.
     """
 
+    __slots__ = ()
+
 
 def _construct_node(
     name: str,
