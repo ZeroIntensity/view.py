@@ -5,7 +5,7 @@ import contextvars
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterator
-import multiprocessing
+from multiprocessing import Process
 from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
@@ -148,14 +148,13 @@ class BaseApp(ABC):
         port: int = 5000,
         production: bool = False,
         server_hint: str | None = None,
-    ) -> multiprocessing.Process:
+    ) -> Process:
         """
         Run the app in a separate process. This means that the server is
         killable.
         """
 
-        context = multiprocessing.get_context("fork")
-        process = context.Process(
+        process = Process(
             target=self.run,
             kwargs={
                 "host": host,
