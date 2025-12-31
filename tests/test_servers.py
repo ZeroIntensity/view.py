@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import time
+import os
 
 import pytest
 import requests
@@ -13,6 +14,9 @@ from view.run.servers import ServerSettings
 
 @pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
 def test_run_server(server_name: str):
+    if (server_name == "gunicorn") and (os.name != "posix"):
+        pytest.skip("gunicorn seems to have issues on non-linux")
+
     try:
         __import__(server_name)
     except ImportError:
