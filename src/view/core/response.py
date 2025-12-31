@@ -64,8 +64,8 @@ StrPath: TypeAlias = str | PathLike[str]
 def _guess_file_type(path: StrPath, /) -> str:
     if sys.version_info >= (3, 13):
         return mimetypes.guess_file_type(path)[0] or "text/plain"
-    else:
-        return mimetypes.guess_type(path)[0] or "text/plain"
+
+    return mimetypes.guess_type(path)[0] or "text/plain"
 
 
 @dataclass(slots=True)
@@ -115,8 +115,8 @@ def _as_bytes(data: str | bytes) -> bytes:
     """
     if isinstance(data, str):
         return data.encode("utf-8")
-    else:
-        return data
+
+    return data
 
 
 @dataclass(slots=True)
@@ -206,10 +206,12 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     status = response[1]
     headers: HeadersLike | None = None
 
-    if len(response) > 2:
+    # Ruff wants me to use a constant here, but I think this is clear enough
+    # for lengths.
+    if len(response) > 2:  # noqa
         headers = response[2]
 
-    if __debug__ and len(response) > 3:
+    if __debug__ and len(response) > 3:  # noqa
         raise InvalidResponseError(
             f"Got excess data in response tuple {response[3:]!r}"
         )

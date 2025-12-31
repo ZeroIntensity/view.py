@@ -197,10 +197,11 @@ async def execute_view(
         if isinstance(exception, HTTPError):
             raise
         logger.exception(exception)
+
         if __debug__:
-            raise InternalServerError.from_current_exception()
-        else:
-            raise InternalServerError
+            raise InternalServerError.from_current_exception() from exception
+
+        raise InternalServerError from exception
 
 
 SingleView = Callable[["Request"], ViewResult]
@@ -286,8 +287,7 @@ class App(BaseApp):
             raise InvalidTypeError(method, Method)
 
         def decorator(view: RouteView, /) -> Route:
-            route = self.router.push_route(view, path, method)
-            return route
+            return self.router.push_route(view, path, method)
 
         return decorator
 
