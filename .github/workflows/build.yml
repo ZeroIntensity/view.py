@@ -5,12 +5,12 @@ on:
         tags:
             - v*
         branches:
-            - master
+            - main
         paths:
             - "src/**"
     pull_request:
         branches:
-            - master
+            - main
 
 concurrency:
     group: build-${{ github.head_ref }}

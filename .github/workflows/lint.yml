@@ -1,0 +1,26 @@
+name: Lint
+
+on:
+    pull_request:
+        branches:
+            - main
+
+concurrency:
+    group: build-${{ github.head_ref }}
+    cancel-in-progress: true
+
+jobs:
+    lint:
+        name: Lint source code
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: Install Hatch
+              run: pip install hatch
+
+            - name: Run linter
+              run: hatch fmt -l
