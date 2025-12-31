@@ -14,7 +14,7 @@ class ViewError(Exception):
         super().__init__(*msg)
 
 
-class InvalidType(ViewError, TypeError):
+class InvalidTypeError(ViewError, TypeError):
     """
     Something got a type that it didn't expect. For example, passing a
     `str` object in a place where a `bytes` object was expected would raise
@@ -27,5 +27,7 @@ class InvalidType(ViewError, TypeError):
     """
 
     def __init__(self, got: Any, *expected: type) -> None:
-        expected_string = ", ".join([exception.__name__ for exception in expected])
+        expected_string = ", ".join(
+            [exception.__name__ for exception in expected]
+        )
         super().__init__(f"Expected {expected_string}, but got {got!r}")

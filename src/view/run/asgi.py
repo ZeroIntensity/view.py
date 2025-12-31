@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
-from typing import Any, Literal, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypedDict
+
 from typing_extensions import NotRequired
 
-from view.core.app import BaseApp
 from view.core.headers import asgi_as_multidict, multidict_as_asgi
 from view.core.request import Method, Request, extract_query_parameters
+
+if TYPE_CHECKING:
+    from view.core.app import BaseApp
 
 __all__ = ("asgi_for_app",)
 
@@ -86,7 +89,9 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
                 more_body = data.get("more_body", False)
 
         parameters = extract_query_parameters(scope["query_string"])
-        request = Request(receive_data, app, scope["path"], method, headers, parameters)
+        request = Request(
+            receive_data, app, scope["path"], method, headers, parameters
+        )
 
         response = await app.process_request(request)
         await send(
@@ -97,8 +102,12 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
             }
         )
         async for data in response.stream_body():
-            await send({"type": "http.response.body", "body": data, "more_body": True})
+            await send(
+                {"type": "http.response.body", "body": data, "more_body": True}
+            )
 
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        await send(
+            {"type": "http.response.body", "body": b"", "more_body": False}
+        )
 
     return asgi

@@ -3,13 +3,20 @@ from __future__ import annotations
 import math
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
-from multidict import CIMultiDict
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
-from view.core.response import Response, TextResponse, ViewResult, wrap_view_result
+    from multidict import CIMultiDict
+
+from view.core.response import (
+    Response,
+    TextResponse,
+    ViewResult,
+    wrap_view_result,
+)
 
 __all__ = ("in_memory_cache",)
 
@@ -32,7 +39,9 @@ class BaseCache(ABC, Generic[P, T]):
         """
 
     @abstractmethod
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Response: ...
+    async def __call__(
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> Response: ...
 
 
 @dataclass(slots=True, frozen=True)
@@ -73,7 +82,9 @@ class InMemoryCache(BaseCache[P, T]):
             self._cached_response = cached
             return cached.as_response()
 
-        if (time.time() - self._cached_response.last_reset) > self.reset_frequency:
+        if (
+            time.time() - self._cached_response.last_reset
+        ) > self.reset_frequency:
             self.invalidate()
             return await self(*args, **kwargs)
 
@@ -104,6 +115,8 @@ def in_memory_cache(
     """
 
     def decorator_factory(function: Callable[P, T], /) -> InMemoryCache[P, T]:
-        return InMemoryCache(function, reset_frequency=reset_frequency or math.inf)
+        return InMemoryCache(
+            function, reset_frequency=reset_frequency or math.inf
+        )
 
     return decorator_factory

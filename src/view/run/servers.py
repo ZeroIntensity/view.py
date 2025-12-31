@@ -16,7 +16,7 @@ __all__ = ("ServerSettings",)
 StartServer: TypeAlias = Callable[[], None]
 
 
-class BadServer(ViewError):
+class BadServerError(ViewError):
     """
     Something is wrong with the selected server.
 
@@ -41,7 +41,7 @@ class ServerSettings:
         "wsgiref",
     ]
 
-    app: "BaseApp"
+    app: BaseApp
     port: int
     host: str
     hint: str | None = None
@@ -104,7 +104,9 @@ class ServerSettings:
             def load(self):
                 return self.application
 
-        runner = GunicornRunner(self.app.wsgi(), {"bind": f"{self.host}:{self.port}"})
+        runner = GunicornRunner(
+            self.app.wsgi(), {"bind": f"{self.host}:{self.port}"}
+        )
         runner.run()
 
     def run_werkzeug(self) -> None:
@@ -143,13 +145,18 @@ class ServerSettings:
             try:
                 start_server = servers[self.hint]
             except KeyError as key_error:
-                raise BadServer(f"{self.hint!r} is not a known server") from key_error
+                raise BadServerError(
+                    f"{self.hint!r} is not a known server"
+                ) from key_error
 
             try:
                 return start_server()
             except ImportError as error:
-                raise BadServer(f"{self.hint} is not installed") from error
+                raise BadServerError(
+                    f"{self.hint} is not installed"
+                ) from error
 
-        for start_server in servers.values():
+        # I'm not sure what Ruff is complaining about here
+        for start_server in servers.values():  # noqa: RET503
             with suppress(ImportError):
-                return start_server()
+                return start_server()  # noqa: RET503

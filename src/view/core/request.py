@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+import sys
 import urllib.parse
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import auto
-from typing import TYPE_CHECKING
-import sys
+from typing import TYPE_CHECKING, Any
+
 from multidict import MultiDict
 
 from view.core.body import BodyMixin
-from view.core.headers import RequestHeaders
 from view.core.router import normalize_route
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from view.core.app import BaseApp
+    from view.core.headers import RequestHeaders
 
 __all__ = "Method", "Request"
 
@@ -29,7 +31,8 @@ else:
 class _UpperStrEnum(StrEnum):
     @staticmethod
     def _generate_next_value_(
-        name: str, start: int, count: int, last_values: list[str]
+        name: str,
+        *_: Any,
     ) -> str:
         return name.upper()
 
@@ -100,7 +103,7 @@ class Request(BodyMixin):
     Dataclass representing an HTTP request.
     """
 
-    app: "BaseApp"
+    app: BaseApp
     """
     The app associated with the HTTP request.
     """
@@ -127,7 +130,9 @@ class Request(BodyMixin):
     The query string parameters of the HTTP request.
     """
 
-    path_parameters: Mapping[str, str] = field(default_factory=dict, init=False)
+    path_parameters: Mapping[str, str] = field(
+        default_factory=dict, init=False
+    )
     """
     The path parameters of this request.
     """

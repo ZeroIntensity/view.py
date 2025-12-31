@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import sys
 import traceback
 from enum import IntEnum
 from typing import ClassVar
-import sys
 
 from view.core.response import TextResponse
 
@@ -189,13 +189,14 @@ class HTTPError(Exception):
             super().__init__(*msg)
             super().add_note(HTTP_ERROR_TRACEBACK_NOTE)
 
-    def __init_subclass__(cls, ignore: bool = False) -> None:
+    def __init_subclass__(cls, *, ignore: bool = False) -> None:
         if not ignore:
             assert cls.status_code != 0, cls
             STATUS_EXCEPTIONS[cls.status_code] = cls
             cls.description = STATUS_STRINGS[cls.status_code]
 
-        global __all__
+        # It's too much of a hassle to add an explicit __all__ with every status code.
+        global __all__  # noqa: PLW0603
         __all__ += (cls.__name__,)
 
     def as_response(self) -> TextResponse[str]:
@@ -218,7 +219,9 @@ def status_exception(status: int) -> type[HTTPError]:
     try:
         status_type: type[HTTPError] = STATUS_EXCEPTIONS[status]
     except KeyError as error:
-        raise ValueError(f"{status} is not a valid HTTP error status code") from error
+        raise ValueError(
+            f"{status} is not a valid HTTP error status code"
+        ) from error
 
     return status_type
 
@@ -534,7 +537,7 @@ class InternalServerError(ServerSideError):
         return cls(message)
 
 
-class NotImplemented(ServerSideError):
+class NotImplemented(ServerSideError):  # noqa: A001
     """
     The request method is not supported by the server and cannot be handled.
     The only methods that servers are required to support (and therefore that

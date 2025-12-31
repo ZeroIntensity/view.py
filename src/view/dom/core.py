@@ -13,13 +13,15 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from io import StringIO
 from queue import LifoQueue
-from typing import ClassVar, ParamSpec, TypeAlias
+from typing import TYPE_CHECKING, ClassVar, ParamSpec, TypeAlias
 
 from view.core.headers import as_multidict
 from view.core.response import Response
-from view.core.router import RouteView
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
 from view.javascript import SupportsJavaScript
+
+if TYPE_CHECKING:
+    from view.core.router import RouteView
 
 __all__ = ("HTMLNode", "html_response")
 
@@ -40,7 +42,9 @@ class HTMLNode(SupportsJavaScript):
     Data class representing an HTML node in the tree.
     """
 
-    node_stack: ClassVar[ContextVar[LifoQueue[HTMLNode]]] = ContextVar("node_stack")
+    node_stack: ClassVar[ContextVar[LifoQueue[HTMLNode]]] = ContextVar(
+        "node_stack"
+    )
 
     node_name: str
     """
@@ -168,7 +172,9 @@ def html_context() -> HTMLTree:
 
 P = ParamSpec("P")
 HTMLViewResponseItem: TypeAlias = HTMLNode | int
-HTMLViewResult = AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
+HTMLViewResult = (
+    AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
+)
 HTMLView: TypeAlias = Callable[P, HTMLViewResult]
 
 
@@ -197,7 +203,7 @@ def html_response(
                     try_item(item)
             else:
                 if __debug__ and not isinstance(iterator, Iterator):
-                    raise InvalidType(iterator, AsyncIterator, Iterator)
+                    raise InvalidTypeError(iterator, AsyncIterator, Iterator)
 
                 for item in iterator:
                     try_item(item)
@@ -208,7 +214,9 @@ def html_response(
                     yield line.encode("utf-8") + b"\n"
 
         return Response(
-            stream, status_code or 200, as_multidict({"content-type": "text/html"})
+            stream,
+            status_code or 200,
+            as_multidict({"content-type": "text/html"}),
         )
 
     return wrapper

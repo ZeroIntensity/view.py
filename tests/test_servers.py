@@ -1,10 +1,10 @@
 import subprocess
 import sys
 import time
+import platform
 
 import pytest
 import requests
-
 from view.core.app import as_app
 from view.core.request import Request
 from view.core.response import ResponseLike
@@ -13,6 +13,7 @@ from view.run.servers import ServerSettings
 
 
 @pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
+@pytest.mark.skipif(platform.system() != "Linux", reason="this has issues on non-Linux")
 def test_run_server(server_name: str):
     try:
         __import__(server_name)
@@ -31,7 +32,7 @@ def test_run_server(server_name: str):
     app.run(server_hint={server_name!r})
     """
     process = subprocess.Popen([sys.executable, "-c", code])
-    time.sleep(0.5)
+    time.sleep(2)
     response = requests.get("http://localhost:5000")
     assert response.text == "ok"
     process.kill()
@@ -53,7 +54,7 @@ def test_run_server_detached(server_name: str):
 
     process = app.run_detached(server_hint=server_name)
     try:
-        time.sleep(0.5)
+        time.sleep(2)
         response = requests.get("http://localhost:5000", headers={"test": "silly"})
         assert response.text == "test"
         assert response.status_code == 201

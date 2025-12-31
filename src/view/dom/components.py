@@ -1,11 +1,15 @@
-from collections.abc import Callable, Iterable
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import wraps
-from typing import NoReturn, ParamSpec
+from typing import TYPE_CHECKING, NoReturn, ParamSpec
 
 from view.dom.core import HTMLNode, HTMLTree
 from view.dom.primitives import base, body, html, link, meta, script
 from view.dom.primitives import title as title_node
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 __all__ = "Children", "Component", "component"
 
@@ -27,7 +31,7 @@ class Children(HTMLNode):
         )
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class Component:
     """
     A node with an "injectable" body.
@@ -90,7 +94,9 @@ def page(
     """
     with html(lang=language):
         yield meta(charset="utf-8")
-        yield meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        yield meta(
+            name="viewport", content="width=device-width, initial-scale=1.0"
+        )
 
         if description is not None:
             yield meta(name="description", content=description)

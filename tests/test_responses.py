@@ -3,7 +3,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from view.core.app import App, as_app
 from view.core.headers import as_multidict
 from view.core.request import Request
@@ -146,7 +145,7 @@ async def test_status_codes():
         elif request.path == "/message":
             raise BadRequest("Test")
         else:
-            raise RuntimeError()
+            raise RuntimeError
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == bad(400)

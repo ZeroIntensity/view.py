@@ -6,14 +6,14 @@ from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any, TypeAlias
 
-from view.exceptions import InvalidType, ViewError
+from view.exceptions import InvalidTypeError, ViewError
 
 __all__ = ("BodyMixin",)
 
 BodyStream: TypeAlias = Callable[[], AsyncIterator[bytes]]
 
 
-class BodyAlreadyUsed(ViewError):
+class BodyAlreadyUsedError(ViewError):
     """
     The body was already used on this response.
 
@@ -21,8 +21,11 @@ class BodyAlreadyUsed(ViewError):
     times.
     """
 
+    def __init__(self) -> None:
+        super().__init__("Body has already been consumed")
 
-class InvalidJSON(ViewError):
+
+class InvalidJSONError(ViewError):
     """
     The body is not valid JSON data or something went wrong when parsing it.
 
@@ -45,14 +48,14 @@ class BodyMixin:
         Read the full body from the stream.
         """
         if self.consumed:
-            raise BodyAlreadyUsed("Body has already been consumed")
+            raise BodyAlreadyUsedError
 
         self.consumed = True
 
         buffer = BytesIO()
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise InvalidType(data, bytes)
+                raise InvalidTypeError(data, bytes)
             buffer.write(data)
 
         return buffer.getvalue()
@@ -68,12 +71,14 @@ class BodyMixin:
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError as error:
-            raise InvalidJSON("Body does not contain valid UTF-8 data") from error
+            raise InvalidJSONError(
+                "Body does not contain valid UTF-8 data"
+            ) from error
 
         try:
             return parse_function(text)
         except Exception as error:
-            raise InvalidJSON("Failed to parse JSON") from error
+            raise InvalidJSONError("Failed to parse JSON") from error
 
     async def stream_body(self) -> AsyncIterator[bytes]:
         """
@@ -81,11 +86,11 @@ class BodyMixin:
         in-memory at a given time.
         """
         if self.consumed:
-            raise BodyAlreadyUsed("Body has already been consumed")
+            raise BodyAlreadyUsedError
 
         self.consumed = True
 
         async for data in self.receive_data():
             if __debug__ and not isinstance(data, bytes):
-                raise InvalidType(data, bytes)
+                raise InvalidTypeError(data, bytes)
             yield data

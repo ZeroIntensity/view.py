@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Awaitable
 from typing import TYPE_CHECKING
-
-from multidict import CIMultiDict
 
 from view.core.headers import HeadersLike, as_multidict
 from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Awaitable
+
+    from multidict import CIMultiDict
+
     from view.core.app import BaseApp
     from view.core.response import Response
 
@@ -43,7 +44,7 @@ def bad(status_code: int) -> tuple[bytes, int, dict[str, str]]:
     Utility function for an error response from `into_tuple()`.
     """
     body = STATUS_STRINGS[status_code]
-    return (f"{status_code} {body}".encode("utf-8"), status_code, {})
+    return (f"{status_code} {body}".encode(), status_code, {})
 
 
 class AppTestClient:
@@ -87,7 +88,9 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.GET, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.GET, headers=headers, body=body
+        )
 
     async def post(
         self,
@@ -96,7 +99,9 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.POST, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.POST, headers=headers, body=body
+        )
 
     async def put(
         self,
@@ -105,7 +110,9 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.PUT, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.PUT, headers=headers, body=body
+        )
 
     async def patch(
         self,
@@ -169,4 +176,6 @@ class AppTestClient:
         headers: HeadersLike | None = None,
         body: bytes | None = None,
     ) -> Response:
-        return await self.request(route, method=Method.HEAD, headers=headers, body=body)
+        return await self.request(
+            route, method=Method.HEAD, headers=headers, body=body
+        )

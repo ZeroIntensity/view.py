@@ -34,3 +34,23 @@ Funding = "https://github.com/sponsors/ZeroIntensity"
 [project.scripts]
 view = "view.__main__:main"
 view-py = "view.__main__:main"
+
+[tool.ruff]
+exclude = ["tests/"]
+line-length = 79
+indent-width = 4
+
+[tool.ruff.lint]
+ignore = [
+  "S101", # We intentionally want assertions to be debug-only
+  "EM101", # Improves traceback readability(?), but damages code readability
+  "EM102", # Same as above
+  "TRY003", # Moves relevant messages away from where they are raised.
+  "PLC0415", # This is generally done to avoid circular imports.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["PLC0414"]
+"status_codes.py" = ["N818"]
+"primitives.py" = ["A001", "A002", "B008"]
+"servers.py" = ["PLC0415", "RET503"]

@@ -2,7 +2,6 @@ import inspect
 from collections.abc import AsyncIterator, Callable, Iterator
 
 import pytest
-
 from view.core.app import App
 from view.dom.components import Children, component
 from view.dom.core import HTMLNode, html_context, html_response
@@ -45,7 +44,7 @@ def test_dom_primitives(dom_node: Callable[..., HTMLNode]):
             return
 
         iterator = parent.as_html_stream()
-        assert "<html" == next(iterator)
+        assert next(iterator) == "<html"
         assert 'lang="en"' in next(iterator)
         assert ">" in next(iterator)
         assert "<div" in next(iterator)
@@ -56,10 +55,10 @@ def test_dom_primitives(dom_node: Callable[..., HTMLNode]):
         assert 'data-silly="a"' in next(iterator)
         assert ">" in next(iterator)
         if has_body:
-            assert f"gotcha" in next(iterator)
+            assert "gotcha" in next(iterator)
         assert f"</{real_node_name}>" in next(iterator)
-        assert f"</div>" in next(iterator)
-        assert f"</html>" == next(iterator)
+        assert "</div>" in next(iterator)
+        assert next(iterator) == "</html>"
         with pytest.raises(StopIteration):
             next(iterator)
 

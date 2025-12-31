@@ -1,5 +1,4 @@
 import pytest
-
 from view.utils import reraise, reraises
 
 
@@ -42,11 +41,11 @@ def test_reraise_multiple():
 
     with pytest.raises(RuntimeError):
         with reraise(RuntimeError, TypeError, ValueError):
-            raise ValueError()
+            raise ValueError
 
     with pytest.raises(RuntimeError):
         with reraise(RuntimeError, TypeError, ValueError):
-            raise TypeError()
+            raise TypeError
 
 
 def test_do_not_reraise_base_exceptions():

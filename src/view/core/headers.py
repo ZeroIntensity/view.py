@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 from multidict import CIMultiDict
 
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIHeaders
@@ -20,7 +20,9 @@ __all__ = (
 )
 
 RequestHeaders: TypeAlias = CIMultiDict[str]
-HeadersLike: TypeAlias = RequestHeaders | Mapping[str, str] | Mapping[bytes, bytes]
+HeadersLike: TypeAlias = (
+    RequestHeaders | Mapping[str, str] | Mapping[bytes, bytes]
+)
 
 
 def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
@@ -35,16 +37,16 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
         return headers
 
     if __debug__ and not isinstance(headers, Mapping):
-        raise InvalidType(Mapping, headers)
+        raise InvalidTypeError(Mapping, headers)
 
     assert isinstance(headers, dict)
     multidict = CIMultiDict[str]()
     for key, value in headers.items():
         if isinstance(key, bytes):
-            key = key.decode("utf-8")
+            key = key.decode("utf-8")  # noqa
 
         if isinstance(value, bytes):
-            value = value.decode("utf-8")
+            value = value.decode("utf-8")  # noqa
 
         multidict[key] = value
 
@@ -62,7 +64,7 @@ def wsgi_as_multidict(environ: Mapping[str, Any]) -> RequestHeaders:
             continue
 
         assert isinstance(value, str)
-        key = key.removeprefix("HTTP_").replace("_", "-").lower()
+        key = key.removeprefix("HTTP_").replace("_", "-").lower()  # noqa
         headers[key] = value
 
     return headers

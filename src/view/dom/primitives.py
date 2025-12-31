@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
+
 from typing_extensions import NotRequired, Unpack
 
 from view.dom.core import HTMLNode
-from view.exceptions import InvalidType
+from view.exceptions import InvalidTypeError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class ImplicitDefault(str):
@@ -13,6 +16,8 @@ class ImplicitDefault(str):
     Sentinel class to mark a default value in an HTML node as "implicit", and
     thus does not need to be included in the rendered output.
     """
+
+    __slots__ = ()
 
 
 def _construct_node(
@@ -23,8 +28,10 @@ def _construct_node(
     global_attributes: GlobalAttributes,
     data: dict[str, str],
 ) -> HTMLNode:
-    if __debug__ and ((child_text is not None) and not isinstance(child_text, str)):
-        raise InvalidType(child_text, str)
+    if __debug__ and (
+        (child_text is not None) and not isinstance(child_text, str)
+    ):
+        raise InvalidTypeError(child_text, str)
 
     for attribute_name, value in attributes.copy().items():
         if value in {None, False}:
@@ -35,7 +42,7 @@ def _construct_node(
     attributes = {**attributes, **global_attributes}
     for data_name, value in data.items():
         if __debug__ and not isinstance(value, str):
-            raise InvalidType(value, str)
+            raise InvalidTypeError(value, str)
 
         attributes[f"data-{data_name}"] = value
 
@@ -522,7 +529,11 @@ def td(
     return _construct_node(
         "td",
         child_text=child_text,
-        attributes={"colspan": colspan, "rowspan": rowspan, "headers": headers},
+        attributes={
+            "colspan": colspan,
+            "rowspan": rowspan,
+            "headers": headers,
+        },
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -709,7 +720,9 @@ def track(
     *,
     data: dict[str, str] | None = None,
     kind: (
-        Literal["subtitles", "captions", "descriptions", "chapters", "metadata"]
+        Literal[
+            "subtitles", "captions", "descriptions", "chapters", "metadata"
+        ]
         | ImplicitDefault
     ) = ImplicitDefault("subtitles"),
     src: str | None,
@@ -796,9 +809,8 @@ def video(
     autoplay: bool = False,
     loop: bool = False,
     muted: bool = False,
-    preload: Literal["auto", "metadata", "none"] | ImplicitDefault = ImplicitDefault(
-        "auto"
-    ),
+    preload: Literal["auto", "metadata", "none"]
+    | ImplicitDefault = ImplicitDefault("auto"),
     poster: str | None = None,
     playsinline: bool = False,
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
@@ -827,11 +839,16 @@ def video(
 
 
 def wbr(
-    *, data: dict[str, str] | None = None, **global_attributes: Unpack[GlobalAttributes]
+    *,
+    data: dict[str, str] | None = None,
+    **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Defines a possible line-break opportunity in text"""
     return _construct_node(
-        "wbr", attributes={}, global_attributes=global_attributes, data=data or {}
+        "wbr",
+        attributes={},
+        global_attributes=global_attributes,
+        data=data or {},
     )
 
 
@@ -929,9 +946,8 @@ def audio(
     autoplay: bool = False,
     loop: bool = False,
     muted: bool = False,
-    preload: Literal["auto", "metadata", "none"] | ImplicitDefault = ImplicitDefault(
-        "auto"
-    ),
+    preload: Literal["auto", "metadata", "none"]
+    | ImplicitDefault = ImplicitDefault("auto"),
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
@@ -1056,11 +1072,16 @@ def body(
 
 
 def br(
-    *, data: dict[str, str] | None = None, **global_attributes: Unpack[GlobalAttributes]
+    *,
+    data: dict[str, str] | None = None,
+    **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Inserts a single line break"""
     return _construct_node(
-        "br", attributes={}, global_attributes=global_attributes, data=data or {}
+        "br",
+        attributes={},
+        global_attributes=global_attributes,
+        data=data or {},
     )
 
 
@@ -1069,9 +1090,8 @@ def button(
     /,
     *,
     data: dict[str, str] | None = None,
-    type: Literal["button", "submit", "reset"] | ImplicitDefault = ImplicitDefault(
-        "submit"
-    ),
+    type: Literal["button", "submit", "reset"]
+    | ImplicitDefault = ImplicitDefault("submit"),
     name: str | None = None,
     value: str | None = None,
     disabled: bool = False,
@@ -1079,7 +1099,9 @@ def button(
     formaction: str | None = None,
     formenctype: (
         Literal[
-            "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"
+            "application/x-www-form-urlencoded",
+            "multipart/form-data",
+            "text/plain",
         ]
         | None
     ) = None,
@@ -1418,7 +1440,12 @@ def embed(
     """Embeds external content at the specified point in the document"""
     return _construct_node(
         "embed",
-        attributes={"src": src, "type": type, "width": width, "height": height},
+        attributes={
+            "src": src,
+            "type": type,
+            "width": width,
+            "height": height,
+        },
         global_attributes=global_attributes,
         data=data or {},
     )
@@ -1501,16 +1528,21 @@ def form(
     *,
     data: dict[str, str] | None = None,
     action: str | None = None,
-    method: Literal["get", "post", "dialog"] | ImplicitDefault = ImplicitDefault("get"),
+    method: Literal["get", "post", "dialog"]
+    | ImplicitDefault = ImplicitDefault("get"),
     enctype: (
         Literal[
-            "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"
+            "application/x-www-form-urlencoded",
+            "multipart/form-data",
+            "text/plain",
         ]
         | ImplicitDefault
     ) = ImplicitDefault("application/x-www-form-urlencoded"),
     name: str | None = None,
     target: Literal["_blank", "_self", "_parent", "_top"] | None = None,
-    autocomplete: Literal["on", "off"] | ImplicitDefault = ImplicitDefault("on"),
+    autocomplete: Literal["on", "off"] | ImplicitDefault = ImplicitDefault(
+        "on"
+    ),
     novalidate: bool = False,
     accept_charset: str | None = None,
     rel: str | None = None,
@@ -1690,11 +1722,16 @@ def hgroup(
 
 
 def hr(
-    *, data: dict[str, str] | None = None, **global_attributes: Unpack[GlobalAttributes]
+    *,
+    data: dict[str, str] | None = None,
+    **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Defines a thematic break or horizontal rule in content"""
     return _construct_node(
-        "hr", attributes={}, global_attributes=global_attributes, data=data or {}
+        "hr",
+        attributes={},
+        global_attributes=global_attributes,
+        data=data or {},
     )
 
 
@@ -1759,7 +1796,9 @@ def iframe(
         ]
         | None
     ) = None,
-    loading: Literal["eager", "lazy"] | ImplicitDefault = ImplicitDefault("eager"),
+    loading: Literal["eager", "lazy"] | ImplicitDefault = ImplicitDefault(
+        "eager"
+    ),
     **global_attributes: Unpack[GlobalAttributes],
 ) -> HTMLNode:
     """Embeds another HTML page within the current page"""
@@ -1795,10 +1834,11 @@ def img(
     crossorigin: Literal["anonymous", "use-credentials"] | None = None,
     usemap: str | None = None,
     ismap: bool = False,
-    loading: Literal["eager", "lazy"] | ImplicitDefault = ImplicitDefault("eager"),
-    decoding: Literal["sync", "async", "auto"] | ImplicitDefault = ImplicitDefault(
-        "auto"
+    loading: Literal["eager", "lazy"] | ImplicitDefault = ImplicitDefault(
+        "eager"
     ),
+    decoding: Literal["sync", "async", "auto"]
+    | ImplicitDefault = ImplicitDefault("auto"),
     referrerpolicy: (
         Literal[
             "no-referrer",
@@ -1909,7 +1949,9 @@ def input(
     formaction: str | None = None,
     formenctype: (
         Literal[
-            "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"
+            "application/x-www-form-urlencoded",
+            "multipart/form-data",
+            "text/plain",
         ]
         | None
     ) = None,
@@ -2176,7 +2218,12 @@ def meta(
     content: str | None = None,
     charset: str | None = None,
     http_equiv: (
-        Literal["content-security-policy", "content-type", "default-style", "refresh"]
+        Literal[
+            "content-security-policy",
+            "content-type",
+            "default-style",
+            "refresh",
+        ]
         | None
     ) = None,
     property: str | None = None,

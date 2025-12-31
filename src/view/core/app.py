@@ -20,7 +20,13 @@ from view.core.response import (
     wrap_view_result,
 )
 from view.core.router import FoundRoute, Route, Router, RouteView
-from view.core.status_codes import Forbidden, HTTPError, InternalServerError, NotFound
+from view.core.status_codes import (
+    Forbidden,
+    HTTPError,
+    InternalServerError,
+    NotFound,
+)
+from view.exceptions import InvalidTypeError
 from view.utils import reraise
 
 if TYPE_CHECKING:
@@ -127,6 +133,7 @@ class BaseApp(ABC):
             warnings.warn(
                 f"The app was run with {production=}, but Python's {__debug__=}",
                 RuntimeWarning,
+                stacklevel=2,
             )
 
         logger.info(f"Serving app on http://localhost:{port}")
@@ -136,7 +143,7 @@ class BaseApp(ABC):
             settings.run_app_on_any_server()
         except KeyboardInterrupt:
             logger.info("CTRL^C received, shutting down")
-        except Exception:
+        except Exception:  # noqa
             logger.exception("Error in server lifecycle")
         finally:
             logger.info("Server finished")
@@ -177,7 +184,9 @@ async def _execute_view_internal(
         result = view(*args, **kwargs)
         return await wrap_view_result(result)
     except HTTPError as error:
-        logger.opt(colors=True).info(f"<red>HTTP Error {error.status_code}</red>")
+        logger.opt(colors=True).info(
+            f"<red>HTTP Error {error.status_code}</red>"
+        )
         raise
 
 
@@ -191,10 +200,11 @@ async def execute_view(
         if isinstance(exception, HTTPError):
             raise
         logger.exception(exception)
+
         if __debug__:
-            raise InternalServerError.from_current_exception()
-        else:
-            raise InternalServerError()
+            raise InternalServerError.from_current_exception() from exception
+
+        raise InternalServerError from exception
 
 
 SingleView = Callable[["Request"], ViewResult]
@@ -223,13 +233,15 @@ def as_app(view: SingleView, /) -> SingleViewApp:
     Decorator for using a single function as an app.
     """
     if __debug__ and not callable(view):
-        raise InvalidType(view, Callable)
+        raise InvalidTypeError(view, Callable)
 
     return SingleViewApp(view)
 
 
 RouteDecorator: TypeAlias = Callable[[RouteView], Route]
-SubRouterView: TypeAlias = Callable[[str], ResponseLike | Awaitable[ResponseLike]]
+SubRouterView: TypeAlias = Callable[
+    [str], ResponseLike | Awaitable[ResponseLike]
+]
 SubRouterViewT = TypeVar("SubRouterViewT", bound=SubRouterView)
 
 
@@ -251,7 +263,7 @@ class App(BaseApp):
             request.path, request.method
         )
         if found_route is None:
-            raise NotFound()
+            raise NotFound
 
         # Extend instead of replacing?
         request.path_parameters = found_route.path_parameters
@@ -274,14 +286,13 @@ class App(BaseApp):
         """
 
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(path, str)
+            raise InvalidTypeError(path, str)
 
         if __debug__ and not isinstance(method, Method):
-            raise InvalidType(method, Method)
+            raise InvalidTypeError(method, Method)
 
         def decorator(view: RouteView, /) -> Route:
-            route = self.router.push_route(view, path, method)
-            return route
+            return self.router.push_route(view, path, method)
 
         return decorator
 
@@ -352,13 +363,15 @@ class App(BaseApp):
 
         return decorator
 
-    def subrouter(self, path: str) -> Callable[[SubRouterViewT], SubRouterViewT]:
+    def subrouter(
+        self, path: str
+    ) -> Callable[[SubRouterViewT], SubRouterViewT]:
         if __debug__ and not isinstance(path, str):
-            raise InvalidType(path, str)
+            raise InvalidTypeError(path, str)
 
         def decorator(function: SubRouterViewT, /) -> SubRouterViewT:
             if __debug__ and not callable(function):
-                raise InvalidType(Callable, function)
+                raise InvalidTypeError(Callable, function)
 
             def router_function(path_from_url: str) -> Route:
                 def route() -> ResponseLike | Awaitable[ResponseLike]:
@@ -373,7 +386,7 @@ class App(BaseApp):
 
     def static_files(self, path: str, directory: str | Path) -> None:
         if __debug__ and not isinstance(directory, (str, Path)):
-            raise InvalidType(directory, str, Path)
+            raise InvalidTypeError(directory, str, Path)
 
         directory = Path(directory)
 
@@ -381,10 +394,10 @@ class App(BaseApp):
         def serve_static_file(path_from_url: str) -> ResponseLike:
             file = directory / path_from_url
             if not file.is_file():
-                raise NotFound()
+                raise NotFound
 
             if not file.is_relative_to(directory):
-                raise Forbidden()
+                raise Forbidden
 
             with reraise(Forbidden, OSError):
                 return FileResponse.from_file(file)

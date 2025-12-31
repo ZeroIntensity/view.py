@@ -2,7 +2,6 @@ import time
 from unittest.mock import patch
 
 import pytest
-
 from view.cache import InMemoryCache, in_memory_cache, minutes
 from view.core.app import App
 from view.core.response import ResponseLike

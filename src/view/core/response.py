@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import mimetypes
-import warnings
 import sys
+import warnings
 from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from dataclasses import dataclass
 from os import PathLike
@@ -15,7 +15,7 @@ from multidict import CIMultiDict
 
 from view.core.body import BodyMixin
 from view.core.headers import HeadersLike, RequestHeaders, as_multidict
-from view.exceptions import InvalidType, ViewError
+from view.exceptions import InvalidTypeError, ViewError
 
 __all__ = "Response", "ViewResult", "ResponseLike"
 
@@ -49,7 +49,9 @@ class Response(BodyMixin):
 
 # AnyStr isn't working with the type checker, probably because it's a TypeVar
 StrOrBytes: TypeAlias = str | bytes
-_ResponseTuple: TypeAlias = tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
+_ResponseTuple: TypeAlias = (
+    tuple[StrOrBytes, int] | tuple[StrOrBytes, int, HeadersLike]
+)
 ResponseLike: TypeAlias = (
     Response
     | StrOrBytes
@@ -61,11 +63,11 @@ ViewResult = ResponseLike | Awaitable[ResponseLike]
 StrPath: TypeAlias = str | PathLike[str]
 
 
-def _guess_file_type(path: Path, /) -> list[str]:
+def _guess_file_type(path: StrPath, /) -> str:
     if sys.version_info >= (3, 13):
         return mimetypes.guess_file_type(path)[0] or "text/plain"
-    else:
-        return mimetypes.guess_type(path)[0] or "text/plain"
+
+    return mimetypes.guess_type(path)[0] or "text/plain"
 
 
 @dataclass(slots=True)
@@ -91,7 +93,7 @@ class FileResponse(Response):
         Generate a `FileResponse` from a file path.
         """
         if __debug__ and not isinstance(chunk_size, int):
-            raise InvalidType(chunk_size, int)
+            raise InvalidTypeError(chunk_size, int)
 
         async def stream():
             async with aiofiles.open(path, "rb") as file:
@@ -115,8 +117,8 @@ def _as_bytes(data: str | bytes) -> bytes:
     """
     if isinstance(data, str):
         return data.encode("utf-8")
-    else:
-        return data
+
+    return data
 
 
 @dataclass(slots=True)
@@ -141,7 +143,7 @@ class TextResponse(Response, Generic[AnyStr]):
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
-            raise InvalidType(content, str, bytes)
+            raise InvalidTypeError(content, str, bytes)
 
         async def stream() -> AsyncGenerator[bytes]:
             yield _as_bytes(content)
@@ -177,7 +179,7 @@ class JSONResponse(Response):
         )
 
 
-class InvalidResponse(ViewError):
+class InvalidResponseError(ViewError):
     """
     A view returned an object that view.py doesn't know how to convert into a
     response object.
@@ -186,33 +188,40 @@ class InvalidResponse(ViewError):
 
 def _wrap_response_tuple(response: _ResponseTuple) -> Response:
     if __debug__ and response == ():
-        raise InvalidResponse("Response cannot be an empty tuple")
+        raise InvalidResponseError("Response cannot be an empty tuple")
 
     if __debug__ and len(response) == 1:
         warnings.warn(
             f"Returned tuple {response!r} with a single item,"
             " which is useless. Return the item directly.",
             RuntimeWarning,
+            stacklevel=2,
         )
         return TextResponse.from_content(response[0])
 
     content = response[0]
     if __debug__ and isinstance(content, Response):
-        raise InvalidResponse(
-            f"Response() objects cannot be used with response"
+        raise InvalidResponseError(
+            "Response() objects cannot be used with response"
             " tuples. Instead, use the status_code and/or headers parameter(s)."
         )
 
     status = response[1]
     headers: HeadersLike | None = None
 
-    if len(response) > 2:
+    # Ruff wants me to use a constant here, but I think this is clear enough
+    # for lengths.
+    if len(response) > 2:  # noqa
         headers = response[2]
 
-    if __debug__ and len(response) > 3:
-        raise InvalidResponse(f"Got excess data in response tuple {response[3:]!r}")
+    if __debug__ and len(response) > 3:  # noqa
+        raise InvalidResponseError(
+            f"Got excess data in response tuple {response[3:]!r}"
+        )
 
-    return TextResponse.from_content(content, status_code=status, headers=headers)
+    return TextResponse.from_content(
+        content, status_code=status, headers=headers
+    )
 
 
 def _wrap_response(response: ResponseLike, /) -> Response:
@@ -222,26 +231,30 @@ def _wrap_response(response: ResponseLike, /) -> Response:
     logger.debug(f"Got response: {response!r}")
     if isinstance(response, Response):
         return response
-    elif isinstance(response, (str, bytes)):
+
+    if isinstance(response, (str, bytes)):
         return TextResponse.from_content(response)
-    elif isinstance(response, tuple):
+
+    if isinstance(response, tuple):
         return _wrap_response_tuple(response)
-    elif isinstance(response, AsyncGenerator):
+
+    if isinstance(response, AsyncGenerator):
 
         async def stream() -> AsyncGenerator[bytes]:
             async for data in response:
                 yield _as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
-    elif isinstance(response, Generator):
+
+    if isinstance(response, Generator):
 
         async def stream() -> AsyncGenerator[bytes]:
             for data in response:
                 yield _as_bytes(data)
 
         return Response(stream, status_code=200, headers=CIMultiDict())
-    else:
-        raise TypeError(f"Invalid response: {response!r}")
+
+    raise TypeError(f"Invalid response: {response!r}")
 
 
 async def wrap_view_result(result: ViewResult, /) -> Response:

@@ -1,10 +1,18 @@
-from collections.abc import Callable, Iterator
+from __future__ import annotations
+
 from io import StringIO
-from typing import ParamSpec, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, ParamSpec, Protocol, runtime_checkable
 
-from view.exceptions import InvalidType
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
-__all__ = "SupportsJavaScript", "as_javascript_expression", "javascript_compiler"
+from view.exceptions import InvalidTypeError
+
+__all__ = (
+    "SupportsJavaScript",
+    "as_javascript_expression",
+    "javascript_compiler",
+)
 
 P = ParamSpec("P")
 
@@ -36,9 +44,9 @@ def as_javascript_expression(data: object) -> str:
     if isinstance(data, bool):
         if data is True:
             return "true"
-        else:
-            assert data is False
-            return "false"
+
+        assert data is False
+        return "false"
 
     if isinstance(data, dict):
         result = StringIO()
@@ -53,12 +61,16 @@ def as_javascript_expression(data: object) -> str:
     if isinstance(data, SupportsJavaScript):
         result = data.as_javascript()
         if __debug__ and not isinstance(result, str):
-            raise InvalidType(result, str)
+            raise InvalidTypeError(result, str)
 
-    raise TypeError(f"Don't know how to convert {data!r} to a JavaScript expression")
+    raise TypeError(
+        f"Don't know how to convert {data!r} to a JavaScript expression"
+    )
 
 
-def javascript_compiler(function: Callable[P, Iterator[str]]) -> Callable[P, str]:
+def javascript_compiler(
+    function: Callable[P, Iterator[str]],
+) -> Callable[P, str]:
     """
     Decorator that converts a function yielding lines of JavaScript code into
     a function that returns the entire source code.
@@ -69,7 +81,7 @@ def javascript_compiler(function: Callable[P, Iterator[str]]) -> Callable[P, str
 
         for line in function(*args, **kwargs):
             if __debug__ and not isinstance(line, str):
-                raise InvalidType(line, str)
+                raise InvalidTypeError(line, str)
             buffer.write(f"{line};\n")
 
         return buffer.getvalue()
