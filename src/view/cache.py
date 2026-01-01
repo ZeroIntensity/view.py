@@ -9,13 +9,14 @@ from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from view.core.headers import HTTPHeaders
+
 from view.core.response import (
     Response,
     TextResponse,
     ViewResult,
     wrap_view_result,
 )
-from view.core.headers import HTTPHeaders
 
 __all__ = ("in_memory_cache",)
 

@@ -3,8 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from view.exceptions import InvalidTypeError
+from typing_extensions import Self
+
 from view.core.multi_map import MultiMap
+from view.exceptions import InvalidTypeError
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIHeaders
@@ -26,7 +28,9 @@ class LowerStr(str):
     comparisons.
     """
 
-    def __new__(cls, data: object) -> LowerStr:
+    __slots__ = ()
+
+    def __new__(cls, data: object) -> Self:
         return super().__new__(cls, cls._to_lower(data))
 
     @staticmethod
@@ -67,7 +71,7 @@ class HTTPHeaders(MultiMap[str, str]):
         return super().get_exactly_one(LowerStr(key))
 
     def with_new_value(self, key: str, value: str) -> HTTPHeaders:
-        new_sequence = list(self.as_sequence()) + [(LowerStr(key), value)]
+        new_sequence = [*list(self.as_sequence()), (LowerStr(key), value)]
         return type(self)(new_sequence)
 
 

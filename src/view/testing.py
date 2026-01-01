@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable
 
     from view.core.app import BaseApp
-    from view.core.response import Response
     from view.core.headers import HTTPHeaders
+    from view.core.response import Response
 
 __all__ = ("AppTestClient",)
 

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
     from view.run.wsgi import WSGIProtocol
 
-__all__ = "BaseApp", "as_app", "App"
+__all__ = "App", "BaseApp", "as_app"
 
 T = TypeVar("T")
 P = ParamSpec("P")

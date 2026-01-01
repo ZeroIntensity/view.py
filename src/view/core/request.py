@@ -7,8 +7,8 @@ from enum import auto
 from typing import TYPE_CHECKING, Any
 
 from view.core.body import BodyMixin
-from view.core.router import normalize_route
 from view.core.multi_map import MultiMap
+from view.core.router import normalize_route
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

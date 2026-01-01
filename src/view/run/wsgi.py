@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable, Iterable
 from typing import IO, TYPE_CHECKING, Any, TypeAlias
 
-from view.core.headers import wsgi_to_headers, headers_to_wsgi
+from view.core.headers import headers_to_wsgi, wsgi_to_headers
 from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 

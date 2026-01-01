@@ -1,14 +1,16 @@
 from __future__ import annotations
+
 from collections.abc import (
+    ItemsView,
     Iterable,
     Iterator,
+    KeysView,
     Mapping,
     Sequence,
-    KeysView,
     ValuesView,
-    ItemsView,
 )
 from typing import Any, TypeVar
+
 from view.exceptions import ViewError
 
 __all__ = "HasMultipleValuesError", "MultiMap"
@@ -32,7 +34,7 @@ class MultiMap(Mapping[KeyT, ValueT]):
     Mapping of individual keys to one or many values.
     """
 
-    __slots__ = "_values"
+    __slots__ = ("_values",)
 
     def __init__(self, items: Iterable[tuple[KeyT, ValueT]] = ()) -> None:
         self._values: dict[KeyT, list[ValueT]] = {}
@@ -74,6 +76,9 @@ class MultiMap(Mapping[KeyT, ValueT]):
 
     def __repr__(self) -> str:
         return f"MultiMap({self.as_sequence()})"
+
+    def __hash__(self) -> int:
+        return hash(self._values)
 
     def _as_flat(self) -> dict[KeyT, ValueT]:
         """
@@ -137,7 +142,7 @@ class MultiMap(Mapping[KeyT, ValueT]):
         result: list[tuple[KeyT, ValueT]] = []
         for key, values in self._values.items():
             for value in values:
-                result.append((key, value))
+                result.append((key, value))  # noqa: PERF401
 
         return result
 
@@ -147,5 +152,5 @@ class MultiMap(Mapping[KeyT, ValueT]):
         """
         Create a copy of this map with a new key and value included.
         """
-        new_sequence = list(self.as_sequence()) + [(key, value)]
+        new_sequence = [*list(self.as_sequence()), (key, value)]
         return type(self)(new_sequence)
