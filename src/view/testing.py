@@ -11,14 +11,14 @@ if TYPE_CHECKING:
 
     from view.core.app import BaseApp
     from view.core.response import Response
-    from view.core.headers import RequestHeaders
+    from view.core.headers import HTTPHeaders
 
 __all__ = ("AppTestClient",)
 
 
 async def into_tuple(
     response_coro: Awaitable[Response], /
-) -> tuple[bytes, int, RequestHeaders]:
+) -> tuple[bytes, int, HTTPHeaders]:
     """
     Convenience function for transferring a test client call into a tuple
     through a single ``await``.

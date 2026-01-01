@@ -15,7 +15,7 @@ from view.core.response import (
     ViewResult,
     wrap_view_result,
 )
-from view.core.headers import RequestHeaders
+from view.core.headers import HTTPHeaders
 
 __all__ = ("in_memory_cache",)
 
@@ -46,7 +46,7 @@ class BaseCache(ABC, Generic[P, T]):
 @dataclass(slots=True, frozen=True)
 class _CachedResponse:
     body: bytes
-    headers: RequestHeaders
+    headers: HTTPHeaders
     status: int
     last_reset: float
 

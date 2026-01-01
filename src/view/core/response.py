@@ -16,7 +16,7 @@ from view.core.body import BodyMixin
 from view.core.headers import (
     HeadersLike,
     LowerStr,
-    RequestHeaders,
+    HTTPHeaders,
     as_real_headers,
 )
 from view.exceptions import InvalidTypeError, ViewError
@@ -32,7 +32,7 @@ class Response(BodyMixin):
     """
 
     status_code: int
-    headers: RequestHeaders
+    headers: HTTPHeaders
 
     def __post_init__(self) -> None:
         if __debug__:
@@ -44,7 +44,7 @@ class Response(BodyMixin):
                     f"{self.status_code!r} is not a valid HTTP status code"
                 )
 
-    async def as_tuple(self) -> tuple[bytes, int, RequestHeaders]:
+    async def as_tuple(self) -> tuple[bytes, int, HTTPHeaders]:
         """
         Process the response as a tuple. This is mainly useful
         for assertions in testing.

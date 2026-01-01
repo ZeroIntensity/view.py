@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from view.core.app import BaseApp
-    from view.core.headers import RequestHeaders
+    from view.core.headers import HTTPHeaders
 
 __all__ = "Method", "Request"
 
@@ -119,7 +119,7 @@ class Request(BodyMixin):
     The HTTP method of the request. See `Method`.
     """
 
-    headers: RequestHeaders
+    headers: HTTPHeaders
     """
     A "multi-dictionary" containing the request headers. This is `dict`-like,
     but if a header has multiple values, it is represented by a list.

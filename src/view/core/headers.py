@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from view.run.wsgi import WSGIHeaders
 
 __all__ = (
-    "RequestHeaders",
+    "HTTPHeaders",
     "HeadersLike",
     "as_real_headers",
     "asgi_to_headers",
@@ -49,13 +49,13 @@ class LowerStr(str):
         return hash(str(self))
 
 
-RequestHeaders: TypeAlias = MultiMap[str, str]
+HTTPHeaders: TypeAlias = MultiMap[str, str]
 HeadersLike: TypeAlias = (
-    RequestHeaders | Mapping[str, str] | Mapping[bytes, bytes]
+    HTTPHeaders | Mapping[str, str] | Mapping[bytes, bytes]
 )
 
 
-def as_real_headers(headers: HeadersLike | None, /) -> RequestHeaders:
+def as_real_headers(headers: HeadersLike | None, /) -> HTTPHeaders:
     """
     Convenience function for casting a "header-like object" (or `None`)
     to a `MultiMap`.
@@ -84,7 +84,7 @@ def as_real_headers(headers: HeadersLike | None, /) -> RequestHeaders:
     return MultiMap(all_values)
 
 
-def wsgi_to_headers(environ: Mapping[str, Any]) -> RequestHeaders:
+def wsgi_to_headers(environ: Mapping[str, Any]) -> HTTPHeaders:
     """
     Convert WSGI headers (from the `environ`) to a case-insensitive multi-map.
     """
@@ -101,7 +101,7 @@ def wsgi_to_headers(environ: Mapping[str, Any]) -> RequestHeaders:
     return MultiMap(values)
 
 
-def headers_to_wsgi(headers: RequestHeaders) -> WSGIHeaders:
+def headers_to_wsgi(headers: HTTPHeaders) -> WSGIHeaders:
     """
     Convert a case-insensitive multi-map to a WSGI header iterable.
     """
@@ -113,7 +113,7 @@ def headers_to_wsgi(headers: RequestHeaders) -> WSGIHeaders:
     return wsgi_headers
 
 
-def asgi_to_headers(headers: ASGIHeaders, /) -> RequestHeaders:
+def asgi_to_headers(headers: ASGIHeaders, /) -> HTTPHeaders:
     """
     Convert ASGI headers to a case-insensitive multi-map.
     """
@@ -126,7 +126,7 @@ def asgi_to_headers(headers: ASGIHeaders, /) -> RequestHeaders:
     return MultiMap(values)
 
 
-def headers_to_asgi(headers: RequestHeaders, /) -> ASGIHeaders:
+def headers_to_asgi(headers: HTTPHeaders, /) -> ASGIHeaders:
     """
     Convert a case-insensitive multi-map to an ASGI header iterable.
     """
