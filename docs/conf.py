@@ -25,8 +25,10 @@ intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 html_theme = "shibuya"
 html_theme_options = {
     "accent_color": "blue",
-    # "light_logo": "_static/logo_black.svg",
-    # "dark_logo": "_static/logo_white.svg",
+    "light_logo": "_static/logo_black.svg",
+    "dark_logo": "_static/logo_white.svg",
+    "github_url": "https://github.com/ZeroIntensity/view.py",
+    "announcement": "view.py is currently in alpha and not considered ready for production",
 }
 html_static_path = ["_static"]
-# html_favicon = "_static/favicon.svg"
+html_favicon = "_static/favicon.ico"
