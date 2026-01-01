@@ -11,6 +11,8 @@ from collections.abc import (
 from typing import Any, TypeVar
 from view.exceptions import ViewError
 
+__all__ = "HasMultipleValuesError", "MultiMap"
+
 KeyT = TypeVar("KeyT")
 ValueT = TypeVar("ValueT")
 T = TypeVar("T")
