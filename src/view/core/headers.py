@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from collections import UserString
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from view.exceptions import InvalidTypeError
@@ -21,23 +20,24 @@ __all__ = (
 )
 
 
-class LowerStr(UserString):
+class LowerStr(str):
     """
     A string that always acts in lowercase. This is useful for case-insensitive
     comparisons.
     """
 
-    def __init__(self, data: object) -> None:
-        super().__init__(self._to_lower(data))
+    def __new__(cls, data: object) -> LowerStr:
+        return super().__new__(cls, cls._to_lower(data))
 
-    def _to_lower(self, data: object) -> object:
+    @staticmethod
+    def _to_lower(data: object) -> object:
         if isinstance(data, str):
             data = data.lower()
 
         return data
 
-    def __contains__(self, char: object) -> bool:
-        return super().__contains__(self._to_lower(char))
+    def __contains__(self, key: str, /) -> bool:
+        return super().__contains__(key.lower())
 
     def __eq__(self, string: object) -> bool:
         return super().__eq__(self._to_lower(string))
@@ -46,10 +46,10 @@ class LowerStr(UserString):
         return super().__ne__(self._to_lower(value))
 
     def __hash__(self) -> int:
-        return hash(self.data)
+        return hash(str(self))
 
 
-RequestHeaders: TypeAlias = MultiMap[LowerStr, str]
+RequestHeaders: TypeAlias = MultiMap[str, str]
 HeadersLike: TypeAlias = (
     RequestHeaders | Mapping[str, str] | Mapping[bytes, bytes]
 )
@@ -61,7 +61,7 @@ def as_real_headers(headers: HeadersLike | None, /) -> RequestHeaders:
     to a `MultiMap`.
     """
     if headers is None:
-        return MultiMap[LowerStr, str]()
+        return MultiMap[str, str]()
 
     if isinstance(headers, MultiMap):
         return headers
