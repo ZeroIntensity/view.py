@@ -58,6 +58,9 @@ class MultiMap(Mapping[KeyT, ValueT]):
         if isinstance(other, MultiMap):
             return other._values == self._values
 
+        if isinstance(other, dict):
+            return self._values == other
+
         return NotImplemented
 
     def __ne__(self, other: object, /) -> bool:

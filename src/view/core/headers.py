@@ -9,6 +9,7 @@ from view.core.multi_map import MultiMap
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIHeaders
+    from view.run.wsgi import WSGIHeaders
 
 __all__ = (
     "RequestHeaders",
@@ -98,6 +99,18 @@ def wsgi_to_headers(environ: Mapping[str, Any]) -> RequestHeaders:
         values.append((LowerStr(key), value))
 
     return MultiMap(values)
+
+
+def headers_to_wsgi(headers: RequestHeaders) -> WSGIHeaders:
+    """
+    Convert a case-insensitive multi-map to a WSGI header iterable.
+    """
+
+    wsgi_headers: WSGIHeaders = []
+    for key, value in headers.items():
+        wsgi_headers.append((str(key), value))
+
+    return wsgi_headers
 
 
 def asgi_to_headers(headers: ASGIHeaders, /) -> RequestHeaders:

@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable, Iterable
 from typing import IO, TYPE_CHECKING, Any, TypeAlias
 
-from view.core.headers import wsgi_to_headers
+from view.core.headers import wsgi_to_headers, headers_to_wsgi
 from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 __all__ = ("wsgi_for_app",)
 
-WSGIHeaders: TypeAlias = list[tuple[str, str]]
+WSGIHeaders: TypeAlias = Iterable[tuple[str, str]]
 # We can't use a TypedDict for the environment because it has arbitrary keys
 # for the headers.
 WSGIEnvironment: TypeAlias = dict[str, Any]
@@ -57,10 +57,7 @@ def wsgi_for_app(
         request = Request(stream, app, path, method, headers, parameters)
         response = loop.run_until_complete(app.process_request(request))
 
-        wsgi_headers: WSGIHeaders = []
-        for key, value in response.headers.items():
-            # Multidict has a weird string subclass as the key for some reason
-            wsgi_headers.append((str(key), value))
+        wsgi_headers: WSGIHeaders = headers_to_wsgi(response.headers)
 
         # WSGI is such a weird spec
         status_str = (
