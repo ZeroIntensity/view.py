@@ -20,7 +20,7 @@ P = ParamSpec("P")
 @runtime_checkable
 class SupportsJavaScript(Protocol):
     """
-    Protocol for objects that want to allow use in `as_javascript_expression()`.
+    Protocol for objects that want to allow use in :func:`as_javascript_expression`.
     """
 
     def as_javascript(self) -> str:

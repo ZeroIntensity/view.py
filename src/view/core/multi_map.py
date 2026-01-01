@@ -45,7 +45,7 @@ class MultiMap(Mapping[KeyT, ValueT]):
 
     def __getitem__(self, key: KeyT, /) -> ValueT:
         """
-        Get the first value if it exists, or else raise a `KeyError`.
+        Get the first value if it exists, or else raise a :exc:`KeyError`.
         """
 
         return self._values[key][0]
@@ -127,7 +127,7 @@ class MultiMap(Mapping[KeyT, ValueT]):
     def get_exactly_one(self, key: KeyT) -> ValueT:
         """
         Get precisely one value for a key. If more than one value is present,
-        then this raises a `HasMultipleValuesError`.
+        then this raises a :exc:`HasMultipleValuesError`.
         """
         value = self._values[key]
         if len(value) != 1:

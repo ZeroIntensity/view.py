@@ -82,8 +82,8 @@ HeadersLike: TypeAlias = (
 
 def as_real_headers(headers: HeadersLike | None, /) -> HTTPHeaders:
     """
-    Convenience function for casting a "header-like object" (or `None`)
-    to a `MultiMap`.
+    Convenience function for casting a "header-like object" (or ``None``)
+    to a :class:`MultiMap`.
     """
     if headers is None:
         return HTTPHeaders()
@@ -111,7 +111,7 @@ def as_real_headers(headers: HeadersLike | None, /) -> HTTPHeaders:
 
 def wsgi_to_headers(environ: Mapping[str, Any]) -> HTTPHeaders:
     """
-    Convert WSGI headers (from the `environ`) to a case-insensitive multi-map.
+    Convert WSGI headers (from the ``environ``) to a case-insensitive multi-map.
     """
     values: list[tuple[LowerStr, str]] = []
 

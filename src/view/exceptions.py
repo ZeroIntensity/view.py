@@ -17,8 +17,8 @@ class ViewError(Exception):
 class InvalidTypeError(ViewError, TypeError):
     """
     Something got a type that it didn't expect. For example, passing a
-    `str` object in a place where a `bytes` object was expected would raise
-    this error.
+    :class:`str` object in a place where a :class:`bytes` object was
+    expected would raise this error.
 
     In order to fix this, please review the documentation of the function
     you're attempting to call and ensure that you are passing it the correct

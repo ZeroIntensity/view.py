@@ -21,7 +21,7 @@ async def into_tuple(
 ) -> tuple[bytes, int, HTTPHeaders]:
     """
     Convenience function for transferring a test client call into a tuple
-    through a single ``await``.
+    through a single :keyword:`await`.
     """
     response = await response_coro
     body = await response.body()
@@ -30,7 +30,7 @@ async def into_tuple(
 
 def ok(body: str | bytes) -> tuple[bytes, int, dict[str, str]]:
     """
-    Utility function for an OK response from `into_tuple()`.
+    Utility function for an OK response from :func:`into_tuple`.
     """
 
     if isinstance(body, str):
@@ -40,7 +40,7 @@ def ok(body: str | bytes) -> tuple[bytes, int, dict[str, str]]:
 
 def bad(status_code: int) -> tuple[bytes, int, dict[str, str]]:
     """
-    Utility function for an error response from `into_tuple()`.
+    Utility function for an error response from :func:`into_tuple`.
     """
     body = STATUS_STRINGS[status_code]
     return (f"{status_code} {body}".encode(), status_code, {})
