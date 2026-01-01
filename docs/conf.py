@@ -33,3 +33,10 @@ html_theme_options = {
 }
 html_static_path = ["_static"]
 html_favicon = "_static/favicon.ico"
+html_context = {
+    "source_type": "github",
+    "source_user": "ZeroIntensity",
+    "source_repo": "view.py",
+    "source_version": "main",
+    "source_docs_path": "/docs/",
+}
