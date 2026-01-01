@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable, Iterable
 from typing import IO, TYPE_CHECKING, Any, TypeAlias
 
-from view.core.headers import wsgi_as_multidict
+from view.core.headers import wsgi_to_headers
 from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 
@@ -52,7 +52,7 @@ def wsgi_for_app(
 
         path = environ["PATH_INFO"]
         assert isinstance(path, str)
-        headers = wsgi_as_multidict(environ)
+        headers = wsgi_to_headers(environ)
         parameters = extract_query_parameters(environ["QUERY_STRING"])
         request = Request(stream, app, path, method, headers, parameters)
         response = loop.run_until_complete(app.process_request(request))

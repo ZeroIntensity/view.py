@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from view.core.app import App, as_app
-from view.core.headers import as_multidict
+from view.core.headers import as_real_headers
 from view.core.request import Request
 from view.core.response import FileResponse, JSONResponse, Response, ResponseLike
 from view.core.status_codes import (
@@ -49,7 +49,7 @@ async def test_raw_response():
         return Response(
             receive_data=stream,
             status_code=Success.CREATED,
-            headers=as_multidict({"hello": "world"}),
+            headers=as_real_headers({"hello": "world"}),
         )
 
     client = AppTestClient(app)

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from collections import UserString
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from multidict import CIMultiDict
-
 from view.exceptions import InvalidTypeError
+from view.core.multi_map import MultiMap
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIHeaders
@@ -13,34 +13,64 @@ if TYPE_CHECKING:
 __all__ = (
     "RequestHeaders",
     "HeadersLike",
-    "as_multidict",
-    "asgi_as_multidict",
-    "multidict_as_asgi",
-    "wsgi_as_multidict",
+    "as_real_headers",
+    "asgi_to_headers",
+    "headers_to_asgi",
+    "wsgi_to_headers",
 )
 
-RequestHeaders: TypeAlias = CIMultiDict[str]
+
+class LowerStr(UserString):
+    """
+    A string that always acts in lowercase. This is useful for case-insensitive
+    comparisons.
+    """
+
+    def __init__(self, data: object) -> None:
+        super().__init__(self._to_lower(data))
+
+    def _to_lower(self, data: object) -> object:
+        if isinstance(data, str):
+            data = data.lower()
+
+        return data
+
+    def __contains__(self, char: object) -> bool:
+        return super().__contains__(self._to_lower(char))
+
+    def __eq__(self, string: object) -> bool:
+        return super().__eq__(self._to_lower(string))
+
+    def __ne__(self, value: object, /) -> bool:
+        return super().__ne__(self._to_lower(value))
+
+    def __hash__(self) -> int:
+        return hash(self.data)
+
+
+RequestHeaders: TypeAlias = MultiMap[LowerStr, str]
 HeadersLike: TypeAlias = (
     RequestHeaders | Mapping[str, str] | Mapping[bytes, bytes]
 )
 
 
-def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
+def as_real_headers(headers: HeadersLike | None, /) -> RequestHeaders:
     """
     Convenience function for casting a "header-like object" (or `None`)
-    to a `CIMultiDict`.
+    to a `MultiMap`.
     """
     if headers is None:
-        return CIMultiDict[str]()
+        return MultiMap[LowerStr, str]()
 
-    if isinstance(headers, CIMultiDict):
+    if isinstance(headers, MultiMap):
         return headers
 
     if __debug__ and not isinstance(headers, Mapping):
         raise InvalidTypeError(Mapping, headers)
 
     assert isinstance(headers, dict)
-    multidict = CIMultiDict[str]()
+    all_values: list[tuple[LowerStr, str]] = []
+
     for key, value in headers.items():
         if isinstance(key, bytes):
             key = key.decode("utf-8")  # noqa
@@ -48,16 +78,16 @@ def as_multidict(headers: HeadersLike | None, /) -> RequestHeaders:
         if isinstance(value, bytes):
             value = value.decode("utf-8")  # noqa
 
-        multidict[key] = value
+        all_values.append((LowerStr(key), value))
 
-    return multidict
+    return MultiMap(all_values)
 
 
-def wsgi_as_multidict(environ: Mapping[str, Any]) -> RequestHeaders:
+def wsgi_to_headers(environ: Mapping[str, Any]) -> RequestHeaders:
     """
-    Convert WSGI headers (from the `environ`) to a case-insensitive multidict.
+    Convert WSGI headers (from the `environ`) to a case-insensitive multi-map.
     """
-    headers = CIMultiDict[str]()
+    values: list[tuple[LowerStr, str]] = []
 
     for key, value in environ.items():
         if not key.startswith("HTTP_"):
@@ -65,26 +95,27 @@ def wsgi_as_multidict(environ: Mapping[str, Any]) -> RequestHeaders:
 
         assert isinstance(value, str)
         key = key.removeprefix("HTTP_").replace("_", "-").lower()  # noqa
-        headers[key] = value
+        values.append((LowerStr(key), value))
 
-    return headers
+    return MultiMap(values)
 
 
-def asgi_as_multidict(headers: ASGIHeaders, /) -> RequestHeaders:
+def asgi_to_headers(headers: ASGIHeaders, /) -> RequestHeaders:
     """
-    Convert ASGI headers to a case-insensitive multidict.
+    Convert ASGI headers to a case-insensitive multi-map.
     """
-    multidict = CIMultiDict[str]()
+    values: list[tuple[LowerStr, str]] = []
 
     for key, value in headers:
-        multidict[key.decode("utf-8")] = value.decode("utf-8")
+        lower_str = LowerStr(key.decode("utf-8"))
+        values.append((lower_str, value.decode("utf-8")))
 
-    return multidict
+    return MultiMap(values)
 
 
-def multidict_as_asgi(headers: RequestHeaders, /) -> ASGIHeaders:
+def headers_to_asgi(headers: RequestHeaders, /) -> ASGIHeaders:
     """
-    Convert a case-insensitive multidict to an ASGI header iterable.
+    Convert a case-insensitive multi-map to an ASGI header iterable.
     """
     asgi_headers: ASGIHeaders = []
 

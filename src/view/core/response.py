@@ -11,11 +11,11 @@ from typing import Any, AnyStr, Generic, TypeAlias
 
 import aiofiles
 from loguru import logger
-from multidict import CIMultiDict
 
 from view.core.body import BodyMixin
-from view.core.headers import HeadersLike, RequestHeaders, as_multidict
+from view.core.headers import HeadersLike, RequestHeaders, as_real_headers
 from view.exceptions import InvalidTypeError, ViewError
+from view.core.multi_map import MultiMap
 
 __all__ = "Response", "ViewResult", "ResponseLike"
 
@@ -27,7 +27,7 @@ class Response(BodyMixin):
     """
 
     status_code: int
-    headers: CIMultiDict[str]
+    headers: RequestHeaders[str]
 
     def __post_init__(self) -> None:
         if __debug__:
@@ -103,12 +103,12 @@ class FileResponse(Response):
                     length = len(data)
                     yield data
 
-        multidict = as_multidict(headers)
-        if "content-type" not in multidict:
+        multi_map = as_real_headers(headers)
+        if "content-type" not in multi_map:
             content_type = content_type or _guess_file_type(path)
-            multidict["content-type"] = content_type
+            multi_map["content-type"] = content_type
 
-        return cls(stream, status_code, multidict, path)
+        return cls(stream, status_code, multi_map, path)
 
 
 def _as_bytes(data: str | bytes) -> bytes:
@@ -148,7 +148,7 @@ class TextResponse(Response, Generic[AnyStr]):
         async def stream() -> AsyncGenerator[bytes]:
             yield _as_bytes(content)
 
-        return cls(stream, status_code, as_multidict(headers), content)
+        return cls(stream, status_code, as_real_headers(headers), content)
 
 
 @dataclass(slots=True)
@@ -173,7 +173,7 @@ class JSONResponse(Response):
         return cls(
             content=content,
             parsed_data=data,
-            headers=as_multidict(headers),
+            headers=as_real_headers(headers),
             status_code=status_code,
             receive_data=stream,
         )
@@ -244,7 +244,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             async for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=CIMultiDict())
+        return Response(stream, status_code=200, headers=MultiMap())
 
     if isinstance(response, Generator):
 
@@ -252,7 +252,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=CIMultiDict())
+        return Response(stream, status_code=200, headers=MultiMap())
 
     raise TypeError(f"Invalid response: {response!r}")
 

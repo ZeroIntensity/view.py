@@ -5,7 +5,7 @@ import pytest
 from multidict import MultiDict
 from view.core.app import App, as_app
 from view.core.body import InvalidJSONError
-from view.core.headers import as_multidict
+from view.core.headers import as_real_headers
 from view.core.request import Method, Request
 from view.core.response import ResponseLike
 from view.core.router import DuplicateRouteError
@@ -61,7 +61,7 @@ async def test_manual_request():
         app=app,
         path="/",
         method=Method.POST,
-        headers=as_multidict({"test": "42"}),
+        headers=as_real_headers({"test": "42"}),
         query_parameters=MultiDict(),
     )
     response = await app.process_request(manual_request)

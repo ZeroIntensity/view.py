@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypedDict
 
 from typing_extensions import NotRequired
 
-from view.core.headers import asgi_as_multidict, multidict_as_asgi
+from view.core.headers import asgi_to_headers, headers_to_asgi
 from view.core.request import Method, Request, extract_query_parameters
 
 if TYPE_CHECKING:
@@ -78,7 +78,7 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
     ) -> None:
         assert scope["type"] == "http"
         method = Method(scope["method"])
-        headers = asgi_as_multidict(scope["headers"])
+        headers = asgi_to_headers(scope["headers"])
 
         async def receive_data() -> AsyncIterator[bytes]:
             more_body = True
@@ -98,7 +98,7 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
             {
                 "type": "http.response.start",
                 "status": response.status_code,
-                "headers": multidict_as_asgi(response.headers),
+                "headers": headers_to_asgi(response.headers),
             }
         )
         async for data in response.stream_body():
