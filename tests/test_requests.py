@@ -95,9 +95,9 @@ async def test_request_headers():
             assert request.headers["foo"] == "42"
             return "1"
         elif request.path == "/many":
-            assert request.headers["Bar"] == "42"
-            assert request.headers["bar"] == "42"
-            assert request.headers["baR"] == "42"
+            assert request.headers["Bar"] == "24"
+            assert request.headers["bar"] == "24"
+            assert request.headers["baR"] == "24"
             assert request.headers["test"] == "123"
             return "2"
         else:

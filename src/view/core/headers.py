@@ -49,7 +49,28 @@ class LowerStr(str):
         return hash(str(self))
 
 
-HTTPHeaders: TypeAlias = MultiMap[str, str]
+class HTTPHeaders(MultiMap[str, str]):
+    """
+    Case-insensitive multi-map of HTTP headers.
+    """
+
+    def __getitem__(self, key: str, /) -> str:
+        return super().__getitem__(LowerStr(key))
+
+    def __contains__(self, key: object, /) -> bool:
+        return super().__contains__(LowerStr(key))
+
+    def __repr__(self) -> str:
+        return f"HTTPHeaders({self.as_sequence()})"
+
+    def get_exactly_one(self, key: str) -> str:
+        return super().get_exactly_one(LowerStr(key))
+
+    def with_new_value(self, key: str, value: str) -> HTTPHeaders:
+        new_sequence = list(self.as_sequence()) + [(LowerStr(key), value)]
+        return type(self)(new_sequence)
+
+
 HeadersLike: TypeAlias = (
     HTTPHeaders | Mapping[str, str] | Mapping[bytes, bytes]
 )
@@ -61,9 +82,9 @@ def as_real_headers(headers: HeadersLike | None, /) -> HTTPHeaders:
     to a `MultiMap`.
     """
     if headers is None:
-        return MultiMap[str, str]()
+        return HTTPHeaders()
 
-    if isinstance(headers, MultiMap):
+    if isinstance(headers, HTTPHeaders):
         return headers
 
     if __debug__ and not isinstance(headers, Mapping):
@@ -81,7 +102,7 @@ def as_real_headers(headers: HeadersLike | None, /) -> HTTPHeaders:
 
         all_values.append((LowerStr(key), value))
 
-    return MultiMap(all_values)
+    return HTTPHeaders(all_values)
 
 
 def wsgi_to_headers(environ: Mapping[str, Any]) -> HTTPHeaders:
@@ -98,7 +119,7 @@ def wsgi_to_headers(environ: Mapping[str, Any]) -> HTTPHeaders:
         key = key.removeprefix("HTTP_").replace("_", "-").lower()  # noqa
         values.append((LowerStr(key), value))
 
-    return MultiMap(values)
+    return HTTPHeaders(values)
 
 
 def headers_to_wsgi(headers: HTTPHeaders) -> WSGIHeaders:

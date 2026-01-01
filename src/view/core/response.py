@@ -20,7 +20,6 @@ from view.core.headers import (
     as_real_headers,
 )
 from view.exceptions import InvalidTypeError, ViewError
-from view.core.multi_map import MultiMap
 
 __all__ = "Response", "ViewResult", "ResponseLike"
 
@@ -251,7 +250,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             async for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=MultiMap())
+        return Response(stream, status_code=200, headers=HTTPHeaders())
 
     if isinstance(response, Generator):
 
@@ -259,7 +258,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=MultiMap())
+        return Response(stream, status_code=200, headers=HTTPHeaders())
 
     raise TypeError(f"Invalid response: {response!r}")
 
