@@ -1,3 +1,3 @@
 # Requirements for Netlify
 sphinx>=7.0
-shibuya~=2025.8
+shibuya>=2025
