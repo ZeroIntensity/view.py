@@ -27,6 +27,7 @@ html_theme_options = {
     "accent_color": "blue",
     "light_logo": "_static/logo_black.svg",
     "dark_logo": "_static/logo_white.svg",
+    "logo_target": "https://view.zintensity.dev",
     "github_url": "https://github.com/ZeroIntensity/view.py",
     "announcement": "view.py is currently in alpha and not considered ready for production",
 }
