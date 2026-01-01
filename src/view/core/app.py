@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
     from view.run.wsgi import WSGIProtocol
 
-__all__ = "BaseApp", "as_app", "App"
+__all__ = "App", "BaseApp", "as_app"
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -143,7 +143,7 @@ class BaseApp(ABC):
             settings.run_app_on_any_server()
         except KeyboardInterrupt:
             logger.info("CTRL^C received, shutting down")
-        except Exception:  # noqa
+        except Exception:  # noqa: BLE001
             logger.exception("Error in server lifecycle")
         finally:
             logger.info("Server finished")

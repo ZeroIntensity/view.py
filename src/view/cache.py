@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from multidict import CIMultiDict
+    from view.core.headers import HTTPHeaders
 
 from view.core.response import (
     Response,
@@ -47,7 +47,7 @@ class BaseCache(ABC, Generic[P, T]):
 @dataclass(slots=True, frozen=True)
 class _CachedResponse:
     body: bytes
-    headers: CIMultiDict[str]
+    headers: HTTPHeaders
     status: int
     last_reset: float
 

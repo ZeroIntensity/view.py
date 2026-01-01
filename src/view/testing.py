@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from view.core.headers import HeadersLike, as_multidict
+from view.core.headers import HeadersLike, as_real_headers
 from view.core.request import Method, Request, extract_query_parameters
 from view.core.status_codes import STATUS_STRINGS
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable
 
-    from multidict import CIMultiDict
-
     from view.core.app import BaseApp
+    from view.core.headers import HTTPHeaders
     from view.core.response import Response
 
 __all__ = ("AppTestClient",)
@@ -19,7 +18,7 @@ __all__ = ("AppTestClient",)
 
 async def into_tuple(
     response_coro: Awaitable[Response], /
-) -> tuple[bytes, int, CIMultiDict]:
+) -> tuple[bytes, int, HTTPHeaders]:
     """
     Convenience function for transferring a test client call into a tuple
     through a single ``await``.
@@ -76,7 +75,7 @@ class AppTestClient:
             app=self.app,
             path=path,
             method=method,
-            headers=as_multidict(headers),
+            headers=as_real_headers(headers),
             query_parameters=extract_query_parameters(query_string),
         )
         return await self.app.process_request(request_data)

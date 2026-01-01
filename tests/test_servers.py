@@ -32,10 +32,12 @@ def test_run_server(server_name: str):
     app.run(server_hint={server_name!r})
     """
     process = subprocess.Popen([sys.executable, "-c", code])
-    time.sleep(2)
-    response = requests.get("http://localhost:5000")
-    assert response.text == "ok"
-    process.kill()
+    try:
+        time.sleep(2)
+        response = requests.get("http://localhost:5000")
+        assert response.text == "ok"
+    finally:
+        process.kill()
 
 
 @pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)

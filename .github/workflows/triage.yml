@@ -1,0 +1,67 @@
+name: Triage
+on:
+    pull_request:
+        types:
+            - "opened"
+            - "reopened"
+            - "synchronize"
+            - "labeled"
+            - "unlabeled"
+
+jobs:
+    changelog_check:
+        runs-on: ubuntu-latest
+        name: Check for changelog updates
+        steps:
+            - name: "Check if the source directory was changed"
+              uses: dorny/paths-filter@v3
+              id: changes
+              with:
+                  filters: |
+                      src:
+                        - 'src/**'
+
+            - name: "Check for changelog updates"
+              if: steps.changes.outputs.src == 'true'
+              uses: brettcannon/check-for-changed-files@v1
+              with:
+                  file-pattern: |
+                      CHANGELOG.md
+                  skip-label: "skip changelog"
+                  failure-message: "Missing a CHANGELOG.md update; please add one or apply the ${skip-label} label to the pull request"
+
+    tests_check:
+        runs-on: ubuntu-latest
+        name: Check for updated tests
+        steps:
+            - name: "Check if the source directory was changed"
+              uses: dorny/paths-filter@v3
+              id: changes
+              with:
+                  filters: |
+                      src:
+                        - 'src/**'
+
+            - name: "Check for test updates"
+              if: steps.changes.outputs.src == 'true'
+              uses: brettcannon/check-for-changed-files@v1
+              with:
+                  file-pattern: |
+                      tests/*
+                  skip-label: "skip tests"
+                  failure-message: "Missing unit tests; please add some or apply the ${skip-label} label to the pull request"
+
+    all_green:
+        runs-on: ubuntu-latest
+        name: PR has no missing information
+        if: always()
+
+        needs:
+            - changelog_check
+            - tests_check
+
+        steps:
+            - name: Check whether jobs passed
+              uses: re-actors/alls-green@release/v1
+              with:
+                  jobs: ${{ toJSON(needs) }}

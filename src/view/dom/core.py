@@ -15,7 +15,7 @@ from io import StringIO
 from queue import LifoQueue
 from typing import TYPE_CHECKING, ClassVar, ParamSpec, TypeAlias
 
-from view.core.headers import as_multidict
+from view.core.headers import as_real_headers
 from view.core.response import Response
 from view.exceptions import InvalidTypeError
 from view.javascript import SupportsJavaScript
@@ -216,7 +216,7 @@ def html_response(
         return Response(
             stream,
             status_code or 200,
-            as_multidict({"content-type": "text/html"}),
+            as_real_headers({"content-type": "text/html"}),
         )
 
     return wrapper

@@ -157,6 +157,6 @@ class ServerSettings:
                 ) from error
 
         # I'm not sure what Ruff is complaining about here
-        for start_server in servers.values():  # noqa: RET503
+        for start_server in servers.values():
             with suppress(ImportError):
-                return start_server()  # noqa: RET503
+                return start_server()
