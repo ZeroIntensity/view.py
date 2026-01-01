@@ -13,7 +13,12 @@ import aiofiles
 from loguru import logger
 
 from view.core.body import BodyMixin
-from view.core.headers import HeadersLike, RequestHeaders, as_real_headers
+from view.core.headers import (
+    HeadersLike,
+    LowerStr,
+    RequestHeaders,
+    as_real_headers,
+)
 from view.exceptions import InvalidTypeError, ViewError
 from view.core.multi_map import MultiMap
 
@@ -106,7 +111,9 @@ class FileResponse(Response):
         multi_map = as_real_headers(headers)
         if "content-type" not in multi_map:
             content_type = content_type or _guess_file_type(path)
-            multi_map["content-type"] = content_type
+            multi_map = multi_map.with_new_value(
+                LowerStr("content-type"), content_type
+            )
 
         return cls(stream, status_code, multi_map, path)
 

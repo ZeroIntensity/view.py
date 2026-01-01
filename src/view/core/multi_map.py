@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import (
     Iterable,
     Iterator,
@@ -59,7 +60,7 @@ class MultiMap(Mapping[KeyT, ValueT]):
             return other._values == self._values
 
         if isinstance(other, dict):
-            return self._values == other
+            return self._as_flat() == other
 
         return NotImplemented
 
@@ -137,3 +138,12 @@ class MultiMap(Mapping[KeyT, ValueT]):
                 result.append((key, value))
 
         return result
+
+    def with_new_value(
+        self, key: KeyT, value: ValueT
+    ) -> MultiMap[KeyT, ValueT]:
+        """
+        Create a copy of this map with a new key and value included.
+        """
+        new_sequence = list(self.as_sequence()) + [(key, value)]
+        return type(self)(new_sequence)
