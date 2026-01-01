@@ -217,10 +217,10 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
 
     # Ruff wants me to use a constant here, but I think this is clear enough
     # for lengths.
-    if len(response) > 2:  # noqa
+    if len(response) > 2:  # noqa: PLR2004
         headers = response[2]
 
-    if __debug__ and len(response) > 3:  # noqa
+    if __debug__ and len(response) > 3:  # noqa: PLR2004
         raise InvalidResponseError(
             f"Got excess data in response tuple {response[3:]!r}"
         )

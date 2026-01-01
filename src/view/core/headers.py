@@ -99,10 +99,10 @@ def as_real_headers(headers: HeadersLike | None, /) -> HTTPHeaders:
 
     for key, value in headers.items():
         if isinstance(key, bytes):
-            key = key.decode("utf-8")  # noqa
+            key = key.decode("utf-8")  # noqa: PLW2901
 
         if isinstance(value, bytes):
-            value = value.decode("utf-8")  # noqa
+            value = value.decode("utf-8")  # noqa: PLW2901
 
         all_values.append((LowerStr(key), value))
 
@@ -120,7 +120,7 @@ def wsgi_to_headers(environ: Mapping[str, Any]) -> HTTPHeaders:
             continue
 
         assert isinstance(value, str)
-        key = key.removeprefix("HTTP_").replace("_", "-").lower()  # noqa
+        key = key.removeprefix("HTTP_").replace("_", "-").lower()  # noqa: PLW2901
         values.append((LowerStr(key), value))
 
     return HTTPHeaders(values)
