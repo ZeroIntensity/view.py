@@ -46,7 +46,7 @@ class BaseCache(ABC, Generic[P, T]):
 @dataclass(slots=True, frozen=True)
 class _CachedResponse:
     body: bytes
-    headers: RequestHeaders[str]
+    headers: RequestHeaders
     status: int
     last_reset: float
 

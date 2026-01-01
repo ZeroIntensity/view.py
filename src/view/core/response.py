@@ -32,7 +32,7 @@ class Response(BodyMixin):
     """
 
     status_code: int
-    headers: RequestHeaders[str]
+    headers: RequestHeaders
 
     def __post_init__(self) -> None:
         if __debug__:
