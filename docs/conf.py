@@ -13,7 +13,20 @@ author = "Peter Bierma"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.intersphinx"]
+extensions = [
+    "sphinx.ext.intersphinx",
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+]
+autosummary_generate = True
+add_module_names = False  # Cleaner output
+
+# This is the key part for making detailed pages:
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'show-inheritance': True,
+}
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
