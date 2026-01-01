@@ -2,7 +2,6 @@ import json
 from collections.abc import AsyncIterator
 
 import pytest
-from multidict import MultiDict
 from view.core.app import App, as_app
 from view.core.body import InvalidJSONError
 from view.core.headers import as_real_headers
@@ -10,6 +9,7 @@ from view.core.request import Method, Request
 from view.core.response import ResponseLike
 from view.core.router import DuplicateRouteError
 from view.core.status_codes import BadRequest
+from view.core.multi_map import MultiMap
 from view.testing import AppTestClient, bad, into_tuple, ok
 
 
@@ -62,7 +62,7 @@ async def test_manual_request():
         path="/",
         method=Method.POST,
         headers=as_real_headers({"test": "42"}),
-        query_parameters=MultiDict(),
+        query_parameters=MultiMap(),
     )
     response = await app.process_request(manual_request)
     assert (await response.body()) == b"1"
@@ -318,8 +318,8 @@ async def test_request_query_parameters():
     async def main():
         request = app.current_request()
         assert request.query_parameters["foo"] == "bar"
-        # FIXME: Why doesn't multidict work?
-        # assert request.query_parameters["test"] == ["1", "2", "3"]
+        assert request.query_parameters["test"] == "1"
+        assert request.query_parameters.get_many("test") == ["1", "2", "3"]
         assert "noexist" not in request.query_parameters
 
         return "ok"

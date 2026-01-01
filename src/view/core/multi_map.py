@@ -111,7 +111,7 @@ class MultiMap(Mapping[KeyT, ValueT]):
         """
         return self._values.items()
 
-    def get_one_or_many(self, key: KeyT) -> Sequence[ValueT]:
+    def get_many(self, key: KeyT) -> Sequence[ValueT]:
         """
         Get one or many values for a given key.
         """

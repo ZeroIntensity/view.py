@@ -6,10 +6,9 @@ from dataclasses import dataclass, field
 from enum import auto
 from typing import TYPE_CHECKING, Any
 
-from multidict import MultiDict
-
 from view.core.body import BodyMixin
 from view.core.router import normalize_route
+from view.core.multi_map import MultiMap
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -125,7 +124,7 @@ class Request(BodyMixin):
     but if a header has multiple values, it is represented by a list.
     """
 
-    query_parameters: MultiDict[str]
+    query_parameters: MultiMap[str, str]
     """
     The query string parameters of the HTTP request.
     """
@@ -141,18 +140,12 @@ class Request(BodyMixin):
         self.path = normalize_route(self.path)
 
 
-def extract_query_parameters(query_string: str | bytes) -> MultiDict[str]:
+def extract_query_parameters(query_string: str | bytes) -> MultiMap[str, str]:
     """
-    Extract a query string from a URL and return it as a multidict.
+    Extract a query string from a URL and return it as a multi-map.
     """
     if isinstance(query_string, bytes):
         query_string = query_string.decode("utf-8")
 
     assert isinstance(query_string, str), query_string
-    parsed = urllib.parse.parse_qsl(query_string)
-    result = MultiDict()
-
-    for key, value in parsed:
-        result[key] = value
-
-    return result
+    return MultiMap(urllib.parse.parse_qsl(query_string))
