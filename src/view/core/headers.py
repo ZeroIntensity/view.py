@@ -126,7 +126,7 @@ def wsgi_to_headers(environ: Mapping[str, Any]) -> HTTPHeaders:
     return HTTPHeaders(values)
 
 
-def headers_to_wsgi(headers: HTTPHeaders) -> WSGIHeaders:
+def headers_to_wsgi(headers: HTTPHeaders, /) -> WSGIHeaders:
     """
     Convert a case-insensitive multi-map to a WSGI header iterable.
     """
@@ -148,7 +148,7 @@ def asgi_to_headers(headers: ASGIHeaders, /) -> HTTPHeaders:
         lower_str = LowerStr(key.decode("utf-8"))
         values.append((lower_str, value.decode("utf-8")))
 
-    return MultiMap(values)
+    return HTTPHeaders(values)
 
 
 def headers_to_asgi(headers: HTTPHeaders, /) -> ASGIHeaders:

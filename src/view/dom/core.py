@@ -182,7 +182,8 @@ def html_response(
     function: HTMLView,
 ) -> RouteView:
     """
-    Return a :class:`Response` object from a function returning HTML.
+    Return a :class:`~view.core.response.Response` object from a function
+    returning HTML.
     """
 
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Response:
