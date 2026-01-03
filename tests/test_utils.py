@@ -1,5 +1,5 @@
 import pytest
-from view.utils import reraise, reraises
+from view.utils import reraise
 
 
 def test_simple_reraise():
@@ -55,8 +55,8 @@ def test_do_not_reraise_base_exceptions():
             raise KeyboardInterrupt
 
 
-def test_simple_reraises():
-    @reraises(RuntimeError, TypeError)
+def test_simple_reraise_as_decorator():
+    @reraise(RuntimeError, TypeError)
     def runtime_from_type() -> None:
         raise TypeError("silly")
 
@@ -64,9 +64,9 @@ def test_simple_reraises():
         runtime_from_type()
 
 
-def test_reraises_unexpected():
+def test_reraise_unexpected_as_decorator():
 
-    @reraises(RuntimeError, TypeError)
+    @reraise(RuntimeError, TypeError)
     def runtime_from_type_but_value() -> None:
         raise ValueError("haha")
 
@@ -74,9 +74,9 @@ def test_reraises_unexpected():
         runtime_from_type_but_value()
 
 
-def test_reraises_all_exceptions():
+def test_reraise_all_exceptions_as_decorator():
 
-    @reraises(RuntimeError)
+    @reraise(RuntimeError)
     def runtime_from_all() -> None:
         raise ZeroDivisionError("anything")
 
@@ -84,9 +84,9 @@ def test_reraises_all_exceptions():
         runtime_from_all()
 
 
-def test_reraise_exception_instance():
+def test_reraise_exception_instance_as_decorator():
 
-    @reraises(RuntimeError("test"))
+    @reraise(RuntimeError("test"))
     def runtime_value_from_all() -> None:
         raise ZeroDivisionError("anything")
 
@@ -96,9 +96,9 @@ def test_reraise_exception_instance():
     assert str(error.value) == "test"
 
 
-def test_multi_reraise():
+def test_multi_reraise_as_decorator():
 
-    @reraises(RuntimeError, TypeError, ValueError)
+    @reraise(RuntimeError, TypeError, ValueError)
     def runtime_from_type_or_value(exception: BaseException) -> None:
         raise exception
 
@@ -112,8 +112,8 @@ def test_multi_reraise():
         runtime_from_type_or_value(ZeroDivisionError())
 
 
-def test_do_not_reraises_base_exceptions():
-    @reraises(RuntimeError)
+def test_do_not_reraise_base_exceptions_as_decorator():
+    @reraise(RuntimeError)
     def runtime_from_all_but_interrupt() -> None:
         raise KeyboardInterrupt
 
