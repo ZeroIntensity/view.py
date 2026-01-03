@@ -123,7 +123,7 @@ class BaseApp(ABC):
 
         This is a sort of magic function that's supposed to "just work". If
         finer control over the server settings is desired, explicitly use the
-        server's API with the app's `asgi` or `wsgi` method.
+        server's API with the app's :meth:`asgi` or :meth:`wsgi` method.
         """
         from view.run.servers import ServerSettings
 

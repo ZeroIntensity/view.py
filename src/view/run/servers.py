@@ -48,7 +48,7 @@ class ServerSettings:
 
     def run_uvicorn(self) -> None:
         """
-        Run the app using the `uvicorn` library.
+        Run the app using the ``uvicorn`` library.
         """
         import uvicorn
 
@@ -56,7 +56,7 @@ class ServerSettings:
 
     def run_hypercorn(self) -> None:
         """
-        Run the app using the `hypercorn` library.
+        Run the app using the ``hypercorn`` library.
         """
         import asyncio
 
@@ -69,7 +69,7 @@ class ServerSettings:
 
     def run_daphne(self) -> None:
         """
-        Run the app using the `daphne` library.
+        Run the app using the ``daphne`` library.
         """
         from daphne.endpoints import build_endpoint_description_strings
         from daphne.server import Server
@@ -83,7 +83,7 @@ class ServerSettings:
 
     def run_gunicorn(self) -> None:
         """
-        Run the app using the `gunicorn` library.
+        Run the app using the ``gunicorn`` library.
         """
         from gunicorn.app.base import BaseApplication
 
@@ -111,7 +111,7 @@ class ServerSettings:
 
     def run_werkzeug(self) -> None:
         """
-        Run the app using the `werkzeug` library.
+        Run the app using the ``werkzeug`` library.
         """
         from werkzeug.serving import run_simple
 
@@ -119,7 +119,7 @@ class ServerSettings:
 
     def run_wsgiref(self) -> None:
         """
-        Run the app using the built-in `wsgiref` module.
+        Run the app using the built-in :mod:`wsgiref` module.
         """
         from wsgiref.simple_server import make_server
 
@@ -131,7 +131,7 @@ class ServerSettings:
         Run the app on the nearest available ASGI or WSGI server.
 
         This will always succeed, as it will fall back to the standard
-        `wsgiref` module if no other server is installed.
+        :mod:`wsgiref` module if no other server is installed.
         """
         servers: dict[str, StartServer] = {
             "uvicorn": self.run_uvicorn,

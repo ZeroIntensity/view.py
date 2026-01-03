@@ -94,7 +94,7 @@ class FileResponse(Response):
         content_type: str | None = None,
     ) -> FileResponse:
         """
-        Generate a `FileResponse` from a file path.
+        Generate a :class:`FileResponse` from a file path.
         """
         if __debug__ and not isinstance(chunk_size, int):
             raise InvalidTypeError(chunk_size, int)
@@ -145,7 +145,8 @@ class TextResponse(Response, Generic[AnyStr]):
         headers: HeadersLike | None = None,
     ) -> TextResponse[AnyStr]:
         """
-        Generate a `TextResponse` from either a `str` or `bytes` object.
+        Generate a :class:`TextResponse` from either a :class:`str` or
+        :class:`bytes` object.
         """
 
         if __debug__ and not isinstance(content, (str, bytes)):
@@ -232,7 +233,7 @@ def _wrap_response_tuple(response: _ResponseTuple) -> Response:
 
 def _wrap_response(response: ResponseLike, /) -> Response:
     """
-    Wrap a response from a view into a `Response` object.
+    Wrap a response from a view into a :class:`Response` object.
     """
     logger.debug(f"Got response: {response!r}")
     if isinstance(response, Response):
@@ -266,7 +267,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
 async def wrap_view_result(result: ViewResult, /) -> Response:
     """
     Turn the raw result of a view, which might be a coroutine, into a usable
-    `Response` object.
+    :class:`Response` object.
     """
     if isinstance(result, Awaitable):
         result = await result

@@ -18,7 +18,7 @@ def reraise(
     Context manager to reraise one or many exceptions as a single exception.
 
     This is primarily useful for reraising exceptions into HTTP errors, such
-    as an error 400 (Bad Request).
+    as a :class:`~view.core.status_codes.BadRequest`.
     """
     target = exceptions or Exception
 

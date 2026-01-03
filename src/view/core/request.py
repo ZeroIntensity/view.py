@@ -115,12 +115,12 @@ class Request(BodyMixin):
 
     method: Method
     """
-    The HTTP method of the request. See `Method`.
+    The HTTP method of the request. See :class:`Method`.
     """
 
     headers: HTTPHeaders
     """
-    A "multi-dictionary" containing the request headers. This is `dict`-like,
+    A "multi-dictionary" containing the request headers. This is :class:`dict`-like,
     but if a header has multiple values, it is represented by a list.
     """
 

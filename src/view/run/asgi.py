@@ -71,6 +71,9 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
     """
     Generate an ASGI-compliant callable for a given app, allowing
     it to be executed in an ASGI server.
+
+    Don't use this directly; prefer the :meth:`view.core.app.BaseApp.wsgi`
+    method instead.
     """
 
     async def asgi(

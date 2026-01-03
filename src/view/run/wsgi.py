@@ -32,6 +32,9 @@ def wsgi_for_app(
     """
     Generate a WSGI-compliant callable for a given app, allowing
     it to be executed in an ASGI server.
+
+    Don't use this directly; prefer the :meth:`view.core.app.BaseApp.wsgi`
+    method instead.
     """
     loop = loop or asyncio.new_event_loop()
 
