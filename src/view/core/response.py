@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import mimetypes
 import sys
@@ -16,7 +17,6 @@ from os import PathLike
 from typing import Any, AnyStr, Generic, TypeAlias
 
 from loguru import logger
-import asyncio
 
 from view.core.body import BodyMixin
 from view.core.headers import (
