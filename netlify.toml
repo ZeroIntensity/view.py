@@ -1,3 +1,3 @@
 [build]
-command = "sphinx-build -M html ./docs ./site"
+command = "pip install . && sphinx-build -M html ./docs ./site"
 publish = "site/html"
