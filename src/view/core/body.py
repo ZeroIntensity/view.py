@@ -10,7 +10,7 @@ from view.exceptions import InvalidTypeError, ViewError
 
 __all__ = ("BodyMixin",)
 
-BodyStream: TypeAlias = Callable[[], AsyncIterator[bytes]]
+BodyStream: TypeAlias = AsyncIterator[bytes]
 
 
 class BodyAlreadyUsedError(ViewError):
@@ -21,8 +21,8 @@ class BodyAlreadyUsedError(ViewError):
     times.
     """
 
-    def __init__(self) -> None:
-        super().__init__("Body has already been consumed")
+    def __init__(self, receive_data: BodyStream) -> None:
+        super().__init__(f"Body {receive_data!r} has already been consumed")
 
 
 class InvalidJSONError(ViewError):
@@ -43,19 +43,31 @@ class BodyMixin:
     receive_data: BodyStream
     consumed: bool = field(init=False, default=False)
 
+    async def stream_body(self) -> AsyncIterator[bytes]:
+        """
+        Incrementally stream the body without keeping the whole thing
+        in-memory at a given time.
+        """
+        if __debug__ and not isinstance(self.receive_data, AsyncIterator):
+            raise InvalidTypeError(self.receive_data, AsyncIterator)
+
+        if self.consumed:
+            raise BodyAlreadyUsedError(self.receive_data)
+
+        self.consumed = True
+
+        async for data in self.receive_data:
+            if __debug__ and not isinstance(data, bytes):
+                raise InvalidTypeError(data, bytes)
+            yield data
+
     async def body(self) -> bytes:
         """
         Read the full body from the stream.
         """
-        if self.consumed:
-            raise BodyAlreadyUsedError
-
-        self.consumed = True
 
         buffer = BytesIO()
-        async for data in self.receive_data():
-            if __debug__ and not isinstance(data, bytes):
-                raise InvalidTypeError(data, bytes)
+        async for data in self.stream_body():
             buffer.write(data)
 
         return buffer.getvalue()
@@ -79,18 +91,3 @@ class BodyMixin:
             return parse_function(text)
         except Exception as error:
             raise InvalidJSONError("Failed to parse JSON") from error
-
-    async def stream_body(self) -> AsyncIterator[bytes]:
-        """
-        Incrementally stream the body, not keeping the whole thing
-        in-memory at a given time.
-        """
-        if self.consumed:
-            raise BodyAlreadyUsedError
-
-        self.consumed = True
-
-        async for data in self.receive_data():
-            if __debug__ and not isinstance(data, bytes):
-                raise InvalidTypeError(data, bytes)
-            yield data

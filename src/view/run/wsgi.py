@@ -57,7 +57,7 @@ def wsgi_for_app(
         assert isinstance(path, str)
         headers = wsgi_to_headers(environ)
         parameters = extract_query_parameters(environ["QUERY_STRING"])
-        request = Request(stream, app, path, method, headers, parameters)
+        request = Request(stream(), app, path, method, headers, parameters)
         response = loop.run_until_complete(app.process_request(request))
 
         wsgi_headers: WSGIHeaders = headers_to_wsgi(response.headers)

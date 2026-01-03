@@ -71,7 +71,7 @@ class AppTestClient:
         path, _, query_string = route.partition("?")
 
         request_data = Request(
-            receive_data=stream,
+            receive_data=stream(),
             app=self.app,
             path=path,
             method=method,

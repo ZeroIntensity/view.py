@@ -4,13 +4,19 @@ import json
 import mimetypes
 import sys
 import warnings
-from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Generator,
+)
 from dataclasses import dataclass
 from os import PathLike
 from typing import Any, AnyStr, Generic, TypeAlias
 
-import aiofiles
 from loguru import logger
+import asyncio
 
 from view.core.body import BodyMixin
 from view.core.headers import (
@@ -74,6 +80,17 @@ def _guess_file_type(path: StrPath, /) -> str:
     return mimetypes.guess_type(path)[0] or "text/plain"
 
 
+async def _read_stream(
+    path: StrPath, *, chunk_size: int
+) -> AsyncIterator[bytes]:
+    file = await asyncio.to_thread(open, path, "rb")
+    length = chunk_size
+    while length == chunk_size:
+        data = await asyncio.to_thread(file.read, chunk_size)
+        length = len(data)
+        yield data
+
+
 @dataclass(slots=True)
 class FileResponse(Response):
     """
@@ -90,7 +107,7 @@ class FileResponse(Response):
         *,
         status_code: int = 200,
         headers: HeadersLike | None = None,
-        chunk_size: int = 512,
+        chunk_size: int = 512,  # This probably needs tuning
         content_type: str | None = None,
     ) -> FileResponse:
         """
@@ -99,14 +116,6 @@ class FileResponse(Response):
         if __debug__ and not isinstance(chunk_size, int):
             raise InvalidTypeError(chunk_size, int)
 
-        async def stream():
-            async with aiofiles.open(path, "rb") as file:
-                length = chunk_size
-                while length == chunk_size:
-                    data = await file.read(chunk_size)
-                    length = len(data)
-                    yield data
-
         multi_map = as_real_headers(headers)
         if "content-type" not in multi_map:
             content_type = content_type or _guess_file_type(path)
@@ -114,7 +123,12 @@ class FileResponse(Response):
                 LowerStr("content-type"), content_type
             )
 
-        return cls(stream, status_code, multi_map, path)
+        return cls(
+            _read_stream(path, chunk_size=chunk_size),
+            status_code,
+            multi_map,
+            path,
+        )
 
 
 def _as_bytes(data: str | bytes) -> bytes:
@@ -155,7 +169,7 @@ class TextResponse(Response, Generic[AnyStr]):
         async def stream() -> AsyncGenerator[bytes]:
             yield _as_bytes(content)
 
-        return cls(stream, status_code, as_real_headers(headers), content)
+        return cls(stream(), status_code, as_real_headers(headers), content)
 
 
 @dataclass(slots=True)
@@ -182,7 +196,7 @@ class JSONResponse(Response):
             parsed_data=data,
             headers=as_real_headers(headers),
             status_code=status_code,
-            receive_data=stream,
+            receive_data=stream(),
         )
 
 
@@ -251,7 +265,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             async for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=HTTPHeaders())
+        return Response(stream(), status_code=200, headers=HTTPHeaders())
 
     if isinstance(response, Generator):
 
@@ -259,7 +273,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=HTTPHeaders())
+        return Response(stream(), status_code=200, headers=HTTPHeaders())
 
     raise TypeError(f"Invalid response: {response!r}")
 

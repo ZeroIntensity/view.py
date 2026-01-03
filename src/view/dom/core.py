@@ -215,7 +215,7 @@ def html_response(
                     yield line.encode("utf-8") + b"\n"
 
         return Response(
-            stream,
+            stream(),
             status_code or 200,
             as_real_headers({"content-type": "text/html"}),
         )

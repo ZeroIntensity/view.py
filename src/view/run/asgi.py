@@ -93,7 +93,7 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
 
         parameters = extract_query_parameters(scope["query_string"])
         request = Request(
-            receive_data, app, scope["path"], method, headers, parameters
+            receive_data(), app, scope["path"], method, headers, parameters
         )
 
         response = await app.process_request(request)

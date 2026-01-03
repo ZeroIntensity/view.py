@@ -47,7 +47,7 @@ async def test_raw_response():
             yield b"Test"
 
         return Response(
-            receive_data=stream,
+            receive_data=stream(),
             status_code=Success.CREATED,
             headers=as_real_headers({"hello": "world"}),
         )
