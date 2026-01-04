@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
-from typing import ClassVar, Final, Self
+from typing import ClassVar, Final, Self, TYPE_CHECKING
+import time
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence, Mapping
 
 
 @dataclass(slots=True, frozen=True)
@@ -34,6 +38,22 @@ CRITICAL: Final[LogLevel] = LogLevel("critical", 10_000)
 
 
 @dataclass(slots=True)
+class Message:
+    level: LogLevel
+    objects: Sequence[object]
+    named_objects: Mapping[str, object]
+    timestamp: float = field(default_factory=time.time)
+
+    def as_string(self) -> str:
+        objects_list = [str(item) for item in self.objects]
+        for name, value in self.named_objects.items():
+            objects_list.append(f"{name}={value}")
+
+        message = " ".join(objects_list)
+        return message
+
+
+@dataclass(slots=True)
 class Logger:
     """
     An independent logger for the current context.
@@ -41,52 +61,48 @@ class Logger:
 
     current_logger: ClassVar[ContextVar[Logger]] = ContextVar("current_logger")
 
-    current_level: LogLevel = field(default=INFO)
-    reset_token: Token[Logger] | None = field(default=None)
+    current_level: LogLevel = INFO
+    quiet: bool = field(default=False, init=False)
+    reset_token: Token[Logger] | None = field(
+        default=None, repr=False, init=False
+    )
 
     def shut_up(self) -> None:
-        pass
+        self.quiet = True
 
-    def message(
-        self, level: LogLevel, *objects: object, **data: object
-    ) -> None:
+    def process_message(self, message: Message) -> None:
         """
         Output a log message with an arbitrary log level.
         """
-        if level > self.current_level:
+        if self.quiet or (message.level > self.current_level):
             return
 
-        objects_list = [str(item) for item in objects]
-        for name, value in data.items():
-            objects_list.append(f"{name}={value}")
+        print(message)
 
-        message = " ".join(objects_list)
-        print(f"{level.name}: {message}")
-
-    def debug(self, *message: object, **data: object) -> None:
+    def debug(self, *objects: object, **named_objects: object) -> None:
         """
         Output a debug message.
         """
-        self.message(DEBUG, *message, **data)
+        self.process_message(Message(DEBUG, objects, named_objects))
 
-    def info(self, *message: object, **data: object) -> None:
+    def info(self, *objects: object, **named_objects: object) -> None:
         """
         Output an informative message.
         """
-        self.message(INFO, *message, **data)
+        self.process_message(Message(INFO, objects, named_objects))
 
-    def warning(self, *message: object, **data: object) -> None:
+    def warning(self, *objects: object, **named_objects: object) -> None:
         """
         Output an "unfixable" warning (a warning that wasn't the fault of the
         user).
         """
-        self.message(WARNING, *message, **data)
+        self.process_message(Message(WARNING, objects, named_objects))
 
-    def critical(self, *message: object, **data: object) -> None:
+    def critical(self, *objects: object, **named_objects: object) -> None:
         """
         Output a critical message.
         """
-        self.message(CRITICAL, *message, **data)
+        self.process_message(Message(CRITICAL, objects, named_objects))
 
     @classmethod
     def current(cls) -> Logger:
