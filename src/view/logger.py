@@ -4,6 +4,9 @@ from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from typing import ClassVar, Final, Self, TYPE_CHECKING
 import time
+import asyncio
+from datetime import datetime
+import calendar
 
 if TYPE_CHECKING:
     from collections.abc import Sequence, Mapping
@@ -67,42 +70,62 @@ class Logger:
         default=None, repr=False, init=False
     )
 
+    # TODO: Factor this out into its own class
+    write_task: asyncio.Task[None] | None = field(
+        default=None, repr=False, init=False
+    )
+    write_queue: asyncio.Queue[Message] = field(
+        default_factory=asyncio.Queue, repr=False, init=False
+    )
+    writer_done: bool = field(default=False, repr=False, init=False)
+
     def shut_up(self) -> None:
         self.quiet = True
 
-    def process_message(self, message: Message) -> None:
+    async def _writer(self) -> None:
+        while not self.writer_done:
+            message = await self.write_queue.get()
+            when = datetime.fromtimestamp(message.timestamp)
+            month = calendar.month_abbr[when.month]
+            # TODO: Add a dedicated file stream
+            print(
+                f"{month} {when.day}, {when.hour}:{when.minute}:{when.second} [{message.level.name}] {message.as_string()}"
+            )
+            self.write_queue.task_done()
+
+    def dispatch_message(self, message: Message) -> None:
         """
         Output a log message with an arbitrary log level.
         """
         if self.quiet or (message.level > self.current_level):
             return
 
-        print(message)
+        self.write_queue.put_nowait(message)
 
     def debug(self, *objects: object, **named_objects: object) -> None:
         """
         Output a debug message.
         """
-        self.process_message(Message(DEBUG, objects, named_objects))
+        self.dispatch_message(Message(DEBUG, objects, named_objects))
 
     def info(self, *objects: object, **named_objects: object) -> None:
         """
         Output an informative message.
         """
-        self.process_message(Message(INFO, objects, named_objects))
+        self.dispatch_message(Message(INFO, objects, named_objects))
 
     def warning(self, *objects: object, **named_objects: object) -> None:
         """
         Output an "unfixable" warning (a warning that wasn't the fault of the
         user).
         """
-        self.process_message(Message(WARNING, objects, named_objects))
+        self.dispatch_message(Message(WARNING, objects, named_objects))
 
     def critical(self, *objects: object, **named_objects: object) -> None:
         """
         Output a critical message.
         """
-        self.process_message(Message(CRITICAL, objects, named_objects))
+        self.dispatch_message(Message(CRITICAL, objects, named_objects))
 
     @classmethod
     def current(cls) -> Logger:
@@ -112,10 +135,15 @@ class Logger:
         """
         return cls.current_logger.get()
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         self.reset_token = self.current_logger.set(self)
+        assert self.write_task is None
+        self.write_task = asyncio.create_task(self._writer())
         return self
 
-    def __exit__(self, *_: object) -> None:
+    async def __aexit__(self, *_: object) -> None:
         assert self.reset_token is not None
+        assert self.write_task is not None
+        await self.write_queue.join()
+        self.writer_done = True
         self.current_logger.reset(self.reset_token)
