@@ -1,7 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any, Final, ClassVar, Self
+
 from contextvars import ContextVar, Token
+from dataclasses import dataclass, field
+from typing import ClassVar, Final, Self
 
 
 @dataclass(slots=True, frozen=True)
@@ -99,6 +100,6 @@ class Logger:
         self.reset_token = self.current_logger.set(self)
         return self
 
-    def __exit__(self, *_: Any) -> None:
+    def __exit__(self, *_: object) -> None:
         assert self.reset_token is not None
         self.current_logger.reset(self.reset_token)

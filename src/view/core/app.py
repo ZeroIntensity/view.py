@@ -13,7 +13,6 @@ from loguru import logger
 
 from view.core.request import Method, Request
 from view.core.response import (
-    FileResponse,
     Response,
     ResponseLike,
     ViewResult,
@@ -27,6 +26,7 @@ from view.core.status_codes import (
     NotFound,
 )
 from view.exceptions import InvalidTypeError
+from view.responses import FileResponse
 from view.utils import reraise
 
 if TYPE_CHECKING:

@@ -6,7 +6,7 @@ import pytest
 from view.core.app import App, as_app
 from view.core.headers import as_real_headers
 from view.core.request import Request
-from view.core.response import FileResponse, JSONResponse, Response, ResponseLike
+from view.core.response import Response, ResponseLike
 from view.core.status_codes import (
     STATUS_EXCEPTIONS,
     STATUS_STRINGS,
@@ -14,6 +14,7 @@ from view.core.status_codes import (
     HTTPError,
     Success,
 )
+from view.responses import JSONResponse, FileResponse
 from view.testing import AppTestClient, bad, into_tuple, ok
 
 
