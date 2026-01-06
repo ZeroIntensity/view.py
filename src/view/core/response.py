@@ -9,8 +9,6 @@ from collections.abc import (
 from dataclasses import dataclass
 from typing import AnyStr, Generic, TypeAlias
 
-from loguru import logger
-
 from view.core.body import BodyMixin
 from view.core.headers import (
     HeadersLike,
@@ -154,7 +152,6 @@ def _wrap_response(response: ResponseLike, /) -> Response:
     """
     Wrap a response from a view into a :class:`Response` object.
     """
-    logger.debug(f"Got response: {response!r}")
     if isinstance(response, Response):
         return response
 
