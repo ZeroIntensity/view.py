@@ -61,7 +61,13 @@ class BaseApp(ABC):
 
         logger.addHandler(handler)
         self.logger = logger
-        self.logger.info("hello")
+
+    def shut_up(self) -> None:
+        """
+        Stop the logger.
+        """
+
+        self.logger.disabled = True
 
     @property
     def debug(self) -> bool:
