@@ -9,8 +9,8 @@ from multiprocessing import Process
 from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
-from loguru import logger
-
+import sys
+import logging
 from view.core.request import Method, Request
 from view.core.response import (
     Response,
@@ -49,6 +49,19 @@ class BaseApp(ABC):
             "The current request being handled."
         )
         self._production: bool | None = None
+        logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.DEBUG)
+
+        formatter = logging.Formatter(
+            "view: %(asctime)s -- [%(levelname)s]: %(message)s"
+        )
+        handler.setFormatter(formatter)
+
+        logger.addHandler(handler)
+        self.logger = logger
+        self.logger.info("hello")
 
     @property
     def debug(self) -> bool:
@@ -69,14 +82,13 @@ class BaseApp(ABC):
         """
         Enter a context for the given request.
         """
-        with logger.contextualize(request=request):
-            app_token = self._CURRENT_APP.set(self)
-            request_token = self._request.set(request)
-            try:
-                yield
-            finally:
-                self._request.reset(request_token)
-                self._CURRENT_APP.reset(app_token)
+        app_token = self._CURRENT_APP.set(self)
+        request_token = self._request.set(request)
+        try:
+            yield
+        finally:
+            self._request.reset(request_token)
+            self._CURRENT_APP.reset(app_token)
 
     @classmethod
     def current_app(cls) -> BaseApp:
@@ -136,17 +148,17 @@ class BaseApp(ABC):
                 stacklevel=2,
             )
 
-        logger.info(f"Serving app on http://localhost:{port}")
+        self.logger.info(f"Serving app on http://localhost:{port}")
         self._production = production
         settings = ServerSettings(self, host=host, port=port, hint=server_hint)
         try:
             settings.run_app_on_any_server()
         except KeyboardInterrupt:
-            logger.info("CTRL^C received, shutting down")
+            self.logger.info("CTRL^C received, shutting down")
         except Exception:  # noqa: BLE001
-            logger.exception("Error in server lifecycle")
+            self.logger.exception("Error in server lifecycle")
         finally:
-            logger.info("Server finished")
+            self.logger.info("Server finished")
 
     def run_detached(
         self,
@@ -173,38 +185,35 @@ class BaseApp(ABC):
         process.start()
         return process
 
-
-async def _execute_view_internal(
-    view: Callable[P, ViewResult],
-    *args: P.args,
-    **kwargs: P.kwargs,
-) -> Response:
-    logger.debug(f"Executing view: {view}")
-    try:
-        result = view(*args, **kwargs)
-        return await wrap_view_result(result)
-    except HTTPError as error:
-        logger.opt(colors=True).info(
-            f"<red>HTTP Error {error.status_code}</red>"
-        )
-        raise
-
-
-async def execute_view(
-    view: Callable[P, ViewResult], *args: P.args, **kwargs: P.kwargs
-) -> Response:
-    try:
-        return await _execute_view_internal(view, *args, **kwargs)
-    except BaseException as exception:
-        # Let HTTP errors pass through, so the caller can deal with it
-        if isinstance(exception, HTTPError):
+    async def _execute_view_internal(
+        self,
+        view: Callable[P, ViewResult],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Response:
+        self.logger.debug(f"Executing view: {view}")
+        try:
+            result = view(*args, **kwargs)
+            return await wrap_view_result(result)
+        except HTTPError as error:
+            self.logger.error(f"HTTP Error {error.status_code}")
             raise
-        logger.exception(exception)
 
-        if __debug__:
-            raise InternalServerError.from_current_exception() from exception
+    async def execute_view(
+        self, view: Callable[P, ViewResult], *args: P.args, **kwargs: P.kwargs
+    ) -> Response:
+        try:
+            return await self._execute_view_internal(view, *args, **kwargs)
+        except BaseException as exception:
+            # Let HTTP errors pass through, so the caller can deal with it
+            if isinstance(exception, HTTPError):
+                raise
+            self.logger.exception(exception)
 
-        raise InternalServerError from exception
+            if __debug__:
+                raise InternalServerError.from_current_exception() from exception
+
+            raise InternalServerError from exception
 
 
 SingleView = Callable[["Request"], ViewResult]
@@ -223,7 +232,7 @@ class SingleViewApp(BaseApp):
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
             try:
-                return await execute_view(self.view, request)
+                return await self.execute_view(self.view, request)
             except HTTPError as error:
                 return error.as_response()
 
@@ -256,9 +265,7 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        logger.opt(colors=True).info(
-            f"<yellow>{request.method}</yellow> <green>{request.path}</green>"
-        )
+        self.logger.info(f"{request.method} {request.path}")
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )
@@ -267,7 +274,7 @@ class App(BaseApp):
 
         # Extend instead of replacing?
         request.path_parameters = found_route.path_parameters
-        return await execute_view(found_route.route.view)
+        return await self.execute_view(found_route.route.view)
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
@@ -276,7 +283,7 @@ class App(BaseApp):
             except HTTPError as error:
                 error_view = self.router.lookup_error(type(error))
                 if error_view is not None:
-                    return await execute_view(error_view)
+                    return await self.execute_view(error_view)
 
                 return error.as_response()
 
