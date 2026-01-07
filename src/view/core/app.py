@@ -230,7 +230,7 @@ class BaseApp(ABC):
                 "If that doesn't sound correct, set VIEW_DEVMODE to 0."
             )
 
-        self.logger.info(f"Serving app on http://localhost:{port}")
+        self.logger.info("Serving app on http://localhost:%d", port)
         self._production = production
         settings = ServerSettings(self, host=host, port=port, hint=server_hint)
         try:
@@ -273,12 +273,12 @@ class BaseApp(ABC):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Response:
-        self.logger.debug(f"Executing view: {view}")
+        self.logger.debug("Executing view: %s", view)
         try:
             result = view(*args, **kwargs)
             return await wrap_view_result(result)
         except HTTPError as error:
-            self.logger.warning(f"HTTP Error {error.status_code}")
+            self.logger.warning("HTTP Error %d", error.status_code)
             raise
 
     async def execute_view(
@@ -347,7 +347,7 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        self.logger.info(f"{request.method} {request.path}")
+        self.logger.info("%s on route %s", request.method, request.path)
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )
