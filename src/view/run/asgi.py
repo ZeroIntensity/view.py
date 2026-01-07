@@ -1,3 +1,7 @@
+"""
+Implementation and utilities for running view.py applications on an ASGI server.
+"""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable

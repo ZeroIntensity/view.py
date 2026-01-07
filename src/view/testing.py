@@ -1,3 +1,7 @@
+"""
+Utilities for testing a view.py application without the use of I/O.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

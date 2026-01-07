@@ -1,3 +1,7 @@
+"""
+Implementation and utilities for HTTP responses.
+"""
+
 from __future__ import annotations
 
 import warnings

@@ -1,3 +1,7 @@
+"""
+The implementation of request and response bodies.
+"""
+
 from __future__ import annotations
 
 import json

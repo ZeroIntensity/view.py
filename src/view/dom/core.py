@@ -1,3 +1,7 @@
+"""
+The implementation of the DOM API.
+"""
+
 from __future__ import annotations
 
 import uuid

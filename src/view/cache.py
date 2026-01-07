@@ -1,3 +1,7 @@
+"""
+Utilities for caching responses from views.
+"""
+
 from __future__ import annotations
 
 import math

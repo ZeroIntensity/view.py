@@ -1,3 +1,7 @@
+"""
+Primary app implementation.
+"""
+
 from __future__ import annotations
 
 import contextlib
@@ -8,7 +12,6 @@ from collections.abc import Awaitable, Callable, Iterator
 from multiprocessing import Process
 from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
-
 import sys
 import logging
 from view.core._colors import ColorfulFormatter
