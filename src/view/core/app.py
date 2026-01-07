@@ -67,10 +67,7 @@ def _is_development_mode() -> bool:
     if json_data is None:
         return False
 
-    is_editable = (
-        json.loads(json_data).get("dir_info", {}).get("editable", False)
-    )
-    return is_editable
+    return json.loads(json_data).get("dir_info", {}).get("editable", False)
 
 
 class BaseApp(ABC):
@@ -293,7 +290,7 @@ class BaseApp(ABC):
             # Let HTTP errors pass through, so the caller can deal with it
             if isinstance(exception, HTTPError):
                 raise
-            self.logger.exception(exception)
+            self.logger.exception("Error while processing response")
 
             if __debug__:
                 raise InternalServerError.from_current_exception() from exception

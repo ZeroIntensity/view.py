@@ -3,6 +3,8 @@ This is mostly stolen from CPython's _colorize module. If that becomes part of
 the standard library someday, we can hopefully remove this.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
@@ -67,9 +69,9 @@ class ANSIColors:
 
 NoColors = ANSIColors()
 
-for attr, code in ANSIColors.__dict__.items():
-    if not attr.startswith("__"):
-        setattr(NoColors, attr, "")
+for attribute in ANSIColors.__dict__:
+    if not attribute.startswith("__"):
+        setattr(NoColors, attribute, "")
 
 
 def _supports_colors(*, file: IO[str] | IO[bytes] | None = None) -> bool:
@@ -95,7 +97,7 @@ def _supports_colors(*, file: IO[str] | IO[bytes] | None = None) -> bool:
         try:
             import nt
 
-            if not nt._supports_virtual_terminal():
+            if not nt._supports_virtual_terminal():  # noqa: SLF001
                 return False
         except (ImportError, AttributeError):
             return False
