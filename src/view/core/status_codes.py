@@ -1,3 +1,7 @@
+"""
+Utilities and data regarding all HTTP status codes.
+"""
+
 from __future__ import annotations
 
 import sys

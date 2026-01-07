@@ -1,3 +1,7 @@
+"""
+General utilities for view.py users.
+"""
+
 from __future__ import annotations
 
 from contextlib import contextmanager

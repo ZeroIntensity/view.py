@@ -1,22 +1,22 @@
+"""
+Implementation and utilities for HTTP responses.
+"""
+
 from __future__ import annotations
 
-import json
-import mimetypes
-import sys
 import warnings
-from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
+from collections.abc import (
+    AsyncGenerator,
+    Awaitable,
+    Generator,
+)
 from dataclasses import dataclass
-from os import PathLike
-from typing import Any, AnyStr, Generic, TypeAlias
-
-import aiofiles
-from loguru import logger
+from typing import AnyStr, Generic, TypeAlias
 
 from view.core.body import BodyMixin
 from view.core.headers import (
     HeadersLike,
     HTTPHeaders,
-    LowerStr,
     as_real_headers,
 )
 from view.exceptions import InvalidTypeError, ViewError
@@ -64,57 +64,6 @@ ResponseLike: TypeAlias = (
     | _ResponseTuple
 )
 ViewResult = ResponseLike | Awaitable[ResponseLike]
-StrPath: TypeAlias = str | PathLike[str]
-
-
-def _guess_file_type(path: StrPath, /) -> str:
-    if sys.version_info >= (3, 13):
-        return mimetypes.guess_file_type(path)[0] or "text/plain"
-
-    return mimetypes.guess_type(path)[0] or "text/plain"
-
-
-@dataclass(slots=True)
-class FileResponse(Response):
-    """
-    Response containing a file, streamed asynchronously.
-    """
-
-    path: StrPath
-
-    @classmethod
-    def from_file(
-        cls,
-        path: StrPath,
-        /,
-        *,
-        status_code: int = 200,
-        headers: HeadersLike | None = None,
-        chunk_size: int = 512,
-        content_type: str | None = None,
-    ) -> FileResponse:
-        """
-        Generate a :class:`FileResponse` from a file path.
-        """
-        if __debug__ and not isinstance(chunk_size, int):
-            raise InvalidTypeError(chunk_size, int)
-
-        async def stream():
-            async with aiofiles.open(path, "rb") as file:
-                length = chunk_size
-                while length == chunk_size:
-                    data = await file.read(chunk_size)
-                    length = len(data)
-                    yield data
-
-        multi_map = as_real_headers(headers)
-        if "content-type" not in multi_map:
-            content_type = content_type or _guess_file_type(path)
-            multi_map = multi_map.with_new_value(
-                LowerStr("content-type"), content_type
-            )
-
-        return cls(stream, status_code, multi_map, path)
 
 
 def _as_bytes(data: str | bytes) -> bytes:
@@ -155,35 +104,7 @@ class TextResponse(Response, Generic[AnyStr]):
         async def stream() -> AsyncGenerator[bytes]:
             yield _as_bytes(content)
 
-        return cls(stream, status_code, as_real_headers(headers), content)
-
-
-@dataclass(slots=True)
-class JSONResponse(Response):
-    content: dict[str, Any]
-    parsed_data: str
-
-    @classmethod
-    def from_content(
-        cls,
-        content: dict[str, Any],
-        *,
-        parse_function: Callable[[dict[str, Any]], str] = json.dumps,
-        status_code: int = 200,
-        headers: HeadersLike | None = None,
-    ) -> JSONResponse:
-        data = parse_function(content)
-
-        async def stream() -> AsyncGenerator[bytes]:
-            yield data.encode("utf-8")
-
-        return cls(
-            content=content,
-            parsed_data=data,
-            headers=as_real_headers(headers),
-            status_code=status_code,
-            receive_data=stream,
-        )
+        return cls(stream(), status_code, as_real_headers(headers), content)
 
 
 class InvalidResponseError(ViewError):
@@ -235,7 +156,6 @@ def _wrap_response(response: ResponseLike, /) -> Response:
     """
     Wrap a response from a view into a :class:`Response` object.
     """
-    logger.debug(f"Got response: {response!r}")
     if isinstance(response, Response):
         return response
 
@@ -251,7 +171,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             async for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=HTTPHeaders())
+        return Response(stream(), status_code=200, headers=HTTPHeaders())
 
     if isinstance(response, Generator):
 
@@ -259,7 +179,7 @@ def _wrap_response(response: ResponseLike, /) -> Response:
             for data in response:
                 yield _as_bytes(data)
 
-        return Response(stream, status_code=200, headers=HTTPHeaders())
+        return Response(stream(), status_code=200, headers=HTTPHeaders())
 
     raise TypeError(f"Invalid response: {response!r}")
 

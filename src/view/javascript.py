@@ -1,3 +1,7 @@
+"""
+Utilities for using JavaScript in view.py applications.
+"""
+
 from __future__ import annotations
 
 from io import StringIO

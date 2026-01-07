@@ -26,6 +26,8 @@ autodoc_default_options = {
     'members': True,
     'undoc-members': True,
     'show-inheritance': True,
+    "inherited-members": True,
+    "ignore-module-all": True,
 }
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]

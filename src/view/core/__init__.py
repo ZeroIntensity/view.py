@@ -1,3 +1,7 @@
+"""
+The parts absolutely necessary for web applications using view.py.
+"""
+
 from view.core import app as app
 from view.core import headers as headers
 from view.core import request as request

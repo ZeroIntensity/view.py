@@ -1,19 +1,26 @@
+"""
+Primary app implementation.
+"""
+
 from __future__ import annotations
 
 import contextlib
 import contextvars
+import json
+import logging
+import os
+import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterator
+from importlib.metadata import Distribution, PackageNotFoundError
 from multiprocessing import Process
 from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
-from loguru import logger
-
+from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
 from view.core.response import (
-    FileResponse,
     Response,
     ResponseLike,
     ViewResult,
@@ -27,6 +34,7 @@ from view.core.status_codes import (
     NotFound,
 )
 from view.exceptions import InvalidTypeError
+from view.responses import FileResponse
 from view.utils import reraise
 
 if TYPE_CHECKING:
@@ -39,16 +47,94 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
+def _is_development_mode() -> bool:
+    devmode_variable = os.environ.get("VIEW_DEVMODE")
+    if devmode_variable is not None:
+        if not devmode_variable.isdigit():
+            raise RuntimeError(
+                f"Invalid value for VIEW_DEVMODE: {devmode_variable!r}"
+            )
+
+        return bool(int(devmode_variable))
+
+    try:
+        view_distribution = Distribution.from_name("view.py")
+    except PackageNotFoundError:
+        # view.py isn't even installed -- we're definitely in some sort of
+        # local copy.
+        return True
+    json_data = view_distribution.read_text("direct_url.json")
+    if json_data is None:
+        return False
+
+    return json.loads(json_data).get("dir_info", {}).get("editable", False)
+
+
 class BaseApp(ABC):
     """Base view.py application."""
 
     _CURRENT_APP = contextvars.ContextVar["BaseApp"]("Current app being used.")
 
-    def __init__(self):
-        self._request = contextvars.ContextVar[Request](
-            "The current request being handled."
-        )
+    def __init__(self) -> None:
+        self._request = contextvars.ContextVar[Request]("request")
         self._production: bool | None = None
+
+        # We use a private variable for this to artificially disallow people
+        # from writing to development_mode.
+        self._development_mode: bool = _is_development_mode()
+
+        self.logger = self._new_logger()
+        """
+        The logger used by the app.
+        """
+
+    @property
+    def development_mode(self) -> bool:
+        """
+        Whether view.py is in "development mode". If this is ``True``, then
+        that means you're working on contributing to the library itself.
+
+        This cannot be set from Python. If you'd like to control this behavior,
+        set the ``VIEW_DEVMODE`` environment variable to ``1`` or ``0``.
+        """
+        return self._development_mode
+
+    def _new_logger(self) -> logging.Logger:
+        """
+        Create a new logger for this app.
+        """
+        # TODO: This should be configurable
+
+        log_level = logging.INFO
+        if self.development_mode:
+            log_level = logging.DEBUG
+
+        # In the future, we might want to add a use-case for multiple apps in
+        # the same process. To support this, we use the ID of this instance in
+        # the logger name to keep it unique.
+
+        # XXX: Should this create a new logger for each class, or for each instance?
+        logger = logging.getLogger(
+            f"{__name__}.{self.__class__.__name__}-{id(self)}"
+        )
+        logger.setLevel(log_level)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(log_level)
+
+        formatter = ColorfulFormatter(
+            "view: %(asctime)s -- [%(levelname)s]: %(message)s"
+        )
+        handler.setFormatter(formatter)
+
+        logger.addHandler(handler)
+        return logger
+
+    def shut_up(self) -> None:
+        """
+        Stop the logger.
+        """
+
+        self.logger.disabled = True
 
     @property
     def debug(self) -> bool:
@@ -69,14 +155,13 @@ class BaseApp(ABC):
         """
         Enter a context for the given request.
         """
-        with logger.contextualize(request=request):
-            app_token = self._CURRENT_APP.set(self)
-            request_token = self._request.set(request)
-            try:
-                yield
-            finally:
-                self._request.reset(request_token)
-                self._CURRENT_APP.reset(app_token)
+        app_token = self._CURRENT_APP.set(self)
+        request_token = self._request.set(request)
+        try:
+            yield
+        finally:
+            self._request.reset(request_token)
+            self._CURRENT_APP.reset(app_token)
 
     @classmethod
     def current_app(cls) -> BaseApp:
@@ -136,17 +221,26 @@ class BaseApp(ABC):
                 stacklevel=2,
             )
 
-        logger.info(f"Serving app on http://localhost:{port}")
+        if self.development_mode:
+            self.logger.info("You're in development mode!")
+            self.logger.info(
+                "Development mode implies that you're working on view.py itself and plan on contributing to the library."
+            )
+            self.logger.info(
+                "If that doesn't sound correct, set VIEW_DEVMODE to 0."
+            )
+
+        self.logger.info("Serving app on http://localhost:%d", port)
         self._production = production
         settings = ServerSettings(self, host=host, port=port, hint=server_hint)
         try:
             settings.run_app_on_any_server()
         except KeyboardInterrupt:
-            logger.info("CTRL^C received, shutting down")
-        except Exception:  # noqa: BLE001
-            logger.exception("Error in server lifecycle")
+            self.logger.info("CTRL^C received, shutting down")
+        except Exception:
+            self.logger.exception("Error in server lifecycle")
         finally:
-            logger.info("Server finished")
+            self.logger.info("Server finished")
 
     def run_detached(
         self,
@@ -173,38 +267,35 @@ class BaseApp(ABC):
         process.start()
         return process
 
-
-async def _execute_view_internal(
-    view: Callable[P, ViewResult],
-    *args: P.args,
-    **kwargs: P.kwargs,
-) -> Response:
-    logger.debug(f"Executing view: {view}")
-    try:
-        result = view(*args, **kwargs)
-        return await wrap_view_result(result)
-    except HTTPError as error:
-        logger.opt(colors=True).info(
-            f"<red>HTTP Error {error.status_code}</red>"
-        )
-        raise
-
-
-async def execute_view(
-    view: Callable[P, ViewResult], *args: P.args, **kwargs: P.kwargs
-) -> Response:
-    try:
-        return await _execute_view_internal(view, *args, **kwargs)
-    except BaseException as exception:
-        # Let HTTP errors pass through, so the caller can deal with it
-        if isinstance(exception, HTTPError):
+    async def _execute_view_internal(
+        self,
+        view: Callable[P, ViewResult],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Response:
+        self.logger.debug("Executing view: %s", view)
+        try:
+            result = view(*args, **kwargs)
+            return await wrap_view_result(result)
+        except HTTPError as error:
+            self.logger.warning("HTTP Error %d", error.status_code)
             raise
-        logger.exception(exception)
 
-        if __debug__:
-            raise InternalServerError.from_current_exception() from exception
+    async def execute_view(
+        self, view: Callable[P, ViewResult], *args: P.args, **kwargs: P.kwargs
+    ) -> Response:
+        try:
+            return await self._execute_view_internal(view, *args, **kwargs)
+        except BaseException as exception:
+            # Let HTTP errors pass through, so the caller can deal with it
+            if isinstance(exception, HTTPError):
+                raise
+            self.logger.exception("Error while processing response")
 
-        raise InternalServerError from exception
+            if __debug__:
+                raise InternalServerError.from_current_exception() from exception
+
+            raise InternalServerError from exception
 
 
 SingleView = Callable[["Request"], ViewResult]
@@ -223,7 +314,7 @@ class SingleViewApp(BaseApp):
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
             try:
-                return await execute_view(self.view, request)
+                return await self.execute_view(self.view, request)
             except HTTPError as error:
                 return error.as_response()
 
@@ -256,9 +347,7 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        logger.opt(colors=True).info(
-            f"<yellow>{request.method}</yellow> <green>{request.path}</green>"
-        )
+        self.logger.info("%s on route %s", request.method, request.path)
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )
@@ -267,7 +356,7 @@ class App(BaseApp):
 
         # Extend instead of replacing?
         request.path_parameters = found_route.path_parameters
-        return await execute_view(found_route.route.view)
+        return await self.execute_view(found_route.route.view)
 
     async def process_request(self, request: Request) -> Response:
         with self.request_context(request):
@@ -276,7 +365,7 @@ class App(BaseApp):
             except HTTPError as error:
                 error_view = self.router.lookup_error(type(error))
                 if error_view is not None:
-                    return await execute_view(error_view)
+                    return await self.execute_view(error_view)
 
                 return error.as_response()
 

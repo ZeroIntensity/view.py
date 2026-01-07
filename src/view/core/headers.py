@@ -1,3 +1,7 @@
+"""
+Utilities and implementation for HTTP request/response headers.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Mapping

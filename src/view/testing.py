@@ -1,3 +1,7 @@
+"""
+Utilities for testing a view.py application without the use of I/O.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -71,7 +75,7 @@ class AppTestClient:
         path, _, query_string = route.partition("?")
 
         request_data = Request(
-            receive_data=stream,
+            receive_data=stream(),
             app=self.app,
             path=path,
             method=method,

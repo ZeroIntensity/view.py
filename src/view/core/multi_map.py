@@ -1,3 +1,7 @@
+"""
+A "multi-map" implementation intended for use in HTTP headers and query strings.
+"""
+
 from __future__ import annotations
 
 from collections.abc import (

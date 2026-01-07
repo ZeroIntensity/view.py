@@ -1,3 +1,7 @@
+"""
+Implementation of "components" -- DOM nodes defined by the user.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

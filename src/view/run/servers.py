@@ -1,3 +1,7 @@
+"""
+Magically run applications on some common servers.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence

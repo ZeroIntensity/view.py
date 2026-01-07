@@ -1,3 +1,7 @@
+"""
+Implementation and utilities for HTTP requests.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -19,15 +23,15 @@ if TYPE_CHECKING:
 __all__ = "Method", "Request"
 
 if sys.version_info >= (3, 11):
-    from enum import StrEnum
+    from enum import StrEnum as _StrEnum
 else:
     from enum import Enum
 
-    class StrEnum(str, Enum):
+    class _StrEnum(str, Enum):
         pass
 
 
-class _UpperStrEnum(StrEnum):
+class _UpperStrEnum(_StrEnum):
     @staticmethod
     def _generate_next_value_(
         name: str,
