@@ -79,12 +79,28 @@ class BaseApp(ABC):
     _CURRENT_APP = contextvars.ContextVar["BaseApp"]("Current app being used.")
 
     def __init__(self) -> None:
-        self._request = contextvars.ContextVar[Request](
-            "The current request being handled."
-        )
+        self._request = contextvars.ContextVar[Request]("request")
         self._production: bool | None = None
-        self.development_mode: bool = _is_development_mode()
+
+        # We use a private variable for this to artificially disallow people
+        # from writing to development_mode.
+        self._development_mode: bool = _is_development_mode()
+
         self.logger = self._new_logger()
+        """
+        The logger used by the app.
+        """
+
+    @property
+    def development_mode(self) -> bool:
+        """
+        Whether view.py is in "development mode". If this is ``True``, then
+        that means you're working on contributing to the library itself.
+
+        This cannot be set from Python. If you'd like to control this behavior,
+        set the ``VIEW_DEVMODE`` environment variable to ``1`` or ``0``.
+        """
+        return self._development_mode
 
     def _new_logger(self) -> logging.Logger:
         """
