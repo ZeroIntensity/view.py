@@ -278,7 +278,7 @@ class BaseApp(ABC):
             result = view(*args, **kwargs)
             return await wrap_view_result(result)
         except HTTPError as error:
-            self.logger.error(f"HTTP Error {error.status_code}")
+            self.logger.warning(f"HTTP Error {error.status_code}")
             raise
 
     async def execute_view(
