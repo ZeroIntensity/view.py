@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
 import sys
 import logging
+from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
 from view.core.response import (
     Response,
@@ -44,23 +45,38 @@ class BaseApp(ABC):
 
     _CURRENT_APP = contextvars.ContextVar["BaseApp"]("Current app being used.")
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._request = contextvars.ContextVar[Request](
             "The current request being handled."
         )
         self._production: bool | None = None
-        logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = self._new_logger()
+
+    def _new_logger(self) -> logging.Logger:
+        """
+        Create a new logger for this app.
+        """
+        # TODO: This should be configurable
+
+        # In the future, we might want to add a use-case for multiple apps in
+        # the same process. To support this, we use the ID of this instance in
+        # the logger name to keep it unique.
+
+        # XXX: Should this create a new logger for each, or for each instance?
+        logger = logging.getLogger(
+            f"{__name__}.{self.__class__.__name__}-{id(self)}"
+        )
         logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(logging.DEBUG)
 
-        formatter = logging.Formatter(
+        formatter = ColorfulFormatter(
             "view: %(asctime)s -- [%(levelname)s]: %(message)s"
         )
         handler.setFormatter(formatter)
 
         logger.addHandler(handler)
-        self.logger = logger
+        return logger
 
     def shut_up(self) -> None:
         """
