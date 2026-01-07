@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 import sys
 import logging
+import json
+import os
 from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
 from view.core.response import (
@@ -33,6 +35,8 @@ from view.exceptions import InvalidTypeError
 from view.responses import FileResponse
 from view.utils import reraise
 
+from importlib.metadata import Distribution, PackageNotFoundError
+
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
     from view.run.wsgi import WSGIProtocol
@@ -41,6 +45,32 @@ __all__ = "App", "BaseApp", "as_app"
 
 T = TypeVar("T")
 P = ParamSpec("P")
+
+
+def _is_development_mode() -> bool:
+    devmode_variable = os.environ.get("VIEW_DEVMODE")
+    if devmode_variable is not None:
+        if not devmode_variable.isdigit():
+            raise RuntimeError(
+                f"Invalid value for VIEW_DEVMODE: {devmode_variable!r}"
+            )
+
+        return bool(int(devmode_variable))
+
+    try:
+        view_distribution = Distribution.from_name("view.py")
+    except PackageNotFoundError:
+        # view.py isn't even installed -- we're definitely in some sort of
+        # local copy.
+        return True
+    json_data = view_distribution.read_text("direct_url.json")
+    if json_data is None:
+        return False
+
+    is_editable = (
+        json.loads(json_data).get("dir_info", {}).get("editable", False)
+    )
+    return is_editable
 
 
 class BaseApp(ABC):
@@ -53,6 +83,7 @@ class BaseApp(ABC):
             "The current request being handled."
         )
         self._production: bool | None = None
+        self.development_mode: bool = _is_development_mode()
         self.logger = self._new_logger()
 
     def _new_logger(self) -> logging.Logger:
@@ -61,17 +92,21 @@ class BaseApp(ABC):
         """
         # TODO: This should be configurable
 
+        log_level = logging.INFO
+        if self.development_mode:
+            log_level = logging.DEBUG
+
         # In the future, we might want to add a use-case for multiple apps in
         # the same process. To support this, we use the ID of this instance in
         # the logger name to keep it unique.
 
-        # XXX: Should this create a new logger for each, or for each instance?
+        # XXX: Should this create a new logger for each class, or for each instance?
         logger = logging.getLogger(
             f"{__name__}.{self.__class__.__name__}-{id(self)}"
         )
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(log_level)
         handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.DEBUG)
+        handler.setLevel(log_level)
 
         formatter = ColorfulFormatter(
             "view: %(asctime)s -- [%(levelname)s]: %(message)s"
@@ -171,6 +206,15 @@ class BaseApp(ABC):
                 f"The app was run with {production=}, but Python's {__debug__=}",
                 RuntimeWarning,
                 stacklevel=2,
+            )
+
+        if self.development_mode:
+            self.logger.info("You're in development mode!")
+            self.logger.info(
+                "Development mode implies that you're working on view.py itself and plan on contributing to the library."
+            )
+            self.logger.info(
+                "If that doesn't sound correct, set VIEW_DEVMODE to 0."
             )
 
         self.logger.info(f"Serving app on http://localhost:{port}")
