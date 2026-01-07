@@ -74,7 +74,9 @@ class InMemoryCache(BaseCache[P, T]):
 
     callable: Callable[P, T]
     reset_frequency: float
-    _cached_response: _CachedResponse | None = field(repr=False, default=None)
+    _cached_response: _CachedResponse | None = field(
+        init=False, repr=False, default=None
+    )
 
     def invalidate(self) -> None:
         self._cached_response = None
