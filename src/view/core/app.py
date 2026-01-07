@@ -6,16 +6,18 @@ from __future__ import annotations
 
 import contextlib
 import contextvars
+import json
+import logging
+import os
+import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterator
+from importlib.metadata import Distribution, PackageNotFoundError
 from multiprocessing import Process
 from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
-import sys
-import logging
-import json
-import os
+
 from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
 from view.core.response import (
@@ -34,8 +36,6 @@ from view.core.status_codes import (
 from view.exceptions import InvalidTypeError
 from view.responses import FileResponse
 from view.utils import reraise
-
-from importlib.metadata import Distribution, PackageNotFoundError
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
@@ -240,7 +240,7 @@ class BaseApp(ABC):
             settings.run_app_on_any_server()
         except KeyboardInterrupt:
             self.logger.info("CTRL^C received, shutting down")
-        except Exception:  # noqa: BLE001
+        except Exception:
             self.logger.exception("Error in server lifecycle")
         finally:
             self.logger.info("Server finished")

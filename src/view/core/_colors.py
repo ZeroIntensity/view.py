@@ -3,10 +3,10 @@ This is mostly stolen from CPython's _colorize module. If that becomes part of
 the standard library someday, we can hopefully remove this.
 """
 
+import logging
+import os
 import sys
 from typing import IO
-import os
-import logging
 
 
 class ANSIColors:
@@ -115,8 +115,7 @@ def get_colors(*, file: IO[str] | IO[bytes] | None = None) -> ANSIColors:
     """
     if _supports_colors(file=file):
         return ANSIColors()
-    else:
-        return NoColors
+    return NoColors
 
 
 class ColorfulFormatter(logging.Formatter):
