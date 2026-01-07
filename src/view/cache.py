@@ -98,18 +98,39 @@ class InMemoryCache(BaseCache[P, T]):
 
 
 def minutes(number: int, /) -> int:
+    """
+    Convert minutes to seconds.
+
+    This is for use in cache decorators.
+    """
     return number * 60
 
 
 def seconds(number: int, /) -> int:
+    """
+    Do nothing and return ``number``. This only exists for making it
+    semantically clear that the intended time is seconds.
+
+    This is for use in cache decorators.
+    """
     return number
 
 
 def hours(number: int, /) -> int:
+    """
+    Convert hours to seconds.
+
+    This is for use in cache decorators.
+    """
     return minutes(60) * number
 
 
 def days(number: int, /) -> int:
+    """
+    Convert days to seconds.
+
+    This is for use in cache decorators.
+    """
     return hours(24) * number
 
 
