@@ -67,24 +67,24 @@ SubRouter: TypeAlias = Callable[[str], "Route"]
 
 
 @dataclass(slots=True)
-class PathNode:
+class _PathNode:
     """
     A node in the "path tree".
     """
 
     name: str
     routes: MutableMapping[Method, Route] = field(default_factory=dict)
-    children: MutableMapping[str, PathNode] = field(default_factory=dict)
-    path_parameter: PathNode | None = None
+    children: MutableMapping[str, _PathNode] = field(default_factory=dict)
+    path_parameter: _PathNode | None = None
     subrouter: SubRouter | None = None
 
-    def parameter(self, name: str) -> PathNode:
+    def parameter(self, name: str) -> _PathNode:
         """
         Mark this node as having a path parameter (if not already), and
         return the path parameter node.
         """
         if self.path_parameter is None:
-            next_node = PathNode(name=name)
+            next_node = _PathNode(name=name)
             self.path_parameter = next_node
             return next_node
         if __debug__ and name != self.path_parameter.name:
@@ -94,7 +94,7 @@ class PathNode:
             )
         return self.path_parameter
 
-    def next(self, part: str) -> PathNode:
+    def next_node(self, part: str) -> _PathNode:
         """
         Get the next node for the given path part, creating it if it doesn't
         exist.
@@ -103,19 +103,19 @@ class PathNode:
         if node is not None:
             return node
 
-        new_node = PathNode(name=part)
+        new_node = _PathNode(name=part)
         self.children[part] = new_node
         return new_node
 
 
-def is_path_parameter(part: str) -> bool:
+def _is_path_parameter(part: str) -> bool:
     """
     Is this part a path parameter?
     """
     return part.startswith("{") and part.endswith("}")
 
 
-def extract_path_parameter(part: str) -> str:
+def _extract_path_parameter(part: str) -> str:
     """
     Extract the name of a path parameter from a string given by the user
     in a route string.
@@ -143,11 +143,11 @@ class Router:
     error_views: MutableMapping[type[HTTPError], RouteView] = field(
         default_factory=dict
     )
-    parent_node: PathNode = field(default_factory=lambda: PathNode(name=""))
+    parent_node: _PathNode = field(default_factory=lambda: _PathNode(name=""))
 
     def _get_node_for_path(
         self, path: str, *, allow_path_parameters: bool
-    ) -> PathNode:
+    ) -> _PathNode:
         if __debug__ and not isinstance(path, str):
             raise InvalidTypeError(path, str)
 
@@ -156,14 +156,14 @@ class Router:
         parts = path.split("/")
 
         for part in parts:
-            if is_path_parameter(part):
+            if _is_path_parameter(part):
                 if not allow_path_parameters:
                     raise RuntimeError("Path parameters are not allowed here")
                 parent_node = parent_node.parameter(
-                    extract_path_parameter(part)
+                    _extract_path_parameter(part)
                 )
             else:
-                parent_node = parent_node.next(part)
+                parent_node = parent_node.next_node(part)
 
         return parent_node
 
