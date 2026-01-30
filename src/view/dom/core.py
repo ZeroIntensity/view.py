@@ -176,7 +176,7 @@ def html_context() -> HTMLTree:
 
 
 P = ParamSpec("P")
-HTMLViewResponseItem: TypeAlias = HTMLNode | int | Component
+HTMLViewResponseItem: TypeAlias = "HTMLNode | int | Component"
 HTMLViewResult = (
     AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
 )
