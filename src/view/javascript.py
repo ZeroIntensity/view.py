@@ -67,6 +67,8 @@ def as_javascript_expression(data: object) -> str:
         if __debug__ and not isinstance(result, str):
             raise InvalidTypeError(result, str)
 
+        return result
+
     raise TypeError(
         f"Don't know how to convert {data!r} to a JavaScript expression"
     )

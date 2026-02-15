@@ -7,6 +7,7 @@ from view.dom.components import Children, component
 from view.dom.core import HTMLNode, html_context, html_response
 from view.dom.primitives import ALL_PRIMITIVES, div, html, p
 from view.testing import AppTestClient
+from view.javascript import SupportsJavaScript
 
 
 def html_function(
@@ -15,9 +16,12 @@ def html_function(
     with html(lang="en"):
         with div(data={"foo": "bar"}):
             if has_body:
-                yield node("gotcha", data={"silly": "a"})
+                the_node = node("gotcha", data={"silly": "a"})
             else:
-                yield node(data={"silly": "a"})
+                the_node = node(data={"silly": "a"})
+
+            assert isinstance(the_node, SupportsJavaScript)
+            yield the_node
 
 
 @pytest.mark.parametrize("dom_node", ALL_PRIMITIVES)
