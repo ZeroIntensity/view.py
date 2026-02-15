@@ -57,8 +57,8 @@ app = App()
 
 @javascript_compiler
 def click_button(counter: HTMLNode):
-    yield f"let node = {as_javascript_expression(counter)}"
-    yield f"let currentNumber = parseInt(node.innerHTML)"
+    yield f"let node = {as_javascript_expression(counter)};"
+    yield f"let currentNumber = parseInt(node.innerHTML);"
     yield f"node.innerHTML = ++currentNumber;"
 
 
