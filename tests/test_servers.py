@@ -9,10 +9,10 @@ from view.core.app import as_app
 from view.core.request import Request
 from view.core.response import ResponseLike
 from view.core.status_codes import Success
-from view.run.servers import ServerSettings
+from view.run.servers import ServerSettings, ALL_SERVERS
 
 
-@pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
+@pytest.mark.parametrize("server_name", ALL_SERVERS)
 @pytest.mark.skipif(platform.system() != "Linux", reason="this has issues on non-Linux")
 def test_run_server(server_name: str):
     try:
@@ -40,7 +40,7 @@ def test_run_server(server_name: str):
         process.kill()
 
 
-@pytest.mark.parametrize("server_name", ServerSettings.AVAILABLE_SERVERS)
+@pytest.mark.parametrize("server_name", ALL_SERVERS)
 @pytest.mark.skip("some multiprocessing problems at the moment")
 def test_run_server_detached(server_name: str):
     @as_app

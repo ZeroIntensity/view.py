@@ -16,7 +16,7 @@ from collections.abc import Awaitable, Callable, Iterator
 from importlib.metadata import Distribution, PackageNotFoundError
 from multiprocessing import Process
 from pathlib import Path
-from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar, Unpack
 
 from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
@@ -36,6 +36,7 @@ from view.core.status_codes import (
 from view.exceptions import InvalidTypeError
 from view.responses import FileResponse
 from view.utils import reraise
+from view.run.servers import ServerConfigArgs, run_app_on_any_server
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
@@ -195,14 +196,7 @@ class BaseApp(ABC):
 
         return asgi_for_app(self)
 
-    def run(
-        self,
-        *,
-        host: str = "localhost",
-        port: int = 5000,
-        production: bool = False,
-        server_hint: str | None = None,
-    ) -> None:
+    def run(self, **kwargs: Unpack[ServerConfigArgs]) -> None:
         """
         Run the app.
 
@@ -210,8 +204,8 @@ class BaseApp(ABC):
         finer control over the server settings is desired, explicitly use the
         server's API with the app's :meth:`asgi` or :meth:`wsgi` method.
         """
-        from view.run.servers import ServerSettings
 
+        production = kwargs.get("production", False)
         # If production is True, then __debug__ should be False.
         # If production is False, then __debug__ should be True.
         if production is __debug__:
@@ -230,11 +224,11 @@ class BaseApp(ABC):
                 "If that doesn't sound correct, set VIEW_DEVMODE to 0."
             )
 
-        self.logger.info("Serving app on http://localhost:%d", port)
-        self._production = production
-        settings = ServerSettings(self, host=host, port=port, hint=server_hint)
+        self.logger.info(
+            "Serving app on http://localhost:%d", kwargs.get("port") or 5000
+        )
         try:
-            settings.run_app_on_any_server()
+            run_app_on_any_server(self, **kwargs)
         except KeyboardInterrupt:
             self.logger.info("CTRL^C received, shutting down")
         except Exception:
@@ -244,11 +238,7 @@ class BaseApp(ABC):
 
     def run_detached(
         self,
-        *,
-        host: str = "localhost",
-        port: int = 5000,
-        production: bool = False,
-        server_hint: str | None = None,
+        **kwargs: Unpack[ServerConfigArgs],
     ) -> Process:
         """
         Run the app in a separate process. This means that the server is
@@ -257,12 +247,7 @@ class BaseApp(ABC):
 
         process = Process(
             target=self.run,
-            kwargs={
-                "host": host,
-                "port": port,
-                "production": production,
-                "server_hint": server_hint,
-            },
+            kwargs=kwargs,
         )
         process.start()
         return process
