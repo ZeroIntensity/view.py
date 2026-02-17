@@ -1,6 +1,7 @@
 import json
 from collections.abc import AsyncIterator
 
+from hypothesis import given, strategies
 import pytest
 from view.core.app import App, as_app
 from view.core.body import InvalidJSONError
@@ -39,7 +40,8 @@ async def test_request_data():
 
 
 @pytest.mark.asyncio
-async def test_manual_request():
+@given(strategies.text(), strategies.binary(), strategies.text())
+async def test_manual_request(path: str, body: bytes, content: str):
     @as_app
     async def app(request: Request) -> ResponseLike:
         assert request.app == app
@@ -47,26 +49,26 @@ async def test_manual_request():
         assert isinstance(request.path, str)
         assert request.method is Method.POST
         assert request.headers["test"] == "42"
-        assert (await request.body()) == b""
+        assert (await request.body()) == body
 
-        return "1"
+        return content
 
-    async def stream_none() -> AsyncIterator[bytes]:
-        yield b""
+    async def stream_body() -> AsyncIterator[bytes]:
+        yield body
 
     with pytest.raises(LookupError):
         app.current_request()
 
     manual_request = Request(
-        receive_data=stream_none(),
+        receive_data=stream_body(),
         app=app,
-        path="/",
+        path=path,
         method=Method.POST,
         headers=as_real_headers({"test": "42"}),
         query_parameters=MultiMap(),
     )
     response = await app.process_request(manual_request)
-    assert (await response.body()) == b"1"
+    assert (await response.body()) == content.encode("utf-8")
 
 
 @pytest.mark.asyncio
@@ -142,41 +144,46 @@ async def test_request_router():
 
 
 @pytest.mark.asyncio
-async def test_request_path_parameters():
+@given(
+    # This is super ugly but don't worry about it
+    a=strategies.text().map(lambda x: x.replace("/", "")).filter(lambda x: (x not in {'', 'a'}) and ('?' not in x)),
+    b=strategies.text().map(lambda x: x.replace("/", "")).filter(lambda x: (x != '') and ('?' not in x)),
+)
+async def test_request_path_parameters(a: str, b: str):
     app = App()
 
     @app.get("/")
     def index():
         return "Index"
 
-    @app.get("/spanish/{inquisition}")
+    @app.get("/oneparam/{a}")
     async def path_param():
         request = app.current_request()
-        assert request.path_parameters["inquisition"] == "42"
+        assert request.path_parameters["a"] == a
         return "0"
 
-    @app.get("/spanish/inquisition")
+    @app.get("/oneparam/a")
     def overwrite_path_param():
         return "1"
 
-    @app.get("/spanish/inquisition/{nobody}")
+    @app.get("/nested/param/{b}")
     def sub_path_param():
         request = app.current_request()
-        assert request.path_parameters["nobody"] == "gotcha"
+        assert request.path_parameters["b"] == b
         return "2"
 
-    @app.get("/spanish/{inquisition}/{nobody}")
+    @app.get("/twoparam/{a}/{b}")
     def double_path_param():
         request = app.current_request()
-        assert request.path_parameters["inquisition"] == "1"
-        assert request.path_parameters["nobody"] == "2"
+        assert request.path_parameters["a"] == a
+        assert request.path_parameters["b"] == b
         return "3"
 
     client = AppTestClient(app)
-    assert (await into_tuple(client.get("/spanish/42"))) == ok("0")
-    assert (await into_tuple(client.get("/spanish/inquisition"))) == ok("1")
-    assert (await into_tuple(client.get("/spanish/inquisition/gotcha"))) == ok("2")
-    assert (await into_tuple(client.get("/spanish/1/2"))) == ok("3")
+    assert (await into_tuple(client.get(f"/oneparam/{a}"))) == ok("0")
+    assert (await into_tuple(client.get("/oneparam/a"))) == ok("1")
+    assert (await into_tuple(client.get(f"/nested/param/{b}"))) == ok("2")
+    assert (await into_tuple(client.get(f"/twoparam/{a}/{b}"))) == ok("3")
 
 
 @pytest.mark.asyncio

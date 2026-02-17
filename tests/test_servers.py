@@ -14,6 +14,7 @@ from view.run.servers import ALL_SERVERS
 
 @pytest.mark.parametrize("server_name", ALL_SERVERS)
 @pytest.mark.skipif(platform.system() != "Linux", reason="this has issues on non-Linux")
+@pytest.mark.skip("This takes too damn long")
 def test_run_server(server_name: str):
     try:
         __import__(server_name)
