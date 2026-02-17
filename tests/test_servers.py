@@ -9,7 +9,7 @@ from view.core.app import as_app
 from view.core.request import Request
 from view.core.response import ResponseLike
 from view.core.status_codes import Success
-from view.run.servers import ServerSettings, ALL_SERVERS
+from view.run.servers import ALL_SERVERS
 
 
 @pytest.mark.parametrize("server_name", ALL_SERVERS)
