@@ -22,7 +22,7 @@ extra-dependencies = [
 randomize = true
 retries = 3
 retries-delay = 1
-parallel = false
+parallel = true
 
 [[envs.hatch-test.matrix]]
 python = ["3.14", "3.13", "3.12", "3.11", "3.10"]
