@@ -74,6 +74,17 @@ class HTTPHeaders(MultiMap[str, str]):
     def __repr__(self) -> str:
         return f"HTTPHeaders({self.as_sequence()})"
 
+    def __eq__(self, other: object, /) -> bool:
+        if isinstance(other, HTTPHeaders):
+            return other._values == self._values
+
+        if isinstance(other, dict):
+            return self._as_flat() == {
+                LowerStr(key): value for key, value in other.items()
+            }
+
+        return NotImplemented
+
     def get_exactly_one(self, key: str) -> str:
         return super().get_exactly_one(LowerStr(key))
 

@@ -231,6 +231,17 @@ async def test_static_files():
             {"content-type": "text/plain"},
         )
 
+@pytest.mark.asyncio
+async def test_header_case_insensitivity():
+    @as_app
+    async def app(_: Request):
+        return "a", 200, {"Foo": "bar"}
+
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"a", 200, {"foo": "bar"})
+    assert (await into_tuple(client.get("/"))) == (b"a", 200, {"FOO": "bar"})
+
 
 @pytest.mark.asyncio
 @given(
