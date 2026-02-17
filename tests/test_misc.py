@@ -58,7 +58,7 @@ def test_empty_multi_map():
 
 
 def test_multi_map_no_duplicates():
-    data = [('a', 1), ('b', 2), ('c', 3)]
+    data = [("a", 1), ("b", 2), ("c", 3)]
     multi_map = MultiMap(data)
 
     assert multi_map == {"a": 1, "b": 2, "c": 3}
@@ -82,9 +82,8 @@ def test_multi_map_no_duplicates():
     assert called == 3
 
 
-
 def test_multi_map_with_duplicates():
-    data = [('a', 1), ('a', 2), ('a', 3), ('b', 4)]
+    data = [("a", 1), ("a", 2), ("a", 3), ("b", 4)]
     multi_map = MultiMap(data)
     assert len(multi_map) == 2
     assert multi_map.as_sequence() == data
@@ -95,14 +94,14 @@ def test_multi_map_with_duplicates():
 
     assert "a" in multi_map
     assert "b" in multi_map
-    assert list(multi_map.keys()) == ['a', 'b']
+    assert list(multi_map.keys()) == ["a", "b"]
     assert list(multi_map.values()) == [1, 4]
-    assert list(multi_map.items()) == [('a', 1), ('b', 4)]
+    assert list(multi_map.items()) == [("a", 1), ("b", 4)]
     assert list(multi_map.many_values()) == [[1, 2, 3], [4]]
-    assert list(multi_map.many_items()) == [('a', [1, 2, 3]), ('b', [4])]
+    assert list(multi_map.many_items()) == [("a", [1, 2, 3]), ("b", [4])]
 
     with pytest.raises(HasMultipleValuesError):
-        multi_map.get_exactly_one('a')
+        multi_map.get_exactly_one("a")
 
     assert multi_map.get_exactly_one("b") == 4
 
@@ -115,11 +114,11 @@ def test_multi_map_with_duplicates():
 
 
 def test_multi_map_with_new_value():
-    data = [('a', 1), ('b', 2), ('b', 3)]
+    data = [("a", 1), ("b", 2), ("b", 3)]
     multi_map = MultiMap(data)
     assert len(multi_map) == 2
 
-    new_map = multi_map.with_new_value('b', 4)
+    new_map = multi_map.with_new_value("b", 4)
     assert len(new_map) == 2
     assert "b" in new_map
     assert multi_map != new_map

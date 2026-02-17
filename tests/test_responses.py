@@ -19,6 +19,7 @@ from view.testing import AppTestClient, bad, into_tuple, ok
 
 from hypothesis import given, strategies
 
+
 @pytest.mark.asyncio
 async def test_str_or_bytes_response():
     class MyString(str):
@@ -230,16 +231,23 @@ async def test_static_files():
             {"content-type": "text/plain"},
         )
 
+
 @pytest.mark.asyncio
-@given(strategies.text(), strategies.integers(min_value=200, max_value=208), strategies.text())
-async def test_hypothesis_with_responses(response: str, status: int, header_value: str):
+@given(
+    strategies.text(),
+    strategies.integers(min_value=200, max_value=208),
+    strategies.dictionaries(strategies.text(), strategies.text()),
+)
+async def test_hypothesis_with_responses(
+    response: str, status: int, headers: dict[str, str]
+):
     @as_app
     async def app(_: Request):
-        return response, status, {"my-header": header_value}
+        return response, status, headers
 
     client = AppTestClient(app)
     assert (await into_tuple(client.get("/"))) == (
         response.encode("utf-8"),
         status,
-        {"my-header": header_value}
+        headers,
     )
