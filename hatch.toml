@@ -17,6 +17,7 @@ extra-dependencies = [
     "daphne",
     "gunicorn",
     "werkzeug",
+    "hypothesis",
 ]
 randomize = true
 retries = 3
