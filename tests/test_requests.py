@@ -41,12 +41,13 @@ async def test_request_data():
 @pytest.mark.asyncio
 async def test_manual_request():
     @as_app
-    def app(request: Request) -> ResponseLike:
+    async def app(request: Request) -> ResponseLike:
         assert request.app == app
         assert request.app.current_request() is request
         assert isinstance(request.path, str)
         assert request.method is Method.POST
         assert request.headers["test"] == "42"
+        assert (await request.body()) == b""
 
         return "1"
 
@@ -57,7 +58,7 @@ async def test_manual_request():
         app.current_request()
 
     manual_request = Request(
-        receive_data=stream_none,
+        receive_data=stream_none(),
         app=app,
         path="/",
         method=Method.POST,
