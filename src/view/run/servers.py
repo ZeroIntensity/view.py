@@ -13,8 +13,8 @@ from typing import (
     NotRequired,
     TypeAlias,
     TypedDict,
-    Unpack,
 )
+from typing_extensions import Unpack
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
