@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, MutableMapping
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +15,6 @@ from typing import (
     TypedDict,
     Unpack,
 )
-from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp

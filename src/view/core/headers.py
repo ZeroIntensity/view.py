@@ -4,7 +4,7 @@ Utilities and implementation for HTTP request/response headers.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Iterable
+from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from typing_extensions import Self
@@ -84,6 +84,8 @@ class HTTPHeaders(MultiMap[str, str]):
             }
 
         return NotImplemented
+
+    __hash__ = MultiMap.__hash__
 
     def get_exactly_one(self, key: str) -> str:
         return super().get_exactly_one(LowerStr(key))

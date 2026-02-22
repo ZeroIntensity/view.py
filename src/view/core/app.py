@@ -35,8 +35,8 @@ from view.core.status_codes import (
 )
 from view.exceptions import InvalidTypeError
 from view.responses import FileResponse
-from view.utils import reraise
 from view.run.servers import ServerConfigArgs, run_app_on_any_server
+from view.utils import reraise
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
