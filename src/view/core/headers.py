@@ -4,7 +4,7 @@ Utilities and implementation for HTTP request/response headers.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from typing_extensions import Self
@@ -62,6 +62,9 @@ class HTTPHeaders(MultiMap[str, str]):
     Case-insensitive multi-map of HTTP headers.
     """
 
+    def __init__(self, items: Iterable[tuple[str, str]] = ()) -> None:
+        super().__init__((LowerStr(key), value) for key, value in items)
+
     def __getitem__(self, key: str, /) -> str:
         return super().__getitem__(LowerStr(key))
 
@@ -70,6 +73,19 @@ class HTTPHeaders(MultiMap[str, str]):
 
     def __repr__(self) -> str:
         return f"HTTPHeaders({self.as_sequence()})"
+
+    def __eq__(self, other: object, /) -> bool:
+        if isinstance(other, HTTPHeaders):
+            return other._values == self._values
+
+        if isinstance(other, dict):
+            return self._as_flat() == {
+                LowerStr(key): value for key, value in other.items()
+            }
+
+        return NotImplemented
+
+    __hash__ = MultiMap.__hash__
 
     def get_exactly_one(self, key: str) -> str:
         return super().get_exactly_one(LowerStr(key))

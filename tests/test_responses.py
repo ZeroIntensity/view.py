@@ -17,6 +17,8 @@ from view.core.status_codes import (
 from view.responses import JSONResponse, FileResponse
 from view.testing import AppTestClient, bad, into_tuple, ok
 
+from hypothesis import given, strategies
+
 
 @pytest.mark.asyncio
 async def test_str_or_bytes_response():
@@ -228,3 +230,35 @@ async def test_static_files():
             200,
             {"content-type": "text/plain"},
         )
+
+@pytest.mark.asyncio
+async def test_header_case_insensitivity():
+    @as_app
+    async def app(_: Request):
+        return "a", 200, {"Foo": "bar"}
+
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (b"a", 200, {"foo": "bar"})
+    assert (await into_tuple(client.get("/"))) == (b"a", 200, {"FOO": "bar"})
+
+
+@pytest.mark.asyncio
+@given(
+    strategies.text(),
+    strategies.integers(min_value=200, max_value=208),
+    strategies.dictionaries(strategies.text(), strategies.text()),
+)
+async def test_hypothesis_with_responses(
+    response: str, status: int, headers: dict[str, str]
+):
+    @as_app
+    async def app(_: Request):
+        return response, status, headers
+
+    client = AppTestClient(app)
+    assert (await into_tuple(client.get("/"))) == (
+        response.encode("utf-8"),
+        status,
+        headers,
+    )

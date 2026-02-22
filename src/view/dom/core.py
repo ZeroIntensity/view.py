@@ -26,6 +26,7 @@ from view.javascript import SupportsJavaScript
 
 if TYPE_CHECKING:
     from view.core.router import RouteView
+    from view.dom.components import Component
 
 __all__ = ("HTMLNode", "html_response")
 
@@ -175,7 +176,7 @@ def html_context() -> HTMLTree:
 
 
 P = ParamSpec("P")
-HTMLViewResponseItem: TypeAlias = HTMLNode | int
+HTMLViewResponseItem: TypeAlias = "HTMLNode | int | Component"
 HTMLViewResult = (
     AsyncIterator[HTMLViewResponseItem] | Iterator[HTMLViewResponseItem]
 )
