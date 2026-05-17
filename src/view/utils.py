@@ -4,11 +4,11 @@ General utilities for view.py users.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from collections.abc import Generator
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from contextlib import contextmanager
 
 __all__ = ("reraise",)
 
@@ -17,7 +17,7 @@ __all__ = ("reraise",)
 def reraise(
     new_exception: type[BaseException] | BaseException,
     *exceptions: type[BaseException],
-) -> Iterator[None]:
+) -> Generator[None]:
     """
     Context manager to reraise one or many exceptions as a single exception.
 

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = ("wsgi_for_app",)
 
-WSGIHeaders: TypeAlias = Iterable[tuple[str, str]]
+WSGIHeaders: TypeAlias = list[tuple[str, str]]
 # We can't use a TypedDict for the environment because it has arbitrary keys
 # for the headers.
 WSGIEnvironment: TypeAlias = dict[str, Any]
