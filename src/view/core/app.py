@@ -7,9 +7,7 @@ from __future__ import annotations
 import contextlib
 import contextvars
 import json
-import logging
 import os
-import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterator
@@ -18,7 +16,6 @@ from multiprocessing import Process
 from pathlib import Path
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar, Unpack
 
-from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
 from view.core.response import (
     Response,
@@ -34,6 +31,7 @@ from view.core.status_codes import (
     NotFound,
 )
 from view.exceptions import InvalidTypeError
+from view.logs import Logger, LogLevels, LogManager
 from view.responses import FileResponse
 from view.run.servers import ServerConfigArgs, run_app_on_any_server
 from view.utils import reraise
@@ -100,35 +98,14 @@ class BaseApp(ABC):
         """
         return self._development_mode
 
-    def _new_logger(self) -> logging.Logger:
+    def _new_logger(self) -> Logger:
         """
         Create a new logger for this app.
         """
-        # TODO: This should be configurable
-
-        log_level = logging.INFO
-        if self.development_mode:
-            log_level = logging.DEBUG
-
-        # In the future, we might want to add a use-case for multiple apps in
-        # the same process. To support this, we use the ID of this instance in
-        # the logger name to keep it unique.
-
-        # XXX: Should this create a new logger for each class, or for each instance?
-        logger = logging.getLogger(
-            f"{__name__}.{self.__class__.__name__}-{id(self)}"
+        manager = LogManager(
+            level=LogLevels.DEBUG if self.development_mode else LogLevels.INFO
         )
-        logger.setLevel(log_level)
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(log_level)
-
-        formatter = ColorfulFormatter(
-            "view: %(asctime)s -- [%(levelname)s]: %(message)s"
-        )
-        handler.setFormatter(formatter)
-
-        logger.addHandler(handler)
-        return logger
+        return manager.create_logger("view.py")
 
     def shut_up(self) -> None:
         """
@@ -215,6 +192,9 @@ class BaseApp(ABC):
                 stacklevel=2,
             )
 
+        if not self.logger.disabled:
+            self.logger.manager.print_startup_message()
+
         if self.development_mode:
             self.logger.info("You're in development mode!")
             self.logger.info(
@@ -225,7 +205,7 @@ class BaseApp(ABC):
             )
 
         self.logger.info(
-            "Serving app on http://localhost:%d", kwargs.get("port") or 5000
+            f"Serving app on http://localhost:{kwargs.get('port') or 5000}"
         )
         try:
             run_app_on_any_server(self, **kwargs)
@@ -258,12 +238,12 @@ class BaseApp(ABC):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Response:
-        self.logger.debug("Executing view: %s", view)
+        self.logger.debug(f"Executing view: {view}")
         try:
             result = view(*args, **kwargs)
             return await wrap_view_result(result)
         except HTTPError as error:
-            self.logger.warning("HTTP Error %d", error.status_code)
+            self.logger.warning(f"HTTP Error {error.status_code}")
             raise
 
     async def execute_view(
@@ -332,7 +312,7 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        self.logger.info("%s on route %s", request.method, request.path)
+        self.logger.info(f"{request.method} on route {request.path}")
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )
