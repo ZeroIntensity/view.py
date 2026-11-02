@@ -5,10 +5,7 @@ General utilities for view.py users.
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from contextlib import contextmanager
+from contextlib import contextmanager
 
 __all__ = ("reraise",)
 
