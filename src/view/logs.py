@@ -8,16 +8,15 @@ import asyncio
 import time
 from collections.abc import AsyncGenerator, Iterable
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
-from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from datetime import datetime as DateTime
-from typing import AsyncContextManager, ClassVar, TypeAlias, TypeVar
+from typing import AsyncContextManager, TypeAlias, TypeVar, override
 
 from rich.console import Console, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 from rich.traceback import Traceback
-from typing_extensions import Self
+from view.utils import StartStopMixin
 
 from view.__about__ import __version__
 
@@ -59,32 +58,17 @@ class LogRecord:
 
 
 @dataclass(slots=True)
-class LogManager:
+class LogManager(StartStopMixin):
     """
-    Print logs immediately, or queue them inside an async context manager.
+    Manager for non-blocking loggers.
     """
 
     level: LogLevel = field(default=LogLevels.INFO)
     console: Console = field(default_factory=Console)
+    disabled: bool = False
     _queue: asyncio.Queue[LogRecord] = field(
         init=False, default_factory=asyncio.Queue, repr=False
     )
-    _wakeup_event: asyncio.Event = field(
-        init=False, default_factory=asyncio.Event, repr=False
-    )
-    _start_task: asyncio.Task[None] | None = field(
-        init=False, default=None, repr=False
-    )
-    _current_token: Token[LogManager] | None = field(
-        init=False, default=None, repr=False
-    )
-    _current: ClassVar[ContextVar[LogManager]] = ContextVar(
-        "current_log_manager"
-    )
-
-    @property
-    def running(self) -> bool:
-        return self._wakeup_event.is_set()
 
     def log(
         self,
@@ -93,7 +77,16 @@ class LogManager:
         *message: LogMessage,
         show_prefix: bool = True,
     ) -> None:
-        if logger.disabled or self.level.priority > level.priority:
+        if __debug__ and not self.running:
+            raise RuntimeError(
+                "attempted to write to a logger that is not running"
+            )
+
+        if (
+            self.disabled
+            or logger.disabled
+            or self.level.priority > level.priority
+        ):
             return
 
         record = LogRecord(
@@ -103,11 +96,7 @@ class LogManager:
             created=time.time(),
             show_prefix=show_prefix,
         )
-        # App construction, WSGI and test clients do not require a log worker.
-        if self.running:
-            self._queue.put_nowait(record)
-        else:
-            self._handle_record(record)
+        self._queue.put_nowait(record)
 
     def _handle_record(self, record: LogRecord, /) -> None:
         with self.console:
@@ -135,6 +124,7 @@ class LogManager:
             record = await self._queue.get()
             await asyncio.to_thread(self._handle_record, record)
 
+    @override
     async def start(self) -> None:
         if self.running:
             raise RuntimeError("log manager is already running")
@@ -147,42 +137,6 @@ class LogManager:
         finally:
             self._wakeup_event.clear()
             await self._drain()
-
-    def stop(self) -> None:
-        if not self.running:
-            raise RuntimeError("log manager is not running")
-
-        self._wakeup_event.clear()
-
-    async def __aenter__(self) -> Self:
-        if self.running:
-            raise RuntimeError("log manager is already running")
-
-        self._current_token = self._current.set(self)
-        self._start_task = asyncio.create_task(self.start())
-        await self._wakeup_event.wait()
-        return self
-
-    async def __aexit__(self, *_: object) -> None:
-        try:
-            if self.running:
-                self.stop()
-            assert self._start_task is not None
-            await self._start_task
-        finally:
-            assert self._current_token is not None
-            self._current.reset(self._current_token)
-            self._current_token = None
-            self._start_task = None
-
-    @classmethod
-    def current(cls) -> LogManager:
-        try:
-            return cls._current.get()
-        except LookupError:
-            raise RuntimeError(
-                "no log manager is currently available"
-            ) from None
 
     def print_startup_message(self) -> None:
         self.console.print(

@@ -6,15 +6,27 @@ from __future__ import annotations
 
 import contextlib
 import contextvars
+from dataclasses import dataclass, field
 import json
 import os
-import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable, Generator, MutableSequence
 from importlib.metadata import Distribution, PackageNotFoundError
 from multiprocessing import Process
 from pathlib import Path
-from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar, Unpack
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncGenerator,
+    Generic,
+    ParamSpec,
+    TypeAlias,
+    TypeVar,
+    Unpack,
+    override,
+)
+import asyncio
+from threading import Condition, Thread
 
 from view.core.request import Method, Request
 from view.core.response import (
@@ -31,10 +43,11 @@ from view.core.status_codes import (
     NotFound,
 )
 from view.exceptions import InvalidTypeError
-from view.logs import Logger, LogLevels, LogManager
+from view.logs import LogLevels, LogManager
 from view.responses import FileResponse
 from view.run.servers import ServerConfigArgs, run_app_on_any_server
-from view.utils import reraise
+from view.utils import StartStopMixin, reraise
+from queue import Queue
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
@@ -69,12 +82,49 @@ def _is_development_mode() -> bool:
     return json.loads(json_data).get("dir_info", {}).get("editable", False)
 
 
-class BaseApp(ABC):
+_LifecycleT = TypeVar("_LifecycleT")
+LifecycleFunction: TypeAlias = Callable[
+    [],
+    contextlib.AbstractAsyncContextManager[T]
+    | contextlib.AbstractContextManager[T],
+]
+_MISSING = object()
+
+
+@dataclass(slots=True)
+class LifecycleItem(Generic[_LifecycleT]):
+    function: LifecycleFunction
+    _result: _LifecycleT | Any = field(default=_MISSING, init=False)
+
+    def __call__(self) -> _LifecycleT:
+        if self._result is _MISSING:
+            raise RuntimeError(
+                f"lifecycle item {self.function.__name__} has not been invoked yet"
+            )
+
+        return self._result
+
+    @contextlib.asynccontextmanager
+    async def execute(self) -> AsyncGenerator[None]:
+        async with contextlib.AsyncExitStack() as stack:
+            context = self.function()
+            if isinstance(context, contextlib.AbstractAsyncContextManager):
+                result = await stack.enter_async_context(context)
+            else:
+                assert isinstance(context, contextlib.AbstractContextManager)
+                result = stack.enter_context(context)
+
+            self._result = result
+            yield
+
+
+class BaseApp(StartStopMixin, ABC):
     """Base view.py application."""
 
     _CURRENT_APP = contextvars.ContextVar["BaseApp"]("Current app being used.")
 
     def __init__(self) -> None:
+        super().__init__()
         self._request = contextvars.ContextVar[Request]("request")
         self._production: bool | None = None
 
@@ -82,10 +132,16 @@ class BaseApp(ABC):
         # from writing to development_mode.
         self._development_mode: bool = _is_development_mode()
 
-        self.logger = self._new_logger()
+        self.log_manager = LogManager(
+            level=LogLevels.DEBUG if self.development_mode else LogLevels.INFO
+        )
         """
-        The logger used by the app.
+        The log manager used by the app.
         """
+
+        self.logger = self.log_manager.create_logger("app")
+
+        self.lifecycle_items: MutableSequence[LifecycleItem] = []
 
     @property
     def development_mode(self) -> bool:
@@ -98,21 +154,12 @@ class BaseApp(ABC):
         """
         return self._development_mode
 
-    def _new_logger(self) -> Logger:
-        """
-        Create a new logger for this app.
-        """
-        manager = LogManager(
-            level=LogLevels.DEBUG if self.development_mode else LogLevels.INFO
-        )
-        return manager.create_logger("view.py")
-
     def shut_up(self) -> None:
         """
-        Stop the logger.
+        Stop all log output.
         """
 
-        self.logger.disabled = True
+        self.log_manager.disabled = True
 
     @property
     def debug(self) -> bool:
@@ -129,7 +176,7 @@ class BaseApp(ABC):
         return self._production
 
     @contextlib.contextmanager
-    def request_context(self, request: Request) -> Iterator[None]:
+    def request_context(self, request: Request) -> Generator[None]:
         """
         Enter a context for the given request.
         """
@@ -157,64 +204,91 @@ class BaseApp(ABC):
         Get the response from the server for a given request.
         """
 
-    def wsgi(self) -> WSGIProtocol:
+    def _build_wsgi_callable(
+        self, queue: Queue[WSGIProtocol], shutdown_event: Condition
+    ) -> None:
         """
-        Get the WSGI callable for the app.
+        Build an event loop in the current thread and emit a WSGI callable
+        bound to it.
         """
         from view.run.wsgi import wsgi_for_app
 
-        return wsgi_for_app(self)
+        loop = asyncio.new_event_loop()
+
+        async def _run_server():
+            async with self:
+                wsgi_app = wsgi_for_app(self, loop)
+                queue.put_nowait(wsgi_app)
+                await asyncio.to_thread(shutdown_event.wait)
+
+        try:
+            loop.run_until_complete(_run_server())
+        finally:
+            loop.close()
+
+    @contextlib.contextmanager
+    def wsgi(self) -> Generator[WSGIProtocol]:
+        """
+        Build a WSGI callable for the app.
+        """
+        queue = Queue["WSGIProtocol"](maxsize=1)
+        shutdown_event = Condition()
+        thread = Thread(
+            target=self._build_wsgi_callable, args=(queue, shutdown_event)
+        )
+        thread.start()
+        try:
+            yield queue.get()
+        finally:
+            shutdown_event.notify()
+            thread.join()
 
     def asgi(self) -> ASGIProtocol:
         """
-        Get the ASGI callable for the app.
+        Get the ASGI callable for this app.
         """
         from view.run.asgi import asgi_for_app
 
         return asgi_for_app(self)
 
-    def run(self, **kwargs: Unpack[ServerConfigArgs]) -> None:
+    def lifecycle(
+        self, function: LifecycleFunction[_LifecycleT]
+    ) -> LifecycleItem[_LifecycleT]:
+        item = LifecycleItem(function)
+        self.lifecycle_items.append(item)
+        return item
+
+    @override
+    async def start(self) -> None:
+        async with self.log_manager, contextlib.AsyncExitStack() as stack:
+            for item in self.lifecycle_items:
+                await stack.enter_async_context(item.execute())
+
+            self.log_manager.print_startup_message()
+
+            if self.development_mode:
+                self.logger.info("You're in development mode!")
+                self.logger.info(
+                    "Development mode implies that you're working on view.py itself and plan on contributing to the library."
+                )
+                self.logger.info(
+                    "If that doesn't sound correct, set VIEW_DEVMODE to 0."
+                )
+
+            self.logger.info("Serving app on http://localhost:5000")
+
+            self._wakeup_event.set()
+            while self.running:
+                await asyncio.sleep(1)
+
+            self.logger.info("Server is shutting down!")
+
+    def run(self) -> None:
         """
-        Run the app.
-
-        This is a sort of magic function that's supposed to "just work". If
-        finer control over the server settings is desired, explicitly use the
-        server's API with the app's :meth:`asgi` or :meth:`wsgi` method.
+        Run the app, starting the event loop and server.
         """
 
-        production = kwargs.get("production", False)
-        # If production is True, then __debug__ should be False.
-        # If production is False, then __debug__ should be True.
-        if production is __debug__:
-            warnings.warn(
-                f"The app was run with {production=}, but Python's {__debug__=}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-
-        if not self.logger.disabled:
-            self.logger.manager.print_startup_message()
-
-        if self.development_mode:
-            self.logger.info("You're in development mode!")
-            self.logger.info(
-                "Development mode implies that you're working on view.py itself and plan on contributing to the library."
-            )
-            self.logger.info(
-                "If that doesn't sound correct, set VIEW_DEVMODE to 0."
-            )
-
-        self.logger.info(
-            f"Serving app on http://localhost:{kwargs.get('port') or 5000}"
-        )
-        try:
-            run_app_on_any_server(self, **kwargs)
-        except KeyboardInterrupt:
-            self.logger.info("CTRL^C received, shutting down")
-        except Exception:
-            self.logger.exception("Error in server lifecycle")
-        finally:
-            self.logger.info("Server finished")
+        run_app_on_any_server(self)
 
     def run_detached(
         self,

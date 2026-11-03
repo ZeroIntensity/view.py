@@ -4,8 +4,16 @@ Implementation and utilities for running view.py applications on an ASGI server.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypedDict
+from collections.abc import AsyncIterator, Iterable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    Protocol,
+    TypeAlias,
+    TypedDict,
+    overload,
+)
 
 from typing_extensions import NotRequired
 
@@ -42,6 +50,44 @@ class ASGIHttpScope(TypedDict):
     state: NotRequired[dict[str, Any] | None]
 
 
+class ASGILifespanScope(TypedDict):
+    type: Literal["lifespan"]
+    state: dict[str, Any]
+
+
+class ASGILifespanReceiveResult(TypedDict):
+    type: Literal["lifespan.startup", "lifespan.shutdown"]
+
+
+class ASGILifespanReceive(Protocol):
+    async def __call__(self) -> ASGILifespanReceiveResult: ...
+
+
+class ASGILifespanSendComplete(TypedDict):
+    type: Literal["lifespan.startup.complete", "lifespan.shutdown.complete"]
+
+
+class ASGILifespanSendFailed(TypedDict):
+    type: Literal["lifespan.startup.failed", "lifespan.shutdown.failed"]
+    message: NotRequired[str]
+
+
+class ASGILifespanSend(Protocol):
+    async def __call__(
+        self, value: ASGILifespanSendComplete | ASGILifespanSendFailed, /
+    ) -> None: ...
+
+
+class ASGILifespanProtocol(Protocol):
+    async def __call__(
+        self,
+        scope: ASGILifespanScope,
+        receive: ASGILifespanReceive,
+        send: ASGILifespanSend,
+        /,
+    ) -> None: ...
+
+
 class ASGIBodyMixin(TypedDict):
     body: NotRequired[bytes]
     more_body: NotRequired[bool]
@@ -62,13 +108,27 @@ class ASGIHttpSendBody(ASGIBodyMixin, TypedDict):
     type: Literal["http.response.body"]
 
 
-ASGIHttpReceive: TypeAlias = Callable[[], Awaitable[ASGIHttpReceiveResult]]
-ASGIHttpSend: TypeAlias = Callable[
-    [ASGIHttpSendStart | ASGIHttpSendBody], Awaitable[None]
-]
-ASGIProtocol: TypeAlias = Callable[
-    [ASGIHttpScope, ASGIHttpReceive, ASGIHttpSend], Awaitable[None]
-]
+class ASGIHttpReceive(Protocol):
+    async def __call__(self) -> ASGIHttpReceiveResult: ...
+
+
+class ASGIHttpSend(Protocol):
+    async def __call__(
+        self, value: ASGIHttpSendStart | ASGIHttpSendBody, /
+    ) -> None: ...
+
+
+class ASGIHttpProtocol(Protocol):
+    async def __call__(
+        self,
+        scope: ASGIHttpScope,
+        receive: ASGIHttpReceive,
+        send: ASGIHttpSend,
+        /,
+    ) -> None: ...
+
+
+ASGIProtocol: TypeAlias = ASGIHttpProtocol | ASGILifespanProtocol
 
 
 def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
@@ -76,13 +136,37 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
     Generate an ASGI-compliant callable for a given app, allowing
     it to be executed in an ASGI server.
 
-    Don't use this directly; prefer the :meth:`view.core.app.BaseApp.wsgi`
+    Don't use this directly; prefer the :meth:`view.core.app.BaseApp.asgi`
     method instead.
     """
 
+    @overload
     async def asgi(
         scope: ASGIHttpScope, receive: ASGIHttpReceive, send: ASGIHttpSend
+    ) -> None: ...
+
+    @overload
+    async def asgi(
+        scope: ASGILifespanScope,
+        receive: ASGILifespanReceive,
+        send: ASGILifespanSend,
+    ) -> None: ...
+
+    async def asgi(
+        scope: ASGIHttpScope | ASGILifespanScope,
+        receive: ASGIHttpReceive | ASGILifespanReceive,
+        send: ASGIHttpSend | ASGILifespanSend,
     ) -> None:
+        if scope["type"] == "lifespan":
+            async with app:
+                while True:
+                    message = await receive()
+                    if message["type"] == "lifespan.startup":
+                        await send({"type": "lifespan.startup.complete"})
+                    elif message["type"] == "lifespan.shutdown":
+                        await send({"type": "lifespan.shutdown.complete"})
+                        return
+
         assert scope["type"] == "http"
         method = Method(scope["method"])
         headers = asgi_to_headers(scope["headers"])

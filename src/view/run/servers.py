@@ -14,7 +14,7 @@ from typing import (
     TypeAlias,
     TypedDict,
 )
-from typing_extensions import Unpack
+import asyncio
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
@@ -69,7 +69,6 @@ def run_hypercorn(app: BaseApp, settings: ServerSettings) -> None:
     """
     Run the app using the ``hypercorn`` library.
     """
-    import asyncio
 
     import hypercorn
     from hypercorn.asyncio import serve
@@ -117,10 +116,11 @@ def run_gunicorn(app: BaseApp, settings: ServerSettings) -> None:
         def load(self):
             return self.application
 
-    runner = GunicornRunner(
-        app.wsgi(), {"bind": f"{settings.host}:{settings.port}"}
-    )
-    runner.run()
+    with app.wsgi() as wsgi_app:
+        runner = GunicornRunner(
+            wsgi_app, {"bind": f"{settings.host}:{settings.port}"}
+        )
+        runner.run()
 
 
 def run_werkzeug(app: BaseApp, settings: ServerSettings) -> None:
@@ -129,7 +129,8 @@ def run_werkzeug(app: BaseApp, settings: ServerSettings) -> None:
     """
     from werkzeug.serving import run_simple
 
-    run_simple(settings.host, settings.port, app.wsgi())
+    with app.wsgi() as wsgi_app:
+        run_simple(settings.host, settings.port, wsgi_app)
 
 
 def run_wsgiref(app: BaseApp, settings: ServerSettings) -> None:
@@ -138,8 +139,9 @@ def run_wsgiref(app: BaseApp, settings: ServerSettings) -> None:
     """
     from wsgiref.simple_server import make_server
 
-    with make_server(settings.host, settings.port, app.wsgi()) as server:
-        server.serve_forever()
+    with app.wsgi() as wsgi_app:
+        with make_server(settings.host, settings.port, wsgi_app) as server:
+            server.serve_forever()
 
 
 StartServer: TypeAlias = Callable[["BaseApp", ServerSettings], None]
@@ -154,31 +156,15 @@ ALL_SERVERS: MutableMapping[str, StartServer] = {
 }
 
 
-def run_app_on_any_server(
-    app: BaseApp, **kwargs: Unpack[ServerConfigArgs]
-) -> None:
+def run_app_on_any_server(app: BaseApp) -> None:
     """
     Run the app on the nearest available ASGI or WSGI server.
 
     This will always succeed, as it will fall back to the standard
     :mod:`wsgiref` module if no other server is installed.
     """
-    settings = ServerSettings.from_kwargs(kwargs)
-    hint = kwargs.get("server_hint")
-    if hint is not None:
-        try:
-            start_server = ALL_SERVERS[hint]
-        except KeyError as key_error:
-            raise BadServerError(
-                f"{hint!r} is not a known server"
-            ) from key_error
+    settings = ServerSettings.from_kwargs({})
 
-        try:
-            return start_server(app, settings)
-        except ImportError as error:
-            raise BadServerError(f"{hint} is not installed") from error
-
-    # I'm not sure what Ruff is complaining about here
     for start_server in ALL_SERVERS.values():
         with suppress(ImportError):
             return start_server(app, settings)
