@@ -26,7 +26,7 @@ from typing import (
     override,
 )
 import asyncio
-from threading import Condition, Thread
+from threading import Event, Thread
 
 from view.core.request import Method, Request
 from view.core.response import (
@@ -205,7 +205,7 @@ class BaseApp(StartStopMixin, ABC):
         """
 
     def _build_wsgi_callable(
-        self, queue: Queue[WSGIProtocol], shutdown_event: Condition
+        self, queue: Queue[WSGIProtocol], shutdown_event: Event
     ) -> None:
         """
         Build an event loop in the current thread and emit a WSGI callable
@@ -232,7 +232,7 @@ class BaseApp(StartStopMixin, ABC):
         Build a WSGI callable for the app.
         """
         queue = Queue["WSGIProtocol"](maxsize=1)
-        shutdown_event = Condition()
+        shutdown_event = Event()
         thread = Thread(
             target=self._build_wsgi_callable, args=(queue, shutdown_event)
         )
@@ -240,7 +240,7 @@ class BaseApp(StartStopMixin, ABC):
         try:
             yield queue.get()
         finally:
-            shutdown_event.notify()
+            shutdown_event.set()
             thread.join()
 
     def asgi(self) -> ASGIProtocol:
