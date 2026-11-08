@@ -4,12 +4,23 @@ Implementation of "components" -- DOM nodes defined by the user.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from functools import wraps
 from typing import TYPE_CHECKING, NoReturn, ParamSpec
 
 from view.dom.core import HTMLNode, HTMLTree
-from view.dom.primitives import base, body, html, link, meta, script
+from view.dom.css import Stylesheet
+from view.dom.primitives import (
+    base,
+    body,
+    head,
+    html,
+    link,
+    meta,
+    script,
+    style,
+)
 from view.dom.primitives import title as title_node
 
 if TYPE_CHECKING:
@@ -86,7 +97,7 @@ def page(
     title: str,
     *,
     language: str = "en",
-    stylesheets: Iterable[str] | None = None,
+    stylesheets: Iterable[str | Stylesheet] | None = None,
     scripts: Iterable[str] | None = [],
     description: str | None = None,
     keywords: Iterable[str] | None = None,
@@ -97,29 +108,42 @@ def page(
     Common layout for an HTML page.
     """
     with html(lang=language):
-        yield meta(charset="utf-8")
-        yield meta(
-            name="viewport", content="width=device-width, initial-scale=1.0"
-        )
+        with head():
+            yield meta(charset="utf-8")
+            yield meta(
+                name="viewport",
+                content="width=device-width, initial-scale=1.0",
+            )
 
-        if description is not None:
-            yield meta(name="description", content=description)
+            if description is not None:
+                yield meta(name="description", content=description)
 
-        if keywords is not None:
-            yield meta(name="keywords", content=",".join(keywords))
+            if keywords is not None:
+                yield meta(name="keywords", content=",".join(keywords))
 
-        if author is not None:
-            yield meta(name="author", content=author)
+            if author is not None:
+                yield meta(name="author", content=author)
 
-        if page_url is not None:
-            yield link(rel="canonical", href=page_url)
-            yield base(href=page_url)
+            if page_url is not None:
+                yield link(rel="canonical", href=page_url)
+                yield base(href=page_url)
 
-        for stylesheet in stylesheets or []:
-            yield link(rel="stylesheet", href=stylesheet)
+            for stylesheet in stylesheets or []:
+                if isinstance(stylesheet, Stylesheet):
+                    # HTML raw-text elements recognize closing tags even in
+                    # CSS strings and comments. A CSS escape preserves '<'.
+                    css = re.sub(
+                        r"</style",
+                        lambda match: r"\3c " + match.group()[1:],
+                        stylesheet.as_css(),
+                        flags=re.IGNORECASE,
+                    )
+                    yield style(css)
+                else:
+                    yield link(rel="stylesheet", href=stylesheet)
 
-        yield title_node(title)
-        for script_url in scripts or []:
-            yield script(src=script_url, defer=True)
-    with body():
-        yield Children()
+            yield title_node(title)
+            for script_url in scripts or []:
+                yield script(src=script_url, defer=True)
+        with body():
+            yield Children()
