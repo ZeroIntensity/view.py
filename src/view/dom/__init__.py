@@ -6,4 +6,5 @@ their Python code.
 from view.dom import components as components
 from view.dom import core as core
 from view.dom import css as css
+from view.dom import javascript as javascript
 from view.dom import primitives as primitives

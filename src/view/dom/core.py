@@ -15,14 +15,15 @@ from collections.abc import (
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from html import escape
 from io import StringIO
 from queue import LifoQueue
 from typing import TYPE_CHECKING, ClassVar, ParamSpec, TypeAlias
 
 from view.core.headers import as_real_headers
 from view.core.response import Response
+from view.dom.javascript import SupportsJavaScript, as_javascript_expression
 from view.exceptions import InvalidTypeError
-from view.javascript import SupportsJavaScript
 
 if TYPE_CHECKING:
     from view.core.router import RouteView
@@ -134,7 +135,7 @@ class HTMLNode(SupportsJavaScript):
             else:
                 yield f"<{self.node_name}"
                 for name, value in self.attributes.items():
-                    yield f'    {name}="{value}"'
+                    yield f'    {name}="{escape(str(value), quote=True)}"'
                 yield ">"
             yield from _indent_iterator(self._html_body())
             yield f"</{self.node_name}>"
@@ -155,7 +156,9 @@ class HTMLNode(SupportsJavaScript):
 
     def as_javascript(self) -> str:
         element_id = self.attributes.setdefault("id", uuid.uuid4().hex)
-        return f"document.getElementById({element_id!r})"
+        return (
+            f"document.getElementById({as_javascript_expression(element_id)})"
+        )
 
 
 @contextmanager
