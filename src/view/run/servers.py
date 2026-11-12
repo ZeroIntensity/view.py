@@ -4,6 +4,7 @@ Magically run applications on some common servers.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, MutableMapping
 from contextlib import ExitStack, suppress
 from dataclasses import dataclass
@@ -15,7 +16,6 @@ from typing import (
     TypedDict,
     Unpack,
 )
-import asyncio
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
@@ -141,9 +141,11 @@ def run_wsgiref(app: BaseApp, settings: ServerSettings) -> None:
     """
     from wsgiref.simple_server import make_server
 
-    with app.wsgi() as wsgi_app:
-        with make_server(settings.host, settings.port, wsgi_app) as server:
-            server.serve_forever()
+    with (
+        app.wsgi() as wsgi_app,
+        make_server(settings.host, settings.port, wsgi_app) as server,
+    ):
+        server.serve_forever()
 
 
 StartServer: TypeAlias = Callable[["BaseApp", ServerSettings], None]

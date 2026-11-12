@@ -16,8 +16,10 @@ from typing import (
     runtime_checkable,
 )
 
+from typing_extensions import Self
+
 if TYPE_CHECKING:
-    from ._compiler import CompileContext
+    from view.dom.javascript._compiler import CompileContext
 
 T_co = TypeVar("T_co", covariant=True)
 H = TypeVar("H", bound="JavaScriptHandle[object]")
@@ -100,13 +102,15 @@ class JavaScriptHandle(Generic[T_co]):
     Property names passed to those methods are JavaScript names, verbatim.
     """
 
+    __hash__ = None
+
     def __init__(self, context: CompileContext, expression: str) -> None:
         self._context = context
         self._expression = expression
         self._scope = tuple(context._scopes)
         self._writable = False
 
-    def _copy(self: H, expression: str) -> H:
+    def _copy(self, expression: str) -> Self:
         return type(self)(self._context, expression)
 
     def as_javascript(self) -> str:
@@ -318,37 +322,37 @@ class JavaScriptNumber(JavaScriptHandle[float]):
     def __invert__(self) -> JavaScriptNumber:
         return JavaScriptNumber(self._context, f"(~{self.as_javascript()})")
 
-    def __iadd__(self, other: Number) -> JavaScriptNumber:
+    def __iadd__(self, other: Number) -> Self:
         return self._update("+", other)
 
-    def __isub__(self, other: Number) -> JavaScriptNumber:
+    def __isub__(self, other: Number) -> Self:
         return self._update("-", other)
 
-    def __imul__(self, other: Number) -> JavaScriptNumber:
+    def __imul__(self, other: Number) -> Self:
         return self._update("*", other)
 
-    def __itruediv__(self, other: Number) -> JavaScriptNumber:
+    def __itruediv__(self, other: Number) -> Self:
         return self._update("/", other)
 
-    def __imod__(self, other: Number) -> JavaScriptNumber:
+    def __imod__(self, other: Number) -> Self:
         return self._update("%", other)
 
-    def __ipow__(self, other: Number) -> JavaScriptNumber:
+    def __ipow__(self, other: Number) -> Self:
         return self._update("**", other)
 
-    def __iand__(self, other: Number) -> JavaScriptNumber:
+    def __iand__(self, other: Number) -> Self:
         return self._update("&", other)
 
-    def __ior__(self, other: Number) -> JavaScriptNumber:
+    def __ior__(self, other: Number) -> Self:
         return self._update("|", other)
 
-    def __ixor__(self, other: Number) -> JavaScriptNumber:
+    def __ixor__(self, other: Number) -> Self:
         return self._update("^", other)
 
-    def __ilshift__(self, other: Number) -> JavaScriptNumber:
+    def __ilshift__(self, other: Number) -> Self:
         return self._update("<<", other)
 
-    def __irshift__(self, other: Number) -> JavaScriptNumber:
+    def __irshift__(self, other: Number) -> Self:
         return self._update(">>", other)
 
     def __lt__(self, other: Number) -> JavaScriptBoolean:
@@ -381,7 +385,7 @@ class JavaScriptString(JavaScriptHandle[str]):
             ctx, f"({ctx._render(other)} + {ctx._render(self)})"
         )
 
-    def __iadd__(self, other: String) -> JavaScriptString:
+    def __iadd__(self, other: String) -> Self:
         ctx = self._context
         ctx._make_writable(self)
         ctx._emit(f"{ctx._render(self)} += {ctx._render(other)};")

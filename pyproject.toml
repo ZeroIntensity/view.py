@@ -54,3 +54,5 @@ ignore = [
 "status_codes.py" = ["N818"]
 "primitives.py" = ["A001", "A002", "B008"]
 "servers.py" = ["PLC0415", "RET503"]
+# The compiler and typed handles share internals within this package.
+"src/view/dom/javascript/*.py" = ["SLF001"]

@@ -8,8 +8,10 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from typing import TypeAlias, TypeVar, cast, overload
 
-from ._dom import Console, Document, Window
-from ._values import (
+from typing_extensions import Self
+
+from view.dom.javascript._dom import Console, Document, Window
+from view.dom.javascript._values import (
     Boolean,
     JavaScriptArray,
     JavaScriptBoolean,
@@ -30,11 +32,56 @@ Predicate: TypeAlias = Boolean | Callable[[], Boolean]
 
 # Reserved words cannot be declaration names, even though some are properties.
 _RESERVED = frozenset(
-    "await break case catch class const continue debugger default delete do "
-    "else enum export extends false finally for function if implements import "
-    "in instanceof interface let new null package private protected public "
-    "return static super switch this throw true try typeof var void while "
-    "with yield eval arguments".split()
+    [
+        "await",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "enum",
+        "export",
+        "extends",
+        "false",
+        "finally",
+        "for",
+        "function",
+        "if",
+        "implements",
+        "import",
+        "in",
+        "instanceof",
+        "interface",
+        "let",
+        "new",
+        "null",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "return",
+        "static",
+        "super",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typeof",
+        "var",
+        "void",
+        "while",
+        "with",
+        "yield",
+        "eval",
+        "arguments",
+    ]
 )
 
 
@@ -111,7 +158,7 @@ class CompileContext:
             self._validate(handle)
             return as_javascript_expression(handle)
         # Walk collections as well: nested handles must belong to this scope.
-        elif isinstance(value, Mapping):
+        if isinstance(value, Mapping):
             for item in value.values():
                 self._render(item)
         elif isinstance(value, Sequence) and not isinstance(
@@ -204,10 +251,13 @@ class CompileContext:
 
     @overload
     # bool subclasses int in Python, whereas JavaScript has distinct types.
-    def variable(self, value: bool) -> JavaScriptBoolean: ...  # pyright: ignore[reportOverlappingOverload]
+    def variable(  # pyright: ignore[reportOverlappingOverload]
+        self,
+        value: bool,  # noqa: FBT001
+    ) -> JavaScriptBoolean: ...
 
     @overload
-    def variable(self, value: int | float) -> JavaScriptNumber: ...
+    def variable(self, value: float) -> JavaScriptNumber: ...
 
     @overload
     def variable(self, value: str) -> JavaScriptString: ...
@@ -275,7 +325,10 @@ class CompileContext:
     def string(self, value: JavaScriptValue = "") -> JavaScriptString:
         return self._call("String", (value,), JavaScriptString)
 
-    def boolean(self, value: JavaScriptValue = False) -> JavaScriptBoolean:
+    def boolean(
+        self,
+        value: JavaScriptValue = False,  # noqa: FBT002
+    ) -> JavaScriptBoolean:
         return self._call("Boolean", (value,), JavaScriptBoolean)
 
     def parse_int(
@@ -530,7 +583,7 @@ class Condition:
                 "Use condition branches in their original scope"
             )
 
-    def __enter__(self) -> Condition:
+    def __enter__(self) -> Self:
         self._validate()
         if self._entered:
             raise RuntimeError("A condition context is already open")

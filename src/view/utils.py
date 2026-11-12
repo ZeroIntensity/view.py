@@ -4,13 +4,15 @@ General utilities for view.py users.
 
 from __future__ import annotations
 
-from collections.abc import Generator
-from contextlib import contextmanager
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
 import asyncio
-from typing import ClassVar, Self, Any
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from contextvars import ContextVar, Token
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, ClassVar, Self
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 __all__ = ("reraise",)
 
@@ -39,6 +41,9 @@ class StartStopMixin(ABC):
     _wakeup_event: asyncio.Event = field(
         default_factory=asyncio.Event, init=False, repr=False
     )
+    _stop_event: asyncio.Event = field(
+        default_factory=asyncio.Event, init=False, repr=False
+    )
     _start_task: asyncio.Task[None] | None = field(
         default=None, init=False, repr=False
     )
@@ -46,7 +51,7 @@ class StartStopMixin(ABC):
         default=None, init=False, repr=False
     )
 
-    _current: ClassVar[ContextVar["Self | None"]] = ContextVar(
+    _current: ClassVar[ContextVar[Self | None]] = ContextVar(
         "_current", default=None
     )
 
@@ -62,17 +67,19 @@ class StartStopMixin(ABC):
             raise RuntimeError(f"{self} is not running")
 
         self._wakeup_event.clear()
+        self._stop_event.set()
 
     async def __aenter__(self) -> Self:
         if self.running:
             raise RuntimeError(f"{self} is already running")
 
+        self._stop_event.clear()
         self._current_token = self._current.set(self)
         self._start_task = asyncio.create_task(self.start())
         await self._wakeup_event.wait()
         return self
 
-    async def __aexit__(self, *_: Any) -> None:
+    async def __aexit__(self, *_: object) -> None:
         try:
             self.stop()
             assert self._start_task is not None

@@ -6,21 +6,33 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections.abc import AsyncGenerator, Iterable
-from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from contextlib import (
+    AbstractAsyncContextManager,
+    AsyncExitStack,
+    asynccontextmanager,
+    suppress,
+)
 from dataclasses import dataclass, field
-from datetime import datetime as DateTime
-from typing import AsyncContextManager, TypeAlias, TypeVar, override
+from datetime import datetime, timezone
+from typing import (
+    TYPE_CHECKING,
+    TypeAlias,
+    TypeVar,
+    override,
+)
 
 from rich.console import Console, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 from rich.traceback import Traceback
-from view.utils import StartStopMixin
 
 from view.__about__ import __version__
+from view.utils import StartStopMixin
 
-__all__ = ("LogRecord", "LogLevels", "LogLevel", "LogManager", "Logger")
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Iterable
+
+__all__ = ("LogLevel", "LogLevels", "LogManager", "LogRecord", "Logger")
 
 _STARTUP_BANNER = r"""        _
  _   __(_)__ _      __  ____  __  __
@@ -99,7 +111,9 @@ class LogManager(StartStopMixin):
     def _handle_record(self, record: LogRecord, /) -> None:
         with self.console:
             if record.show_prefix:
-                date = DateTime.fromtimestamp(record.created)
+                date = datetime.fromtimestamp(
+                    record.created, tz=timezone.utc
+                ).astimezone()
                 formatted = date.strftime("%d %B %H:%M:%S.%f")
                 level = record.level
                 level_name = f" {level.name} "
@@ -230,7 +244,7 @@ class Logger:
     async def wrap_log_time(
         self,
         what: str,
-        ctx: AsyncContextManager[T],
+        ctx: AbstractAsyncContextManager[T],
         /,
         *,
         warning_time: float = 3,

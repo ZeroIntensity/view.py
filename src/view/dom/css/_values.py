@@ -202,16 +202,16 @@ class RawCSS:
         return self.as_css()
 
 
-T = TypeVar("T", covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 
 
 @dataclass(frozen=True, slots=True)
-class Important(Generic[T]):
-    value: T
+class Important(Generic[T_co]):
+    value: T_co
 
 
 PropertyValue: TypeAlias = Union[
-    T, GlobalKeyword, RawCSS, Important[Union[T, GlobalKeyword, RawCSS]]
+    T_co, GlobalKeyword, RawCSS, Important[Union[T_co, GlobalKeyword, RawCSS]]
 ]
 CSSValue: TypeAlias = Union[
     str,

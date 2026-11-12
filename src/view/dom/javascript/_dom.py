@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ._values import (
+from view.dom.javascript._values import (
     JavaScriptBoolean,
     JavaScriptFunction,
     JavaScriptHandle,

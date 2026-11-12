@@ -4,20 +4,28 @@ Primary app implementation.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import contextvars
-from dataclasses import dataclass, field
 import json
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable, Generator, MutableSequence
+from collections.abc import (
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Generator,
+    MutableSequence,
+)
+from dataclasses import dataclass, field
 from importlib.metadata import Distribution, PackageNotFoundError
 from multiprocessing import Process
 from pathlib import Path
+from queue import Queue
+from threading import Event, Thread
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncGenerator,
     Generic,
     ParamSpec,
     TypeAlias,
@@ -25,8 +33,6 @@ from typing import (
     Unpack,
     override,
 )
-import asyncio
-from threading import Event, Thread
 
 from view.core.request import Method, Request
 from view.core.response import (
@@ -47,7 +53,6 @@ from view.logs import LogLevels, LogManager
 from view.responses import FileResponse
 from view.run.servers import ServerConfigArgs, run_app_on_any_server
 from view.utils import StartStopMixin, reraise
-from queue import Queue
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
@@ -278,8 +283,7 @@ class BaseApp(StartStopMixin, ABC):
             self.logger.info("Serving app on http://localhost:5000")
 
             self._wakeup_event.set()
-            while self.running:
-                await asyncio.sleep(1)
+            await self._stop_event.wait()
 
             self.logger.info("Server is shutting down!")
 
@@ -312,12 +316,15 @@ class BaseApp(StartStopMixin, ABC):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Response:
-        self.logger.debug(f"Executing view: {view}")
+        # view's logger accepts multiple Rich renderables, not printf args.
+        self.logger.debug("Executing view:", str(view))  # noqa: PLE1205
         try:
             result = view(*args, **kwargs)
             return await wrap_view_result(result)
         except HTTPError as error:
-            self.logger.warning(f"HTTP Error {error.status_code}")
+            self.logger.warning(  # noqa: PLE1205
+                "HTTP Error", str(error.status_code)
+            )
             raise
 
     async def execute_view(
@@ -386,7 +393,7 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        self.logger.info(f"{request.method} on route {request.path}")
+        self.logger.info(str(request.method), "on route", request.path)
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )

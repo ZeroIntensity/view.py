@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import TypeAlias, cast
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 from typing_extensions import Unpack
 
-from ._properties import CSSProperties
-from ._values import (
+from view.dom.css._properties import CSSProperties
+from view.dom.css._values import (
     Angle,
     CSSValue,
     Ems,
@@ -28,6 +27,9 @@ from ._values import (
     ViewportWidth,
     render_value,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Iterator, Mapping
 
 __all__ = (
     "Angle",
@@ -70,7 +72,7 @@ def _property_name(name: object) -> str:
     if not isinstance(name, str):
         raise TypeError("CSS property names must be strings")
     if name.startswith("--"):
-        if len(name) == 2:
+        if name == "--":
             raise ValueError("Custom properties must have a name after '--'")
         return name
     if not name or not all(c.isalnum() or c in "_-" for c in name):

@@ -236,17 +236,17 @@ def _welcome_styles() -> Iterable[CSSRule]:
 
 @component
 def welcome_page() -> HTMLTree:
-    with page("view.py", stylesheets=[_welcome_styles]):
-        with main(cls="view-welcome"):
-            yield h1("view.py")
-            yield p("Your app is running!")
-            with nav():
-                yield a(
-                    "GitHub", href="https://github.com/ZeroIntensity/view.py"
-                )
-                yield a(
-                    "Docs",
-                    href="https://view.zintensity.dev",
-                    cls="view-welcome-docs",
-                )
-            yield Children()
+    with (
+        page("view.py", stylesheets=[_welcome_styles]),
+        main(cls="view-welcome"),
+    ):
+        yield h1("view.py")
+        yield p("Your app is running!")
+        with nav():
+            yield a("GitHub", href="https://github.com/ZeroIntensity/view.py")
+            yield a(
+                "Docs",
+                href="https://view.zintensity.dev",
+                cls="view-welcome-docs",
+            )
+        yield Children()

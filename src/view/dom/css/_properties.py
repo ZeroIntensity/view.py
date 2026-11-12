@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal, TypeAlias, TypedDict, TypeVar
 
-from ._values import (
+from view.dom.css._values import (
     Angle,
     Fractions,
     Frequency,
@@ -176,8 +176,7 @@ _AnimationName: TypeAlias = _Comma[str]
 _AnimationPlayState: TypeAlias = _Comma[Literal["paused", "running"]]
 _AnimationRange: TypeAlias = _Comma[
     _Comma[
-        Length
-        | Literal[
+        Literal[
             "contain",
             "cover",
             "entry",
@@ -185,27 +184,27 @@ _AnimationRange: TypeAlias = _Comma[
             "exit",
             "exit-crossing",
             "normal",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage
         | tuple[
-            Length
-            | Literal[
+            Literal[
                 "contain",
                 "cover",
                 "entry",
                 "entry-crossing",
                 "exit",
                 "exit-crossing",
+                0,
             ]
-            | Literal[0]
+            | Length
             | Percentage,
             ...,
         ]
     ]
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "contain",
             "cover",
             "entry",
@@ -213,15 +212,15 @@ _AnimationRange: TypeAlias = _Comma[
             "exit",
             "exit-crossing",
             "normal",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
 ]
 _AnimationRangeEnd: TypeAlias = _Comma[
-    Length
-    | Literal[
+    Literal[
         "contain",
         "cover",
         "entry",
@@ -229,20 +228,21 @@ _AnimationRangeEnd: TypeAlias = _Comma[
         "exit",
         "exit-crossing",
         "normal",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "contain",
             "cover",
             "entry",
             "entry-crossing",
             "exit",
             "exit-crossing",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
@@ -294,8 +294,7 @@ _Background: TypeAlias = _Comma[
     | Percentage
     | str
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "/",
             "auto",
             "bottom",
@@ -305,15 +304,15 @@ _Background: TypeAlias = _Comma[
             "left",
             "right",
             "top",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
@@ -349,41 +348,31 @@ _BackgroundOrigin: TypeAlias = _Comma[
     Literal["border-box", "content-box", "padding-box"]
 ]
 _BackgroundPosition: TypeAlias = _Comma[
-    Length
-    | Literal["bottom", "center", "left", "right", "top"]
-    | Literal[0]
+    Literal["bottom", "center", "left", "right", "top", 0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
 ]
 _BackgroundPositionX: TypeAlias = _Comma[
-    Length
-    | Literal["center", "left", "right", "x-end", "x-start"]
-    | Literal[0]
+    Literal["center", "left", "right", "x-end", "x-start", 0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["left", "right", "x-end", "x-start"]
-        | Literal[0]
-        | Percentage,
+        Literal["left", "right", "x-end", "x-start", 0] | Length | Percentage,
         ...,
     ]
 ]
 _BackgroundPositionY: TypeAlias = _Comma[
-    Length
-    | Literal["bottom", "center", "top", "y-end", "y-start"]
-    | Literal[0]
+    Literal["bottom", "center", "top", "y-end", "y-start", 0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "top", "y-end", "y-start"]
-        | Literal[0]
-        | Percentage,
+        Literal["bottom", "top", "y-end", "y-start", 0] | Length | Percentage,
         ...,
     ]
 ]
@@ -415,18 +404,17 @@ _BackgroundRepeat: TypeAlias = _Comma[
 ]
 _BackgroundSize: TypeAlias = _Comma[
     Literal["contain", "cover"]
-    | _Pair[Length | Literal["auto"] | Literal[0] | Percentage]
+    | _Pair[Literal["auto", 0] | Length | Percentage]
 ]
 _BasePalette: TypeAlias = Literal["dark", "light"] | int
 _BaselineShift: TypeAlias = (
-    Length | Literal["baseline", "sub", "super"] | Literal[0] | Percentage
+    Literal["baseline", "sub", "super", 0] | Length | Percentage
 )
 _BaselineSource: TypeAlias = Literal["auto", "first", "last"]
-_Bleed: TypeAlias = Length | Literal["auto"] | Literal[0]
+_Bleed: TypeAlias = Literal["auto", 0] | Length
 _BlockSize: TypeAlias = (
-    Length
-    | Literal["auto", "fit-content", "max-content", "min-content"]
-    | Literal[0]
+    Literal["auto", "fit-content", "max-content", "min-content", 0]
+    | Length
     | Percentage
     | RawCSS
 )
@@ -454,7 +442,7 @@ _BorderBlockEndStyle: TypeAlias = Literal[
     "solid",
 ]
 _BorderBlockEndWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _BorderBlockStart: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -462,7 +450,7 @@ _BorderBlockStart: TypeAlias = (
 _BorderBlockStartColor: TypeAlias = str
 _BorderBlockStartStyle: TypeAlias = _BorderBlockEndStyle
 _BorderBlockStartWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _BorderBlockStyle: TypeAlias = Literal[
     "dashed",
@@ -577,7 +565,7 @@ _BorderBlockStyle: TypeAlias = Literal[
     "solid solid",
 ]
 _BorderBlockWidth: TypeAlias = _Pair[
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 ]
 _BorderBottom: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -586,9 +574,7 @@ _BorderBottomColor: TypeAlias = str
 _BorderBottomLeftRadius: TypeAlias = _Pair[Length | Literal[0] | Percentage]
 _BorderBottomRightRadius: TypeAlias = _Pair[Length | Literal[0] | Percentage]
 _BorderBottomStyle: TypeAlias = _BorderBlockEndStyle
-_BorderBottomWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-)
+_BorderBottomWidth: TypeAlias = Literal["medium", "thick", "thin", 0] | Length
 _BorderCollapse: TypeAlias = Literal["collapse", "separate"]
 _BorderColor: TypeAlias = _Quad[str]
 _BorderEndEndRadius: TypeAlias = _Pair[Length | Literal[0] | Percentage]
@@ -641,7 +627,7 @@ _BorderInlineEnd: TypeAlias = (
 _BorderInlineEndColor: TypeAlias = str
 _BorderInlineEndStyle: TypeAlias = _BorderBlockEndStyle
 _BorderInlineEndWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _BorderInlineStart: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -649,32 +635,28 @@ _BorderInlineStart: TypeAlias = (
 _BorderInlineStartColor: TypeAlias = str
 _BorderInlineStartStyle: TypeAlias = _BorderBlockEndStyle
 _BorderInlineStartWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _BorderInlineStyle: TypeAlias = _BorderBlockStyle
 _BorderInlineWidth: TypeAlias = _Pair[
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 ]
 _BorderLeft: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
 )
 _BorderLeftColor: TypeAlias = str
 _BorderLeftStyle: TypeAlias = _BorderBlockEndStyle
-_BorderLeftWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-)
+_BorderLeftWidth: TypeAlias = Literal["medium", "thick", "thin", 0] | Length
 _BorderRadius: TypeAlias = (
     _Quad[Length | Literal[0] | Percentage]
-    | tuple[Length | Literal["/"] | Literal[0] | Percentage, ...]
+    | tuple[Literal["/", 0] | Length | Percentage, ...]
 )
 _BorderRight: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
 )
 _BorderRightColor: TypeAlias = str
 _BorderRightStyle: TypeAlias = _BorderBlockEndStyle
-_BorderRightWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-)
+_BorderRightWidth: TypeAlias = Literal["medium", "thick", "thin", 0] | Length
 _BorderShape: TypeAlias = (
     Literal["none"]
     | _Pair[
@@ -718,15 +700,9 @@ _BorderTopColor: TypeAlias = str
 _BorderTopLeftRadius: TypeAlias = _Pair[Length | Literal[0] | Percentage]
 _BorderTopRightRadius: TypeAlias = _Pair[Length | Literal[0] | Percentage]
 _BorderTopStyle: TypeAlias = _BorderBlockEndStyle
-_BorderTopWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-)
-_BorderWidth: TypeAlias = _Quad[
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-]
-_Bottom: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_BorderTopWidth: TypeAlias = Literal["medium", "thick", "thin", 0] | Length
+_BorderWidth: TypeAlias = _Quad[Literal["medium", "thick", "thin", 0] | Length]
+_Bottom: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _BoxAlign: TypeAlias = Literal["baseline", "center", "end", "start", "stretch"]
 _BoxDecorationBreak: TypeAlias = Literal["clone", "slice"]
 _BoxDirection: TypeAlias = Literal["inherit", "normal", "reverse"]
@@ -805,18 +781,16 @@ _ColorInterpolationFilters: TypeAlias = Literal["auto", "linearRGB", "sRGB"]
 _ColorScheme: TypeAlias = Literal["normal"] | _Sequence[str] | tuple[str, ...]
 _ColumnCount: TypeAlias = Literal["auto"] | int
 _ColumnFill: TypeAlias = Literal["auto", "balance"]
-_ColumnGap: TypeAlias = Length | Literal["normal"] | Literal[0] | Percentage
-_ColumnHeight: TypeAlias = Length | Literal["auto"] | Literal[0]
+_ColumnGap: TypeAlias = Literal["normal", 0] | Length | Percentage
+_ColumnHeight: TypeAlias = Literal["auto", 0] | Length
 _ColumnRule: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
 )
 _ColumnRuleColor: TypeAlias = str
 _ColumnRuleStyle: TypeAlias = _BorderBlockEndStyle
-_ColumnRuleWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-)
+_ColumnRuleWidth: TypeAlias = Literal["medium", "thick", "thin", 0] | Length
 _ColumnSpan: TypeAlias = Literal["all", "none"]
-_ColumnWidth: TypeAlias = Length | Literal["auto"] | Literal[0]
+_ColumnWidth: TypeAlias = Literal["auto", 0] | Length
 _ColumnWrap: TypeAlias = Literal["auto", "nowrap", "wrap"]
 _Columns: TypeAlias = (
     Length
@@ -852,18 +826,16 @@ _Contain: TypeAlias = (
     ]
 )
 _ContainIntrinsicBlockSize: TypeAlias = (
-    Length
-    | Literal["none"]
-    | Literal[0]
-    | tuple[Length | Literal["auto", "none"] | Literal[0], ...]
+    Literal["none", 0]
+    | Length
+    | tuple[Literal["auto", "none", 0] | Length, ...]
 )
 _ContainIntrinsicHeight: TypeAlias = _ContainIntrinsicBlockSize
 _ContainIntrinsicInlineSize: TypeAlias = _ContainIntrinsicBlockSize
 _ContainIntrinsicSize: TypeAlias = _Pair[
-    Length
-    | Literal["none"]
-    | Literal[0]
-    | tuple[Length | Literal["auto", "none"] | Literal[0], ...]
+    Literal["none", 0]
+    | Length
+    | tuple[Literal["auto", "none", 0] | Length, ...]
 ]
 _ContainIntrinsicWidth: TypeAlias = _ContainIntrinsicBlockSize
 _Container: TypeAlias = Literal["none"] | _Sequence[str] | tuple[str, ...]
@@ -1130,9 +1102,8 @@ _Flex: TypeAlias = (
     | tuple[float, ...]
 )
 _FlexBasis: TypeAlias = (
-    Length
-    | Literal["auto", "content", "fit-content", "max-content", "min-content"]
-    | Literal[0]
+    Literal["auto", "content", "fit-content", "max-content", "min-content", 0]
+    | Length
     | Percentage
     | RawCSS
 )
@@ -1253,8 +1224,7 @@ _FontLanguageOverride: TypeAlias = str
 _FontOpticalSizing: TypeAlias = Literal["auto", "none"]
 _FontPalette: TypeAlias = RawCSS | str
 _FontSize: TypeAlias = (
-    Length
-    | Literal[
+    Literal[
         "large",
         "larger",
         "math",
@@ -1266,8 +1236,9 @@ _FontSize: TypeAlias = (
         "xx-large",
         "xx-small",
         "xxx-large",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
 )
 _FontSizeAdjust: TypeAlias = (
@@ -1287,8 +1258,7 @@ _FontSizeAdjust: TypeAlias = (
     ]
 )
 _FontSmooth: TypeAlias = (
-    Length
-    | Literal[
+    Literal[
         "always",
         "auto",
         "large",
@@ -1300,8 +1270,9 @@ _FontSmooth: TypeAlias = (
         "xx-large",
         "xx-small",
         "xxx-large",
+        0,
     ]
-    | Literal[0]
+    | Length
 )
 _FontStretch: TypeAlias = (
     Literal[
@@ -1333,7 +1304,7 @@ _FontStretch: TypeAlias = (
 )
 _FontStyle: TypeAlias = (
     Literal["italic", "normal", "oblique"]
-    | tuple[Angle | Literal["oblique"] | Literal[0], ...]
+    | tuple[Literal["oblique", 0] | Angle, ...]
 )
 _FontSynthesis: TypeAlias = Literal[
     "none",
@@ -1709,11 +1680,10 @@ _FrameSizing: TypeAlias = Literal[
     "content-width",
 ]
 _Gap: TypeAlias = (
-    Length
-    | Literal["normal"]
-    | Literal[0]
+    Literal["normal", 0]
+    | Length
     | Percentage
-    | tuple[Length | Literal["normal"] | Literal[0] | Percentage, ...]
+    | tuple[Literal["normal", 0] | Length | Percentage, ...]
 )
 _Grid: TypeAlias = (
     Literal["none"]
@@ -1727,10 +1697,9 @@ _Grid: TypeAlias = (
 )
 _GridArea: TypeAlias = int | str | tuple[int | str, ...]
 _GridAutoColumns: TypeAlias = _Sequence[
-    Fractions
+    Literal["auto", "max-content", "min-content", 0]
+    | Fractions
     | Length
-    | Literal["auto", "max-content", "min-content"]
-    | Literal[0]
     | Percentage
     | RawCSS
 ]
@@ -1764,10 +1733,9 @@ _GridTemplateColumns: TypeAlias = (
     Literal["none", "subgrid"]
     | RawCSS
     | _Sequence[
-        Fractions
+        Literal["auto", "max-content", "min-content", 0]
+        | Fractions
         | Length
-        | Literal["auto", "max-content", "min-content"]
-        | Literal[0]
         | Percentage
         | RawCSS
         | tuple[
@@ -1813,10 +1781,9 @@ _HyphenateCharacter: TypeAlias = str
 _HyphenateLimitChars: TypeAlias = _Triple[Literal["auto"] | int]
 _Hyphens: TypeAlias = Literal["auto", "manual", "none"]
 _ImageOrientation: TypeAlias = (
-    Angle
-    | Literal["flip", "from-image"]
-    | Literal[0]
-    | tuple[Angle | Literal["flip"] | Literal[0], ...]
+    Literal["flip", "from-image", 0]
+    | Angle
+    | tuple[Literal["flip", 0] | Angle, ...]
 )
 _ImageRendering: TypeAlias = Literal[
     "auto", "crisp-edges", "pixelated", "smooth"
@@ -1847,26 +1814,18 @@ _InitialValue: TypeAlias = (
     | str
 )
 _InlineSize: TypeAlias = _BlockSize
-_Inset: TypeAlias = _Quad[
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-]
+_Inset: TypeAlias = _Quad[Literal["auto", 0] | Length | Percentage | RawCSS]
 _InsetBlock: TypeAlias = _Pair[
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 ]
-_InsetBlockEnd: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
-_InsetBlockStart: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_InsetBlockEnd: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
+_InsetBlockStart: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _InsetInline: TypeAlias = _Pair[
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 ]
-_InsetInlineEnd: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_InsetInlineEnd: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _InsetInlineStart: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 )
 _Interactivity: TypeAlias = Literal["auto", "inert"]
 _InterestDelay: TypeAlias = _Pair[Literal["normal"] | Time]
@@ -2010,8 +1969,8 @@ _JustifyTracks: TypeAlias = _Comma[
         "unsafe start",
     ]
 ]
-_Left: TypeAlias = Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-_LetterSpacing: TypeAlias = Length | Literal["normal"] | Literal[0]
+_Left: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
+_LetterSpacing: TypeAlias = Literal["normal", 0] | Length
 _LightingColor: TypeAlias = str
 _LineBreak: TypeAlias = Literal[
     "anywhere", "auto", "loose", "normal", "strict"
@@ -2025,39 +1984,25 @@ _ListStyle: TypeAlias = RawCSS | str | tuple[RawCSS | str, ...]
 _ListStyleImage: TypeAlias = str
 _ListStylePosition: TypeAlias = Literal["inside", "outside"]
 _ListStyleType: TypeAlias = RawCSS | str
-_Margin: TypeAlias = _Quad[
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-]
+_Margin: TypeAlias = _Quad[Literal["auto", 0] | Length | Percentage | RawCSS]
 _MarginBlock: TypeAlias = _Pair[
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 ]
-_MarginBlockEnd: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_MarginBlockEnd: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _MarginBlockStart: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 )
-_MarginBottom: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_MarginBottom: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _MarginInline: TypeAlias = _Pair[
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 ]
-_MarginInlineEnd: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_MarginInlineEnd: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _MarginInlineStart: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+    Literal["auto", 0] | Length | Percentage | RawCSS
 )
-_MarginLeft: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
-_MarginRight: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
-_MarginTop: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
-)
+_MarginLeft: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
+_MarginRight: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
+_MarginTop: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _MarginTrim: TypeAlias = Literal["all", "in-flow", "none"]
 _Marker: TypeAlias = str
 _MarkerEnd: TypeAlias = str
@@ -2072,8 +2017,7 @@ _Mask: TypeAlias = _Comma[
     | Percentage
     | str
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "/",
             "auto",
             "bottom",
@@ -2100,23 +2044,20 @@ _Mask: TypeAlias = _Comma[
             "top center",
             "top left",
             "top right",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "left", "right", "top"]
-        | Literal[0]
-        | Percentage,
+        Literal["bottom", "left", "right", "top", 0] | Length | Percentage,
         ...,
     ]
     | tuple[Length | Literal[0] | Percentage | str, ...]
@@ -2160,8 +2101,7 @@ _MaskOrigin: TypeAlias = _Comma[
     ]
 ]
 _MaskPosition: TypeAlias = _Comma[
-    Length
-    | Literal[
+    Literal[
         "bottom",
         "bottom center",
         "bottom left",
@@ -2184,22 +2124,18 @@ _MaskPosition: TypeAlias = _Comma[
         "top center",
         "top left",
         "top right",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "left", "right", "top"]
-        | Literal[0]
-        | Percentage,
-        ...,
+        Literal["bottom", "left", "right", "top", 0] | Length | Percentage, ...
     ]
 ]
 _MaskRepeat: TypeAlias = _BackgroundRepeat
@@ -2223,9 +2159,8 @@ _MathDepth: TypeAlias = Literal["auto-add"] | RawCSS | int
 _MathShift: TypeAlias = Literal["compact", "normal"]
 _MathStyle: TypeAlias = Literal["compact", "normal"]
 _MaxBlockSize: TypeAlias = (
-    Length
-    | Literal["fit-content", "max-content", "min-content", "none"]
-    | Literal[0]
+    Literal["fit-content", "max-content", "min-content", "none", 0]
+    | Length
     | Percentage
     | RawCSS
 )
@@ -2263,8 +2198,7 @@ _ObjectFit: TypeAlias = Literal[
     "contain", "cover", "fill", "none", "scale-down"
 ]
 _ObjectPosition: TypeAlias = (
-    Length
-    | Literal[
+    Literal[
         "bottom",
         "bottom center",
         "bottom left",
@@ -2287,22 +2221,18 @@ _ObjectPosition: TypeAlias = (
         "top center",
         "top left",
         "top right",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "left", "right", "top"]
-        | Literal[0]
-        | Percentage,
-        ...,
+        Literal["bottom", "left", "right", "top", 0] | Length | Percentage, ...
     ]
 )
 _ObjectViewBox: TypeAlias = Literal["none"] | RawCSS
@@ -2314,8 +2244,7 @@ _Offset: TypeAlias = (
     | str
     | tuple[Angle | Length | Literal[0] | Percentage | RawCSS | str, ...]
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "/",
             "auto",
             "bottom",
@@ -2340,30 +2269,26 @@ _Offset: TypeAlias = (
             "top center",
             "top left",
             "top right",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "left", "right", "top"]
-        | Literal[0]
-        | Percentage,
+        Literal["bottom", "left", "right", "top", 0] | Length | Percentage,
         ...,
     ]
     | tuple[RawCSS | str, ...]
 )
 _OffsetAnchor: TypeAlias = (
-    Length
-    | Literal[
+    Literal[
         "auto",
         "bottom",
         "bottom center",
@@ -2387,29 +2312,24 @@ _OffsetAnchor: TypeAlias = (
         "top center",
         "top left",
         "top right",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "left", "right", "top"]
-        | Literal[0]
-        | Percentage,
-        ...,
+        Literal["bottom", "left", "right", "top", 0] | Length | Percentage, ...
     ]
 )
 _OffsetDistance: TypeAlias = Length | Literal[0] | Percentage
 _OffsetPath: TypeAlias = RawCSS | str | tuple[RawCSS | str, ...]
 _OffsetPosition: TypeAlias = (
-    Length
-    | Literal[
+    Literal[
         "auto",
         "bottom",
         "bottom center",
@@ -2434,29 +2354,24 @@ _OffsetPosition: TypeAlias = (
         "top center",
         "top left",
         "top right",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
     | tuple[
-        Length
-        | Literal["bottom", "left", "right", "top"]
-        | Literal[0]
-        | Percentage,
-        ...,
+        Literal["bottom", "left", "right", "top", 0] | Length | Percentage, ...
     ]
 )
 _OffsetRotate: TypeAlias = (
-    Angle
-    | Literal["auto", "reverse"]
-    | Literal[0]
-    | tuple[Angle | Literal["auto", "reverse"] | Literal[0], ...]
+    Literal["auto", "reverse", 0]
+    | Angle
+    | tuple[Literal["auto", "reverse", 0] | Angle, ...]
 )
 _Opacity: TypeAlias = Percentage | float
 _Order: TypeAlias = int
@@ -2478,9 +2393,7 @@ _OutlineStyle: TypeAlias = Literal[
     "ridge",
     "solid",
 ]
-_OutlineWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
-)
+_OutlineWidth: TypeAlias = Literal["medium", "thick", "thin", 0] | Length
 _Overflow: TypeAlias = Literal[
     "auto",
     "auto auto",
@@ -2519,14 +2432,10 @@ _OverflowBlock: TypeAlias = Literal[
 ]
 _OverflowClipBox: TypeAlias = Literal["content-box", "padding-box"]
 _OverflowClipMargin: TypeAlias = (
-    Length
-    | Literal["border-box", "content-box", "padding-box"]
-    | Literal[0]
+    Literal["border-box", "content-box", "padding-box", 0]
+    | Length
     | tuple[
-        Length
-        | Literal["border-box", "content-box", "padding-box"]
-        | Literal[0],
-        ...,
+        Literal["border-box", "content-box", "padding-box", 0] | Length, ...
     ]
 )
 _OverflowInline: TypeAlias = Literal[
@@ -2596,9 +2505,9 @@ _PaintOrder: TypeAlias = Literal[
     "stroke markers fill",
 ]
 _PathLength: TypeAlias = (
-    Literal["none"] | tuple[Length | Literal[",", "∞"] | Literal[0], ...]
+    Literal["none"] | tuple[Literal[",", "∞", 0] | Length, ...]
 )
-_Perspective: TypeAlias = Length | Literal["none"] | Literal[0]
+_Perspective: TypeAlias = Literal["none", 0] | Length
 _PerspectiveOrigin: TypeAlias = _ObjectPosition
 _PlaceContent: TypeAlias = (
     Literal[
@@ -3230,14 +3139,13 @@ _ReadingOrder: TypeAlias = int
 _Resize: TypeAlias = Literal[
     "block", "both", "horizontal", "inline", "none", "vertical"
 ]
-_Right: TypeAlias = Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+_Right: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _Rotate: TypeAlias = (
-    Angle
-    | Literal["none"]
-    | Literal[0]
+    Literal["none", 0]
+    | Angle
     | tuple[Angle | Literal["x", "y", "z"] | float, ...]
 )
-_RowGap: TypeAlias = Length | Literal["normal"] | Literal[0] | Percentage
+_RowGap: TypeAlias = Literal["normal", 0] | Length | Percentage
 _RubyAlign: TypeAlias = Literal[
     "center", "space-around", "space-between", "start"
 ]
@@ -3253,8 +3161,8 @@ _RubyPosition: TypeAlias = Literal[
     "under",
     "under alternate",
 ]
-_Rx: TypeAlias = Length | Literal["auto"] | Literal[0] | Percentage
-_Ry: TypeAlias = Length | Literal["auto"] | Literal[0] | Percentage
+_Rx: TypeAlias = Literal["auto", 0] | Length | Percentage
+_Ry: TypeAlias = Literal["auto", 0] | Length | Percentage
 _Scale: TypeAlias = Literal["none"] | _Triple[Percentage | float]
 _ScrollAxisLock: TypeAlias = Literal["auto", "none"]
 _ScrollBehavior: TypeAlias = Literal["auto", "smooth"]
@@ -3271,39 +3179,21 @@ _ScrollMarginLeft: TypeAlias = Length | Literal[0]
 _ScrollMarginRight: TypeAlias = Length | Literal[0]
 _ScrollMarginTop: TypeAlias = Length | Literal[0]
 _ScrollMarkerGroup: TypeAlias = Literal["after", "before", "none"]
-_ScrollPadding: TypeAlias = _Quad[
-    Length | Literal["auto"] | Literal[0] | Percentage
-]
+_ScrollPadding: TypeAlias = _Quad[Literal["auto", 0] | Length | Percentage]
 _ScrollPaddingBlock: TypeAlias = _Pair[
-    Length | Literal["auto"] | Literal[0] | Percentage
+    Literal["auto", 0] | Length | Percentage
 ]
-_ScrollPaddingBlockEnd: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
-_ScrollPaddingBlockStart: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
-_ScrollPaddingBottom: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
+_ScrollPaddingBlockEnd: TypeAlias = Literal["auto", 0] | Length | Percentage
+_ScrollPaddingBlockStart: TypeAlias = Literal["auto", 0] | Length | Percentage
+_ScrollPaddingBottom: TypeAlias = Literal["auto", 0] | Length | Percentage
 _ScrollPaddingInline: TypeAlias = _Pair[
-    Length | Literal["auto"] | Literal[0] | Percentage
+    Literal["auto", 0] | Length | Percentage
 ]
-_ScrollPaddingInlineEnd: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
-_ScrollPaddingInlineStart: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
-_ScrollPaddingLeft: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
-_ScrollPaddingRight: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
-_ScrollPaddingTop: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
+_ScrollPaddingInlineEnd: TypeAlias = Literal["auto", 0] | Length | Percentage
+_ScrollPaddingInlineStart: TypeAlias = Literal["auto", 0] | Length | Percentage
+_ScrollPaddingLeft: TypeAlias = Literal["auto", 0] | Length | Percentage
+_ScrollPaddingRight: TypeAlias = Literal["auto", 0] | Length | Percentage
+_ScrollPaddingTop: TypeAlias = Literal["auto", 0] | Length | Percentage
 _ScrollSnapAlign: TypeAlias = Literal[
     "center",
     "center center",
@@ -3329,8 +3219,7 @@ _ScrollSnapAlign: TypeAlias = Literal[
 _ScrollSnapCoordinate: TypeAlias = (
     Literal["none"]
     | _Comma[
-        Length
-        | Literal[
+        Literal[
             "bottom",
             "bottom center",
             "bottom left",
@@ -3353,21 +3242,18 @@ _ScrollSnapCoordinate: TypeAlias = (
             "top center",
             "top left",
             "top right",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage
         | tuple[
-            Length
-            | Literal["bottom", "center", "left", "right", "top"]
-            | Literal[0]
+            Literal["bottom", "center", "left", "right", "top", 0]
+            | Length
             | Percentage,
             ...,
         ]
         | tuple[
-            Length
-            | Literal["bottom", "left", "right", "top"]
-            | Literal[0]
-            | Percentage,
+            Literal["bottom", "left", "right", "top", 0] | Length | Percentage,
             ...,
         ]
     ]
@@ -3728,7 +3614,7 @@ _TextDecorationStyle: TypeAlias = Literal[
     "dashed", "dotted", "double", "solid", "wavy"
 ]
 _TextDecorationThickness: TypeAlias = (
-    Length | Literal["auto", "from-font"] | Literal[0] | Percentage
+    Literal["auto", "from-font", 0] | Length | Percentage
 )
 _TextEmphasis: TypeAlias = str | tuple[str, ...]
 _TextEmphasisColor: TypeAlias = str
@@ -3760,9 +3646,7 @@ _TextIndent: TypeAlias = (
     Length
     | Literal[0]
     | Percentage
-    | tuple[
-        Length | Literal["each-line", "hanging"] | Literal[0] | Percentage, ...
-    ]
+    | tuple[Literal["each-line", "hanging", 0] | Length | Percentage, ...]
 )
 _TextJustify: TypeAlias = Literal[
     "auto", "inter-character", "inter-word", "none"
@@ -3825,9 +3709,7 @@ _TextTransform: TypeAlias = Literal[
     "uppercase full-width",
     "uppercase full-width full-size-kana",
 ]
-_TextUnderlineOffset: TypeAlias = (
-    Length | Literal["auto"] | Literal[0] | Percentage
-)
+_TextUnderlineOffset: TypeAlias = Literal["auto", 0] | Length | Percentage
 _TextUnderlinePosition: TypeAlias = Literal[
     "auto",
     "from-font",
@@ -3875,8 +3757,7 @@ _TimelineTriggerActivationRangeEnd: TypeAlias = _AnimationRangeEnd
 _TimelineTriggerActivationRangeStart: TypeAlias = _AnimationRangeEnd
 _TimelineTriggerActiveRange: TypeAlias = _Comma[
     _Comma[
-        Length
-        | Literal[
+        Literal[
             "auto",
             "contain",
             "cover",
@@ -3885,27 +3766,27 @@ _TimelineTriggerActiveRange: TypeAlias = _Comma[
             "exit",
             "exit-crossing",
             "normal",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage
         | tuple[
-            Length
-            | Literal[
+            Literal[
                 "contain",
                 "cover",
                 "entry",
                 "entry-crossing",
                 "exit",
                 "exit-crossing",
+                0,
             ]
-            | Literal[0]
+            | Length
             | Percentage,
             ...,
         ]
     ]
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "auto",
             "contain",
             "cover",
@@ -3914,15 +3795,15 @@ _TimelineTriggerActiveRange: TypeAlias = _Comma[
             "exit",
             "exit-crossing",
             "normal",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
 ]
 _TimelineTriggerActiveRangeEnd: TypeAlias = _Comma[
-    Length
-    | Literal[
+    Literal[
         "auto",
         "contain",
         "cover",
@@ -3931,20 +3812,21 @@ _TimelineTriggerActiveRangeEnd: TypeAlias = _Comma[
         "exit",
         "exit-crossing",
         "normal",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal[
+        Literal[
             "contain",
             "cover",
             "entry",
             "entry-crossing",
             "exit",
             "exit-crossing",
+            0,
         ]
-        | Literal[0]
+        | Length
         | Percentage,
         ...,
     ]
@@ -3952,7 +3834,7 @@ _TimelineTriggerActiveRangeEnd: TypeAlias = _Comma[
 _TimelineTriggerActiveRangeStart: TypeAlias = _TimelineTriggerActiveRangeEnd
 _TimelineTriggerName: TypeAlias = Literal["none"] | _Comma[str]
 _TimelineTriggerSource: TypeAlias = _Comma[RawCSS | str]
-_Top: TypeAlias = Length | Literal["auto"] | Literal[0] | Percentage | RawCSS
+_Top: TypeAlias = Literal["auto", 0] | Length | Percentage | RawCSS
 _TouchAction: TypeAlias = Literal[
     "auto",
     "manipulation",
@@ -4054,14 +3936,12 @@ _TransformBox: TypeAlias = Literal[
     "border-box", "content-box", "fill-box", "stroke-box", "view-box"
 ]
 _TransformOrigin: TypeAlias = (
-    Length
-    | Literal["bottom", "center", "left", "right", "top"]
-    | Literal[0]
+    Literal["bottom", "center", "left", "right", "top", 0]
+    | Length
     | Percentage
     | tuple[
-        Length
-        | Literal["bottom", "center", "left", "right", "top"]
-        | Literal[0]
+        Literal["bottom", "center", "left", "right", "top", 0]
+        | Length
         | Percentage,
         ...,
     ]
@@ -4076,9 +3956,8 @@ _TransitionDuration: TypeAlias = _Comma[Time]
 _TransitionProperty: TypeAlias = Literal["none"] | _Comma[str]
 _TransitionTimingFunction: TypeAlias = _AnimationTimingFunction
 _Translate: TypeAlias = (
-    Length
-    | Literal["none"]
-    | Literal[0]
+    Literal["none", 0]
+    | Length
     | Percentage
     | tuple[Length | Literal[0] | Percentage, ...]
 )
@@ -4102,8 +3981,7 @@ _VectorEffect: TypeAlias = Literal[
     "none",
 ]
 _VerticalAlign: TypeAlias = (
-    Length
-    | Literal[
+    Literal[
         "baseline",
         "bottom",
         "middle",
@@ -4112,8 +3990,9 @@ _VerticalAlign: TypeAlias = (
         "text-bottom",
         "text-top",
         "top",
+        0,
     ]
-    | Literal[0]
+    | Length
     | Percentage
 )
 _ViewTimeline: TypeAlias = _Comma[
@@ -4121,7 +4000,7 @@ _ViewTimeline: TypeAlias = _Comma[
 ]
 _ViewTimelineAxis: TypeAlias = _Comma[Literal["block", "inline", "x", "y"]]
 _ViewTimelineInset: TypeAlias = _Comma[
-    _Pair[Length | Literal["auto"] | Literal[0] | Percentage]
+    _Pair[Literal["auto", 0] | Length | Percentage]
 ]
 _ViewTimelineName: TypeAlias = _Comma[str]
 _ViewTransitionClass: TypeAlias = Literal["none"] | _Sequence[str]
@@ -4175,7 +4054,7 @@ _WindowDrag: TypeAlias = Literal["move", "none"]
 _WordBreak: TypeAlias = Literal[
     "auto-phrase", "break-all", "break-word", "keep-all", "normal"
 ]
-_WordSpacing: TypeAlias = Length | Literal["normal"] | Literal[0]
+_WordSpacing: TypeAlias = Literal["normal", 0] | Length
 _WordWrap: TypeAlias = Literal["break-word", "normal"]
 _WritingMode: TypeAlias = Literal[
     "horizontal-tb", "sideways-lr", "sideways-rl", "vertical-lr", "vertical-rl"
@@ -4313,7 +4192,7 @@ _MozContextProperties: TypeAlias = (
 _MozFloatEdge: TypeAlias = Literal[
     "border-box", "content-box", "margin-box", "padding-box"
 ]
-_MozForceBrokenImageIcon: TypeAlias = Literal["1"] | Literal[0]
+_MozForceBrokenImageIcon: TypeAlias = Literal["1", 0]
 _MozOrient: TypeAlias = Literal["block", "horizontal", "inline", "vertical"]
 _MozOutlineRadius: TypeAlias = _BorderRadius
 _MozOutlineRadiusBottomleft: TypeAlias = Length | Literal[0] | Percentage
@@ -4359,10 +4238,9 @@ _MsGridColumns: TypeAlias = (
     Literal["none"]
     | RawCSS
     | _Sequence[
-        Fractions
+        Literal["auto", "max-content", "min-content", 0]
+        | Fractions
         | Length
-        | Literal["auto", "max-content", "min-content"]
-        | Literal[0]
         | Percentage
         | RawCSS
         | tuple[
@@ -4382,10 +4260,10 @@ _MsOverflowStyle: TypeAlias = Literal[
     "-ms-autohiding-scrollbar", "auto", "none", "scrollbar"
 ]
 _MsScrollChaining: TypeAlias = Literal["chained", "none"]
-_MsScrollLimit: TypeAlias = tuple[Length | Literal["auto"] | Literal[0], ...]
-_MsScrollLimitXMax: TypeAlias = Length | Literal["auto"] | Literal[0]
+_MsScrollLimit: TypeAlias = tuple[Literal["auto", 0] | Length, ...]
+_MsScrollLimitXMax: TypeAlias = Literal["auto", 0] | Length
 _MsScrollLimitXMin: TypeAlias = Length | Literal[0]
-_MsScrollLimitYMax: TypeAlias = Length | Literal["auto"] | Literal[0]
+_MsScrollLimitYMax: TypeAlias = Literal["auto", 0] | Length
 _MsScrollLimitYMin: TypeAlias = Length | Literal[0]
 _MsScrollRails: TypeAlias = Literal["none", "railed"]
 _MsScrollSnapPointsX: TypeAlias = RawCSS
@@ -4477,7 +4355,7 @@ _WebkitBorderAfter: TypeAlias = (
 _WebkitBorderAfterColor: TypeAlias = str
 _WebkitBorderAfterStyle: TypeAlias = _BorderBlockEndStyle
 _WebkitBorderAfterWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _WebkitBorderBefore: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -4485,7 +4363,7 @@ _WebkitBorderBefore: TypeAlias = (
 _WebkitBorderBeforeColor: TypeAlias = str
 _WebkitBorderBeforeStyle: TypeAlias = _BorderBlockEndStyle
 _WebkitBorderBeforeWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _WebkitBorderEnd: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -4493,7 +4371,7 @@ _WebkitBorderEnd: TypeAlias = (
 _WebkitBorderEndColor: TypeAlias = str
 _WebkitBorderEndStyle: TypeAlias = _BorderBlockEndStyle
 _WebkitBorderEndWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _WebkitBorderStart: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -4501,7 +4379,7 @@ _WebkitBorderStart: TypeAlias = (
 _WebkitBorderStartColor: TypeAlias = str
 _WebkitBorderStartStyle: TypeAlias = _BorderBlockEndStyle
 _WebkitBorderStartWidth: TypeAlias = (
-    Length | Literal["medium", "thick", "thin"] | Literal[0]
+    Literal["medium", "thick", "thin", 0] | Length
 )
 _WebkitBoxReflect: TypeAlias = (
     Length | Literal[0] | str | tuple[Length | Literal[0] | str, ...]
@@ -4555,10 +4433,10 @@ _WebkitMaskOrigin: TypeAlias = _Comma[
 ]
 _WebkitMaskPosition: TypeAlias = _MaskPosition
 _WebkitMaskPositionX: TypeAlias = _Comma[
-    Length | Literal["center", "left", "right"] | Literal[0] | Percentage
+    Literal["center", "left", "right", 0] | Length | Percentage
 ]
 _WebkitMaskPositionY: TypeAlias = _Comma[
-    Length | Literal["bottom", "center", "top"] | Literal[0] | Percentage
+    Literal["bottom", "center", "top", 0] | Length | Percentage
 ]
 _WebkitMaskRepeat: TypeAlias = _BackgroundRepeat
 _WebkitMaskRepeatX: TypeAlias = Literal[

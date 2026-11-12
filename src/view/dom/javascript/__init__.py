@@ -6,14 +6,14 @@ Python control flow runs during compilation. Runtime branches and loops use
 condition().if_true(), condition().if_false(), and condition().while_true().
 """
 
-from ._compiler import (
+from view.dom.javascript._compiler import (
     CompileContext,
     Condition,
     Switch,
     TryBlock,
     javascript_compiler,
 )
-from ._dom import (
+from view.dom.javascript._dom import (
     Console,
     Document,
     Element,
@@ -22,7 +22,7 @@ from ._dom import (
     InputElement,
     Window,
 )
-from ._values import (
+from view.dom.javascript._values import (
     Boolean,
     JavaScriptArray,
     JavaScriptBoolean,
