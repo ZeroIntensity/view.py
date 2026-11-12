@@ -10,14 +10,19 @@ from functools import wraps
 from typing import TYPE_CHECKING, NoReturn, ParamSpec
 
 from view.dom.core import HTMLNode, HTMLTree
-from view.dom.css import Stylesheet
+from view.dom.css import Stylesheet, rule, stylesheet
 from view.dom.primitives import (
+    a,
     base,
     body,
+    h1,
     head,
     html,
     link,
+    main,
     meta,
+    nav,
+    p,
     script,
     style,
 )
@@ -26,7 +31,9 @@ from view.dom.primitives import title as title_node
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
-__all__ = "Children", "Component", "component"
+    from view.dom.css import CSSRule
+
+__all__ = "Children", "Component", "component", "page", "welcome_page"
 
 
 class Children(HTMLNode):
@@ -146,4 +153,100 @@ def page(
             for script_url in scripts or []:
                 yield script(src=script_url, defer=True)
         with body():
+            yield Children()
+
+
+@stylesheet
+def _welcome_styles() -> Iterable[CSSRule]:
+    yield rule("body", margin=0)
+    yield rule(
+        ".view-welcome",
+        min_height="100svh",
+        box_sizing="border-box",
+        padding="2rem",
+        display="flex",
+        flex_direction="column",
+        align_items="center",
+        justify_content="center",
+        background="#f8fafc",
+        color="#152338",
+        font_family="system-ui, sans-serif",
+        text_align="center",
+    )
+    yield rule(
+        ".view-welcome h1",
+        margin=0,
+        font_size="clamp(3rem, 10vw, 5rem)",
+        font_weight=750,
+        letter_spacing="-0.07em",
+    )
+    yield rule(
+        ".view-welcome p",
+        margin="0.75rem 0 2rem",
+        color="#637186",
+    )
+    yield rule(
+        ".view-welcome nav",
+        display="flex",
+        flex_wrap="wrap",
+        justify_content="center",
+        gap="0.75rem",
+    )
+    yield rule(
+        ".view-welcome a",
+        display="inline-flex",
+        align_items="center",
+        justify_content="center",
+        min_width="112px",
+        min_height="44px",
+        box_sizing="border-box",
+        padding="0.65rem 1.25rem",
+        border="1px solid #dbe4ef",
+        border_radius="10px",
+        background="#fff",
+        color="#152338",
+        font_size="0.875rem",
+        font_weight=600,
+        text_decoration="none",
+        box_shadow="0 2px 4px #15233808",
+        transition="background 150ms ease, box-shadow 150ms ease",
+    )
+    yield rule(
+        ".view-welcome a.view-welcome-docs",
+        border_color="#205bda",
+        background="#205bda",
+        color="#fff",
+    )
+    yield rule(
+        ".view-welcome a:hover",
+        box_shadow="0 4px 12px #15233818",
+        background="#eef2f7",
+    )
+    yield rule(
+        ".view-welcome a.view-welcome-docs:hover",
+        border_color="#194bb7",
+        background="#194bb7",
+    )
+    yield rule(
+        ".view-welcome a:focus-visible",
+        outline="2px solid #205bda",
+        outline_offset="5px",
+    )
+
+
+@component
+def welcome_page() -> HTMLTree:
+    with page("view.py", stylesheets=[_welcome_styles]):
+        with main(cls="view-welcome"):
+            yield h1("view.py")
+            yield p("Your app is running!")
+            with nav():
+                yield a(
+                    "GitHub", href="https://github.com/ZeroIntensity/view.py"
+                )
+                yield a(
+                    "Docs",
+                    href="https://view.zintensity.dev",
+                    cls="view-welcome-docs",
+                )
             yield Children()
