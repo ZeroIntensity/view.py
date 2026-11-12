@@ -193,6 +193,7 @@ def html_response(
     Return a :class:`~view.core.response.Response` object from a function
     returning HTML.
     """
+    from view.dom.components import Component
 
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Response:
         with html_context() as parent:
@@ -206,6 +207,11 @@ def html_response(
                     if __debug__ and status_code is not None:
                         raise RuntimeError("Status code was already set")
                     status_code = item
+                elif isinstance(item, Component):
+                    for child in item.generator:
+                        try_item(child)
+                else:
+                    raise InvalidTypeError(item, int, Component)
 
             if isinstance(iterator, AsyncIterator):
                 async for item in iterator:
