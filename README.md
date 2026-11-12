@@ -80,22 +80,6 @@ async def home():
 app.run()
 ```
 
-JavaScript builders execute once when decorated and become strings. Use
-`with ctx.condition(number < 10).while_true():` for a runtime loop. Conditions
-containing calls can take a callback, for example
-`ctx.condition(lambda: ctx.parse_int(counter.inner_html) < 10)`, so the calls
-run on every iteration. Use `ctx.variable(expression)` to snapshot a value;
-assign Python names to handles normally, and use `ctx.assign()` to replace
-an existing JavaScript variable's value.
-
-DOM lookups return typed, non-null elements and throw a JavaScript error if
-the element is missing. Nullable APIs expose `.is_null()`, `.is_undefined()`,
-and a checked `.unwrap()`. Additional browser APIs can use typed
-`handle.get(name, result_type)`, `handle.set(name, value)`, and
-`handle.call_method(name, *arguments, returns=result_type)`. Names in these
-methods are JavaScript names. `ctx.expression(source, result_type)` and
-`ctx.raw(source)` accept trusted JavaScript for syntax outside the typed API.
-
 ## Copyright
 
 `view.py` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
