@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import asyncio
 from typing import ClassVar, Self, Any
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 
 __all__ = ("reraise",)
 
@@ -42,6 +42,9 @@ class StartStopMixin(ABC):
     _start_task: asyncio.Task[None] | None = field(
         default=None, init=False, repr=False
     )
+    _current_token: Token[Self | None] | None = field(
+        default=None, init=False, repr=False
+    )
 
     _current: ClassVar[ContextVar["Self | None"]] = ContextVar(
         "_current", default=None
@@ -64,15 +67,20 @@ class StartStopMixin(ABC):
         if self.running:
             raise RuntimeError(f"{self} is already running")
 
-        self._current.set(self)
+        self._current_token = self._current.set(self)
         self._start_task = asyncio.create_task(self.start())
         await self._wakeup_event.wait()
         return self
 
     async def __aexit__(self, *_: Any) -> None:
-        self.stop()
-        assert self._start_task is not None
-        await self._start_task
+        try:
+            self.stop()
+            assert self._start_task is not None
+            await self._start_task
+        finally:
+            assert self._current_token is not None
+            self._current.reset(self._current_token)
+            self._current_token = None
 
     @classmethod
     def current(cls) -> Self:

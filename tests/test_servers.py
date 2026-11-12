@@ -61,7 +61,12 @@ def test_run_server(server_name: str, port: int):
         response = requests.get(f"http://localhost:{port}")
         assert response.text == "ok"
     finally:
-        process.kill()
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
 
 
 def test_ctrl_c_shutdown():

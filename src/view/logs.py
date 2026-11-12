@@ -77,11 +77,6 @@ class LogManager(StartStopMixin):
         *message: LogMessage,
         show_prefix: bool = True,
     ) -> None:
-        if __debug__ and not self.running:
-            raise RuntimeError(
-                "attempted to write to a logger that is not running"
-            )
-
         if (
             self.disabled
             or logger.disabled
@@ -96,7 +91,10 @@ class LogManager(StartStopMixin):
             created=time.time(),
             show_prefix=show_prefix,
         )
-        self._queue.put_nowait(record)
+        if self.running:
+            self._queue.put_nowait(record)
+        else:
+            self._handle_record(record)
 
     def _handle_record(self, record: LogRecord, /) -> None:
         with self.console:

@@ -77,7 +77,7 @@ async def test_queued_logs_drain_and_manager_can_restart(logs):
         assert output.getvalue().index(
             "first message"
         ) < output.getvalue().index("last message")
-        with pytest.raises(RuntimeError, match="no log manager"):
+        with pytest.raises(RuntimeError, match="no instance of LogManager"):
             LogManager.current()
 
 

@@ -5,7 +5,7 @@ Magically run applications on some common servers.
 from __future__ import annotations
 
 from collections.abc import Callable, MutableMapping
-from contextlib import suppress
+from contextlib import ExitStack, suppress
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -13,12 +13,12 @@ from typing import (
     NotRequired,
     TypeAlias,
     TypedDict,
+    Unpack,
 )
 import asyncio
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
-    from view.run.wsgi import WSGIProtocol
 
 from view.exceptions import ViewError
 
@@ -101,26 +101,28 @@ def run_gunicorn(app: BaseApp, settings: ServerSettings) -> None:
 
     class GunicornRunner(BaseApplication):
         def __init__(
-            self, app: WSGIProtocol, options: dict[str, Any] | None = None
+            self, app: BaseApp, options: dict[str, Any] | None = None
         ) -> None:
             self.options = options or {}
             self.application = app
+            self._wsgi_contexts = ExitStack()
             super().__init__()
 
         def load_config(self):
             assert self.cfg is not None
+            self.cfg.set("worker_exit", self.worker_exit)
             for key, value in self.options.items():
                 if key in self.cfg.settings and value is not None:
                     self.cfg.set(key, value)
 
         def load(self):
-            return self.application
+            return self._wsgi_contexts.enter_context(self.application.wsgi())
 
-    with app.wsgi() as wsgi_app:
-        runner = GunicornRunner(
-            wsgi_app, {"bind": f"{settings.host}:{settings.port}"}
-        )
-        runner.run()
+        def worker_exit(self, _server: Any, _worker: Any) -> None:
+            self._wsgi_contexts.close()
+
+    runner = GunicornRunner(app, {"bind": f"{settings.host}:{settings.port}"})
+    runner.run()
 
 
 def run_werkzeug(app: BaseApp, settings: ServerSettings) -> None:
@@ -156,14 +158,27 @@ ALL_SERVERS: MutableMapping[str, StartServer] = {
 }
 
 
-def run_app_on_any_server(app: BaseApp) -> None:
+def run_app_on_any_server(
+    app: BaseApp, **kwargs: Unpack[ServerConfigArgs]
+) -> None:
     """
     Run the app on the nearest available ASGI or WSGI server.
 
     This will always succeed, as it will fall back to the standard
     :mod:`wsgiref` module if no other server is installed.
     """
-    settings = ServerSettings.from_kwargs({})
+    settings = ServerSettings.from_kwargs(kwargs)
+
+    server_hint = kwargs.get("server_hint")
+    if server_hint is not None:
+        if server_hint not in ALL_SERVERS:
+            raise BadServerError(f"Unknown server: {server_hint!r}")
+        try:
+            return ALL_SERVERS[server_hint](app, settings)
+        except ImportError as error:
+            raise BadServerError(
+                f"Server {server_hint!r} is not installed"
+            ) from error
 
     for start_server in ALL_SERVERS.values():
         with suppress(ImportError):

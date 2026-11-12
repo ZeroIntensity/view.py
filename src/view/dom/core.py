@@ -210,8 +210,8 @@ def html_response(
                 elif isinstance(item, Component):
                     for child in item.generator:
                         try_item(child)
-                else:
-                    raise InvalidTypeError(item, int, Component)
+                elif not isinstance(item, HTMLNode):
+                    raise InvalidTypeError(item, HTMLNode, int, Component)
 
             if isinstance(iterator, AsyncIterator):
                 async for item in iterator:

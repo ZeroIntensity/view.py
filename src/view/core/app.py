@@ -283,12 +283,12 @@ class BaseApp(StartStopMixin, ABC):
 
             self.logger.info("Server is shutting down!")
 
-    def run(self) -> None:
+    def run(self, **kwargs: Unpack[ServerConfigArgs]) -> None:
         """
         Run the app, starting the event loop and server.
         """
 
-        run_app_on_any_server(self)
+        run_app_on_any_server(self, **kwargs)
 
     def run_detached(
         self,
