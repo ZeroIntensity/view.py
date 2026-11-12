@@ -164,8 +164,9 @@ def asgi_for_app(app: BaseApp, /) -> ASGIProtocol:
                     if message["type"] == "lifespan.startup":
                         await send({"type": "lifespan.startup.complete"})
                     elif message["type"] == "lifespan.shutdown":
-                        await send({"type": "lifespan.shutdown.complete"})
-                        return
+                        break
+            await send({"type": "lifespan.shutdown.complete"})
+            return
 
         assert scope["type"] == "http"
         method = Method(scope["method"])

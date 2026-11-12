@@ -64,6 +64,46 @@ def test_run_server(server_name: str, port: int):
         process.kill()
 
 
+def test_ctrl_c_shutdown():
+    pytest.importorskip("uvicorn")
+    code = """if True:
+    import asyncio
+    import signal
+    from contextlib import asynccontextmanager
+    from view.core.app import App
+    from view.run.servers import ServerSettings, run_uvicorn
+
+    app = App()
+
+    @app.lifecycle
+    @asynccontextmanager
+    async def interrupt():
+        asyncio.get_running_loop().call_later(
+            0.1, signal.raise_signal, signal.SIGINT
+        )
+        yield
+
+    run_uvicorn(app, ServerSettings("127.0.0.1", 0, False))
+    """
+    result = subprocess.run(
+        [sys.executable, "-X", "dev", "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    for message in (
+        "Traceback",
+        "Exception ignored",
+        "Task was destroyed",
+        "never awaited",
+        "unhandled exception",
+        "appears unsupported",
+    ):
+        assert message not in result.stderr, result.stderr
+    assert "Server is shutting down!" in result.stdout
+
+
 @pytest.mark.parametrize("server_name", ALL_SERVERS)
 @pytest.mark.skip("some multiprocessing problems at the moment")
 def test_run_server_detached(server_name: str):
