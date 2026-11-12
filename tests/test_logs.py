@@ -16,7 +16,9 @@ from view.testing import AppTestClient
 @pytest.fixture
 def logs():
     output = StringIO()
-    manager = LogManager(console=Console(file=output, width=200))
+    manager = LogManager(
+        console=Console(file=output, width=200, color_system=None)
+    )
     return manager, output
 
 
