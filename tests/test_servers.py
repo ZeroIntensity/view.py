@@ -91,9 +91,9 @@ def test_ctrl_c_shutdown():
     run_uvicorn(app, ServerSettings("127.0.0.1", 0, False))
     """
     result = subprocess.run(
-        [sys.executable, "-X", "dev", "-c", code],
+        [sys.executable, "-X", "dev", "-X", "utf8", "-c", code],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         timeout=10,
     )
     assert result.returncode == 0, result.stderr
