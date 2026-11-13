@@ -20,7 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = ["typing_extensions>=4"]
+dependencies = ["typing_extensions>=4", "rich"]
 dynamic = ["version", "license"]
 
 #[project.optional-dependencies]
@@ -54,3 +54,5 @@ ignore = [
 "status_codes.py" = ["N818"]
 "primitives.py" = ["A001", "A002", "B008"]
 "servers.py" = ["PLC0415", "RET503"]
+# The compiler and typed handles share internals within this package.
+"src/view/dom/javascript/*.py" = ["SLF001"]

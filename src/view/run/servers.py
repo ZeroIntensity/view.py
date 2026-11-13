@@ -4,8 +4,9 @@ Magically run applications on some common servers.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, MutableMapping
-from contextlib import suppress
+from contextlib import ExitStack, suppress
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -18,7 +19,6 @@ from typing import (
 
 if TYPE_CHECKING:
     from view.core.app import BaseApp
-    from view.run.wsgi import WSGIProtocol
 
 from view.exceptions import ViewError
 
@@ -69,7 +69,6 @@ def run_hypercorn(app: BaseApp, settings: ServerSettings) -> None:
     """
     Run the app using the ``hypercorn`` library.
     """
-    import asyncio
 
     import hypercorn
     from hypercorn.asyncio import serve
@@ -102,24 +101,27 @@ def run_gunicorn(app: BaseApp, settings: ServerSettings) -> None:
 
     class GunicornRunner(BaseApplication):
         def __init__(
-            self, app: WSGIProtocol, options: dict[str, Any] | None = None
+            self, app: BaseApp, options: dict[str, Any] | None = None
         ) -> None:
             self.options = options or {}
             self.application = app
+            self._wsgi_contexts = ExitStack()
             super().__init__()
 
         def load_config(self):
             assert self.cfg is not None
+            self.cfg.set("worker_exit", self.worker_exit)
             for key, value in self.options.items():
                 if key in self.cfg.settings and value is not None:
                     self.cfg.set(key, value)
 
         def load(self):
-            return self.application
+            return self._wsgi_contexts.enter_context(self.application.wsgi())
 
-    runner = GunicornRunner(
-        app.wsgi(), {"bind": f"{settings.host}:{settings.port}"}
-    )
+        def worker_exit(self, _server: Any, _worker: Any) -> None:
+            self._wsgi_contexts.close()
+
+    runner = GunicornRunner(app, {"bind": f"{settings.host}:{settings.port}"})
     runner.run()
 
 
@@ -129,7 +131,8 @@ def run_werkzeug(app: BaseApp, settings: ServerSettings) -> None:
     """
     from werkzeug.serving import run_simple
 
-    run_simple(settings.host, settings.port, app.wsgi())
+    with app.wsgi() as wsgi_app:
+        run_simple(settings.host, settings.port, wsgi_app)
 
 
 def run_wsgiref(app: BaseApp, settings: ServerSettings) -> None:
@@ -138,7 +141,10 @@ def run_wsgiref(app: BaseApp, settings: ServerSettings) -> None:
     """
     from wsgiref.simple_server import make_server
 
-    with make_server(settings.host, settings.port, app.wsgi()) as server:
+    with (
+        app.wsgi() as wsgi_app,
+        make_server(settings.host, settings.port, wsgi_app) as server,
+    ):
         server.serve_forever()
 
 
@@ -164,21 +170,18 @@ def run_app_on_any_server(
     :mod:`wsgiref` module if no other server is installed.
     """
     settings = ServerSettings.from_kwargs(kwargs)
-    hint = kwargs.get("server_hint")
-    if hint is not None:
-        try:
-            start_server = ALL_SERVERS[hint]
-        except KeyError as key_error:
-            raise BadServerError(
-                f"{hint!r} is not a known server"
-            ) from key_error
 
+    server_hint = kwargs.get("server_hint")
+    if server_hint is not None:
+        if server_hint not in ALL_SERVERS:
+            raise BadServerError(f"Unknown server: {server_hint!r}")
         try:
-            return start_server(app, settings)
+            return ALL_SERVERS[server_hint](app, settings)
         except ImportError as error:
-            raise BadServerError(f"{hint} is not installed") from error
+            raise BadServerError(
+                f"Server {server_hint!r} is not installed"
+            ) from error
 
-    # I'm not sure what Ruff is complaining about here
     for start_server in ALL_SERVERS.values():
         with suppress(ImportError):
             return start_server(app, settings)

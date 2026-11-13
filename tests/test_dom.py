@@ -2,12 +2,13 @@ import inspect
 from collections.abc import AsyncIterator, Callable, Iterator
 
 import pytest
+
 from view.core.app import App
 from view.dom.components import Children, component
 from view.dom.core import HTMLNode, html_context, html_response
+from view.dom.javascript import SupportsJavaScript
 from view.dom.primitives import ALL_PRIMITIVES, div, html, p
 from view.testing import AppTestClient
-from view.javascript import SupportsJavaScript
 
 
 def html_function(
@@ -85,6 +86,26 @@ async def test_html_response():
     body = (await response.body()).decode("utf-8")
     formatted = body.replace(" ", "").replace("\n", "")
     assert formatted == "<!DOCTYPEhtml><html><div><p>test</p></div></html>"
+
+
+@pytest.mark.asyncio
+async def test_yield_component():
+    @component
+    def my_component():
+        with div():
+            yield p("before")
+            yield Children()
+            yield p("after")
+
+    @html_response
+    async def index():
+        yield my_component()
+
+    response = await index()
+    assert response.status_code == 200
+    body = (await response.body()).decode("utf-8")
+    formatted = body.replace(" ", "").replace("\n", "")
+    assert formatted == "<!DOCTYPEhtml><div><p>before</p><p>after</p></div>"
 
 
 def test_components():

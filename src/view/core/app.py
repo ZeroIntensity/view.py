@@ -4,21 +4,36 @@ Primary app implementation.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import contextvars
 import json
-import logging
 import os
-import sys
-import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import (
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Generator,
+    MutableSequence,
+)
+from dataclasses import dataclass, field
 from importlib.metadata import Distribution, PackageNotFoundError
 from multiprocessing import Process
 from pathlib import Path
-from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar, Unpack
+from queue import Queue
+from threading import Event, Thread
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    ParamSpec,
+    TypeAlias,
+    TypeVar,
+    Unpack,
+    override,
+)
 
-from view.core._colors import ColorfulFormatter
 from view.core.request import Method, Request
 from view.core.response import (
     Response,
@@ -34,9 +49,10 @@ from view.core.status_codes import (
     NotFound,
 )
 from view.exceptions import InvalidTypeError
+from view.logs import LogLevels, LogManager
 from view.responses import FileResponse
 from view.run.servers import ServerConfigArgs, run_app_on_any_server
-from view.utils import reraise
+from view.utils import StartStopMixin, reraise
 
 if TYPE_CHECKING:
     from view.run.asgi import ASGIProtocol
@@ -71,12 +87,49 @@ def _is_development_mode() -> bool:
     return json.loads(json_data).get("dir_info", {}).get("editable", False)
 
 
-class BaseApp(ABC):
+_LifecycleT = TypeVar("_LifecycleT")
+LifecycleFunction: TypeAlias = Callable[
+    [],
+    contextlib.AbstractAsyncContextManager[T]
+    | contextlib.AbstractContextManager[T],
+]
+_MISSING = object()
+
+
+@dataclass(slots=True)
+class LifecycleItem(Generic[_LifecycleT]):
+    function: LifecycleFunction
+    _result: _LifecycleT | Any = field(default=_MISSING, init=False)
+
+    def __call__(self) -> _LifecycleT:
+        if self._result is _MISSING:
+            raise RuntimeError(
+                f"lifecycle item {self.function.__name__} has not been invoked yet"
+            )
+
+        return self._result
+
+    @contextlib.asynccontextmanager
+    async def execute(self) -> AsyncGenerator[None]:
+        async with contextlib.AsyncExitStack() as stack:
+            context = self.function()
+            if isinstance(context, contextlib.AbstractAsyncContextManager):
+                result = await stack.enter_async_context(context)
+            else:
+                assert isinstance(context, contextlib.AbstractContextManager)
+                result = stack.enter_context(context)
+
+            self._result = result
+            yield
+
+
+class BaseApp(StartStopMixin, ABC):
     """Base view.py application."""
 
     _CURRENT_APP = contextvars.ContextVar["BaseApp"]("Current app being used.")
 
     def __init__(self) -> None:
+        super().__init__()
         self._request = contextvars.ContextVar[Request]("request")
         self._production: bool | None = None
 
@@ -84,10 +137,16 @@ class BaseApp(ABC):
         # from writing to development_mode.
         self._development_mode: bool = _is_development_mode()
 
-        self.logger = self._new_logger()
+        self.log_manager = LogManager(
+            level=LogLevels.DEBUG if self.development_mode else LogLevels.INFO
+        )
         """
-        The logger used by the app.
+        The log manager used by the app.
         """
+
+        self.logger = self.log_manager.create_logger("app")
+
+        self.lifecycle_items: MutableSequence[LifecycleItem] = []
 
     @property
     def development_mode(self) -> bool:
@@ -100,42 +159,12 @@ class BaseApp(ABC):
         """
         return self._development_mode
 
-    def _new_logger(self) -> logging.Logger:
-        """
-        Create a new logger for this app.
-        """
-        # TODO: This should be configurable
-
-        log_level = logging.INFO
-        if self.development_mode:
-            log_level = logging.DEBUG
-
-        # In the future, we might want to add a use-case for multiple apps in
-        # the same process. To support this, we use the ID of this instance in
-        # the logger name to keep it unique.
-
-        # XXX: Should this create a new logger for each class, or for each instance?
-        logger = logging.getLogger(
-            f"{__name__}.{self.__class__.__name__}-{id(self)}"
-        )
-        logger.setLevel(log_level)
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(log_level)
-
-        formatter = ColorfulFormatter(
-            "view: %(asctime)s -- [%(levelname)s]: %(message)s"
-        )
-        handler.setFormatter(formatter)
-
-        logger.addHandler(handler)
-        return logger
-
     def shut_up(self) -> None:
         """
-        Stop the logger.
+        Stop all log output.
         """
 
-        self.logger.disabled = True
+        self.log_manager.disabled = True
 
     @property
     def debug(self) -> bool:
@@ -152,7 +181,7 @@ class BaseApp(ABC):
         return self._production
 
     @contextlib.contextmanager
-    def request_context(self, request: Request) -> Iterator[None]:
+    def request_context(self, request: Request) -> Generator[None]:
         """
         Enter a context for the given request.
         """
@@ -180,61 +209,90 @@ class BaseApp(ABC):
         Get the response from the server for a given request.
         """
 
-    def wsgi(self) -> WSGIProtocol:
+    def _build_wsgi_callable(
+        self, queue: Queue[WSGIProtocol], shutdown_event: Event
+    ) -> None:
         """
-        Get the WSGI callable for the app.
+        Build an event loop in the current thread and emit a WSGI callable
+        bound to it.
         """
         from view.run.wsgi import wsgi_for_app
 
-        return wsgi_for_app(self)
+        loop = asyncio.new_event_loop()
+
+        async def _run_server():
+            async with self:
+                wsgi_app = wsgi_for_app(self, loop)
+                queue.put_nowait(wsgi_app)
+                await asyncio.to_thread(shutdown_event.wait)
+
+        try:
+            loop.run_until_complete(_run_server())
+        finally:
+            loop.close()
+
+    @contextlib.contextmanager
+    def wsgi(self) -> Generator[WSGIProtocol]:
+        """
+        Build a WSGI callable for the app.
+        """
+        queue = Queue["WSGIProtocol"](maxsize=1)
+        shutdown_event = Event()
+        thread = Thread(
+            target=self._build_wsgi_callable, args=(queue, shutdown_event)
+        )
+        thread.start()
+        try:
+            yield queue.get()
+        finally:
+            shutdown_event.set()
+            thread.join()
 
     def asgi(self) -> ASGIProtocol:
         """
-        Get the ASGI callable for the app.
+        Get the ASGI callable for this app.
         """
         from view.run.asgi import asgi_for_app
 
         return asgi_for_app(self)
 
+    def lifecycle(
+        self, function: LifecycleFunction[_LifecycleT]
+    ) -> LifecycleItem[_LifecycleT]:
+        item = LifecycleItem(function)
+        self.lifecycle_items.append(item)
+        return item
+
+    @override
+    async def start(self) -> None:
+        async with self.log_manager, contextlib.AsyncExitStack() as stack:
+            for item in self.lifecycle_items:
+                await stack.enter_async_context(item.execute())
+
+            self.log_manager.print_startup_message()
+
+            if self.development_mode:
+                self.logger.info("You're in development mode!")
+                self.logger.info(
+                    "Development mode implies that you're working on view.py itself and plan on contributing to the library."
+                )
+                self.logger.info(
+                    "If that doesn't sound correct, set VIEW_DEVMODE to 0."
+                )
+
+            self.logger.info("Serving app on http://localhost:5000")
+
+            self._wakeup_event.set()
+            await self._stop_event.wait()
+
+            self.logger.info("Server is shutting down!")
+
     def run(self, **kwargs: Unpack[ServerConfigArgs]) -> None:
         """
-        Run the app.
-
-        This is a sort of magic function that's supposed to "just work". If
-        finer control over the server settings is desired, explicitly use the
-        server's API with the app's :meth:`asgi` or :meth:`wsgi` method.
+        Run the app, starting the event loop and server.
         """
 
-        production = kwargs.get("production", False)
-        # If production is True, then __debug__ should be False.
-        # If production is False, then __debug__ should be True.
-        if production is __debug__:
-            warnings.warn(
-                f"The app was run with {production=}, but Python's {__debug__=}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-
-        if self.development_mode:
-            self.logger.info("You're in development mode!")
-            self.logger.info(
-                "Development mode implies that you're working on view.py itself and plan on contributing to the library."
-            )
-            self.logger.info(
-                "If that doesn't sound correct, set VIEW_DEVMODE to 0."
-            )
-
-        self.logger.info(
-            "Serving app on http://localhost:%d", kwargs.get("port") or 5000
-        )
-        try:
-            run_app_on_any_server(self, **kwargs)
-        except KeyboardInterrupt:
-            self.logger.info("CTRL^C received, shutting down")
-        except Exception:
-            self.logger.exception("Error in server lifecycle")
-        finally:
-            self.logger.info("Server finished")
+        run_app_on_any_server(self, **kwargs)
 
     def run_detached(
         self,
@@ -258,12 +316,15 @@ class BaseApp(ABC):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Response:
-        self.logger.debug("Executing view: %s", view)
+        # view's logger accepts multiple Rich renderables, not printf args.
+        self.logger.debug("Executing view:", str(view))  # noqa: PLE1205
         try:
             result = view(*args, **kwargs)
             return await wrap_view_result(result)
         except HTTPError as error:
-            self.logger.warning("HTTP Error %d", error.status_code)
+            self.logger.warning(  # noqa: PLE1205
+                "HTTP Error", str(error.status_code)
+            )
             raise
 
     async def execute_view(
@@ -332,7 +393,7 @@ class App(BaseApp):
         self.router = router or Router()
 
     async def _process_request_internal(self, request: Request) -> Response:
-        self.logger.info("%s on route %s", request.method, request.path)
+        self.logger.info(str(request.method), "on route", request.path)
         found_route: FoundRoute | None = self.router.lookup_route(
             request.path, request.method
         )

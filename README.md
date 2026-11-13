@@ -46,29 +46,35 @@ app.run()
 
 ```py
 from view.core.app import App
-from view.dom.core import HTMLNode, html_response
+from view.dom.core import html_response
 from view.dom.components import page
 from view.dom.primitives import button, p
 
-from view.javascript import javascript_compiler, as_javascript_expression
+from view.dom.javascript import CompileContext, javascript_compiler
 
 app = App()
 
 
 @javascript_compiler
-def click_button(counter: HTMLNode):
-    yield f"let node = {as_javascript_expression(counter)};"
-    yield f"let currentNumber = parseInt(node.innerHTML);"
-    yield f"node.innerHTML = ++currentNumber;"
+def click_button(ctx: CompileContext) -> None:
+    counter = ctx.document.get_element_by_id("counter")
+    number = ctx.parse_int(counter.inner_html)
+    number += 1
+    counter.inner_html = number
+
+    with ctx.condition(number == 42) as condition:
+        with condition.if_true():
+            ctx.window.alert("The answer!")
+        with condition.if_false():
+            ctx.console.log(number)
 
 
 @app.get("/")
 @html_response
 async def home():
     with page("Counter"):
-        count = p("0")
-        yield count
-        yield button("Click me!", onclick=click_button(count))
+        yield p("0", id="counter")
+        yield button("Click me!", onclick=click_button)
 
 
 app.run()

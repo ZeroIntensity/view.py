@@ -1,5 +1,5 @@
 """
-Constructor functions for all HTTP elements.
+Constructor functions for all HTML elements.
 """
 
 from __future__ import annotations

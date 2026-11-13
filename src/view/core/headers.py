@@ -152,7 +152,7 @@ def headers_to_wsgi(headers: HTTPHeaders, /) -> WSGIHeaders:
     """
 
     wsgi_headers: WSGIHeaders = []
-    for key, value in headers.items():
+    for key, value in headers.as_sequence():
         wsgi_headers.append((str(key), value))
 
     return wsgi_headers
@@ -177,7 +177,7 @@ def headers_to_asgi(headers: HTTPHeaders, /) -> ASGIHeaders:
     """
     asgi_headers: ASGIHeaders = []
 
-    for key, value in headers:
+    for key, value in headers.as_sequence():
         asgi_headers.append((key.encode("utf-8"), value.encode("utf-8")))
 
     return asgi_headers

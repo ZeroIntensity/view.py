@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = ("wsgi_for_app",)
 
-WSGIHeaders: TypeAlias = Iterable[tuple[str, str]]
+WSGIHeaders: TypeAlias = list[tuple[str, str]]
 # We can't use a TypedDict for the environment because it has arbitrary keys
 # for the headers.
 WSGIEnvironment: TypeAlias = dict[str, Any]
@@ -30,7 +30,7 @@ WSGIProtocol: TypeAlias = Callable[
 def wsgi_for_app(
     app: BaseApp,
     /,
-    loop: asyncio.AbstractEventLoop | None = None,
+    loop: asyncio.AbstractEventLoop,
     chunk_size: int = 512,
 ) -> WSGIProtocol:
     """
@@ -40,37 +40,40 @@ def wsgi_for_app(
     Don't use this directly; prefer the :meth:`view.core.app.BaseApp.wsgi`
     method instead.
     """
-    loop = loop or asyncio.new_event_loop()
 
     def wsgi(
         environ: WSGIEnvironment, start_response: WSGIStartResponse
     ) -> Iterable[bytes]:
-        method = Method(environ["REQUEST_METHOD"])
+        async def _async_wrapper() -> Iterable[bytes]:
+            method = Method(environ["REQUEST_METHOD"])
 
-        async def stream():
-            request_body: str | IO[bytes] = environ["wsgi.input"]
-            assert isinstance(request_body, IO)
-            length = chunk_size
+            async def stream():
+                request_body: str | IO[bytes] = environ["wsgi.input"]
+                assert isinstance(request_body, IO)
+                length = chunk_size
 
-            while length == chunk_size:
-                data = await asyncio.to_thread(request_body.read, chunk_size)
-                length = len(data)
-                yield data
+                while length == chunk_size:
+                    data = await asyncio.to_thread(
+                        request_body.read, chunk_size
+                    )
+                    length = len(data)
+                    yield data
 
-        path = environ["PATH_INFO"]
-        assert isinstance(path, str)
-        headers = wsgi_to_headers(environ)
-        parameters = extract_query_parameters(environ["QUERY_STRING"])
-        request = Request(stream(), app, path, method, headers, parameters)
-        response = loop.run_until_complete(app.process_request(request))
+            path = environ["PATH_INFO"]
+            assert isinstance(path, str)
+            headers = wsgi_to_headers(environ)
+            parameters = extract_query_parameters(environ["QUERY_STRING"])
+            request = Request(stream(), app, path, method, headers, parameters)
+            response = await app.process_request(request)
 
-        wsgi_headers: WSGIHeaders = headers_to_wsgi(response.headers)
+            wsgi_headers: WSGIHeaders = headers_to_wsgi(response.headers)
 
-        # WSGI is such a weird spec
-        status_str = (
-            f"{response.status_code} {STATUS_STRINGS[response.status_code]}"
-        )
-        start_response(status_str, wsgi_headers)
-        return [loop.run_until_complete(response.body())]
+            # WSGI is such a weird spec
+            status_str = f"{response.status_code} {STATUS_STRINGS[response.status_code]}"
+            start_response(status_str, wsgi_headers)
+            return [await response.body()]
+
+        response = asyncio.run_coroutine_threadsafe(_async_wrapper(), loop)
+        return response.result()
 
     return wsgi
